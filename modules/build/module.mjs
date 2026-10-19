@@ -107,6 +107,8 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
     icon: '<rect x="3.5" y="4" width="7" height="7" rx="1.6"/><rect x="13.5" y="4" width="7" height="7" rx="1.6"/><rect x="3.5" y="14" width="7" height="6" rx="1.6"/><path d="M14 17.5l2 2 4-4.5"/>',   // a board with a ticked card
     version: VERSION,
     view: { dir: HERE, files: VIEW_FILES },
+    // What another module may read (modules/README.md): Plan's ticket counts.
+    public: ['GET /api/build/prd'],
     watch,
     api({ root, events }) {
       const project = openProject(root, { stamp: events?.stamp });

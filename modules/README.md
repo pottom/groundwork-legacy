@@ -26,6 +26,7 @@ export default {
   icon: '<circle cx="12" cy="12" r="3"/>',          // optional: SVG markup on a 24×24 grid, drawn with currentColor strokes (trusted: inserted as is)
   view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
   writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
+  public: ['GET /api/plan/ids'],                         // the endpoints other modules may read (see below)
   moves: { '.prd-maker': '.groundwork/plan' },           // optional: old state the core moves over once
   watch: (path) => (path === 'docs/product/mindmap.json' ? 'plan.map' : null),  // optional: live-update topic of a changed file
   cli: path.join(HERE, 'plan.mjs'),                      // optional: run by `groundwork plan <args>`
@@ -39,7 +40,17 @@ export default {
 
 `RUNNER` (`core/version.mjs`) is `npx -y --prefer-offline @pottom/groundwork@<version>`: our package (the unscoped npm `groundwork` is someone else's) at the version init came from, taken from the npx cache without a registry lookup once it is there, so a hook that runs on every prompt needs no network. A skill's Markdown files write it as `{{groundwork}}` (`{{groundwork}} plan apply`); init fills it in. Run again after an upgrade, init replaces a hook of an older version, or of another form, instead of adding a second one.
 
-Endpoints answer with `send` from [`core/http.mjs`](../core/http.mjs): never cached, `nosniff`, with a `content-length`; to a HEAD request Node sends the headers only. The view files are served by the core with an `ETag` (a `304` while unchanged) and compressed. A module may read another's public endpoints (Build asks Plan for `GET /api/plan/ids`) and must still work when that module is missing.
+Endpoints answer with `send` from [`core/http.mjs`](../core/http.mjs): never cached, `nosniff`, with a `content-length`; to a HEAD request Node sends the headers only. The view files are served by the core with an `ETag` (a `304` while unchanged) and compressed.
+
+### Reading another module
+
+Modules read each other's data only through small, declared public endpoints, never through the other's files or its full data:
+
+- A module lists in `public` the endpoints another module may read, and its README lists them under "Public endpoints". Each answers exactly what the reader needs and nothing more: today Plan's `GET /api/plan/ids` (the map's ids, not the map) and Build's `GET /api/build/prd` (the ticket counts per map item, not the tickets).
+- A module calls no other endpoint of another module, and does not open the files another module owns (Build never reads `mindmap.json`; Plan never reads tickets). A module that needs more asks for a new small endpoint in the other module's `public`, not for its full data.
+- Every module works when the other is missing. The core then answers the missing module's endpoints with `404`, and the reader takes any answer that is not `ok`, or no answer, as "nothing to show": no counts, no map, no links into the missing module, and no error on the page.
+
+`modules/alone.test.mjs` checks this: it starts the server with only Plan and with only Build, and scans each module's code for calls to the other's endpoints. The core itself has no user-facing feature of its own; it serves the modules and the shell around them.
 
 Live updates: the core watches the project and tells the pages what changed through `GET /api/events` (Server-Sent Events, [`core/events.mjs`](../core/events.mjs)). A module names the topic of the files it cares about with `watch(path)` (path relative to the root, with `/`), and can push a topic itself with `events.publish(topic)` or `events.every(ms, fn)`. To keep something it read from the project (a listing) until a file changes, it compares `events.stamp()`: `null` while the folder is not watched (read afresh), otherwise the same string exactly as long as nothing below the root changed. No page polls the server.
 

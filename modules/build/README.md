@@ -71,6 +71,16 @@ npx @pottom/groundwork                          # in the project folder; then Bu
 | `GET /api/build/issues?known=F` | the GitHub issues of the `origin` repository, or `{ available: false, reason }` |
 | `GET /api/build/prd` | `{ items: { <id>: { total, done, tickets } } }`: per PRD item, the tickets naming it (a dropped one, wontfix or legacy, does not count; done, resolved and closed are done) |
 
+### Public endpoints
+
+Other modules may read only these (the manifest's `public`, see [`modules/README.md`](../README.md#reading-another-module)):
+
+| Endpoint | Who reads it |
+|---|---|
+| `GET /api/build/prd` | Plan, for the ticket counts on the map |
+
+Build itself reads only Plan's `GET /api/plan/ids`. Without Plan (or without a map) the Checks view counts no PRD id as unknown and the ids on a ticket show as plain tags instead of links into Plan.
+
 It never writes. It serves only the page, the project's Markdown files inside the root, in a git repository the branch history, and the GitHub issues of its origin; git and GitHub are only asked to read.
 
 The header comments of the files describe the formats in detail. The UI is in English, with a Hungarian translation (the strings are `BUILD_STRINGS` in `ui-strings.mjs`, translated by the shell's `/shell/i18n.mjs`). Inside the shell it follows the shell's language; opened alone it has its own language picker. The strings hold no markup: a piece of code is written in backticks and the page shows it as `<code>` (`tx()` in `page/text.mjs`).

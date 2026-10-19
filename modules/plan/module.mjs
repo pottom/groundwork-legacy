@@ -44,6 +44,8 @@ export default {
   ] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],
+  // What another module may read (modules/README.md): the map's ids, for Build's PRD checks.
+  public: ['GET /api/plan/ids'],
   // Local state from before the move to .groundwork/plan/ (the prd-maker prototype).
   moves: { '.prd-maker': '.groundwork/plan' },
   // `groundwork plan <command>` runs plan.mjs: the skill's tool and the hook.

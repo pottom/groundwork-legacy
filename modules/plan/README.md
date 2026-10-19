@@ -103,6 +103,25 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `.claude/settings.json` | `UserPromptSubmit` hook (`npx -y --prefer-offline @pottom/groundwork@<verzió> plan hook`, az `init` teszi be, a hálózatot csak az első futás éri el; a repóban `node modules/plan/plan.mjs hook`): továbbítja a kézi szerkesztéseket, és grill promptnál emlékeztet a skillre |
 | `.claude/launch.json` | `groundwork` preview szerver: a mag szerver (port 4477), a Plan a `/plan/` alatt |
 
+## Végpontok
+
+| Végpont | Válasz |
+|---|---|
+| `GET /api/plan/map[?v=<verzió>]` | a térkép, vagy `{ same: true }`, ha a böngészőnél már ez a verzió van |
+| `PUT /api/plan/map` | `{ base, data }`: a böngésző mentése, összefésülve; ismeretlen `base` esetén `409` a mostani térképpel |
+| `GET /api/plan/ids[?v=<verzió>]` | `{ v, ids }`: a térkép csomópontjainak azonosítói, a térkép nélkül |
+| `GET /api/plan/glossary` | `{ text }`: a projekt `GLOSSARY.md`-je |
+
+### Nyilvános végpontok
+
+Más modul csak ezeket olvashatja (a manifest `public` mezője, lásd [`modules/README.md`](../README.md#reading-another-module)):
+
+| Végpont | Ki olvassa |
+|---|---|
+| `GET /api/plan/ids` | a Build, a jegyek `**PRD:**` sorainak ellenőrzéséhez |
+
+A Plan maga csak a Build `GET /api/build/prd` végpontját olvassa. Build nélkül a térképen nincsenek jegyszámok, hibaüzenet sincs: a Plan minden mással ugyanúgy működik.
+
 ## Kézi használat
 
 ```bash
