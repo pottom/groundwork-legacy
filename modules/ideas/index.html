@@ -11,11 +11,11 @@
 <link rel="modulepreload" href="/vendor/lit-html/directives/repeat.js">
 <link rel="modulepreload" href="/shell/i18n.mjs"><link rel="modulepreload" href="/shell/live.mjs">
 <link rel="modulepreload" href="./view/board.mjs"><link rel="modulepreload" href="./view/strings.mjs"><link rel="modulepreload" href="./view/api.mjs">
-<link rel="modulepreload" href="./view/drawer.mjs"><link rel="modulepreload" href="./view/reject.mjs">
-<link rel="modulepreload" href="./ui-strings.mjs"><link rel="modulepreload" href="./fields.mjs">
+<link rel="modulepreload" href="./view/drawer.mjs"><link rel="modulepreload" href="./view/reject.mjs"><link rel="modulepreload" href="./view/matrix.mjs">
+<link rel="modulepreload" href="./ui-strings.mjs"><link rel="modulepreload" href="./fields.mjs"><link rel="modulepreload" href="./matrix.mjs">
 </head>
 <body data-state="loading">
-<!-- view/main.mjs renders the board here with lit-html (view/board.mjs) -->
+<!-- view/main.mjs renders the board (view/board.mjs) or the matrix (view/matrix.mjs) here with lit-html -->
 <main id="board"></main>
 <!-- an idea opened to edit (view/drawer.mjs), and the reason a rejection asks for (view/reject.mjs) -->
 <dialog id="drawer" aria-labelledby="drawer-title"></dialog>

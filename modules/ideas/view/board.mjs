@@ -18,10 +18,10 @@ const BULB = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const MOVE = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`
 export const TONES = { new: 'info', considering: 'warn', 'to-develop': 'ok', rejected: 'neutral' }
 const AUTHOR_TONES = { claude: 'violet', human: 'accent' }
-const DRAG_TYPE = 'text/x-groundwork-idea'
+export const DRAG_TYPE = 'text/x-groundwork-idea'   // a card being dragged, on the board and the matrix
 
 // The move menu: the other columns, as menu items. Arrow keys walk it, Escape closes it.
-function menuKeys(e, act) {
+export function menuKeys(e, act) {
   const items = [...e.currentTarget.querySelectorAll('[role="menuitem"]')]
   const at = items.indexOf(document.activeElement)
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
