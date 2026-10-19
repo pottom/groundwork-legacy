@@ -6,6 +6,7 @@
 //   project.gitAvailable()   is root the top of a git repository?
 //   project.gitFingerprint() what changes when any ref or HEAD does
 //   project.gitHistory(n)    branches, tags, the newest n commits, merges
+//   project.gitRemoteUrl()   the URL of the "origin" remote, or ''
 //
 // Nothing outside root is listed or served, links included (realpath checks),
 // and nothing is written: git is only asked to read.
@@ -192,5 +193,11 @@ export function openProject(asked) {
   // The fingerprint of the last history sent for this limit, if any.
   const cachedFingerprint = (limit) => (gitCache && gitCache.limit === limit ? gitCache.fingerprint : null);
 
-  return { root: ROOT, list, readFile, gitAvailable, gitFingerprint, gitHistory, cachedFingerprint };
+  // The URL of a remote ("origin"), or '' when there is none.
+  async function gitRemoteUrl(name = 'origin') {
+    if (!(await gitAvailable())) return '';
+    return (await gitOr(['remote', 'get-url', name], '')).trim();
+  }
+
+  return { root: ROOT, list, readFile, gitAvailable, gitFingerprint, gitHistory, cachedFingerprint, gitRemoteUrl };
 }

@@ -157,6 +157,8 @@ const BUILD_STRINGS = {
 
     'activity.tickets': 'tickets: {n}',
     'activity.untitled': '(untitled)',
+    'activity.opened': 'Opened on GitHub',
+    'activity.closed': 'Closed on GitHub',
     'activity.lead': 'The tickets\' comments (the headings that start with a date), by day, newest first, closed tickets included.',
     'activity.empty': 'No dated comment in the tickets that match the filters.',
     'activity.more': 'Earlier days ({n})',
@@ -208,6 +210,8 @@ const BUILD_STRINGS = {
     'drawer.unlocks': 'Unlocks',
     'drawer.earlier': 'Earlier name',
     'drawer.type': 'Type',
+    'drawer.labels': 'Labels',
+    'drawer.github': 'GitHub issue',
     'drawer.comments': 'comments: {n}',
 
     'md.done': 'done',
@@ -415,6 +419,8 @@ const BUILD_STRINGS = {
 
     'activity.tickets': '{n} jegy',
     'activity.untitled': '(cím nélkül)',
+    'activity.opened': 'Megnyitva a GitHubon',
+    'activity.closed': 'Lezárva a GitHubon',
     'activity.lead': 'A jegyek megjegyzései (a dátummal kezdődő címsorok) napok szerint visszafelé, a zárt jegyekéi is.',
     'activity.empty': 'Nincs dátumozott megjegyzés a szűrőknek megfelelő jegyekben.',
     'activity.more': 'Korábbi napok ({n})',
@@ -466,6 +472,8 @@ const BUILD_STRINGS = {
     'drawer.unlocks': 'Feloldja',
     'drawer.earlier': 'Korábbi név',
     'drawer.type': 'Típus',
+    'drawer.labels': 'Címkék',
+    'drawer.github': 'Issue a GitHubon',
     'drawer.comments': '{n} megjegyzés',
 
     'md.done': 'kész',
