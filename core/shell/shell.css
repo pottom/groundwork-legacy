@@ -45,7 +45,7 @@ body.gw-shell {
   border-bottom: 1px solid var(--gw-line);
 }
 
-.gw-logo { width: 26px; height: 26px; flex: none; display: block; filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--gw-accent) 30%, transparent)); }
+.gw-logo { width: 26px; height: 26px; flex: none; display: block; }
 
 .gw-brand { color: var(--gw-fg-2); font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 
