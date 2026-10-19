@@ -25,8 +25,7 @@
 // into the project: files are only read (project-reader.mjs keeps them inside
 // the root), git is only asked to read.
 //
-// Opened by double click instead, index.html asks for the project folder
-// (Chromium) and needs none of this; only the git view needs the server.
+// The page has no mode without this server: opened from a file it does not run.
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,7 +38,7 @@ import { send, TYPES } from '../../core/http.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 // What the page checks to know it talks to this module. The same values are
-// SERVER_ID and SERVER_API in index.html. The version is the package's (core/version.mjs): the
+// SERVER_ID and SERVER_API in page/config.mjs. The version is the package's (core/version.mjs): the
 // page and this server ship together, so the page shows the one it gets from /hello.
 const SERVER_ID = 'development-status';
 const API_VERSION = 1;
@@ -51,11 +50,10 @@ const MARKDOWN = /\.(md|markdown)$/i;
 const NEVER = /(^|\/)(node_modules|\.git|\.hg|\.svn)\//;
 const GIT_REF = /^\.git\/(HEAD|packed-refs|refs\/.+)$/;
 
-// The page's files, the only ones served under /build/: the skeleton and its styles, the classic
-// scripts it shares (translation, strings, ticket reader), its ES modules (page/), and the same
-// modules as one classic script for file:// (page.bundle.js, file-bundle.mjs).
+// The page's files, the only ones served under /build/: the skeleton and its styles, its strings,
+// the ticket reader it shares with the server, and its ES modules (page/).
 const VIEW_FILES = [
-  'index.html', 'build.css', 'i18n.js', 'ui-strings.js', 'ticket-reader.js', 'page.bundle.js',
+  'index.html', 'build.css', 'ui-strings.mjs', 'ticket-reader.mjs',
   'page/main.mjs', 'page/config.mjs', 'page/text.mjs', 'page/state.mjs', 'page/folder.mjs', 'page/server.mjs',
   'page/refresh.mjs', 'page/render.mjs', 'page/markdown.mjs', 'page/parts.mjs',
   'page/views/chrome.mjs', 'page/views/overview.mjs', 'page/views/tickets.mjs', 'page/views/deps.mjs',

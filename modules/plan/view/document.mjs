@@ -1,12 +1,14 @@
 // The document panel: the document of the map shown in #prd (documents.mjs builds it), rendered
-// with lit-html; Markdown (marked) goes in through unsafeHTML. What changed since the last
+// with lit-html; Markdown (marked, with ../markdown.mjs: raw HTML shown as text, safe links only)
+// goes in through unsafeHTML. What changed since the last
 // render flashes; the selected node's row is highlighted.
 //   renderPrd({ force }), renderPrdSoon(), highlightInPrd(id, { scroll }), resetFlash()
 
 import { html, render, nothing } from '/vendor/lit-html/lit-html.js'
 import { repeat } from '/vendor/lit-html/directives/repeat.js'
 import { unsafeHTML } from '/vendor/lit-html/directives/unsafe-html.js'
-import { marked } from '/vendor/marked/marked.esm.js'
+import { Marked } from '/vendor/marked/marked.esm.js'
+import { MARKDOWN_OPTIONS } from '../markdown.mjs'
 import { buildPrd, progressSummary, BASE_DIR, listDocs, docOf } from '../documents.mjs'
 import { summaryBadges, coalesce } from '../view-rules.mjs'
 import { state, mapData } from './state.mjs'
@@ -19,7 +21,8 @@ import { editorView, openEditor, isOpen } from './editor.mjs'
 
 const panel = () => document.getElementById('prd')
 const doc = () => panel().querySelector('.doc')
-const md = (t) => unsafeHTML(marked.parse(t || '', { breaks: false }))
+const marked = new Marked(MARKDOWN_OPTIONS)
+const md = (t) => unsafeHTML(marked.parse(t || ''))
 
 const PROGRESS_TONE = { done: 'ok', active: 'info', untouched: 'neutral' }
 const IMPL_TONE = { done: 'ok', partial: 'warn', missing: 'bad' }

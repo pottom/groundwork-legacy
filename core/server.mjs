@@ -4,7 +4,7 @@
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
 //   GET  /api/events           live updates: what changed, as Server-Sent Events (events.mjs)
 //   *    /api/<module>/...     the module's endpoints
-//   GET  /shell/...            the shared look (theme.css, shell.css) and the UI translation (i18n.mjs, strings.mjs)
+//   GET  /shell/...            the shared look (theme.css with controls.css and feedback.css, shell.css) and the UI translation (i18n.mjs, strings.mjs)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
 //   GET  /<module>/...         the module's view (only the files its manifest lists)
 //
@@ -57,7 +57,7 @@ export function isLocalHost(header) {
 export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
 export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
 // The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
-const SHELL_BROWSER_FILES = new Set(['theme.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs'])
+const SHELL_BROWSER_FILES = new Set(['theme.css', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs'])
 
 // The file under `dir` that the URL path `rest` (still percent-encoded) names, or null when it
 // leaves the folder, names a dot file, or has a type the server does not serve (README, LICENSE).
@@ -71,11 +71,8 @@ export function staticFile(dir, rest) {
   return fs.statSync(f, { throwIfNoEntry: false })?.isFile() ? f : null
 }
 
-// How long the browser keeps a file. Each is asked for again (a 304 while unchanged), except fonts,
-// which change only with the package and are kept a week, and a file whose URL names this version
-// (?v=<VERSION>), which is kept for good: a new version is a new URL. /api/ answers are never kept.
-const FONT_MAX_AGE = 7 * 24 * 3600
-const caching = (url) => (url.searchParams.get('v') === VERSION ? { immutable: true } : {})
+// How long the browser keeps a file: cachePolicy in http.mjs (fonts a week, anything else is asked
+// for again, a 304 while unchanged). /api/ answers are never kept.
 
 // The first path segments the core answers itself; a module with one of these ids would be hidden.
 const RESERVED = new Set(['api', 'shell', 'vendor'])
@@ -108,12 +105,12 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       }
       if (parts[1] === 'shell' && req.method === 'GET') {
         const f = staticFile(SHELL_DIR, parts.slice(2).join('/'))
-        if (f && SHELL_BROWSER_FILES.has(path.basename(f))) return sendFile(req, res, f, caching(url))
+        if (f && SHELL_BROWSER_FILES.has(path.basename(f))) return sendFile(req, res, f)
         return send(res, 404, { error: 'not found' })
       }
       if (parts[1] === 'vendor' && req.method === 'GET') {
         const f = staticFile(vendor, parts.slice(2).join('/'))
-        if (f) return sendFile(req, res, f, { ...(f.endsWith('.woff2') ? { maxAge: FONT_MAX_AGE } : {}), ...caching(url) })
+        if (f) return sendFile(req, res, f)
         return send(res, 404, { error: 'not found' })
       }
       const mod = byId.get(parts[1])
@@ -122,7 +119,7 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
         const file = parts.slice(2).join('/') || 'index.html'
         if (mod.view.files.includes(file)) {
           const f = path.join(mod.view.dir, file)
-          return sendFile(req, res, f, caching(url))
+          return sendFile(req, res, f)
         }
       }
       send(res, 404, { error: 'not found' })

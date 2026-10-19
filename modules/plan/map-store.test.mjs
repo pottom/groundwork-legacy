@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { openMap } from './map-store.mjs'
+import { openMap, nodeIds } from './map-store.mjs'
 import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'
 
@@ -223,4 +223,10 @@ test('browser saves keep the document language', () => {
   find(data, 'a').topic = 'Edited again'
   store.saveFromBrowser(v, data) // Claude wrote meanwhile: the edit is replayed
   assert.equal(store.read().data.nodeData.metadata.lang, 'en')
+})
+
+test('nodeIds lists the ids of the map, the root first and each node before its children', () => {
+  const data = { nodeData: { id: 'root', children: [{ id: 'doc', children: [{ id: 'f-x' }, { id: 'd-y', children: [] }] }, { id: 'n' }] } }
+  assert.deepEqual(nodeIds(data), ['root', 'doc', 'f-x', 'd-y', 'n'])
+  assert.deepEqual(nodeIds(null), [])
 })

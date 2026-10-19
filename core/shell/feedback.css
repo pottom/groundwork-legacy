@@ -1,0 +1,225 @@
+/* The .gw-* components that report and float: progress, empty state, callout, toasts, focus and
+   motion, pill, stat, popover.
+   Part of the shared look: theme.css imports this file and documents its classes (the contract).
+   Pages link theme.css, never this file. */
+
+/* ---- progress ---- */
+
+.gw-progress {
+  --value: 0%;
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--gw-radius-pill);
+  background: var(--gw-sunken);
+}
+.gw-progress::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--value);
+  border-radius: inherit;
+  background: var(--gw-ok);
+  transition: width .4s ease;
+}
+.gw-progress--accent::before { background: var(--gw-gradient); }
+
+/* ---- empty state ---- */
+
+.gw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 520px;
+  margin: calc(var(--gw-space) * 3) auto;
+  padding: calc(var(--gw-space) * 4) calc(var(--gw-space) * 3);
+  border: 1px dashed var(--gw-line-strong);
+  border-radius: var(--gw-radius-lg);
+  text-align: center;
+  color: var(--gw-fg-2);
+  font: var(--gw-text-small) var(--gw-font);
+}
+.gw-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 56px; height: 56px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--gw-accent-soft);
+  color: var(--gw-accent-text);
+}
+.gw-empty__icon svg { width: 28px; height: 28px; }
+.gw-empty__title { margin: 0; color: var(--gw-fg); font: 600 var(--gw-text) var(--gw-font); }
+.gw-empty__text { margin: 0; max-width: 44ch; color: var(--gw-muted); }
+.gw-empty__action { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gw-space); margin-top: 10px; }
+
+/* ---- callout ---- */
+
+.gw-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px 10px 14px;
+  border-radius: var(--gw-radius);
+  background: var(--gw-tone-soft);
+  box-shadow: inset 3px 0 0 var(--gw-tone);
+  color: var(--gw-fg);
+  font: var(--gw-text-small) var(--gw-font);
+}
+.gw-callout__icon { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--gw-tone-text); }
+.gw-callout__icon svg { width: 100%; height: 100%; }
+.gw-callout__body { flex: 1; min-width: 0; }
+.gw-callout__body b, .gw-callout__body strong { color: var(--gw-tone-text); }
+.gw-callout__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px; height: 24px;
+  margin: -2px -4px -2px 0;
+  border: 0;
+  border-radius: var(--gw-radius-sm);
+  background: transparent;
+  color: var(--gw-fg-2);
+  font: 16px/1 var(--gw-font);
+  cursor: pointer;
+}
+.gw-callout__close:hover { background: color-mix(in srgb, var(--gw-fg) 8%, transparent); color: var(--gw-fg); }
+
+/* ---- toasts ---- */
+
+.gw-toasts {
+  position: fixed;
+  right: calc(var(--gw-space) * 2);
+  bottom: calc(var(--gw-space) * 2);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--gw-space);
+  pointer-events: none;
+}
+.gw-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 8px 14px 8px 12px;
+  border: 1px solid var(--gw-line);
+  border-radius: var(--gw-radius-pill);
+  background: var(--gw-surface);
+  box-shadow: var(--gw-shadow-lg);
+  color: var(--gw-fg);
+  font: 500 var(--gw-text-small) var(--gw-font);
+  pointer-events: auto;
+  animation: gw-toast-in .22s cubic-bezier(.2, .8, .2, 1);
+}
+.gw-toast::before {
+  content: '';
+  width: 8px; height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--gw-tone);
+}
+@keyframes gw-toast-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+
+/* ---- focus and motion ---- */
+
+:is(.gw-btn, .gw-seg > *, .gw-tabs > *, a.gw-tag, .gw-callout__close):focus-visible {
+  outline: 2px solid var(--gw-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gw-dot--pulse, .gw-toast { animation: none; }
+  .gw-progress::before { transition: none; }
+}
+
+/* ---- added for Build (#20) ---- */
+
+/* .gw-pill: a filter in force, with its remove button */
+.gw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 4px 0 10px;
+  border-radius: var(--gw-radius-pill);
+  background: var(--gw-accent-soft);
+  color: var(--gw-accent-text);
+  font: 500 var(--gw-text-xs) var(--gw-font);
+  white-space: nowrap;
+}
+.gw-pill b { font-weight: 650; }
+.gw-pill button {
+  display: grid;
+  place-items: center;
+  width: 20px; height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.gw-pill button:hover { background: color-mix(in srgb, var(--gw-accent) 18%, transparent); }
+.gw-pill button:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 1px; }
+.gw-pill button svg, .gw-pill button svg[class] { width: 12px; height: 12px; }
+
+/* .gw-stat: one number of an overview strip */
+.gw-stat {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 14px 18px;
+  color: inherit;
+}
+.gw-stat__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--gw-fg-2);
+  font: 500 var(--gw-text-small) var(--gw-font);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gw-stat__value { margin-top: 4px; font: var(--gw-display) var(--gw-font); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.gw-stat__sub { min-height: 16px; color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); }
+.gw-stat--zero .gw-stat__value { color: var(--gw-muted); }
+.gw-stat--good .gw-stat__sub { color: var(--gw-ok-text); font-weight: 600; }
+a.gw-stat { text-decoration: none; transition: background .15s; }
+a.gw-stat:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-sunken) 55%, transparent); }
+a.gw-stat:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: -2px; }
+
+/* an icon keeps the component's size even with a class of its own (svg.i of a module) */
+.gw-btn--icon svg[class] { width: 18px; height: 18px; }
+.gw-empty__icon svg[class] { width: 28px; height: 28px; }
+
+
+
+/* popover / menu: a floating glass panel that a button opens (a legend, a menu); the page places it */
+.gw-popover {
+  z-index: 40;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  padding: 6px 14px 12px;
+  color: var(--gw-fg);
+  background: color-mix(in srgb, var(--gw-surface) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gw-line) 75%, transparent);
+  border-radius: var(--gw-radius-lg);
+  box-shadow: var(--gw-shadow-lg);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+.gw-popover[hidden] { display: none; }
+.gw-popover__title { margin: 10px 0 4px; color: var(--gw-muted); font: 600 var(--gw-text-xs) var(--gw-font); }
+.gw-popover__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--gw-popover-cols, 1), minmax(0, 1fr)); gap: 2px 12px; }
+.gw-popover__item {
+  display: flex; align-items: center; gap: 8px; min-height: 26px; width: 100%;
+  padding: 0; border: 0; background: none; color: var(--gw-fg); font: inherit; text-align: left;
+}
+button.gw-popover__item, a.gw-popover__item { margin: 0 -8px; width: calc(100% + 16px); padding: 0 8px; border-radius: var(--gw-radius-sm); cursor: pointer; text-decoration: none; }
+:is(button, a).gw-popover__item:hover { background: var(--gw-accent-soft); }
+:is(button, a).gw-popover__item:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 1px; }

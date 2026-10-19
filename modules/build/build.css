@@ -1,97 +1,7 @@
 /* Build's page (index.html). The look is the shell's design system (/shell/theme.css): the --gw-*
    tokens and the .gw-* components (badge, tag, dot, buttons, field, card, section header, tabs,
    progress, empty state, callout, toast, pill, stat). This sheet only lays out Build's own views
-   with them.
-
-   Opened by double click there may be no theme at all: the :where(:root) blocks repeat its tokens
-   as a fallback. :where() has no specificity, so when theme.css is there its :root wins. Keep them
-   equal to core/shell/theme.css (module.test.mjs checks it). */
-:where(:root) {
-  color-scheme: light dark;
-
-  --gw-bg: #fbfaf7;
-  --gw-surface: #ffffff;
-  --gw-sunken: #f3f1ec;
-  --gw-fg: #1d1c1a;
-  --gw-fg-2: #4a4843;
-  --gw-muted: #6b6860;
-  --gw-line: #e4e0d7;
-  --gw-line-strong: #cfcac0;
-  --gw-accent: #2f5bd3;
-  --gw-accent-2: #8b5cf6;
-  --gw-accent-fg: #ffffff;
-  --gw-focus: #2f5bd3;
-  --gw-ok: #1f8a4c;
-  --gw-warn: #b45309;
-  --gw-bad: #c0392b;
-  --gw-info: #0284c7;
-  --gw-violet: #8b5cf6;
-  --gw-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
-  --gw-shadow-lg: 0 2px 6px rgb(0 0 0 / .06), 0 12px 32px rgb(0 0 0 / .10);
-
-  --gw-ok-text: #17703d;
-  --gw-warn-text: #9a4a08;
-  --gw-bad-text: #a93226;
-  --gw-info-text: #075a8c;
-  --gw-violet-text: #6d3fd8;
-  --gw-accent-text: #2a52c4;
-
-  --gw-ok-soft: color-mix(in srgb, var(--gw-ok) 12%, transparent);
-  --gw-warn-soft: color-mix(in srgb, var(--gw-warn) 12%, transparent);
-  --gw-bad-soft: color-mix(in srgb, var(--gw-bad) 12%, transparent);
-  --gw-info-soft: color-mix(in srgb, var(--gw-info) 12%, transparent);
-  --gw-violet-soft: color-mix(in srgb, var(--gw-violet) 12%, transparent);
-  --gw-accent-soft: color-mix(in srgb, var(--gw-accent) 12%, transparent);
-
-  --gw-gradient: linear-gradient(90deg, var(--gw-accent), var(--gw-accent-2));
-  --gw-gradient-fill: linear-gradient(135deg, #2f5bd3, #7547e6);
-
-  --gw-font: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
-  --gw-font-serif: 'Source Serif 4', Georgia, serif;
-  --gw-font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
-  --gw-text-xs: 11.5px/1.4;
-  --gw-text: 15px/1.5;
-  --gw-text-small: 13px/1.4;
-  --gw-title: 650 19px/1.3;
-  --gw-display: 680 28px/1.1;
-  --gw-radius-sm: 6px;
-  --gw-radius: 10px;
-  --gw-radius-lg: 14px;
-  --gw-radius-pill: 999px;
-  --gw-space: 8px;
-  --gw-header-height: 48px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :where(:root) {
-    --gw-bg: #15161a;
-    --gw-surface: #1c1e23;
-    --gw-sunken: #24262c;
-    --gw-fg: #ecebe8;
-    --gw-fg-2: #c3c1bb;
-    --gw-muted: #9a978f;
-    --gw-line: #2f3238;
-    --gw-line-strong: #464a52;
-    --gw-accent: #7d9cf0;
-    --gw-accent-2: #b48cf8;
-    --gw-accent-fg: #15161a;
-    --gw-focus: #7d9cf0;
-    --gw-ok: #5cc58a;
-    --gw-warn: #f0b45d;
-    --gw-bad: #ee7a6c;
-    --gw-info: #5ab8e8;
-    --gw-violet: #b48cf8;
-    --gw-shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
-    --gw-shadow-lg: 0 2px 8px rgb(0 0 0 / .35), 0 16px 40px rgb(0 0 0 / .4);
-    --gw-ok-text: #6fd49b;
-    --gw-warn-text: #f5c27a;
-    --gw-bad-text: #f48f82;
-    --gw-info-text: #7cc8f0;
-    --gw-violet-text: #c4a3fa;
-    --gw-accent-text: #97b0f5;
-    --gw-gradient-fill: linear-gradient(135deg, var(--gw-accent), var(--gw-accent-2));
-  }
-}
+   with them. */
 
 /* Build's own colours: the lanes of the branch graph. */
 :root { --g0: #2f5bd3; --g1: #c2410c; --g2: #1f8a4c; --g3: #7c3aed; --g4: #0b7269; --g5: #b4235a; --g6: #8a6d00; --g7: #4a6fa5; }
@@ -129,7 +39,7 @@ dl.meta .gw-progress { background: var(--gw-line); }
   -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
   border-bottom: 1px solid var(--gw-line);
 }
-.in-shell #top { display: none; }
+.in-shell #top, #top:empty { display: none; }
 .bar { max-width: 1280px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: var(--gw-header-height); }
 .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; font: 650 15px/1.25 var(--gw-font); letter-spacing: -.01em; }
 .brand::before { content: ''; flex: none; width: 22px; height: 22px; border-radius: 7px; background: var(--gw-gradient-fill); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .15); }
@@ -143,18 +53,12 @@ dl.meta .gw-progress { background: var(--gw-line); }
 .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 24px 96px; }
 .stack-y > * + * { margin-top: 12px; }
 
-/* ---- Start screen (no server: choose a folder) ---- */
+/* ---- Start screen (not served by the core server) ---- */
 #start { max-width: 640px; margin: 8vh auto 40px; padding: 0 16px; }
 .in-shell #start { margin-top: 4vh; }
 #start .gw-card__body { padding: 28px 30px; }
 #start h2 { font: var(--gw-display) var(--gw-font); letter-spacing: -.02em; margin: 0 0 10px; }
 #start p { margin: 8px 0; color: var(--gw-fg-2); font: var(--gw-text) var(--gw-font); }
-#start p.muted { color: var(--gw-muted); font: var(--gw-text-small) var(--gw-font); }
-.choices { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 10px; }
-.drop { border: 1.5px dashed var(--gw-line-strong); border-radius: var(--gw-radius); padding: 20px; color: var(--gw-muted); margin-top: 16px; text-align: center; transition: background-color .15s, border-color .15s; }
-body.dragging .drop { border-color: var(--gw-accent); background: var(--gw-accent-soft); color: var(--gw-fg); }
-.rules { color: var(--gw-muted); margin-top: 24px; border-top: 1px solid var(--gw-line); padding-top: 14px; }
-.rules p { font: var(--gw-text-small) var(--gw-font) !important; color: var(--gw-muted) !important; }
 
 /* ---- Overview: one strip of four numbers, progress along its bottom edge ---- */
 .summary { overflow: hidden; }

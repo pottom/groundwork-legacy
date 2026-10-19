@@ -18,8 +18,10 @@ import { drawerView } from './views/drawer.mjs';
 
 const $ = (id) => document.getElementById(id);
 
-export const IN_SHELL = document.documentElement.classList.contains('in-shell');
-export const canPick = typeof window.showDirectoryPicker === 'function';
+// Inside the shell (an iframe of /) the shell's header shows the project, the live state and the
+// version: the page's own bar hides (build.css, .in-shell).
+export const IN_SHELL = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+document.documentElement.classList.toggle('in-shell', IN_SHELL);
 
 export const VIEW_RENDERERS = { waiting: waitingView, areas: areasView, deps: depsView, activity: activityView, checks: checksView, docs: docsView, git: gitView };
 
@@ -30,7 +32,7 @@ export function renderTop() {
 export const renderLive = () => { if (!IN_SHELL) renderTop(); };
 
 export function renderStart() {
-  render(startView(canPick), $('start'));
+  render(startView(), $('start'));
 }
 
 export function renderNotices() {

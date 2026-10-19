@@ -7,12 +7,13 @@ const PALETTES = {
   dark:  ['#60a5fa', '#34d399', '#f472b6', '#fbbf24', '#a78bfa', '#22d3ee', '#fb923c', '#f87171'],
 }
 
-export function mapTheme({ dark, css, generateSubBranch }) {
+export function mapTheme({ dark, css, generateMainBranch, generateSubBranch }) {
   const type = dark ? 'dark' : 'light'
   return {
     name: `grill-${type}`,
     type,
     palette: PALETTES[type],
+    generateMainBranch,
     generateSubBranch,
     cssVar: {
       '--bgcolor': 'transparent',

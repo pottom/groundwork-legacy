@@ -1,15 +1,13 @@
 // The Build page: what its controls do (the `actions` the views call), the address (#/<view>/<doc>),
-// the keyboard, choosing a folder (button, snapshot, drag and drop), the language, and the boot.
-// index.html loads this module from the server; opened as a file it loads page.bundle.js, the same
-// modules as one classic script (file-bundle.mjs).
+// the keyboard, the language, and the boot. index.html loads this module from the core server;
+// Build has no mode without it.
 
 import { GIT_PAGE } from './config.mjs';
 import { i18n, ui } from './text.mjs';
-import { state, app, actions, applies, docHref, rememberHandle, forgetHandle, recallHandle } from './state.mjs';
-import { handleAdapter, entryAdapter, treeAdapter, treeFromFiles } from './folder.mjs';
+import { state, app, actions, applies, docHref } from './state.mjs';
 import { findServer, serverSource } from './server.mjs';
-import { refresh, refreshGit, start, showStart } from './refresh.mjs';
-import { VIEW_RENDERERS, canPick, renderAll, renderView, renderNav, renderOverview, renderDrawer, renderTop, renderStart } from './render.mjs';
+import { refresh, refreshGit, start } from './refresh.mjs';
+import { VIEW_RENDERERS, renderAll, renderView, renderNav, renderOverview, renderDrawer, renderTop, renderStart } from './render.mjs';
 import { renderMarkdown } from './markdown.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -41,31 +39,12 @@ function clearPrd() {
   } catch (e) { /* the filter is gone anyway */ }
 }
 
-// ---- Choosing the folder ----
-
-async function useHandle(handle) {
-  await rememberHandle(handle);
-  await start({ adapter: handleAdapter, root: handle, name: handle.name, live: true });
-}
-
-function startError(error) {
-  app.startError = error;
-  renderStart();
-}
-
 let typing = null;
 
 Object.assign(actions, {
-  // Read again now: from the server or a live folder; a snapshot asks for the folder again; a
-  // folder the browser stopped letting the page read asks for the permission first.
-  async readAgain() {
-    const src = app.source;
-    if (!src) return;
-    if (!src.live) { $('dir-input').click(); return; }
-    if (app.lostAccess) {
-      try { if (await src.root.requestPermission({ mode: 'read' }) !== 'granted') return; } catch (e) { return; }
-    }
-    refresh(undefined, { asked: true });
+  // Read everything again now, and say so also when nothing changed.
+  readAgain() {
+    if (app.source) refresh(undefined, { asked: true });
   },
   typed(e) {
     state.q = e.target.value;
@@ -116,28 +95,6 @@ Object.assign(actions, {
       if (el) el.focus();
     });
   },
-  async pickFolder() {
-    try {
-      await useHandle(await window.showDirectoryPicker({ mode: 'read', id: 'development-status' }));
-    } catch (err) {
-      if (err && err.name === 'AbortError') return;
-      startError(ui('error.open', { error: err && err.message ? err.message : err }));
-    }
-  },
-  chooseSnapshot() { $('dir-input').click(); },
-  async snapshotChosen(e) {
-    const files = [...e.target.files];
-    e.target.value = '';
-    if (!files.length) return;
-    const tree = treeFromFiles(files);
-    await start({ adapter: treeAdapter, root: tree.root, name: tree.name, live: false });
-  },
-  async otherFolder() {
-    await forgetHandle();
-    showStart();
-    if (canPick) actions.pickFolder();
-  },
-  resume: async () => {},   // set by boot() when there is a remembered folder
 });
 
 // ---- Clicks on links and rows, the keyboard ----
@@ -160,34 +117,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === '/' && !$('app').hidden && $('drawer').hidden && applies('q') && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $('q').focus(); }
 });
 $('shade').addEventListener('click', () => actions.closeDrawer());
-
-// From the server the live updates say what changed; a folder read in the browser is read again
-// when the page comes back into sight.
-document.addEventListener('visibilitychange', () => { if (!document.hidden && app.source && app.source.live && !app.source.server) refresh(); });
-
-// ---- A dropped folder: live where the browser hands out a handle, a snapshot elsewhere ----
-
-let dragDepth = 0;
-const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
-document.addEventListener('dragenter', (e) => { if (hasFiles(e)) { dragDepth++; document.body.classList.add('dragging'); } });
-document.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragging'); } });
-document.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
-document.addEventListener('drop', async (e) => {
-  if (!hasFiles(e)) return;
-  e.preventDefault();
-  dragDepth = 0;
-  document.body.classList.remove('dragging');
-  const item = [...e.dataTransfer.items].find((it) => it.kind === 'file');
-  if (!item) return;
-  // Both calls must happen before the handler yields.
-  const handlePromise = typeof item.getAsFileSystemHandle === 'function' ? item.getAsFileSystemHandle() : null;
-  const entry = typeof item.webkitGetAsEntry === 'function' ? item.webkitGetAsEntry() : null;
-  let handle = null;
-  try { handle = handlePromise ? await handlePromise : null; } catch (err) { handle = null; }
-  if (handle && handle.kind === 'directory') return useHandle(handle);
-  if (entry && entry.isDirectory) return start({ adapter: entryAdapter, root: entry, name: entry.name, live: false });
-  startError(ui('error.drop-file'));
-});
 
 // ---- Layout: the tabs stick right under the page's own bar (none inside the shell) ----
 // Light or dark follows the operating system (the shell's theme); there is no switch here.
@@ -215,21 +144,8 @@ async function boot() {
   readHash();
   const hello = await findServer();
   if (hello) { await start(serverSource(hello)); return; }
+  // Served by something else: Build needs the core server.
   $('start').hidden = false;
-  if (!canPick) return;
-  const saved = await recallHandle();
-  if (!saved || typeof saved.queryPermission !== 'function') return;
-  let permission = 'prompt';
-  try { permission = await saved.queryPermission({ mode: 'read' }); } catch (e) { /* ask again */ }
-  if (permission === 'granted') { await start({ adapter: handleAdapter, root: saved, name: saved.name, live: true }); return; }
-  app.resumeName = saved.name;
-  actions.resume = async () => {
-    try {
-      if (await saved.requestPermission({ mode: 'read' }) === 'granted') await start({ adapter: handleAdapter, root: saved, name: saved.name, live: true });
-    } catch (err) {
-      startError(ui('error.gone', { error: err && err.message ? err.message : err }));
-    }
-  };
   renderStart();
 }
 

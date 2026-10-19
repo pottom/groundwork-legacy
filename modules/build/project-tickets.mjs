@@ -1,5 +1,5 @@
 // project-tickets.mjs: the project's tickets read on the server, with the same ticket reader the
-// Build page uses (ticket-reader.js), so Plan sees what Build sees.
+// Build page uses (ticket-reader.mjs), so Plan sees what Build sees.
 //
 //   const tickets = openTickets(project);       project: openProject(root) (project-reader.mjs)
 //   tickets.read(github)                        the reader's model of the local tickets (.scratch)
@@ -14,9 +14,8 @@
 // A dropped ticket (wontfix, legacy) does not count for its PRD items; a done one is done,
 // resolved or closed (the reader's DROPPED and DONE).
 
-import './ticket-reader.js';
+import { readTickets, locateProject, ticketPath, isDone, isDropped } from './ticket-reader.mjs';
 
-const { readTickets, locateProject, ticketPath, isDone, isDropped } = globalThis.GroundworkTickets;
 
 export function openTickets(project) {
   const cache = new Map();   // path → { size, mtime, text }

@@ -57,16 +57,20 @@ body[data-mode="edit"] .mind-elixir-toolbar.rb { bottom: 70px !important; }
   box-shadow: var(--gw-shadow);
 }
 
-/* One icon family on every node (node-types.mjs, 24 x 24 line icons drawn as masks): a node shows
-   its status icon in the status colour; a main topic without a status shows the topic icon,
-   a document its page, a section its bookmark, a component its type, in the branch colour. */
-.map-container :is(me-main > me-wrapper > me-parent > me-tpc, me-tpc[data-status], me-tpc[data-section], me-tpc[data-layer], me-tpc[data-component])::before {
+/* One icon family, an icon on every node (node-types.mjs, 24 x 24 line icons drawn as masks): a
+   node shows its status icon in the status colour; a document its page, a section its bookmark, a
+   component its type, in the branch colour; any other node the topic icon, in the branch colour on
+   a main topic, muted below it, and in the root's own colour on the root. */
+.map-container me-tpc::before {
   content: ''; display: inline-block; flex: none; width: 15px; height: 15px; margin-right: 8px; vertical-align: -3px;
   border-radius: 0; box-shadow: none;
   background: var(--ico-c, var(--accent, var(--gw-fg-2)));
   -webkit-mask: var(--ico, var(--i-topic)) center / contain no-repeat; mask: var(--ico, var(--i-topic)) center / contain no-repeat;
 }
 .map-container me-main > me-wrapper > me-parent > me-tpc::before { width: 16px; height: 16px; }
+.map-container me-children me-tpc { --ico-c: var(--gw-muted); }
+.map-container me-root me-tpc { --ico-c: var(--gw-accent-fg); }
+.map-container me-root me-tpc::before { width: 17px; height: 17px; margin-right: 10px; }
 
 /* everything deeper: cards */
 .map-container me-children me-tpc {

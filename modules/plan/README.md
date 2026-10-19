@@ -93,6 +93,7 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `ui-strings.mjs` | a felület szövegei nyelvenként (angol alapértelmezés, magyar fordítás), a mag fordítójához (`/shell/i18n.mjs`) |
 | `node-types.mjs` | csomópont-típusok, dokumentum- és fejezetikon, összetevőtípus-ikonok (egy [Lucide](https://lucide.dev) ikoncsalád) és megvalósítási szintek kulcsai; a címkék a `ui-strings.mjs`-ben |
 | `view-rules.mjs` | a képernyő böngésző nélkül tesztelhető szabályai: melyik nézet fér el (keskeny ablakban nincs „mindkettő”), a térkép illesztésének legkisebb olvasható nagyítása, a dokumentumfejléc összesítő jelvényei, frame-enként egy rajzolás |
+| `markdown.mjs` | a dokumentumpanel Markdownja (marked): a nyers HTML szövegként látszik, link és kép csak http(s), mailto vagy relatív címre mutathat |
 | `map-theme.mjs` | a térkép világos és sötét témája a shell színeiből, és az operációs rendszer váltásának követése |
 | `deep-link.mjs` | a közvetlen link (`?node=<azonosító>`): `planLink(id)` elkészíti, `linkTarget(search, map)` megkeresi a csomópontot; `buildLink(id)` a Buildbe visz, az elem jegyeire szűrve |
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |

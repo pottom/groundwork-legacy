@@ -8,7 +8,7 @@ _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a 
 
 ## 1. Hatókör és fő funkciók
 
-A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. Szerver nélkül, mappaválasztóval is megnyitható. A prototípus minden funkciója része az első verziónak.
+A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. A Groundwork szerverén fut; fájlból, szerver nélkül nem nyitható meg. A prototípus minden funkciója része az első verziónak.
 
 Új képessége lesz, hogy egy jegyről egy kattintással el lehet jutni ahhoz a PRD-elemhez, amiből született. Egy Claude-skill, amely a chatben foglalja össze a projekt állapotát, később jöhet.
 

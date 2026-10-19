@@ -1,15 +1,16 @@
-// Reading the project, and again when it changed: the Markdown files (from the server or a folder
-// chosen in the browser), the GitHub issues, Plan's map ids and the git history, all in parallel.
+// Reading the project from the server, and again when it changed: the Markdown files, the GitHub
+// issues, Plan's map ids and the git history, all in parallel.
 // A live update names what changed, and only that is asked again; every (re)connect reads all.
 
-import { reader, POLL_MS, FRESH_MS, NO_REPO, MAP_PATH } from './config.mjs';
+import { reader, FRESH_MS, NO_REPO } from './config.mjs';
 import { ui, clock, statusName, commentTitle } from './text.mjs';
 import { state, app, NO_GIT, NO_ISSUES } from './state.mjs';
-import { scan, findChild } from './folder.mjs';
+import { scan } from './folder.mjs';
+import { subscribe } from '/shell/live.mjs';
 import { serverJson } from './server.mjs';
 import { renderAll, renderView, renderNav, renderNotices, renderLive, showStartScreen, toast } from './render.mjs';
 
-const { readTickets, mapIds } = reader;
+const { readTickets } = reader;
 
 function describeChange(path, before, after) {
   if (after && after.kind === 'ticket') {
@@ -61,7 +62,7 @@ export async function refresh(parts = ALL_PARTS, { asked = false } = {}) {
   }
 }
 
-// The files of the folder that changed since the last round (read again), and the gone ones.
+// The files that changed since the last round (read again), and the gone ones.
 async function readFiles() {
   const next = await scan(app.source);
   const seen = new Set();
@@ -71,7 +72,7 @@ async function readFiles() {
     const old = app.cache.get(e.path);
     if (old && old.size === e.size && old.mtime === e.mtime) return;
     // A file caught mid-write is read again in the next round.
-    try { app.cache.set(e.path, { size: e.size, mtime: e.mtime, text: await e.file.text() }); touched.push(e.path); } catch (err) { if (err.name === 'NotAllowedError' || err.name === 'ServerDownError') throw err; }
+    try { app.cache.set(e.path, { size: e.size, mtime: e.mtime, text: await e.file.text() }); touched.push(e.path); } catch (err) { if (err.name === 'ServerDownError') throw err; }
   }));
   for (const path of [...app.cache.keys()]) if (!seen.has(path)) { app.cache.delete(path); touched.push(path); }
   app.listing = next;
@@ -114,7 +115,6 @@ async function refreshOnce(want) {
       renderAll();
     } else if (gitChanged && app.model) { renderNav(true); if (state.view === 'git') renderView(); }
     app.lastChecked = new Date();
-    app.lostAccess = false;
     app.serverDown = false;
     if (wasDown) renderNotices();
     if (changed) toast(ui('toast.changed', { n: changed, time: clock(app.lastChecked) }), 'ok');
@@ -122,8 +122,6 @@ async function refreshOnce(want) {
   } catch (err) {
     // The server stopped: keep what was read, keep asking; it may come back.
     if (err && err.name === 'ServerDownError') app.serverDown = true;
-    else if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) app.lostAccess = true;
-    else if (err && err.name === 'NotFoundError') src.roots = null;
     else console.error(err);
     if (!app.model) showStart(ui('error.read', { error: err && err.message ? err.message : err }));
     else renderNotices();
@@ -137,7 +135,7 @@ async function refreshOnce(want) {
 // "unchanged" while the issues are the same.
 async function refreshIssues() {
   const src = app.source;
-  if (!src || !src.server || !src.github) return [];
+  if (!src || !src.github) return [];
   const before = app.issues;
   const known = before.fingerprint ? '?known=' + encodeURIComponent(before.fingerprint) : '';
   let data;
@@ -153,34 +151,20 @@ async function refreshIssues() {
   return touched;
 }
 
-// The ids of Plan's map, which the reader checks the tickets' PRD lines against. On the server
-// Plan sends only the ids (GET /api/plan/ids, "same" while unchanged); from a picked folder the
-// file is read when its size or time changed. No map (none in the project, Plan not running, an
-// unreadable file): ids null, and no PRD id counts as unknown.
+// The ids of Plan's map, which the reader checks the tickets' PRD lines against: Plan sends only
+// the ids (GET /api/plan/ids, "same" while unchanged). No map (none in the project, Plan not
+// running): ids null, and no PRD id counts as unknown.
 async function refreshMap() {
-  const src = app.source;
-  if (!src) return;
+  if (!app.source) return;
   try {
-    if (src.server) {
-      const known = app.map.key ? '?v=' + encodeURIComponent(app.map.key) : '';
-      const res = await fetch('/api/plan/ids' + known, { cache: 'no-store' });
-      const data = res.ok ? await res.json() : null;
-      if (data && data.same) return;
-      const ids = data && Array.isArray(data.ids) ? data.ids.map(String) : null;
-      app.map = { key: ids && data.v ? String(data.v) : '', ids };
-      return;
-    }
-    const A = src.adapter;
-    const dir = await findChild(A, src.root, MAP_PATH.split('/').slice(0, -1).join('/'));
-    const hit = dir && (await A.children(dir)).find((c) => !c.isDir && c.name === MAP_PATH.split('/').pop());
-    if (!hit) { app.map = { key: '', ids: null }; return; }
-    const f = await A.file(hit.node);
-    const key = f.size + '@' + f.lastModified;
-    if (key === app.map.key) return;
-    app.map = { key, ids: mapIds(JSON.parse(await f.text())) };
+    const known = app.map.key ? '?v=' + encodeURIComponent(app.map.key) : '';
+    const res = await fetch('/api/plan/ids' + known, { cache: 'no-store' });
+    const data = res.ok ? await res.json() : null;
+    if (data && data.same) return;
+    const ids = data && Array.isArray(data.ids) ? data.ids.map(String) : null;
+    app.map = { key: ids && data.v ? String(data.v) : '', ids };
   } catch (err) {
-    if (err && (err.name === 'NotAllowedError' || err.name === 'NotFoundError')) throw err;
-    app.map = { key: '', ids: null };   // a map caught mid-write, or no Plan: try again next round
+    app.map = { key: '', ids: null };   // no Plan, or the server stopped: try again next round
   }
 }
 
@@ -188,7 +172,7 @@ async function refreshMap() {
 // answers "unchanged" while no ref moved.
 export async function refreshGit() {
   const src = app.source, git = app.git;
-  if (!src || !src.server || !src.git) return false;
+  if (!src || !src.git) return false;
   const known = git.data && git.data.limit === git.limit ? '&known=' + git.data.fingerprint : '';
   let data;
   try { data = await serverJson('/git?limit=' + git.limit + known); } catch (err) { return false; }
@@ -205,41 +189,27 @@ export async function refreshGit() {
   return true;
 }
 
-// How the page follows the project. From the core server: its live updates (subscribe from
+// How the page follows the project: the core server's live updates (subscribe from
 // /shell/live.mjs: the shell's one stream inside the shell, the page's own when opened alone) say
 // what changed, and the page reads that again; every (re)connect reads everything, so nothing
-// missed meanwhile is lost. A folder chosen in the browser (file://) is read every POLL_MS instead.
-let timer = null;
+// missed meanwhile is lost.
 let liveStop = null;
-let liveToken = 0;
 
 function startLive() {
   stopLive();
-  const src = app.source;
-  if (!src || !src.live) return;
-  if (src.server) {
-    const token = liveToken;
-    import('/shell/live.mjs').then(({ subscribe }) => {
-      if (token !== liveToken) return;
-      liveStop = subscribe({
-        onHello: () => refresh(),
-        onChange: (topics) => { const parts = partsOf(topics); if (parts.length) refresh(parts); },
-        onState: (s) => {
-          app.liveState = s;
-          if (s === 'off' && !app.serverDown) { app.serverDown = true; renderNotices(); }
-          renderLive();
-        },
-      });
-    }).catch((err) => console.error(err));
-    return;
-  }
-  timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
+  if (!app.source) return;
+  liveStop = subscribe({
+    onHello: () => refresh(),
+    onChange: (topics) => { const parts = partsOf(topics); if (parts.length) refresh(parts); },
+    onState: (s) => {
+      app.liveState = s;
+      if (s === 'off' && !app.serverDown) { app.serverDown = true; renderNotices(); }
+      renderLive();
+    },
+  });
 }
 
 function stopLive() {
-  liveToken++;
-  clearInterval(timer);
-  timer = null;
   if (liveStop) { liveStop(); liveStop = null; }
 }
 
@@ -248,7 +218,7 @@ export async function start(src) {
   stopLive();
   Object.assign(app, {
     source: src, cache: new Map(), listing: null, model: null, changeLog: [], recent: new Map(),
-    lostAccess: false, serverDown: false, git: NO_GIT(), issues: NO_ISSUES(), map: { key: '', ids: null }, startError: '',
+    serverDown: false, git: NO_GIT(), issues: NO_ISSUES(), map: { key: '', ids: null }, startError: '',
   });
   await refresh();
   if (app.model) startLive();

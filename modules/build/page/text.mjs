@@ -1,38 +1,29 @@
-// The page's words: the UI translation (createI18n from i18n.js, the copy of core/shell/i18n.mjs,
-// with BUILD_STRINGS from ui-strings.js; both classic scripts loaded before the page's modules),
-// and the texts made from the model: status names, dates, times.
+// The page's words: the UI translation (createI18n from the shell's /shell/i18n.mjs, with Build's
+// BUILD_STRINGS from ui-strings.mjs), and the texts made from the model: status names, dates, times.
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js';
-import { unsafeHTML } from '/vendor/lit-html/directives/unsafe-html.js';
+import { createI18n, LANGS } from '/shell/i18n.mjs';
+import { BUILD_STRINGS } from '../ui-strings.mjs';
 import { reader, HUMAN, TEST } from './config.mjs';
 
 const { UNPARSED, DONE } = reader;
 
-// English by default, Hungarian too; the choice is shared with the shell. createI18n, LANGS and
-// BUILD_STRINGS are globals of those classic scripts (a top-level const is no property of window).
+// English by default, Hungarian too; the choice is shared with the shell.
 export const i18n = createI18n(BUILD_STRINGS);
-const languages = LANGS;
-export { languages as LANGS };
+export { LANGS };
 export const ui = i18n.t;
 
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-// A translated text for a template. A few texts hold markup (<code>): those are our own strings
-// (ui-strings.js), their placeholders take plain text only, escaped. In the others a placeholder
-// may also take a template (a ticket link, a <b>), which lit renders where the {name} stood.
+// A translated text for a template. The strings hold no markup: a piece in backticks is code,
+// shown as <code>. A placeholder may take plain text or a template (a ticket link, a <b>), which
+// lit renders where the {name} stood; either way nothing is parsed as HTML.
 export function tx(key, params) {
-  const raw = ui(key);
-  if (/[<&]/.test(raw)) {
-    const vars = {};
-    for (const [k, v] of Object.entries(params || {})) vars[k] = esc(v);
-    return unsafeHTML(ui(key, vars));
-  }
-  if (!params) return raw;
   const values = [];
   const marks = {};
-  for (const [k, v] of Object.entries(params)) marks[k] = '\u0001' + (values.push(v) - 1) + '\u0002';
-  const pieces = ui(key, marks).split(/\u0001(\d+)\u0002/);
-  return pieces.length === 1 ? pieces[0] : html`${pieces.map((p, i) => (i % 2 ? values[+p] : p || nothing))}`;
+  for (const [k, v] of Object.entries(params || {})) marks[k] = '\u0001' + (values.push(v) - 1) + '\u0002';
+  const text = params ? ui(key, marks) : ui(key);
+  if (!/[`\u0001]/.test(text)) return text;
+  const fill = (s) => s.split(/\u0001(\d+)\u0002/).map((p, i) => (i % 2 ? values[+p] : p || nothing));
+  return html`${text.split('`').map((s, i) => (i % 2 ? html`<code>${fill(s)}</code>` : fill(s)))}`;
 }
 
 export const clock = (d) => d.toLocaleTimeString(i18n.lang, { hour: '2-digit', minute: '2-digit' });

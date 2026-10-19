@@ -6,8 +6,6 @@ import { reader, FILTERS, GIT_PAGE, FRESH_MS } from './config.mjs';
 
 const { prdFilter, fold, isClosed } = reader;
 
-const STORE_KEY = 'development-status:' + location.pathname;
-
 // The view and the filters. prd: only the tickets naming this PRD item (Plan's link
 // "/?module=build&prd=<id>"), closed ones too. The filters are not kept across reloads: a
 // forgotten filter would contradict the overview.
@@ -16,21 +14,19 @@ export const state = {
   activityDays: 14, githubEvents: null, filtersOpen: false,
 };
 try { state.prd = prdFilter(location.search); } catch (e) { /* no query */ }
-try { localStorage.removeItem(STORE_KEY); } catch (e) { /* storage is optional */ }
 
 export const NO_GIT = () => ({ data: null, error: '', limit: GIT_PAGE, open: new Set(), hit: '' });
 export const NO_ISSUES = () => ({ fingerprint: '', repo: null, issues: [], byNumber: new Map() });
 
 // What was read, and how the reading goes.
 export const app = {
-  source: null,        // { adapter, root, name, live, roots }; from the launcher's server also { server, launcher, version, git, github, reload }
+  source: null,        // the server's project (server.mjs): { adapter, root, name, roots, server, launcher, version, git, github, reload }
   cache: new Map(),    // path → { size, mtime, text }
   model: null,         // what the ticket reader made of it
   listing: null,       // the last scan of the files
   changeLog: [],       // newest first: { at, items: [{ path, label, text }] }
   recent: new Map(),   // path → time of the last change seen in this session
   lastChecked: null,
-  lostAccess: false,   // the browser stopped letting the page read the folder
   serverDown: false,
   liveState: '',       // the live stream's state when the page runs without the shell
   git: NO_GIT(),       // the git history from the server: { data, error, limit, open: Set of hashes, hit }
@@ -39,7 +35,6 @@ export const app = {
   openDetails: new Set(),        // the <details> the user opened (areas, the change log)
   lastOpener: null,              // the document whose link opened the drawer, to focus it again
   startError: '',
-  resumeName: '',                // the remembered folder, offered on the start screen
 };
 
 // What the views and the page's controls do; main.mjs fills it in (it needs the refresh, which
@@ -63,25 +58,3 @@ export const docHref = (path) => '#/' + state.view + '/' + encodeURIComponent(pa
 export const isFresh = (path) => app.recent.has(path) && Date.now() - app.recent.get(path) < FRESH_MS;
 // Every blocker it names is closed: the ticket is free to start.
 export const isFree = (t) => !isClosed(t) && !t.blocked && t.blockers.length > 0 && t.blockers.every((b) => b.ticket);
-
-// The folder handle survives a reload in IndexedDB (the permission does not).
-function idb(mode, run) {
-  return new Promise((resolve) => {
-    try {
-      const open = indexedDB.open('development-status', 1);
-      open.onupgradeneeded = () => open.result.createObjectStore('handles');
-      open.onerror = () => resolve(null);
-      open.onsuccess = () => {
-        try {
-          const tx = open.result.transaction('handles', mode);
-          const req = run(tx.objectStore('handles'));
-          tx.oncomplete = () => resolve(req ? req.result : null);
-          tx.onerror = tx.onabort = () => resolve(null);
-        } catch (e) { resolve(null); }
-      };
-    } catch (e) { resolve(null); }
-  });
-}
-export const rememberHandle = (h) => idb('readwrite', (s) => s.put(h, STORE_KEY));
-export const forgetHandle = () => idb('readwrite', (s) => s.delete(STORE_KEY));
-export const recallHandle = () => idb('readonly', (s) => s.get(STORE_KEY));

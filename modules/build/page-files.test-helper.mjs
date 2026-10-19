@@ -1,6 +1,5 @@
 // The Build page's own source files, for the tests that read the page: the skeleton (index.html),
-// its styles (build.css) and its ES modules (page/**/*.mjs). Not page.bundle.js: that is generated
-// from the modules (file-bundle.test.mjs keeps it equal to them).
+// its styles (build.css) and its ES modules (page/**/*.mjs).
 
 import fs from 'node:fs';
 import path from 'node:path';

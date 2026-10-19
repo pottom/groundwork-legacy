@@ -18,7 +18,7 @@ A Build a mattpocock-skillek konvencióit olvassa: a `.scratch/<terület>/issues
 
 - .scratch/<terület>/issues, spec.md, docs/adr, GLOSSARY `kész`
 - v1: helyi Markdown-jegyek (.scratch/) és GitHub-issue-k — A Groundwork saját jegyei a GitHubon vannak (pottom/groundwork).
-- A Plan jegyszámai a Build jegyolvasójából (/api/build/prd) `kész` — A szerver ugyanazzal a ticket-reader.js-szel olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed. ([modules/build/project-tickets.mjs](../../../modules/build/project-tickets.mjs))
+- A Plan jegyszámai a Build jegyolvasójából (/api/build/prd) `kész` — A szerver ugyanazzal a jegyolvasóval (ticket-reader.mjs) olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed. ([modules/build/project-tickets.mjs](../../../modules/build/project-tickets.mjs))
 
 ## Későbbre halasztva
 

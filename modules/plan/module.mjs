@@ -13,20 +13,19 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { send, readJson } from '../../core/http.mjs'
-import { openMap } from './map-store.mjs'
+import { openMap, nodeIds } from './map-store.mjs'
 import { VERSION } from '../../core/version.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
-// The ids of the map's nodes, the root first, each before its children.
-function nodeIds(map) {
-  const ids = []
-  const walk = (node) => {
-    if (node.id != null) ids.push(String(node.id))
-    for (const c of node.children || []) walk(c)
-  }
-  if (map?.nodeData) walk(map.nodeData)
-  return ids
+// A GET of the map, or of what is made from it: 404 without a map; { v, same: true } when the
+// browser already has version ?v=; else answer({ v, data }). The version and the answer come from
+// one read of the file, so they always belong together.
+function sendFromMap(store, root, res, url, answer) {
+  if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` })
+  const map = store.read()
+  if (url.searchParams.get('v') === map.v) return send(res, 200, { v: map.v, same: true })
+  send(res, 200, answer(map))
 }
 
 export default {
@@ -41,7 +40,7 @@ export default {
     'index.html', 'view/plan.css', 'view/map.css',
     'view/main.mjs', 'view/state.mjs', 'view/strings.mjs', 'view/icons.mjs', 'view/data.mjs', 'view/map.mjs', 'view/focus.mjs',
     'view/chrome.mjs', 'view/toolbar.mjs', 'view/legend.mjs', 'view/dock.mjs', 'view/document.mjs', 'view/editor.mjs',
-    'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs', 'view-rules.mjs',
+    'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs', 'view-rules.mjs', 'markdown.mjs',
   ] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],
@@ -59,19 +58,9 @@ export default {
     const store = openMap(root, files)
     return async (req, res, sub, url) => {
       if (sub === '/glossary' && req.method === 'GET') return send(res, 200, { text: store.glossary() }), true
-      if (sub === '/ids' && req.method === 'GET') {
-        if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` }), true
-        const v = store.version()
-        if (url.searchParams.get('v') === v) return send(res, 200, { v, same: true }), true
-        return send(res, 200, { v, ids: nodeIds(store.read().data) }), true
-      }
+      if (sub === '/ids' && req.method === 'GET') return sendFromMap(store, root, res, url, ({ v, data }) => ({ v, ids: nodeIds(data) })), true
       if (sub !== '/map') return false
-      if (req.method === 'GET') {
-        if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` }), true
-        const v = store.version()
-        if (url.searchParams.get('v') === v) return send(res, 200, { v, same: true }), true
-        return send(res, 200, store.read()), true
-      }
+      if (req.method === 'GET') return sendFromMap(store, root, res, url, (map) => map), true
       if (req.method === 'PUT') {
         try {
           const { base, data } = await readJson(req)
