@@ -70,10 +70,11 @@ test('only the Sketch page loads Excalidraw and React: no other module, and not 
   assert.doesNotMatch(shell, /src="\/sketch\//, 'the Sketch frame is made only when its tab is opened')
 })
 
-test('Sketch is the last tab, a tool after the workflow', () => {
+test('Sketch is the first tool, after the workflow', () => {
   const tabs = MODULES.filter((m) => m.view)
-  assert.equal(tabs.at(-1), sketch)
-  assert.ok(tabs.slice(0, -1).every((m) => !m.tool))
+  const first = tabs.findIndex((m) => m.tool)
+  assert.equal(tabs[first], sketch)
+  assert.ok(tabs.slice(first).every((m) => m.tool), 'the tools come last, behind the separator')
 })
 
 test('the board follows the shell: light or dark as the shell\'s switch says, the UI language, and embeds are off', () => {

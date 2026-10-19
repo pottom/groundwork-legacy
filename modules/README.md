@@ -8,6 +8,7 @@ Each folder here is one Groundwork module.
 | [`plan/`](plan/) | Turns a grilling interview with Claude Code into a live mind map and product documents under `docs/product/` | working prototype (Claude skill: groundwork-prd-maker) |
 | [`build/`](build/) | Shows a project's Markdown tickets, specs, ADRs and git branches as a live dashboard | working prototype |
 | [`sketch/`](sketch/) | A drawing board (Excalidraw) of named sketches, each a standard `.excalidraw` file under `docs/product/sketches/` (a bar lists, opens, makes and renames them); Claude reads and draws on them with `groundwork sketch show \| apply` (Mermaid flowcharts too), live, merged element by element with the browser's edits; threads of comments pinned to shapes (`groundwork sketch threads \| comment \| close`); links from a sketch to ideas, map nodes, tickets and other sketches, which those modules show (`GET /api/sketch/links`) | in progress (Claude skill: groundwork-sketch) |
+| [`agents/`](agents/) | The Claude Code sessions and their subagents, live: state (running, done, failed), start and duration, from the redacted event log its hook writes to `.groundwork/agents/events.jsonl` | in progress (Claude hook: groundwork-agents-hook.mjs) |
 
 ## What a module is
 
@@ -36,12 +37,14 @@ export default {
   claude: {                                              // optional: what `groundwork init` installs
     skills: [path.join(HERE, 'skills', 'groundwork-prd-maker')],  // skill folders, copied to .claude/skills/<name>/
     hooks: [{ event: 'UserPromptSubmit', run: 'plan hook' }],  // added to .claude/settings.json as `<RUNNER> plan hook`
+    // or a script, for a hook that runs often (Agents): { event, matcher?, script: path.join(HERE, 'hook.mjs') },
+    // copied to .claude/hooks/groundwork-<id>-hook.mjs and run as `node "$CLAUDE_PROJECT_DIR/.claude/hooks/..."`
   },
   api: ({ root, files, events }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
 }
 ```
 
-`RUNNER` (`core/version.mjs`) is `npx -y --prefer-offline @pottom/groundwork@<version>`: our package (the unscoped npm `groundwork` is someone else's) at the version init came from, taken from the npx cache without a registry lookup once it is there, so a hook that runs on every prompt needs no network. A skill's Markdown files write it as `{{groundwork}}` (`{{groundwork}} plan apply`); init fills it in. Run again after an upgrade, init replaces a hook of an older version, or of another form, instead of adding a second one.
+`RUNNER` (`core/version.mjs`) is `npx -y --prefer-offline @pottom/groundwork@<version>`: our package (the unscoped npm `groundwork` is someone else's) at the version init came from, taken from the npx cache without a registry lookup once it is there, so a hook that runs on every prompt needs no network. A skill's Markdown files write it as `{{groundwork}}` (`{{groundwork}} plan apply`); init fills it in. Run again after an upgrade, init replaces a hook of an older version, or of another form, instead of adding a second one. A hook that runs on every tool call cannot wait for npx (~0.7 s): it is a `script`, one file that needs only Node, which init copies into the project and runs with `node` (~60 ms; the Agents hook).
 
 Endpoints answer with `send` from [`core/http.mjs`](../core/http.mjs): never cached, `nosniff`, with a `content-length`; to a HEAD request Node sends the headers only. The view files are served by the core with an `ETag` (a `304` while unchanged) and compressed.
 

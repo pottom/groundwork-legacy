@@ -7,6 +7,11 @@
 //     kept); a hook for the same command in another form (an older version, the unscoped
 //     `npx groundwork`, `node .../modules/plan/plan.mjs hook` in a checkout) is replaced, not
 //     added beside it;
+//   - a module's hook that is a script (`{ event, matcher?, script }`, the Agents hook): the file
+//     copied to .claude/hooks/groundwork-<module>-<file>, and run on each event as
+//     `node "$CLAUDE_PROJECT_DIR/.claude/hooks/..."`, which starts in ~60 ms where npx takes
+//     ~0.7 s (q-agents-hook-speed); a copy of an older version, or the checkout's
+//     `node .../modules/<module>/<file>`, is replaced, and so is one under another matcher;
 //   - the .groundwork/ folder (the modules' local state), added to .gitignore.
 // It first lists what it will change and asks; it writes only after a yes. Run again, it changes
 // only what is missing or out of date, so nothing is ever added twice.
@@ -25,6 +30,7 @@ import readline from 'node:readline'
 import { RUNNER } from './version.mjs'
 
 const SETTINGS = '.claude/settings.json'
+const HOOKS_DIR = '.claude/hooks'
 const GITIGNORE = '.gitignore'
 const ignoredLines = new Set(['.groundwork', '.groundwork/', '/.groundwork', '/.groundwork/'])
 
@@ -94,6 +100,38 @@ function sameHook(run) {
   return (command) => typeof command === 'string' && re.test(command)
 }
 
+// Where init copies a module's hook script (`script` in the manifest), and how the hook runs it.
+const scriptFile = (m, script) => `${HOOKS_DIR}/groundwork-${m.id}-${path.basename(script)}`
+const scriptCommand = (m, script) => `node "$CLAUDE_PROJECT_DIR/${scriptFile(m, script)}"`
+
+// Whether a hook command runs that script in some form: the copy init made, or in a checkout the
+// module's own file (`node .../modules/agents/hook.mjs`).
+function sameScript(m, script) {
+  const name = escapeRe(path.basename(script))
+  const re = new RegExp(String.raw`(?:[\\/]groundwork-${escapeRe(m.id)}-${name}|[\\/]modules[\\/]${escapeRe(m.id)}[\\/]${name})["']?\s*$`)
+  return (command) => typeof command === 'string' && re.test(command)
+}
+
+// The hook scripts, copied to .claude/hooks/ (one file each, needing only Node).
+function scriptChanges(root, modules) {
+  const out = []
+  for (const m of modules) {
+    for (const script of new Set((m.claude?.hooks ?? []).map((h) => h.script).filter(Boolean))) {
+      const rel = scriptFile(m, script)
+      const dest = path.join(root, rel)
+      const want = fs.readFileSync(script)
+      if (readIf(dest)?.equals(want)) continue
+      out.push({
+        file: rel,
+        action: fs.existsSync(dest) ? 'update' : 'create',
+        detail: `the ${m.name} module's hook, run with node`,
+        write: () => { fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.writeFileSync(dest, want) },
+      })
+    }
+  }
+  return out
+}
+
 function settingsChange(root, modules) {
   const file = path.join(root, SETTINGS)
   const text = readIf(file)?.toString('utf8')
@@ -101,13 +139,27 @@ function settingsChange(root, modules) {
   try { settings = text?.trim() ? JSON.parse(text) : {} } catch (e) { throw new Error(`${SETTINGS} is not valid JSON (${e.message}); fix it and run init again`) }
   const edits = []
   for (const m of modules) {
-    for (const { event, run } of m.claude?.hooks ?? []) {
+    const scripted = { add: [], replace: [] }   // the events, for one line per module and kind
+    for (const { event, matcher, script } of (m.claude?.hooks ?? []).filter((h) => h.script)) {
+      const command = scriptCommand(m, script)
+      const same = sameScript(m, script)
+      const found = (settings.hooks?.[event] ?? []).flatMap((g) => (g.hooks ?? []).filter((h) => same(h.command)).map((h) => ({ g, h })))
+      const sameMatcher = (g) => (g.matcher ?? '') === (matcher ?? '')
+      if (found.length === 1 && found[0].h.command === command && sameMatcher(found[0].g)) continue
+      scripted[found.length ? 'replace' : 'add'].push(event)
+      edits.push({ event, command, matcher, found: found.map((f) => f.h), inPlace: found.length > 0 && sameMatcher(found[0].g), detail: '' })
+    }
+    const scriptCmds = [...new Set((m.claude?.hooks ?? []).filter((h) => h.script).map((h) => scriptCommand(m, h.script)))].join(', ')
+    for (const [kind, events] of Object.entries(scripted)) {
+      if (events.length) edits.push({ detail: `${kind} the ${m.name} module's ${events.join(', ')} hook${events.length > 1 ? 's' : ''}: ${scriptCmds}` })
+    }
+    for (const { event, run } of (m.claude?.hooks ?? []).filter((h) => !h.script)) {
       const command = `${RUNNER} ${run}`
       const same = sameHook(run)
       const found = (settings.hooks?.[event] ?? []).flatMap((g) => (g.hooks ?? []).filter((h) => same(h.command)))
       if (found.length === 1 && found[0].command === command) continue
       edits.push({
-        event, command, found,
+        event, command, found, inPlace: found.length > 0,
         detail: found.length
           ? `replace the ${m.name} module's ${event} hook (${found.map((h) => h.command).join(', ')}) with: ${command}`
           : `add the ${m.name} module's ${event} hook: ${command}`,
@@ -118,14 +170,15 @@ function settingsChange(root, modules) {
   return [{
     file: SETTINGS,
     action: text == null ? 'create' : 'update',
-    detail: edits.map((e) => e.detail).join('; '),
+    detail: edits.map((e) => e.detail).filter(Boolean).join('; '),
     write: () => {
       settings.hooks ??= {}
-      for (const { event, command, found } of edits) {
-        if (!found.length) { (settings.hooks[event] ??= []).push({ hooks: [{ type: 'command', command }] }); continue }
-        // The first becomes this hook, in its place; the others go, and so does a group left empty.
-        found[0].command = command
-        const extra = new Set(found.slice(1))
+      for (const { event, command, matcher, found, inPlace } of edits.filter((e) => e.event)) {
+        // In place, the first found becomes this hook; the others go, and so does a group left
+        // empty. Otherwise (none found, or under another matcher) it is added in a group of its own.
+        if (inPlace) found[0].command = command
+        const extra = new Set(inPlace ? found.slice(1) : found)
+        if (!inPlace) (settings.hooks[event] ??= []).push({ ...(matcher ? { matcher } : {}), hooks: [{ type: 'command', command }] })
         settings.hooks[event] = settings.hooks[event]
           .map((g) => (g.hooks ? { ...g, hooks: g.hooks.filter((h) => !extra.has(h)) } : g))
           .filter((g) => !g.hooks || g.hooks.length)
@@ -154,7 +207,7 @@ function gitignoreChange(root) {
 export function planInit({ root, modules }) {
   // Settings first: when they cannot be read, nothing is planned (and so nothing written).
   const settings = settingsChange(root, modules)
-  const changes = [...skillChanges(root, modules), ...settings, ...gitignoreChange(root)]
+  const changes = [...skillChanges(root, modules), ...scriptChanges(root, modules), ...settings, ...gitignoreChange(root)]
   return {
     changes: changes.map(({ file, action, detail }) => ({ file, action, detail })),
     write: () => { for (const c of changes) c.write() },

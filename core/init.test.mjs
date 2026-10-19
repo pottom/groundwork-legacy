@@ -114,7 +114,7 @@ test('the other settings and hooks of an existing settings.json are kept', async
   const after = JSON.parse(read(dir, '.claude/settings.json'))
   assert.deepEqual(after.permissions, before.permissions)
   assert.equal(after.model, 'opus')
-  assert.deepEqual(after.hooks.Stop, before.hooks.Stop)
+  assert.deepEqual(after.hooks.Stop[0], before.hooks.Stop[0], 'the project\'s own Stop hook is kept as it was (the Agents hook goes beside it)')
   assert.deepEqual(hookCommands(after, 'UserPromptSubmit'), ['echo mine', HOOK])
   assert.equal(read(dir, '.gitignore'), 'dist/\n# local state of the Groundwork modules\n.groundwork/\n')
 })
@@ -221,4 +221,48 @@ test('the planning error goes to the error output it is given', async () => {
   assert.equal(code, 1)
   assert.match(err, /settings\.json is not valid JSON/)
   assert.equal(out, '')
+})
+
+// A module's hook that is a script (the Agents hook): copied into .claude/hooks/ and run with
+// `node`, which starts in ~60 ms where npx takes ~0.7 s (q-agents-hook-speed).
+const AGENTS_HOOK = fileURLToPath(new URL('../modules/agents/hook.mjs', import.meta.url))
+const AGENTS_COMMAND = 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/groundwork-agents-hook.mjs"'
+const groupsOf = (settings, event) => settings.hooks?.[event] ?? []
+
+test('init installs the Agents hooks next to the others: the script copied, each event run with node', async () => {
+  const dir = project()
+  fs.mkdirSync(path.join(dir, '.claude'))
+  fs.writeFileSync(path.join(dir, '.claude', 'settings.json'), JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: 'command', command: 'echo mine' }] }] } }))
+  const r = await init(dir, ['--yes'])
+  assert.equal(r.code, 0, r.stdout + r.stderr)
+  assert.match(r.stdout, /\.claude[\/]hooks[\/]groundwork-agents-hook\.mjs/)
+  assert.equal(read(dir, '.claude/hooks/groundwork-agents-hook.mjs'), fs.readFileSync(AGENTS_HOOK, 'utf8'))
+  const settings = JSON.parse(read(dir, '.claude/settings.json'))
+  for (const event of ['SessionStart', 'SubagentStart', 'SubagentStop', 'PostToolUse', 'PostToolUseFailure', 'Notification', 'SessionEnd']) {
+    assert.deepEqual(hookCommands(settings, event), [AGENTS_COMMAND], event)
+  }
+  assert.deepEqual(hookCommands(settings, 'Stop'), ['echo mine', AGENTS_COMMAND], 'beside the project\'s own')
+  assert.deepEqual(groupsOf(settings, 'PreToolUse'), [{ matcher: 'Agent|Task', hooks: [{ type: 'command', command: AGENTS_COMMAND }] }])
+  assert.deepEqual(hookCommands(settings, 'UserPromptSubmit'), [HOOK], 'the Plan hook as before')
+  assert.match((await init(dir)).stdout, /nothing to change/, 'run again, nothing is added twice')
+})
+
+test('an outdated Agents hook is brought up to date: the copy, a changed matcher, a checkout\'s form', async () => {
+  const dir = project()
+  await init(dir, ['--yes'])
+  fs.writeFileSync(path.join(dir, '.claude/hooks/groundwork-agents-hook.mjs'), '// old')
+  const settings = JSON.parse(read(dir, '.claude/settings.json'))
+  settings.hooks.PreToolUse = [{ matcher: 'Task', hooks: [{ type: 'command', command: AGENTS_COMMAND }] }, { matcher: 'Bash', hooks: [{ type: 'command', command: 'echo mine' }] }]
+  settings.hooks.SessionStart = [{ hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR/modules/agents/hook.mjs"' }, { type: 'command', command: AGENTS_COMMAND }] }]
+  fs.writeFileSync(path.join(dir, '.claude/settings.json'), JSON.stringify(settings))
+  const r = await init(dir, ['--yes'])
+  assert.equal(r.code, 0, r.stdout + r.stderr)
+  assert.equal(read(dir, '.claude/hooks/groundwork-agents-hook.mjs'), fs.readFileSync(AGENTS_HOOK, 'utf8'))
+  const after = JSON.parse(read(dir, '.claude/settings.json'))
+  assert.deepEqual(groupsOf(after, 'PreToolUse'), [
+    { matcher: 'Bash', hooks: [{ type: 'command', command: 'echo mine' }] },
+    { matcher: 'Agent|Task', hooks: [{ type: 'command', command: AGENTS_COMMAND }] },
+  ])
+  assert.deepEqual(hookCommands(after, 'SessionStart'), [AGENTS_COMMAND])
+  assert.match((await init(dir)).stdout, /nothing to change/)
 })

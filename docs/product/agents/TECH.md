@@ -13,13 +13,15 @@ A groundwork init a modul manifestjéből Claude Code hookokat telepít, amelyek
 Két kérdést az első jegy dönt el: milyen mezőkkel azonosítják a hookok a subagenteket, és hogyan lesz a hook elég gyors, mert az npx-es hívás eszközhívásonként túl lassú.
 
 - Claude Code hookok írják az eseményeket; a groundwork init telepíti őket — Pl. SessionStart, SubagentStart/Stop, PreToolUse/PostToolUse, Notification, Stop.
+- A subagentet az agent_id és az agent_type mező azonosítja — Dokumentáció (code.claude.com/docs/en/hooks) és egy valódi futás (Claude Code 2.1.302) alapján: minden hook kap session_id-t; a SubagentStart, a SubagentStop és a subagenten belül futó minden eszközhívás (PreToolUse/PostToolUse) agent_id-t és agent_type-ot is kap, a fő munkameneté nem. A subagentet indító eszköz neve Agent (régebben Task): a PreToolUse a tool_use_id-t és a description-t adja (ez az agent címkéje), a PostToolUse tool_response.agentId-ja köti a hívást az agent_id-hoz. A SubagentStop last_assistant_message mezője a záró jelentés; a naplóba ma nem kerül. ([modules/agents/hook.mjs](../../../modules/agents/hook.mjs))
+- Gyors hook: a groundwork init a projektbe másolja, és közvetlenül node futtatja — A hook egyetlen, csak Node-ot igénylő fájl; az init .claude/hooks/groundwork-agents-hook.mjs néven a projektbe másolja, és node "$CLAUDE_PROJECT_DIR/.claude/hooks/groundwork-agents-hook.mjs" parancsként telepíti. Mérve kb. 57 ms hívásonként (Windows, Node 24), az npx kb. 0,3–0,7 s. A PreToolUse csak az Agent eszközre fut (matcher), így egy közönséges eszközhívás egyszer futtatja a hookot. A futó szervernek küldött esemény elvetve: szerver nélkül elveszne. ([core/init.mjs](../../../core/init.mjs))
 - A worktree-k és branchek állapotát a git adja
 
 ## 2. Adatok és tárolás
 
 Az események egy csak hozzáírható JSON Lines naplóba kerülnek a .groundwork/agents/ alatt, amely gitignore-ban van; az agentek állapotát a szerver ebből számolja. A régi futások forgatással kerülnek ki, hogy a napló ne nőjön korlátlanul.
 
-- Helyi eseménynapló: .groundwork/agents/events.jsonl, gitignore-ban — Csak hozzáírás; régi futások forgatással kerülnek ki.
+- Helyi eseménynapló: .groundwork/agents/events.jsonl, gitignore-ban — Csak hozzáírás; 2 MB fölött a napló events.1.jsonl-be kerül (a régebbit felülírva), a szerver mindkettőt olvassa. ([modules/agents/hook.mjs](../../../modules/agents/hook.mjs))
 
 ## 3. Integrációk és interfészek
 
@@ -32,14 +34,9 @@ Egy agent jegyét a feladatleírásában szereplő jegyszám, a branch neve vagy
 
 A napló nem tárolja az eszközhívások tartalmát: csak az eszköz nevét, az érintett fájl útját és a futtatott parancs nevét, így fájltartalom, token vagy jelszó nem kerülhet bele. A modul csak a .groundwork/agents/ alá írhat.
 
-- A napló csak összefoglalót tárol: eszköz, fájlút, parancs neve; tartalmat és titkot nem
+- A napló csak összefoglalót tárol: eszköz, fájlút, parancs neve; tartalmat és titkot nem ([modules/agents/hook.test.mjs](../../../modules/agents/hook.test.mjs))
 - Csak a .groundwork/agents/ alá írhat
 
 ## Elvetett megoldások
 
 - A ~/.claude alatti naplófájlok olvasása — Belső formátum, ami változhat, és magánjellegű tartalom van benne. _(Architektúra és komponensek)_
-
-## Nyitott műszaki kérdések
-
-- Milyen mezőkkel azonosítják a hookok a subagenteket? — Az első jegy dönti el a Claude Code dokumentációja és kipróbálás alapján. _(Architektúra és komponensek)_
-- Gyors hook: közvetlen node-útvonal vagy a futó szervernek küldött esemény az npx helyett — Az npx-es hívás kb. 0,7 s lenne eszközhívásonként. _(Architektúra és komponensek)_
