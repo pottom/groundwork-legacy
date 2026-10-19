@@ -4,8 +4,14 @@
     {
       "name": "prd-maker",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["mindmap/mm.mjs", "serve", "--port", "4477"],
+      "runtimeArgs": ["modules/plan/plan.mjs", "serve", "--port", "4477"],
       "port": 4477
+    },
+    {
+      "name": "build-dashboard",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["modules/build/development-status.mjs", "--root", ".", "--no-open", "--port", "8642"],
+      "port": 8642
     }
   ]
 }

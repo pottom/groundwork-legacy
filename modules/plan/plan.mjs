@@ -2,24 +2,24 @@
 // prd-maker: a live, human-editable mind map for grilling sessions that
 // writes a PRD (PRD.md) as the interview goes.
 //
-//   node mindmap/mm.mjs init "<title>"   create mindmap.json in the current dir
-//   node mindmap/mm.mjs apply '<ops>'    apply a JSON op array (or pipe it on stdin)
-//   node mindmap/mm.mjs show             print the outline + pending human edits
-//   node mindmap/mm.mjs serve [--port N] serve the editor (default 4477)
-//   node mindmap/mm.mjs hook             UserPromptSubmit hook (reads hook JSON on stdin)
+//   node modules/plan/plan.mjs init "<title>"   create mindmap.json in the current dir
+//   node modules/plan/plan.mjs apply '<ops>'    apply a JSON op array (or pipe it on stdin)
+//   node modules/plan/plan.mjs show             print the outline + pending human edits
+//   node modules/plan/plan.mjs serve [--port N] serve the editor (default 4477)
+//   node modules/plan/plan.mjs hook             UserPromptSubmit hook (reads hook JSON on stdin)
 //
 // The map lives in <dir>/docs/product/mindmap.json (Mind Elixir format). Edits made in the
 // browser are diffed against the version the browser loaded, merged onto the
 // current file, and logged to <dir>/.prd-maker/edits.jsonl until Claude reads them.
-// Every write also regenerates the documents under <dir>/docs/product/ (see prd.mjs).
+// Every write also regenerates the documents under <dir>/docs/product/ (see documents.mjs).
 
 import fs from 'node:fs'
 import path from 'node:path'
 import http from 'node:http'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { setStatus, STATUSES } from './status.mjs'
-import { buildPrd, toMarkdown, GENERATED_MARK, BASE_DIR, KINDS, COMPONENT_TYPES, listDocs, isSection } from './prd.mjs'
+import { setStatus, STATUSES } from './node-types.mjs'
+import { buildPrd, toMarkdown, GENERATED_MARK, BASE_DIR, KINDS, COMPONENT_TYPES, listDocs, isSection } from './documents.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -368,7 +368,7 @@ function cmdServe(dir, port) {
     res.writeHead(code, { 'content-type': type, 'cache-control': 'no-store' })
     res.end(typeof body === 'string' ? body : JSON.stringify(body))
   }
-  const files = { '/': 'index.html', '/index.html': 'index.html', '/status.mjs': 'status.mjs', '/prd.mjs': 'prd.mjs' }
+  const files = { '/': 'index.html', '/index.html': 'index.html', '/node-types.mjs': 'node-types.mjs', '/documents.mjs': 'documents.mjs' }
   const types = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8' }
 
   http.createServer((req, res) => {
@@ -446,6 +446,6 @@ switch (cmd) {
   case 'show': cmdShow(dir); break
   case 'serve': cmdServe(dir, Number(flag('--port', process.env.PORT || 4477))); break
   case 'hook': cmdHook(); break
-  default: die('usage: mm.mjs init "<title>" | apply \'<ops json>\' | show | serve [--port N] | hook\n' +
+  default: die('usage: plan.mjs init "<title>" | apply \'<ops json>\' | show | serve [--port N] | hook\n' +
     `statuses: ${Object.keys(STATUSES).join(', ')}\ndocument kinds: ${Object.keys(KINDS).join(', ')}\ncomponent types: ${Object.keys(COMPONENT_TYPES).join(', ')}`)
 }

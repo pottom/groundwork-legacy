@@ -1,4 +1,4 @@
-// Shared by the server (mm.mjs) and the browser (index.html).
+// Shared by the server (plan.mjs) and the browser (index.html).
 // The map holds outcomes only (topics, decisions, facts), never the questions
 // that led to them. The data stores just the status; index.html styles it.
 //

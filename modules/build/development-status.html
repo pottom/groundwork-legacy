@@ -1,0 +1,2167 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fejlesztési állapot</title>
+<link rel="icon" href="data:,">
+<!--
+  development-status.html: a self-contained status page for a project whose
+  tickets, specs and decisions live in markdown files.
+
+  No build, no dependencies. Two ways to open it:
+    - run the launcher next to it (node development-status.mjs): a small
+      local read-only server hands the page the markdown files, so it goes
+      live at once, in every browser;
+    - or open this file by double click: it asks once for the project folder
+      (read only), which needs a Chromium browser to stay live.
+  Either way it re-reads the markdown files every few seconds. Nothing about
+  any particular project is baked in: copy the file (and the launcher) into
+  another project that keeps the same conventions and it works there.
+
+  Conventions it reads (all relative to the chosen folder):
+    <tracker>/<area>/issues/<number>-<slug>.md   one ticket per file
+    <tracker>/<area>/spec.md                     the area's spec
+    <tracker>/<area>/**/*.md                     other documents
+    docs/adr/*.md                                decision records
+    README.md                                    the project's name (first heading)
+    GLOSSARY.md (or the older CONTEXT.md), GLOSSARY-MAP.md
+                                                 the domain glossary, listed under Dokumentumok
+  <tracker> is ".scratch" by default (DEFAULT_TRACKER_DIR below); without it,
+  the first folder whose subfolders hold "issues/" folders.
+
+  A ticket's fields are read near the top of the file, in any of these forms:
+    **Status:** ready-for-agent        Status: ready-for-agent      - **Status:** …
+  (the local format of Matt Pocock's /to-tickets skill puts **Blocked by:**
+  before **Status:**; the order does not matter). "Blocked by" may also be a
+  "## Blocked by" heading with a list under it (the issue template's form),
+  and it may name tickets by number ("01", "#12", "area 3"), by file name
+  ("01-some-slug") or by title; "None (can start immediately)" means none.
+  Comments go under "## Comments"; a heading with a date (### 2026-10-14 …)
+  is one comment.
+
+  The Ágak (branches) view draws the git history: every branch and tag, the
+  commits in date order, and where each branch was merged. Git is asked by the
+  launcher (read only), so this view needs it; opened by double click, the
+  page cannot run git.
+
+  Version: VERSION below; the launcher has the same constant. Bump both
+  together and add a line here (semver: a new view or field is a minor step,
+  a fix a patch, a change that breaks the launcher pairing a major one).
+    1.0.0  2026-10-18  the first numbered version: tickets, areas, dependencies,
+                       activity, inconsistencies, documents, and the git branch
+                       graph (Ágak); the version is shown in the header, and a
+                       page and launcher of different versions say so
+-->
+<style>
+/* Colours carry the ticket states:
+   ready-for-agent = blue, waiting for a human = orange,
+   needs-…-test = purple, done = green. */
+:root {
+  color-scheme: light;
+  --bg: #fbfaf7; --surface: #ffffff; --sunken: #f3f1ec; --raised: #ffffff;
+  --ink: #1d1c1a; --ink-2: #4a4843; --muted: #6b6860;
+  --line: #e4e0d7; --line-strong: #cfcac0; --accent: #2f5bd3; --focus: #2f5bd3;
+  --c-agent: #2f5bd3; --c-human: #c2410c; --c-test: #7c3aed; --c-claimed: #0b7269;
+  --c-done: #1f8a4c; --c-dropped: #7a776f; --c-neutral: #55524a; --c-bad: #c0392b;
+  --shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
+  --shadow-lg: 0 10px 40px rgb(0 0 0 / .16);
+  --g0: #2f5bd3; --g1: #c2410c; --g2: #1f8a4c; --g3: #7c3aed; --g4: #0b7269; --g5: #b4235a; --g6: #8a6d00; --g7: #4a6fa5;
+  --radius: 10px;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #15161a; --surface: #1c1e23; --sunken: #24262c; --raised: #22242a;
+    --ink: #ecebe8; --ink-2: #c3c1bb; --muted: #9a978f;
+    --line: #2f3238; --line-strong: #464a52; --accent: #7d9cf0; --focus: #7d9cf0;
+    --c-agent: #7d9cf0; --c-human: #f08a5d; --c-test: #b294f5; --c-claimed: #5cc7bb;
+    --c-done: #5cc58a; --c-dropped: #8f8c85; --c-neutral: #b4b1a8; --c-bad: #ee7a6c;
+    --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd;
+    --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
+    --shadow-lg: 0 10px 40px rgb(0 0 0 / .5);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #15161a; --surface: #1c1e23; --sunken: #24262c; --raised: #22242a;
+  --ink: #ecebe8; --ink-2: #c3c1bb; --muted: #9a978f;
+  --line: #2f3238; --line-strong: #464a52; --accent: #7d9cf0; --focus: #7d9cf0;
+  --c-agent: #7d9cf0; --c-human: #f08a5d; --c-test: #b294f5; --c-claimed: #5cc7bb;
+  --c-done: #5cc58a; --c-dropped: #8f8c85; --c-neutral: #b4b1a8; --c-bad: #ee7a6c;
+  --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd;
+  --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
+  --shadow-lg: 0 10px 40px rgb(0 0 0 / .5);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); overflow-x: hidden; }
+a { color: var(--accent); text-decoration: none; text-underline-offset: 2px; }
+a:hover { text-decoration: underline; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+button, select, input { font: inherit; color: inherit; }
+button, .btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--line-strong);
+  background: var(--surface); border-radius: 7px; cursor: pointer; white-space: nowrap; line-height: 1.4;
+  transition: border-color .12s, background-color .12s;
+}
+button:hover, .btn:hover { border-color: var(--ink-2); text-decoration: none; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; padding: 9px 18px; }
+button.primary:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink)); }
+button.quiet { border-color: transparent; background: none; color: var(--accent); padding: 2px 4px; }
+button.quiet:hover { text-decoration: underline; }
+button.icon { padding: 5px 8px; color: var(--ink-2); }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 8px; top: 8px; z-index: 50; background: var(--surface); padding: 6px 10px; border-radius: 6px; box-shadow: var(--shadow); }
+.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+[hidden] { display: none !important; }
+code { font-family: var(--mono); font-size: .9em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; }
+
+/* Top bar */
+#top {
+  position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 90%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
+}
+.bar { max-width: 1440px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.bar h1 { font-size: 16px; margin: 0 auto 0 0; font-weight: 680; letter-spacing: -.005em; display: flex; align-items: center; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
+.bar h1::before {
+  content: ""; flex: none; width: 14px; height: 14px; border-radius: 4px;
+  background: linear-gradient(135deg, var(--c-agent) 0 50%, var(--c-done) 50% 100%);
+}
+.bar h1 small { font-weight: 450; color: var(--muted); font-size: 13px; }
+.live { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--muted); font-size: 12.5px; }
+.live .state { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px; background: var(--sunken); min-width: 0; }
+.live button { font-size: 12.5px; padding: 3px 10px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-dropped); flex: none; }
+.dot.on { background: var(--c-done); }
+.dot.warn { background: var(--c-human); }
+@media (prefers-reduced-motion: no-preference) { .dot.on.tick { animation: tick .9s ease-out; } }
+@keyframes tick { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-done) 60%, transparent); } to { box-shadow: 0 0 0 7px transparent; } }
+.wrap { max-width: 1440px; margin: 0 auto; padding: 0 24px 96px; }
+
+/* Start screen */
+#start { max-width: 660px; margin: 8vh auto 40px; padding: 0 20px; }
+#start .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px 30px; box-shadow: var(--shadow); }
+#start h2 { font-size: 26px; margin: 0 0 8px; letter-spacing: -.015em; line-height: 1.2; }
+#start p { margin: 8px 0; color: var(--ink-2); }
+#start p.muted { color: var(--muted); }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 10px; }
+.drop { border: 1.5px dashed var(--line-strong); border-radius: 10px; padding: 20px; color: var(--muted); margin-top: 16px; text-align: center; transition: background-color .12s, border-color .12s; }
+body.dragging .drop, body.dragging #top { border-color: var(--accent); }
+body.dragging .drop { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--ink); }
+.notice { border-left: 3px solid var(--c-human); background: color-mix(in srgb, var(--c-human) 9%, transparent); padding: 9px 13px; border-radius: 0 8px 8px 0; margin: 12px 0; }
+.notice.bad { border-color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 9%, transparent); }
+.rules { color: var(--muted); font-size: 13px; margin-top: 24px; border-top: 1px solid var(--line); padding-top: 14px; }
+.rules code { font-size: 12px; }
+
+/* Overview: big numbers and the segmented progress bar */
+.overview { padding: 20px 0 6px; display: grid; gap: 14px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi {
+  --c: var(--ink-2); position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px 11px; display: grid; gap: 2px; box-shadow: var(--shadow); overflow: hidden; min-width: 0;
+}
+.kpi::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--c); }
+.kpi .v { font: 680 30px/1.05 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.kpi .v small { font-size: 15px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.kpi .k { font-size: 12.5px; color: var(--ink-2); font-weight: 560; }
+.kpi .s { font-size: 12px; color: var(--muted); }
+.kpi.zero .v { color: var(--muted); }
+.kpi.zero::before { background: var(--line-strong); }
+.progress { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 10px; box-shadow: var(--shadow); }
+.progress .head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: 13px; color: var(--muted); }
+.progress .head b { color: var(--ink); font-weight: 650; }
+.stack { display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden; background: var(--sunken); }
+.stack span { display: block; min-width: 4px; background: var(--c); border-radius: 2px; }
+.stack span.closed { background: repeating-linear-gradient(135deg, var(--c) 0 5px, color-mix(in srgb, var(--c) 72%, var(--surface)) 5px 8px); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips .sep { width: 1px; height: 18px; background: var(--line-strong); margin: 0 4px; }
+.chip {
+  --c: var(--c-neutral); display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px 1px 8px; border-radius: 999px; white-space: nowrap;
+  font: 500 12px/1.65 var(--mono); color: color-mix(in srgb, var(--c) 82%, var(--ink)); background: color-mix(in srgb, var(--c) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
+}
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
+.chip.closed { background: transparent; }
+.chip.closed::before { background: none; border: 1.5px solid var(--c); width: 6px; height: 6px; }
+button.chip { cursor: pointer; padding-top: 2px; padding-bottom: 2px; }
+button.chip:hover, button.chip[aria-pressed="true"] { border-color: var(--c); }
+button.chip[aria-pressed="true"] { background: color-mix(in srgb, var(--c) 24%, transparent); font-weight: 650; box-shadow: inset 0 0 0 1px var(--c); }
+.chip b { font-weight: 700; color: var(--ink); }
+.t-agent { --c: var(--c-agent); } .t-human { --c: var(--c-human); } .t-test { --c: var(--c-test); }
+.t-claimed { --c: var(--c-claimed); } .t-done { --c: var(--c-done); } .t-dropped { --c: var(--c-dropped); }
+.t-neutral { --c: var(--c-neutral); } .t-bad { --c: var(--c-bad); }
+.changes { font-size: 13px; color: var(--muted); padding: 0 2px; }
+.changes summary { cursor: pointer; border-radius: 4px; }
+.changes ul { margin: 6px 0 0; padding-left: 18px; }
+.changes li b { color: var(--ink); font-weight: 600; }
+
+/* Navigation and filters */
+nav.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; margin-top: 8px; scrollbar-width: thin; }
+nav.tabs a { display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px 10px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-weight: 520; border-radius: 6px 6px 0 0; }
+nav.tabs a:hover { color: var(--ink); text-decoration: none; background: color-mix(in srgb, var(--ink) 4%, transparent); }
+nav.tabs a[aria-current="page"] { color: var(--ink); border-color: var(--accent); font-weight: 650; }
+nav.tabs .badge { font: 600 11px/1.6 var(--mono); background: var(--sunken); color: var(--ink-2); border-radius: 999px; padding: 0 7px; }
+nav.tabs .badge.warn { background: color-mix(in srgb, var(--c-human) 18%, transparent); color: var(--c-human); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 14px 0 6px; }
+.filters input[type="search"], .filters select { padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); min-width: 0; }
+.filters input[type="search"] { flex: 1 1 240px; max-width: 380px; }
+.filters select { max-width: 230px; }
+.filters label.check { display: inline-flex; gap: 7px; align-items: center; cursor: pointer; color: var(--ink-2); }
+.filters label.check input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+.filters .summary { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+/* Groups and tables */
+.group { margin: 0 0 26px; }
+.group > h2, .view > h2 { font-size: 15px; margin: 18px 0 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; letter-spacing: -.005em; }
+.group > h2 .count { font: 650 12px/1.7 var(--mono); background: var(--sunken); padding: 0 8px; border-radius: 999px; color: var(--ink-2); }
+.group > h2 .hint, .lead { font-weight: 400; color: var(--muted); font-size: 13px; }
+.group.info > h2 { color: var(--ink-2); }
+.lead { margin: 12px 0 14px; max-width: 86ch; }
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+table.grid { width: 100%; border-collapse: collapse; }
+table.grid th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 650; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; background: color-mix(in srgb, var(--sunken) 55%, var(--surface)); }
+table.grid td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.grid tr:last-child td { border-bottom: 0; }
+table.grid tbody tr[data-doc] { cursor: pointer; }
+table.grid tbody tr[data-doc]:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+table.grid tbody tr.is-blocked td.c-title a.open { color: var(--ink-2); }
+td.c-num { white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); width: 1%; font-size: 12.5px; padding-top: 10px; }
+td.c-title { overflow-wrap: anywhere; min-width: 220px; }
+td.c-title a.open { color: var(--ink); font-weight: 580; }
+td.c-title .note { color: var(--muted); font-size: 12.5px; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+td.c-title .sub { display: none; color: var(--muted); font-size: 12px; margin-top: 3px; }
+td.c-title .sub-st { display: none; }
+td.c-area, td.c-last, td.c-st, td.c-chk { white-space: nowrap; }
+th.c-area { width: 150px; } th.c-st { width: 160px; } th.c-chk { width: 100px; } th.c-last { width: 140px; } th.c-blk { width: 15%; }
+td.c-area { color: var(--ink-2); }
+td.c-blk { font-size: 13px; }
+td.c-last { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.tref { font-family: var(--mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.tref:hover { text-decoration: none; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.tref.is-closed { color: var(--muted); background: var(--sunken); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent); }
+.tref.is-missing { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 9%, transparent); }
+.flag { display: inline-block; font: 650 10.5px/1.6 var(--mono); padding: 0 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; vertical-align: 1px; text-transform: lowercase; }
+.flag.blocked { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 8%, transparent); }
+.flag.fresh { color: var(--c-claimed); background: color-mix(in srgb, var(--c-claimed) 8%, transparent); }
+.flag.free { color: var(--c-done); background: color-mix(in srgb, var(--c-done) 9%, transparent); }
+.meter { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+.meter i { display: block; width: 48px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.meter i::before { content: ""; display: block; height: 100%; width: var(--p); background: var(--c-done); border-radius: 3px; }
+.empty { color: var(--muted); padding: 12px 14px; background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+
+/* Areas */
+details.area { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px; box-shadow: var(--shadow); }
+details.area > summary { display: grid; grid-template-columns: 18px minmax(150px, 1.1fr) minmax(0, 2.2fr) 160px 170px; gap: 12px; align-items: center; padding: 10px 14px; cursor: pointer; list-style: none; border-radius: var(--radius); }
+details.area > summary::-webkit-details-marker { display: none; }
+details.area > summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(-45deg); justify-self: center; transition: transform .15s; }
+details.area[open] > summary::before { transform: rotate(45deg); }
+details.area > summary:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+details.area > summary .name { font-weight: 650; overflow-wrap: anywhere; }
+details.area > summary .spec { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.area > summary .cnt { font: 12.5px var(--mono); text-align: right; white-space: nowrap; color: var(--muted); }
+details.area > summary .cnt b { color: var(--ink); }
+.bar2 { display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--c-agent) 22%, var(--sunken)); overflow: hidden; }
+.bar2.none { background: var(--sunken); }
+.bar2 i { display: block; height: 100%; width: var(--p); background: var(--c-done); border-radius: 4px; }
+details.area .inner { padding: 6px 14px 14px; border-top: 1px solid var(--line); }
+.doclist { margin: 8px 0 12px; padding: 0; list-style: none; display: grid; gap: 4px; }
+.doclist li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; }
+.doclist .path { color: var(--muted); font: 12px var(--mono); margin-left: 8px; overflow-wrap: anywhere; }
+.kind { font: 600 10.5px/1.6 var(--mono); color: var(--ink-2); background: var(--sunken); border-radius: 4px; padding: 0 6px; margin-right: 7px; text-transform: lowercase; }
+
+/* Dependency tree */
+ul.tree, ul.tree ul { list-style: none; margin: 0; padding: 0; }
+ul.tree > li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+ul.tree ul { margin: 2px 0 0 14px; padding-left: 22px; }
+ul.tree ul > li { position: relative; padding: 5px 0 0; }
+ul.tree ul > li::before {
+  content: ""; position: absolute; left: -22px; top: 0; width: 16px; height: 22px;
+  border-left: 1.5px solid var(--line-strong); border-bottom: 1.5px solid var(--line-strong); border-bottom-left-radius: 7px;
+}
+ul.tree ul > li::after { content: ""; position: absolute; left: -22px; top: 22px; bottom: 0; border-left: 1.5px solid var(--line-strong); }
+ul.tree ul > li:last-child::after { display: none; }
+.node { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-height: 30px; }
+ul.tree ul .node { display: inline-flex; max-width: 100%; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+.node .ttl { overflow-wrap: anywhere; font-weight: 550; min-width: 0; }
+.node.ctx { opacity: .72; }
+.node.ctx .ttl { font-weight: 450; }
+.rel { color: var(--muted); font-size: 12px; }
+.unlocks { display: block; margin: 6px 0 0 1px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 12.5px; margin: -4px 0 14px; align-items: center; }
+
+/* Activity */
+.day { margin: 0 0 18px; }
+.day > h3 { font: 650 13px var(--mono); margin: 0 0 6px; position: sticky; top: var(--top-h, 52px); z-index: 2; background: var(--bg); padding: 6px 0; }
+.day ul { margin: 0; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.day li { padding: 9px 14px; border-bottom: 1px solid var(--line); }
+.day li:last-child { border-bottom: 0; }
+.day .notes { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+.day .notes div { padding-left: 14px; position: relative; }
+.day .notes div::before { content: "–"; position: absolute; left: 0; }
+.view > button { margin-top: 4px; }
+
+/* Git branches */
+.ver { font: 500 11.5px/1.6 var(--mono); color: var(--muted); padding: 0 7px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.ver.warn { color: var(--c-human); border-color: color-mix(in srgb, var(--c-human) 45%, transparent); }
+.ref { --c: var(--c-neutral); display: inline-flex; align-items: center; gap: 4px; font: 600 11px/1.55 var(--mono); padding: 0 6px; border-radius: 5px; white-space: nowrap;
+  color: color-mix(in srgb, var(--c) 80%, var(--ink)); background: color-mix(in srgb, var(--c) 13%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
+.ref.remote { background: transparent; border-style: dashed; font-weight: 500; }
+.ref.tag { color: var(--ink-2); background: var(--sunken); border-color: var(--line-strong); font-weight: 500; }
+.ref.tag::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: var(--muted); }
+.ref.head { box-shadow: inset 0 0 0 1px var(--c); }
+.ref.head::before { content: "HEAD"; font-size: 9.5px; letter-spacing: .04em; color: var(--muted); }
+/* after .ref: a lane's colour wins over the neutral default */
+.lane0 { --c: var(--g0); } .lane1 { --c: var(--g1); } .lane2 { --c: var(--g2); } .lane3 { --c: var(--g3); }
+.lane4 { --c: var(--g4); } .lane5 { --c: var(--g5); } .lane6 { --c: var(--g6); } .lane7 { --c: var(--g7); }
+button.ref { cursor: pointer; }
+button.ref:hover { border-color: var(--c); }
+td.c-branch { white-space: nowrap; }
+td.c-branch .ref { font-size: 12px; }
+.graph { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; }
+.graph svg { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.graph svg path { fill: none; stroke-width: 2; stroke-linecap: round; }
+.graph svg circle { stroke-width: 2; }
+.graph .rows { position: relative; min-width: 560px; }
+.graph .row { height: var(--row-h); display: flex; align-items: center; gap: 8px; padding-right: 12px; cursor: pointer; white-space: nowrap; border-radius: 6px; }
+.graph .row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.graph .row.hit { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.graph .row .h { font: 12px var(--mono); color: var(--muted); flex: none; }
+.graph .row .s { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
+.graph .row.merge .s { color: var(--ink-2); }
+.graph .row .who { color: var(--muted); font-size: 12.5px; flex: none; }
+.graph .row .when { font: 12px var(--mono); color: var(--muted); flex: none; width: 78px; text-align: right; }
+.graph .refs { display: inline-flex; gap: 4px; flex: none; }
+.graph .more { position: absolute; left: 0; right: 0; }
+.graph .detail { padding: 8px 12px 10px; margin: 0 8px 6px 0; background: var(--sunken); border-radius: 8px; font-size: 13px; white-space: normal; display: grid; gap: 2px; }
+.graph .detail .mono { overflow-wrap: anywhere; }
+.graph-foot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 10px; color: var(--muted); font-size: 13px; }
+@media (max-width: 860px) {
+  .graph .row .who { display: none; }
+  .graph .rows { min-width: 0; }
+}
+@media (max-width: 520px) {
+  .graph .row .h, .graph .row .when { display: none; }
+}
+
+/* Drawer */
+#shade { position: fixed; inset: 0; background: rgb(10 10 12 / .42); z-index: 20; }
+@media (prefers-reduced-motion: no-preference) {
+  #shade:not([hidden]) { animation: fade .15s ease-out; }
+  #drawer:not([hidden]) { animation: slide .18s ease-out; }
+}
+@keyframes fade { from { opacity: 0; } }
+@keyframes slide { from { transform: translateX(24px); } }
+#drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(900px, 100%); z-index: 21; background: var(--surface); border-left: 1px solid var(--line-strong); display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+#drawer header { display: flex; gap: 12px; align-items: flex-start; padding: 14px 22px; border-bottom: 1px solid var(--line); }
+#drawer header h2 { margin: 0; font-size: 18px; line-height: 1.35; flex: 1; overflow-wrap: anywhere; letter-spacing: -.01em; min-width: 0; }
+#drawer header h2 .num { color: var(--muted); font-weight: 500; margin-right: 8px; font-size: 15px; }
+#drawer .scroll { overflow: auto; padding: 0 22px 64px; flex: 1; overscroll-behavior: contain; }
+dl.meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 16px 0; padding: 12px 14px; background: var(--sunken); border-radius: var(--radius); font-size: 13px; align-items: baseline; }
+dl.meta dt { color: var(--muted); }
+dl.meta dd { margin: 0; overflow-wrap: anywhere; }
+.md { max-width: 78ch; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.6; }
+.md h1 { font-size: 21px; letter-spacing: -.01em; } .md h2 { font-size: 16.5px; border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-top: 28px; }
+.md h3 { font-size: 14.5px; margin-top: 22px; } .md h4, .md h5, .md h6 { font-size: 13.5px; }
+.md p, .md ul, .md ol, .md pre, .md table, .md blockquote { margin: 9px 0; }
+.md ul, .md ol { padding-left: 22px; }
+.md li { margin: 3px 0; }
+.md li.task { list-style: none; margin-left: -20px; }
+.md li.task input { margin: 0 7px 0 0; vertical-align: -1px; accent-color: var(--c-done); }
+.md li.task.done > span.t { color: var(--muted); }
+.md pre { background: var(--sunken); padding: 11px 13px; border-radius: 8px; overflow: auto; font: 12.5px/1.55 var(--mono); border: 1px solid var(--line); }
+.md pre code { background: none; padding: 0; font-size: inherit; }
+.md blockquote { border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); padding: 4px 14px; color: var(--ink-2); margin-left: 0; border-radius: 0 8px 8px 0; }
+.md .tw { overflow-x: auto; }
+.md table { border-collapse: collapse; font-size: 13px; }
+.md th, .md td { border: 1px solid var(--line); padding: 5px 9px; vertical-align: top; text-align: left; }
+.md th { background: var(--sunken); }
+.md hr { border: 0; border-top: 1px solid var(--line-strong); margin: 20px 0; }
+.md .dead { border-bottom: 1px dotted var(--muted); }
+.md del { color: var(--muted); }
+
+@media (max-width: 860px) {
+  .bar, .wrap { padding-left: 16px; padding-right: 16px; }
+  #top { position: static; }
+  .bar h1 { flex: 1 1 0; flex-wrap: wrap; row-gap: 0; }
+  .bar h1 small { flex-basis: 100%; padding-left: 24px; }
+  #theme { order: 1; align-self: flex-start; }
+  .live { order: 2; margin-left: 0; width: 100%; }
+  .live .state { flex: 1 1 100%; border-radius: 8px; }
+  table.grid th.c-area, table.grid td.c-area, table.grid th.c-blk, table.grid td.c-blk, table.grid th.c-last, table.grid td.c-last { display: none; }
+  td.c-title .sub { display: block; }
+  td.c-title { min-width: 0; }
+  table.grid td, table.grid th { padding: 8px 9px; }
+  details.area > summary { grid-template-columns: 14px 1fr auto; gap: 6px 10px; padding: 10px 12px; }
+  details.area > summary .spec { grid-column: 2 / -1; order: 3; }
+  details.area > summary .bar2 { grid-column: 2 / -1; order: 4; }
+  details.area .inner { padding: 6px 10px 12px; }
+  .filters .summary { margin-left: 0; width: 100%; }
+  .filters input[type="search"] { flex-basis: 100%; max-width: none; }
+  .filters select { max-width: none; flex: 1 1 40%; }
+  #drawer .scroll, #drawer header { padding-left: 16px; padding-right: 16px; }
+  #start .card { padding: 22px 20px; }
+}
+@media (max-width: 520px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .kpi.main { grid-column: 1 / -1; }
+  .kpi .v { font-size: 26px; }
+  table.grid th.c-st, table.grid td.c-st { display: none; }
+  td.c-title .sub-st { display: block; margin: 2px 0; }
+  td.c-title .sub .chip { font-size: 11px; }
+  .meter i { display: none; }
+  ul.tree > li { padding: 10px; }
+  ul.tree ul { margin-left: 6px; padding-left: 16px; }
+  ul.tree ul > li::before { left: -16px; width: 12px; }
+  ul.tree ul > li::after { left: -16px; }
+  dl.meta { grid-template-columns: 1fr; gap: 0; }
+  dl.meta dd { margin-bottom: 6px; }
+}
+</style>
+<script>try { const t = localStorage.getItem('development-status:theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) { /* optional */ }</script>
+</head>
+<body>
+<a class="skip" href="#main">Ugrás a tartalomra</a>
+
+<header id="top">
+  <div class="bar">
+    <h1 id="project">Fejlesztési állapot</h1>
+    <div class="live" id="live" hidden>
+      <span class="state"><span class="dot" id="dot"></span>
+      <span id="live-text" aria-live="polite"></span></span>
+      <button type="button" id="refresh">Frissítés most</button>
+      <button type="button" id="change">Másik mappa</button>
+    </div>
+    <span class="ver" id="ver"></span>
+    <button type="button" class="icon" id="theme" aria-label="Színséma váltása" title="Színséma: automatikus / világos / sötét"></button>
+  </div>
+</header>
+
+<main id="main">
+  <section id="start"><div class="card">
+    <h2>Fejlesztési állapot</h2>
+    <p>Ez az oldal a projekt markdown fájljaiból (jegyek, specek, döntések) rakja össze, hol tart a munka. Csak olvas: semmit nem ír a mappába, és semmit nem küld el sehová.</p>
+    <div id="resume" hidden>
+      <div class="choices">
+        <button type="button" class="primary" id="resume-btn"></button>
+      </div>
+      <p class="muted">A böngésző újratöltés után újra megkérdezi, olvashatja-e a mappát; egy kattintás, és az oldal folytatja.</p>
+    </div>
+    <div class="choices">
+      <button type="button" class="primary" id="pick" hidden>Projektmappa kiválasztása</button>
+      <button type="button" id="snapshot">Pillanatkép egy mappából</button>
+      <input type="file" id="dir-input" webkitdirectory multiple hidden>
+    </div>
+    <p id="mode-note" class="muted"></p>
+    <div id="start-error" class="notice bad" hidden></div>
+    <div class="drop">Vagy húzd ide a projekt mappáját.</div>
+    <div class="rules">
+      <p>Amit keres: jegyek a <code>.scratch/&lt;terület&gt;/issues/&lt;szám&gt;-&lt;név&gt;.md</code> fájlokban (<code>Status:</code> és <code>Blocked by:</code> sorral, félkövéren vagy anélkül, ahogy a <code>/to-tickets</code> írja), a terület specje a <code>spec.md</code>-ben, a döntések a <code>docs/adr/</code> alatt, a szószedet a <code>GLOSSARY.md</code>-ben. Ha nincs <code>.scratch/</code>, azt a mappát használja, amelynek az almappáiban <code>issues/</code> van.</p>
+    </div>
+  </div></section>
+
+  <section id="app" class="wrap" hidden>
+    <div class="overview" id="overview"></div>
+    <nav class="tabs" id="tabs" aria-label="Nézetek"></nav>
+    <div class="filters" id="filters" role="search">
+      <input type="search" id="q" placeholder="Keresés: szám, cím, szöveg ( / )" aria-label="Keresés a jegyekben">
+      <select id="f-status" aria-label="Állapot"></select>
+      <select id="f-area" aria-label="Terület"></select>
+      <label class="check"><input type="checkbox" id="f-closed"> Zárt jegyek is</label>
+      <span class="summary" id="f-summary" aria-live="polite"></span>
+    </div>
+    <div class="view" id="view"></div>
+  </section>
+</main>
+
+<div id="shade" hidden></div>
+<aside id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <header>
+    <h2 id="drawer-title"></h2>
+    <button type="button" id="drawer-close" aria-label="Bezárás (Esc)">Bezárás</button>
+  </header>
+  <div class="scroll" id="drawer-body" tabindex="-1"></div>
+</aside>
+
+<script>
+(() => {
+'use strict';
+
+// ───────────────────────── Constants ─────────────────────────
+
+// The launcher's server, when the page is loaded from it. The same two values
+// are SERVER_ID and API in development-status.mjs.
+const SERVER_ID = 'development-status';
+const SERVER_API = '/development-status-api';
+const SERVER_TIMEOUT_MS = 8000;
+const VERSION = '1.0.0';   // the same in development-status.mjs; the header comment lists the versions
+
+const DEFAULT_TRACKER_DIR = '.scratch';
+const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
+// Never descended into while looking for the tracker, nor below an area.
+// The launcher (development-status.mjs) keeps the same two sets out of
+// its file list: change them together.
+const SKIP_DIRS = new Set(['node_modules', '.git', '.hg', '.svn', 'target', 'dist', 'build', 'out', 'vendor', 'worktrees', '.cache', '.next', '.venv', '__pycache__']);
+const ALWAYS_SKIP = new Set(['node_modules', '.git', '.hg', '.svn']);
+// The project's own top-level documents: the README names the project; the
+// domain glossary is GLOSSARY.md (CONTEXT.md before v1.3 of the skills).
+const README_FILE = /^readme\.(md|markdown)$/i;
+const GLOSSARY_FILE = /^(glossary|glossary-map|context)\.(md|markdown)$/i;
+const POLL_MS = 3000;
+const FRESH_MS = 90000;
+const MAX_DEPTH = 8;
+
+const CLOSED = new Set(['done', 'closed', 'wontfix', 'resolved', 'legacy']);
+const UNPARSED = '?';
+const GROUPS = [
+  { id: 'agent', title: 'Megírható', hint: 'ready-for-agent: kidolgozva, ügynök megírhatja', has: (s) => s === 'ready-for-agent' },
+  { id: 'human', title: 'Emberre vár', hint: 'ready-for-human, needs-info, needs-triage: döntés, megerősítés vagy kézi munka kell', has: (s) => s === 'ready-for-human' || s === 'needs-info' || s === 'needs-triage' },
+  { id: 'test', title: 'Tesztre vár', hint: 'needs-…-test: megírva, a próbája hátravan', has: (s) => /^needs-.*test$/.test(s) },
+  { id: 'claimed', title: 'Folyamatban', hint: 'claimed: valaki dolgozik rajta', has: (s) => s === 'claimed' },
+];
+const VIEWS = [
+  ['waiting', 'Kire vár'], ['areas', 'Területek'], ['deps', 'Függőségek'],
+  ['activity', 'Legutóbbi mozgás'], ['checks', 'Következetlenségek'], ['docs', 'Dokumentumok'], ['git', 'Ágak'],
+];
+const GIT_PAGE = 400;     // commits asked for at once; "Korábbi commitok" asks for this many more
+const GIT_ROW_H = 28;     // px, one commit
+const GIT_LANE_W = 16;    // px, one lane of the graph
+const GIT_COLORS = 8;     // --g0 … --g7
+
+// ───────────────────────── Small helpers ─────────────────────────
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fold = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const joinPath = (a, b) => (a ? a + '/' + b : b);
+const clock = (d) => d.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+const plainInline = (s) => s.replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/(\*\*|__)(.*?)\1/g, '$2').replace(/(^|[^\w\\])_([^_\s][^_]*?)_(?!\w)/g, '$1$2').trim();
+
+function statusTone(status) {
+  if (status === UNPARSED) return 'bad';
+  if (status === 'ready-for-agent') return 'agent';
+  if (status === 'ready-for-human' || status === 'needs-info' || status === 'needs-triage') return 'human';
+  if (/^needs-.*test$/.test(status)) return 'test';
+  if (status === 'claimed') return 'claimed';
+  if (status === 'done' || status === 'resolved' || status === 'closed') return 'done';
+  if (CLOSED.has(status)) return 'dropped';
+  return 'neutral';
+}
+const statusName = (status) => (status === UNPARSED ? 'nem értelmezhető' : status);
+const isClosed = (t) => CLOSED.has(t.status);
+const chip = (status, extra = '') => `<span class="chip t-${statusTone(status)}${CLOSED.has(status) ? ' closed' : ''}">${esc(statusName(status))}${extra}</span>`;
+
+// ───────────────────────── Reading the folder ─────────────────────────
+// Four ways to get at a folder share one small adapter: list a directory's
+// children, and turn a file node into a File (or what stands for one: size,
+// lastModified, text()).
+
+const handleAdapter = {
+  async children(dir) {
+    const out = [];
+    for await (const h of dir.values()) out.push({ name: h.name, isDir: h.kind === 'directory', node: h });
+    return out;
+  },
+  file: (h) => h.getFile(),
+};
+
+// Dropped folders where the browser has no file system handles (Firefox, Safari).
+const entryAdapter = {
+  children(dir) {
+    return new Promise((resolve, reject) => {
+      const reader = dir.createReader();
+      const all = [];
+      const step = () => reader.readEntries((batch) => {
+        if (!batch.length) return resolve(all.map((e) => ({ name: e.name, isDir: e.isDirectory, node: e })));
+        all.push(...batch);
+        step();
+      }, reject);
+      step();
+    });
+  },
+  file: (e) => new Promise((resolve, reject) => e.file(resolve, reject)),
+};
+
+// A flat list of paths as a tree: the file list of <input webkitdirectory>,
+// and the list the launcher's server sends.
+const treeAdapter = {
+  children: async (dir) => [...dir.children.values()],
+  file: async (node) => node.file,
+};
+
+function treeDir(root, parts) {
+  let dir = root;
+  for (const part of parts) {
+    let child = dir.children.get(part);
+    if (!child) { child = { name: part, isDir: true, node: { children: new Map() } }; dir.children.set(part, child); }
+    dir = child.node;
+  }
+  return dir;
+}
+
+function treeFromFiles(fileList) {
+  const root = { children: new Map() };
+  let name = '';
+  for (const f of fileList) {
+    const parts = (f.webkitRelativePath || f.name).split('/');
+    if (parts.length > 1) name = parts.shift();
+    const last = parts.pop();
+    treeDir(root, parts).children.set(last, { name: last, isDir: false, node: { file: f } });
+  }
+  return { root, name };
+}
+
+// The launcher's server: one request lists every markdown file (path, size,
+// time) and each folder's count of other files; a file's text is asked for
+// only when it changed.
+class ServerDownError extends Error {
+  constructor(message) { super(message); this.name = 'ServerDownError'; }
+}
+
+async function serverFetch(path) {
+  const stop = new AbortController();
+  const timeout = setTimeout(() => stop.abort(), SERVER_TIMEOUT_MS);
+  try {
+    return await fetch(SERVER_API + path, { cache: 'no-store', signal: stop.signal });
+  } catch (err) {
+    throw new ServerDownError('A helyi szerver nem válaszol.');
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function serverJson(path) {
+  const res = await serverFetch(path);
+  let data = null;
+  try { data = res.ok ? await res.json() : null; } catch (err) { data = null; }
+  // Anything else on this address is not the launcher: as good as stopped.
+  if (!data || data.server !== SERVER_ID) throw new ServerDownError('Ezen a címen nem az állapotoldal szervere válaszol.');
+  return data;
+}
+
+async function serverText(path) {
+  const res = await serverFetch('/file?path=' + encodeURIComponent(path));
+  if (!res.ok) throw new Error(path + ': HTTP ' + res.status);
+  return res.text();
+}
+
+function treeFromListing(listing) {
+  const root = { children: new Map() };
+  for (const [path, others] of Object.entries(listing.dirs || {})) {
+    const dir = treeDir(root, path ? path.split('/') : []);
+    // Stand-ins for the files that are not markdown: only their number is known.
+    // No real file name holds a slash.
+    for (let i = 0; i < others; i++) dir.children.set('/' + i, { name: '/' + i, isDir: false, node: {} });
+  }
+  for (const f of listing.files || []) {
+    const parts = f.path.split('/');
+    const last = parts.pop();
+    treeDir(root, parts).children.set(last, { name: last, isDir: false, node: { file: { size: f.size, lastModified: f.mtime, text: () => serverText(f.path) } } });
+  }
+  return root;
+}
+
+// Is the page loaded from the launcher's server? Asked, not guessed from the
+// protocol: served by anything else, the page falls back to the folder picker.
+async function findServer() {
+  if (!/^https?:$/.test(location.protocol)) return null;
+  try { return await serverJson('/hello'); } catch (err) { return null; }
+}
+
+function serverSource(hello) {
+  const src = { adapter: treeAdapter, root: { children: new Map() }, name: hello.name || '', live: true, server: location.host, launcher: hello.launcher || '', version: hello.version || '', git: !!hello.git };
+  src.reload = async () => {
+    const listing = await serverJson('/list');
+    src.root = treeFromListing(listing);
+    src.name = listing.name || src.name;
+    src.roots = null;   // the tree is new: find the tracker in it again
+  };
+  return src;
+}
+
+const childDirs = async (A, dir, skip) => (await A.children(dir)).filter((c) => c.isDir && !skip.has(c.name));
+
+async function findChild(A, dir, path) {
+  let node = dir;
+  for (const part of path.split('/')) {
+    const hit = (await A.children(node)).find((c) => c.isDir && c.name === part);
+    if (!hit) return null;
+    node = hit.node;
+  }
+  return node;
+}
+
+// A tracker is a folder whose subfolders (the areas) hold an "issues" folder.
+async function looksLikeTracker(A, dir) {
+  for (const area of await childDirs(A, dir, ALWAYS_SKIP)) {
+    if ((await A.children(area.node)).some((c) => c.isDir && c.name.toLowerCase() === 'issues')) return true;
+  }
+  return false;
+}
+
+async function locate(src) {
+  const A = src.adapter;
+  const roots = { tracker: null, adr: null };
+  const preferred = await findChild(A, src.root, DEFAULT_TRACKER_DIR);
+  if (preferred && await looksLikeTracker(A, preferred)) roots.tracker = { node: preferred, path: DEFAULT_TRACKER_DIR };
+  else if (await looksLikeTracker(A, src.root)) roots.tracker = { node: src.root, path: '' };
+  else {
+    let level = [{ node: src.root, path: '' }];
+    search: for (let depth = 0; depth < 3; depth++) {
+      const next = [];
+      for (const at of level) {
+        for (const c of await childDirs(A, at.node, SKIP_DIRS)) {
+          const here = { node: c.node, path: joinPath(at.path, c.name) };
+          if (await looksLikeTracker(A, c.node)) { roots.tracker = here; break search; }
+          next.push(here);
+        }
+      }
+      level = next;
+    }
+    if (!roots.tracker && preferred) roots.tracker = { node: preferred, path: DEFAULT_TRACKER_DIR };
+  }
+  for (const path of ADR_DIRS) {
+    const node = await findChild(A, src.root, path);
+    if (node) { roots.adr = { node, path }; break; }
+  }
+  return roots;
+}
+
+async function walk(A, dir, path, depth, skipFrom, out) {
+  const kids = await A.children(dir);
+  await Promise.all(kids.map(async (c) => {
+    const p = joinPath(path, c.name);
+    if (c.isDir) {
+      const skip = depth >= skipFrom ? SKIP_DIRS : ALWAYS_SKIP;
+      if (skip.has(c.name) || depth >= MAX_DEPTH) return;
+      await walk(A, c.node, p, depth + 1, skipFrom, out);
+    } else if (/\.(md|markdown)$/i.test(c.name)) {
+      const f = await A.file(c.node);
+      out.entries.push({ path: p, size: f.size, mtime: f.lastModified, file: f });
+    } else {
+      out.others.push(p);
+    }
+  }));
+}
+
+// One pass over the folder: every markdown file of the tracker and the ADR
+// folder with its size and time, without reading any content.
+async function scan(src) {
+  const A = src.adapter;
+  if (src.reload) await src.reload();
+  if (!src.roots || (!src.roots.tracker && Date.now() - src.located > 15000)) {
+    src.roots = await locate(src);
+    src.located = Date.now();
+  }
+  const out = { entries: [], others: [] };
+  const top = await A.children(src.root);
+  for (const c of top) {
+    if (c.isDir || !(README_FILE.test(c.name) || GLOSSARY_FILE.test(c.name))) continue;
+    const f = await A.file(c.node);
+    out.entries.push({ path: c.name, size: f.size, mtime: f.lastModified, file: f });
+  }
+  const { tracker, adr } = src.roots;
+  if (tracker) await walk(A, tracker.node, tracker.path, 0, 1, out);
+  if (adr && !(tracker && (adr.path + '/').startsWith(tracker.path + '/'))) await walk(A, adr.node, adr.path, 0, 0, out);
+  const seen = new Set();
+  out.entries = out.entries.filter((e) => !seen.has(e.path) && seen.add(e.path));
+  out.trackerPath = tracker ? tracker.path : null;
+  out.adrPath = adr ? adr.path : null;
+  return out;
+}
+
+// ───────────────────────── Parsing ─────────────────────────
+
+const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
+const COMMENTS_HEADING = /^##\s+(comments?|megjegyzések|hozzászólások)\s*$/i;
+const NO_BLOCKER = /^(none|nincs|semmi|nothing|n\/a|[—–-]+)(?![\p{L}\p{N}])/iu;
+
+function firstHeading(lines) {
+  for (const l of lines) {
+    const m = /^#{1,6}\s+(.*?)\s*#*$/.exec(l);
+    if (m) return plainInline(m[1]);
+  }
+  return '';
+}
+
+// "#41, 12 (#30), [other-area 3](…)" → references; free text is kept as a note.
+function parseBlockedBy(raw) {
+  let s = raw.replace(/`/g, '').trim();
+  if (!s || NO_BLOCKER.test(s)) return { none: true, refs: [], raw };
+  s = s.replace(/\[([^\]]*)\]\([^)]*\)/g, (m, text) => {
+    const list = /^([\w.-]+)\s+(\d+(?:\s*,\s*\d+)+)$/.exec(text.trim());
+    return list ? list[2].split(/\s*,\s*/).map((n) => list[1] + ' ' + n).join(', ') : text;
+  });
+  // Split on top-level commas; stop at the first top-level ";" or ": ".
+  const items = [];
+  let depth = 0, cur = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    if (depth === 0 && (ch === ';' || (ch === ':' && /\s/.test(s[i + 1] || ' ')) || (/[—–]/.test(ch) && /\s/.test(s[i - 1] || '')))) break;
+    if (depth === 0 && ch === ',') { items.push(cur); cur = ''; } else cur += ch;
+  }
+  items.push(cur);
+  const refs = [];
+  for (const item of items) {
+    const outside = item.replace(/\([^()]*(?:\([^()]*\)[^()]*)*\)/g, ' ').trim();
+    const inside = (item.match(/\(([^()]*)\)/) || [])[1] || '';
+    const hashes = [...outside.matchAll(/#(\d+)/g)].map((m) => ({ kind: 'issue', num: +m[1], raw: '#' + m[1] }));
+    if (hashes.length) { refs.push(...hashes); continue; }
+    const m = /^(?:([\w.-]*[A-Za-z][\w.-]*)\s+)?(\d+)\b/.exec(outside);
+    const alt = /^#(\d+)$/.exec(inside.trim());
+    if (m) refs.push({ kind: 'local', area: m[1] || null, num: +m[2], raw: (m[1] ? m[1] + ' ' : '') + m[2], alt: alt ? +alt[1] : null });
+    else if (alt) refs.push({ kind: 'issue', num: +alt[1], raw: '#' + alt[1] });
+    else if (outside) refs.push({ kind: 'text', raw: outside });
+  }
+  return { none: false, refs, raw };
+}
+
+function parseTicket(path, area, fileName, text) {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const t = { kind: 'ticket', path, area, fileName, text, fields: {} };
+
+  let headEnd = lines.findIndex((l, i) => i > 0 && /^##\s/.test(l));
+  if (headEnd < 0 || headEnd > 40) headEnd = Math.min(lines.length, 40);
+  for (let i = 0; i < headEnd; i++) {
+    const m = FIELD.exec(lines[i]);
+    if (m && !(m[1].toLowerCase() in t.fields)) t.fields[m[1].toLowerCase()] = m[2].trim();
+  }
+
+  const h1 = (lines.find((l) => /^#\s+/.test(l)) || '').replace(/^#\s+/, '').trim();
+  const h1m = /^(#?)(\d+)\s*[:.–—-]\s*(.*)$/.exec(h1);
+  t.title = plainInline(h1m ? h1m[3] : h1) || fileName;
+  const fm = /^(\d+)/.exec(fileName);
+  const issueField = /#?(\d+)/.exec(t.fields.issue || '');
+  t.fileNum = fm ? fm[1] : null;
+  t.issue = issueField ? +issueField[1] : h1m && h1m[1] ? +h1m[2] : fm && fm[1].length >= 3 ? +fm[1] : null;
+  t.local = t.issue == null ? (fm ? fm[1] : h1m ? h1m[2] : null) : null;
+  t.label = t.issue != null ? '#' + t.issue : t.local != null ? area + ' ' + t.local : fileName;
+  t.mismatch = issueField && fm && fm[1].length >= 3 && +fm[1] !== +issueField[1] ? { file: +fm[1], field: +issueField[1] } : null;
+  t.earlier = t.fields['earlier name'] || '';
+  t.type = t.fields.type || '';
+
+  const headingsEnd = (() => { const c = lines.findIndex((l) => COMMENTS_HEADING.test(l)); return c < 0 ? lines.length : c; })();
+  // The issue template's form: a "## Blocked by" (or "## Status") heading with
+  // the value, or a list of values, under it.
+  const section = (name) => {
+    const at = lines.findIndex((l, i) => i < headingsEnd && new RegExp('^#{2,4}\\s+' + name + '\\s*:?\\s*$', 'i').test(l));
+    if (at < 0) return null;
+    const items = [];
+    for (let j = at + 1; j < lines.length && !/^#{1,6}\s/.test(lines[j]); j++) {
+      const l = lines[j].trim();
+      if (!l) { if (items.length) break; continue; }
+      items.push(l.replace(/^(?:[-*+]|\d+[.)])\s+/, ''));
+    }
+    return items.length ? items : null;
+  };
+  if (!('status' in t.fields)) {
+    const st = section('status');
+    if (st) t.fields.status = st[0];
+  }
+
+  // Status: the first word is the state, the rest is the free-text note.
+  t.statusLine = 'status' in t.fields;
+  const sv = (t.fields.status || '').replace(/^[`*_\s]+/, '');
+  const sm = /^([\p{L}][\p{L}\p{N}_-]*)[`*_]*\s*(.*)$/u.exec(sv);
+  if (sm) {
+    t.status = sm[1].toLowerCase();
+    let note = sm[2].trim().replace(/^[—–\-:;,.]+\s*/, '');
+    if (/^\(.*\)\.?$/.test(note) && balanced(note.replace(/\.$/, '').slice(1, -1))) note = note.replace(/\.$/, '').slice(1, -1);
+    t.statusNote = note;
+  } else {
+    t.status = UNPARSED;
+    t.statusNote = t.statusLine ? (t.fields.status || '(üres Status sor)') : '';
+  }
+
+  if ('blocked by' in t.fields) t.blockedBy = parseBlockedBy(t.fields['blocked by']);
+  else {
+    const list = section('blocked by');
+    if (list) {
+      t.fields['blocked by'] = list.join(', ');
+      const parts = list.map(parseBlockedBy);
+      const refs = parts.flatMap((p) => p.refs);
+      t.blockedBy = { none: !refs.length, refs, raw: t.fields['blocked by'] };
+    } else t.blockedBy = { none: true, refs: [], raw: '' };
+  }
+
+  // Checkboxes count in the whole file: a collector ticket (#45) adds its open items in dated
+  // sections under the comments. Dated headings are the comments.
+  let commentsAt = lines.findIndex((l) => COMMENTS_HEADING.test(l));
+  const bodyEnd = commentsAt < 0 ? lines.length : commentsAt;
+  let done = 0, total = 0, fence = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*(```|~~~)/.test(lines[i])) { fence = !fence; continue; }
+    if (fence) continue;
+    const m = /^\s*(?:[-*+]|\d+[.)])\s+\[( |x|X)\]\s/.exec(lines[i]);
+    if (m) { total++; if (m[1] !== ' ') done++; }
+  }
+  t.checks = { done, total };
+  t.comments = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^#{3,5}\s+(.*?)(\d{4}-\d{2}-\d{2})(.*)$/.exec(lines[i]) || (i > bodyEnd ? /^\*\*()(\d{4}-\d{2}-\d{2})([^*]*)\*\*\s*$/.exec(lines[i]) : null);
+    if (!m) continue;
+    const title = plainInline((m[1] + ' ' + m[3]).replace(/^[\s,:.–—-]+/, '').replace(/\s+/g, ' '));
+    t.comments.push({ date: m[2], title: title || '(cím nélkül)', order: i });
+  }
+  t.lastComment = t.comments.reduce((max, c) => (c.date > max ? c.date : max), '');
+  t.hay = fold(t.label + ' ' + (t.issue != null ? t.issue + ' ' : '') + t.title + '\n' + text);
+  return t;
+}
+
+function balanced(s) {
+  let d = 0;
+  for (const ch of s) { if (ch === '(') d++; else if (ch === ')' && --d < 0) return false; }
+  return d === 0;
+}
+
+function parseAdr(path, text) {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const name = path.split('/').pop();
+  const num = (/^(\d+)/.exec(name) || [])[1] || '';
+  let status = '';
+  const head = lines.slice(0, 30);
+  for (let i = 0; i < head.length && !status; i++) {
+    const l = head[i];
+    let m = /^\s*(?:[-*]\s+)?\*{0,2}(?:status|státusz|állapot)\*{0,2}\s*:\*{0,2}\s*(.+)$/i.exec(l);
+    if (m) status = m[1];
+    else if (/^##\s+(status|státusz|állapot)\s*$/i.test(l)) status = head.slice(i + 1).find((x) => x.trim()) || '';
+    else if ((m = /^>\s*\*\*([^*]+?)[.:]?\*\*/.exec(l))) status = m[1];
+  }
+  return { kind: 'adr', path, num, title: firstHeading(lines) || name, status: plainInline(status).slice(0, 60), text, hay: fold(name + ' ' + text) };
+}
+
+// Everything the views need, from the texts alone.
+function buildModel(folderName, files, others, trackerPath, adrPath) {
+  const m = {
+    folderName, trackerPath, adrPath, tickets: [], docs: [], adrs: [], glossaries: [], areas: new Map(),
+    byPath: new Map(), byIssue: new Map(), byLocal: new Map(), problems: [],
+  };
+  const area = (name) => {
+    if (!m.areas.has(name)) m.areas.set(name, { name, spec: null, tickets: [], docs: [], extras: 0 });
+    return m.areas.get(name);
+  };
+  const prefix = trackerPath ? trackerPath + '/' : '';
+
+  for (const [path, file] of files) {
+    const topDoc = !path.includes('/') && (README_FILE.test(path) || GLOSSARY_FILE.test(path));
+    const inTracker = trackerPath != null && path.startsWith(prefix) && (prefix || !topDoc);
+    if (adrPath && path.startsWith(adrPath + '/')) {
+      const adr = parseAdr(path, file.text);
+      m.adrs.push(adr);
+      m.byPath.set(path, adr);
+    } else if (inTracker) {
+      const rel = path.slice(prefix.length);
+      const tm = /^(.+)\/issues\/([^/]+)\.(?:md|markdown)$/i.exec(rel);
+      if (tm) {
+        const t = parseTicket(path, tm[1], tm[2], file.text);
+        m.tickets.push(t);
+        area(tm[1]).tickets.push(t);
+        m.byPath.set(path, t);
+        continue;
+      }
+      const seg = rel.includes('/') ? rel.slice(0, rel.indexOf('/')) : '';
+      const lines = file.text.split('\n', 60);
+      const isSpec = /^spec\.(md|markdown)$/i.test(rel.slice(seg.length + 1)) && seg !== '';
+      // The /to-spec template has no title line: it starts at "## Problem Statement".
+      const h1 = lines.find((l) => /^#\s+\S/.test(l));
+      const title = isSpec ? (h1 ? plainInline(h1.replace(/^#\s+/, '').replace(/\s*#*\s*$/, '')) : seg + ' – spec') : firstHeading(lines) || rel;
+      const doc = { kind: isSpec ? 'spec' : 'doc', path, area: seg, rel: seg ? rel.slice(seg.length + 1) : rel, title, text: file.text };
+      doc.hay = fold(doc.path + ' ' + doc.title);
+      m.docs.push(doc);
+      m.byPath.set(path, doc);
+      if (isSpec) area(seg).spec = doc; else area(seg).docs.push(doc);
+    } else {
+      const isReadme = README_FILE.test(path);
+      const doc = { kind: isReadme ? 'readme' : 'glossary', path, area: '', rel: path, title: firstHeading(file.text.split('\n', 60)) || path, text: file.text };
+      doc.hay = fold(doc.path + ' ' + doc.title);
+      if (isReadme) m.readme = doc; else m.glossaries.push(doc);
+      m.byPath.set(path, doc);
+    }
+  }
+  for (const p of others) {
+    if (trackerPath == null || !p.startsWith(prefix)) continue;
+    const rel = p.slice(prefix.length);
+    if (rel.includes('/') && m.areas.has(rel.slice(0, rel.indexOf('/')))) m.areas.get(rel.slice(0, rel.indexOf('/'))).extras++;
+  }
+  m.projectName = (m.readme && m.readme.title) || folderName || 'Projekt';
+
+  // Numbering: an issue number is global; an older ticket is "<area> <number>".
+  const push = (map, key, t) => { if (!map.has(key)) map.set(key, []); map.get(key).push(t); };
+  for (const t of m.tickets) {
+    if (t.issue != null) push(m.byIssue, t.issue, t);
+    else if (t.local != null) push(m.byLocal, t.area + '/' + +t.local, t);
+  }
+  const alias = new Map();
+  for (const t of m.tickets) {
+    const e = /^(.+?)\s+(\d+)$/.exec(t.earlier);
+    if (e) alias.set(e[1] + '/' + +e[2], t);
+  }
+  const local = (areaName, num) => (m.byLocal.get(areaName + '/' + num) || [])[0] || alias.get(areaName + '/' + num) || null;
+  const issue = (num) => (m.byIssue.get(num) || [])[0] || null;
+  m.resolveIssue = issue;
+  m.resolveLocal = local;
+  // A blocker named by its title or its file name ("Blocked by: Címke megadása
+  // és tárolása", or "01-cimke-megadasa"): /to-tickets allows "numbers/titles".
+  const nameKey = (s) => fold(plainInline(s)).replace(/^["'„“]+|["'”.]+$/g, '').replace(/[\s_-]+/g, ' ').trim();
+  const byName = new Map();
+  for (const t of m.tickets) {
+    for (const key of new Set([nameKey(t.title), nameKey(t.fileName), nameKey(t.fileName.replace(/^\d+[\s_-]*/, ''))])) if (key) push(byName, key, t);
+  }
+  const named = (areaName, raw) => {
+    const list = byName.get(nameKey(raw)) || [];
+    const here = list.filter((x) => x.area === areaName);
+    return here.length === 1 ? here[0] : list.length === 1 ? list[0] : null;
+  };
+
+  for (const t of m.tickets) {
+    t.blockers = [];
+    t.notes = [];
+    for (const r of t.blockedBy.refs) {
+      let hit = null;
+      if (r.kind === 'text') {
+        hit = named(t.area, r.raw);
+        if (!hit) { t.notes.push(r.raw); continue; }
+      } else if (r.kind === 'issue') hit = issue(r.num) || (t.issue == null ? local(t.area, r.num) : null);
+      else if (r.area) hit = local(r.area, r.num);
+      else hit = local(t.area, r.num) || (r.alt != null ? issue(r.alt) : null) || issue(r.num);
+      if (hit === t) continue;
+      if (!t.blockers.some((b) => b.ticket && b.ticket === hit)) t.blockers.push({ raw: r.raw, ticket: hit });
+    }
+    t.dependents = [];
+  }
+  for (const t of m.tickets) for (const b of t.blockers) if (b.ticket) b.ticket.dependents.push(t);
+  for (const t of m.tickets) t.blocked = !isClosed(t) && t.blockers.some((b) => b.ticket && !isClosed(b.ticket));
+
+  const order = (t) => (t.issue != null ? [0, t.issue, ''] : [1, +t.local || 0, t.area]);
+  m.tickets.sort((a, b) => {
+    const x = order(a), y = order(b);
+    return x[0] - y[0] || (x[0] ? x[2].localeCompare(y[2]) : 0) || x[1] - y[1] || a.path.localeCompare(b.path);
+  });
+  m.adrs.sort((a, b) => a.path.localeCompare(b.path));
+  m.docs.sort((a, b) => a.path.localeCompare(b.path));
+  for (const a of m.areas.values()) {
+    a.open = a.tickets.filter((t) => !isClosed(t)).length;
+    a.closed = a.tickets.length - a.open;
+  }
+  m.areaList = [...m.areas.values()].sort((a, b) => (b.open > 0) - (a.open > 0) || a.name.localeCompare(b.name));
+  m.statusCounts = new Map();
+  for (const t of m.tickets) m.statusCounts.set(t.status, (m.statusCounts.get(t.status) || 0) + 1);
+  m.open = m.tickets.filter((t) => !isClosed(t));
+  const names = [...m.areas.keys()].filter(Boolean).sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  m.areaRef = names.length ? new RegExp('(^|[^\\w/.-])((' + names.join('|') + ')\\s(\\d{1,4}))(?![\\w-])', 'g') : null;
+
+  m.comments = [];
+  for (const t of m.tickets) for (const c of t.comments) m.comments.push({ ...c, ticket: t });
+  m.comments.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0) || b.order - a.order);
+
+  findProblems(m);
+  return m;
+}
+
+function findProblems(m) {
+  const add = (kind, tickets, text) => m.problems.push({ kind, tickets, text });
+  for (const t of m.tickets) {
+    if (!t.statusLine) add('no-status', [t], 'Nincs Status sor a fájl elején.');
+    else if (t.status === UNPARSED) add('bad-status', [t], 'A Status sor: „' + t.statusNote + '”.');
+    if (t.status === 'ready-for-agent' && t.checks.total > 0 && t.checks.done === t.checks.total) add('all-checked', [t], `Mind a ${t.checks.total} pontja kipipálva, az állapota mégis ready-for-agent.`);
+    const missing = t.blockers.filter((b) => !b.ticket);
+    if (missing.length) add('missing-blocker', [t], 'A Blocked by sorban nincs ilyen jegy: ' + missing.map((b) => b.raw).join(', ') + '.');
+    if (!isClosed(t) && t.blockers.length && t.blockers.every((b) => b.ticket && isClosed(b.ticket))) add('released', [t], 'A Blocked by jegyei mind lezárultak (' + t.blockers.map((b) => b.ticket.label).join(', ') + '): a jegyet már semmi nem tartja vissza, indítható. Ahol lezáráskor törölni szokás a sort, ott a sor elavult; a /to-tickets formátumában a sor marad, ott ez rendben van.');
+    if (t.mismatch) add('mismatch', [t], `A fájlnév száma ${t.mismatch.file}, az Issue soré #${t.mismatch.field}.`);
+    if (t.issue == null && t.local == null) add('no-number', [t], 'Sem a fájlnévben, sem a címsorban nincs szám.');
+  }
+  for (const [num, list] of m.byIssue) if (list.length > 1) add('duplicate', list, `${list.length} fájl viseli a #${num} számot.`);
+  for (const [key, list] of m.byLocal) if (list.length > 1) add('duplicate', list, `${list.length} fájl ugyanazzal a számmal (${key.replace('/', ' ')}).`);
+}
+
+const PROBLEM_KINDS = [
+  ['duplicate', 'Két fájl ugyanazzal a számmal'],
+  ['no-status', 'Jegy Status sor nélkül'],
+  ['bad-status', 'Nem értelmezhető Status sor'],
+  ['all-checked', 'ready-for-agent, pedig minden pontja kipipálva'],
+  ['missing-blocker', 'Blocked by nem létező jegyre'],
+  ['released', 'Felszabadult jegy: minden blokkolója lezárult', true],
+  ['mismatch', 'A fájlnév és az Issue sor száma eltér'],
+  ['no-number', 'Jegy szám nélkül'],
+];
+
+// Kinds that are worth knowing but are not a contradiction: not counted as a warning.
+const INFO_KINDS = new Set(PROBLEM_KINDS.filter((k) => k[2]).map((k) => k[0]));
+
+// ───────────────────────── Markdown ─────────────────────────
+// A small renderer for what the tickets use. Every piece of source text goes
+// through esc() before it becomes HTML; raw HTML in the markdown is shown as text.
+
+const LIST_ITEM = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
+const lead = (l) => l.length - l.trimStart().length;
+const isOrdered = (m) => /\d/.test(m[2]);
+const isBlockStart = (l) => /^\s*(#{1,6}\s|```|~~~|>)/.test(l) || /^\s*([-*_])(\s*\1){2,}\s*$/.test(l);
+const TABLE_RULE = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+
+function splitRow(line) {
+  const cells = [];
+  let cur = '', code = false;
+  const s = line.trim().replace(/^\|/, '').replace(/\|\s*$/, (m0, off, str) => (str[off - 1] === '\\' ? m0 : ''));
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '`') code = !code;
+    if (ch === '\\' && s[i + 1] === '|') { cur += '|'; i++; continue; }
+    if (ch === '|' && !code) { cells.push(cur.trim()); cur = ''; } else cur += ch;
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+function renderMarkdown(text, ctx) {
+  return renderBlocks(text.replace(/\r\n?/g, '\n').replace(/[\u0001\u0002]/g, '').replace(/\t/g, '    ').split('\n'), ctx);
+}
+
+function renderBlocks(lines, ctx) {
+  const out = [];
+  let para = [];
+  const flush = () => {
+    if (!para.length) return;
+    // A line that starts a "**Field:** value" pair keeps its own line.
+    const joined = para.map((l, i) => (i && (/^\*\*[^*]+:\*\*/.test(l.trim()) || /( {2}|\\)$/.test(para[i - 1])) ? '\u0001br\u0002' : i ? ' ' : '') + l.trim().replace(/\\$/, '')).join('');
+    out.push('<p>' + renderInline(joined.replace(/\u0001br\u0002/g, '\n'), ctx).replace(/\n/g, '<br>') + '</p>');
+    para = [];
+  };
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { flush(); i++; continue; }
+
+    const fence = /^(\s*)(```+|~~~+)(.*)$/.exec(line);
+    if (fence) {
+      flush();
+      const body = [];
+      i++;
+      while (i < lines.length && !new RegExp('^\\s*' + fence[2][0] + '{' + fence[2].length + ',}\\s*$').test(lines[i])) body.push(lines[i++].slice(Math.min(fence[1].length, lead(lines[i - 1]))));
+      i++;
+      out.push('<pre><code>' + esc(body.join('\n')) + '</code></pre>');
+      continue;
+    }
+    const h = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line);
+    if (h) { flush(); out.push(`<h${h[1].length}>${renderInline(h[2], ctx)}</h${h[1].length}>`); i++; continue; }
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { flush(); out.push('<hr>'); i++; continue; }
+    if (/^\s*>/.test(line)) {
+      flush();
+      const body = [];
+      while (i < lines.length && (/^\s*>/.test(lines[i]) || (lines[i].trim() && body.length && !isBlockStart(lines[i]) && !LIST_ITEM.test(lines[i])))) body.push(lines[i++].replace(/^\s*>\s?/, ''));
+      out.push('<blockquote>' + renderBlocks(body, ctx) + '</blockquote>');
+      continue;
+    }
+    if (line.includes('|') && i + 1 < lines.length && TABLE_RULE.test(lines[i + 1]) && lines[i + 1].includes('-') && lines[i + 1].includes('|')) {
+      flush();
+      const head = splitRow(line);
+      const align = splitRow(lines[i + 1]).map((c) => (/^:-+:$/.test(c) ? 'center' : /-:$/.test(c) ? 'right' : ''));
+      const cell = (tag, c, k) => `<${tag}${align[k] ? ` style="text-align:${align[k]}"` : ''}>${renderInline(c, ctx)}</${tag}>`;
+      let html = '<div class="tw"><table><thead><tr>' + head.map((c, k) => cell('th', c, k)).join('') + '</tr></thead><tbody>';
+      i += 2;
+      while (i < lines.length && lines[i].trim() && lines[i].includes('|')) html += '<tr>' + splitRow(lines[i++]).map((c, k) => cell('td', c, k)).join('') + '</tr>';
+      out.push(html + '</tbody></table></div>');
+      continue;
+    }
+    const li = LIST_ITEM.exec(line);
+    if (li) {
+      flush();
+      const base = li[1].length, ordered = isOrdered(li);
+      const start = ordered ? parseInt(li[2], 10) : 1;
+      const items = [];
+      while (i < lines.length) {
+        const m = LIST_ITEM.exec(lines[i]);
+        if (!m || m[1].length < base || m[1].length >= base + 2 || isOrdered(m) !== ordered) break;
+        const inner = m[1].length + m[2].length + 1;
+        const body = [m[3]];
+        i++;
+        while (i < lines.length) {
+          const l = lines[i];
+          if (!l.trim()) {
+            let j = i + 1;
+            while (j < lines.length && !lines[j].trim()) j++;
+            if (j < lines.length && lead(lines[j]) >= base + 2) { body.push(''); i++; continue; }
+            break;
+          }
+          if (lead(l) >= base + 2) { body.push(l.slice(Math.min(lead(l), inner))); i++; continue; }
+          if (LIST_ITEM.test(l) || isBlockStart(l)) break;
+          body.push(l.trim());
+          i++;
+        }
+        items.push(body);
+        let j = i;
+        while (j < lines.length && !lines[j].trim()) j++;
+        const next = j > i && j < lines.length ? LIST_ITEM.exec(lines[j]) : null;
+        if (next && next[1].length >= base && next[1].length < base + 2 && isOrdered(next) === ordered) i = j;
+      }
+      const tag = ordered ? 'ol' : 'ul';
+      out.push(`<${tag}${ordered && start !== 1 ? ` start="${start}"` : ''}>` + items.map((body) => {
+        const task = /^\[( |x|X)\]\s+(.*)$/.exec(body[0]);
+        if (task) body = [task[2], ...body.slice(1)];
+        let html = renderBlocks(body, ctx);
+        const single = /^<p>([\s\S]*?)<\/p>/.exec(html);
+        if (single) html = single[1] + html.slice(single[0].length);
+        if (!task) return '<li>' + html + '</li>';
+        const checked = task[1] !== ' ';
+        return `<li class="task${checked ? ' done' : ''}"><input type="checkbox" disabled${checked ? ' checked' : ''} aria-label="${checked ? 'kész' : 'nincs kész'}"><span class="t">${html}</span></li>`;
+      }).join('') + `</${tag}>`);
+      continue;
+    }
+    para.push(line);
+    i++;
+    if (i < lines.length && (isBlockStart(lines[i]) || LIST_ITEM.test(lines[i]))) flush();
+  }
+  flush();
+  return out.join('\n');
+}
+
+function resolvePath(from, href) {
+  const parts = from.split('/').slice(0, -1);
+  for (const seg of href.split('/')) {
+    if (seg === '..') { if (!parts.length) return null; parts.pop(); } else if (seg && seg !== '.') parts.push(seg);
+  }
+  return parts.join('/');
+}
+
+function renderLink(url, html, ctx) {
+  if (/^(https?:|mailto:)/i.test(url)) return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${html}</a>`;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith('#') || url.startsWith('//')) return html;
+  let target = url.replace(/[#?].*$/, '');
+  try { target = decodeURIComponent(target); } catch (e) { /* keep as written */ }
+  const path = target.startsWith('/') ? target.slice(1) : resolvePath(ctx.path, target);
+  if (path && ctx.model.byPath.has(path)) return `<a href="${docHref(path)}" data-doc="${esc(path)}">${html}</a>`;
+  return `<span class="dead" title="${esc(url)} (nem megnyitható innen)">${html}</span>`;
+}
+
+function emphasis(s) {
+  return s
+    .replace(/\*\*(?=\S)([\s\S]+?)(?<=\S)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<![\w\\])__(?=\S)([\s\S]+?)(?<=\S)__(?!\w)/g, '<strong>$1</strong>')
+    .replace(/\*(?=[^\s*])([^*\n]+?)(?<=\S)\*/g, '<em>$1</em>')
+    .replace(/(?<![\w\\])_(?=[^\s_])([^_\n]+?)(?<=\S)_(?!\w)/g, '<em>$1</em>')
+    .replace(/~~(?=\S)([^~\n]+?)(?<=\S)~~/g, '<del>$1</del>');
+}
+
+function ticketRefs(s, ctx) {
+  const m = ctx.model;
+  s = s.replace(/(^|[^\w&/#])#(\d{1,6})(?![\w#])/g, (all, pre, num) => {
+    const t = m.resolveIssue(+num);
+    return t && t.path !== ctx.path ? pre + ticketLink(t) : all;
+  });
+  if (m.areaRef) s = s.replace(m.areaRef, (all, pre, whole, areaName, num) => {
+    const t = m.resolveLocal(areaName, +num);
+    return t && t.path !== ctx.path ? pre + ticketLink(t, whole) : all;
+  });
+  return s;
+}
+
+function renderInline(src, ctx, noLinks) {
+  const stash = [];
+  const keep = (html) => '\u0001' + (stash.push(html) - 1) + '\u0002';
+  let s = src;
+  s = s.replace(/(`+)([\s\S]*?[^`])\1(?!`)/g, (m, ticks, code) => keep('<code>' + esc(code.trim() || code) + '</code>'));
+  s = s.replace(/\\([\\`*_{}[\]()#+\-.!|>~])/g, (m, ch) => keep(esc(ch)));
+  s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, (m, alt) => keep('<span class="dead">[kép: ' + esc(alt || 'név nélkül') + ']</span>'));
+  if (!noLinks) {
+    s = s.replace(/\[([^\]\n]+)\]\(\s*<?((?:[^()\s<>]|\([^()\s]*\))+)>?(?:\s+"[^"]*")?\s*\)/g, (m, label, url) => keep(renderLink(url, renderInline(label, ctx, true), ctx)));
+    s = s.replace(/<(https?:\/\/[^>\s]+)>/g, (m, url) => keep(renderLink(url, esc(url), ctx)));
+    s = s.replace(/\bhttps?:\/\/[^\s<>()\u0001]*[^\s<>().,;:!?"'\u0001„”]/g, (url) => keep(renderLink(url, esc(url), ctx)));
+  }
+  s = emphasis(esc(s));
+  if (!noLinks) s = ticketRefs(s, ctx);
+  for (let guard = 0; guard < 6 && s.includes('\u0001'); guard++) s = s.replace(/\u0001(\d+)\u0002/g, (m, k) => stash[+k] ?? '');
+  return s;
+}
+
+// ───────────────────────── State ─────────────────────────
+
+const STORE_KEY = 'development-status:' + location.pathname;
+const state = { view: 'waiting', doc: null, q: '', status: '', area: '', showClosed: false, activityDays: 14 };
+const openDetails = new Set();
+let source = null;       // { adapter, root, name, live, roots }; from the launcher's server also { server, launcher, reload }
+let cache = new Map();   // path → { size, mtime, text }
+let model = null;
+let changeLog = [];      // newest first: { at, items: [{ path, label, text }] }
+let recent = new Map();  // path → time of the last change seen in this session
+let lastChecked = null;
+let busy = false;
+let timer = null;
+let lostAccess = false;
+let serverDown = false;
+let lastOpener = null;
+// The git history from the launcher: { data, error, limit, open: Set of hashes, hit }.
+let gitState = { data: null, error: '', limit: GIT_PAGE, open: new Set(), hit: '' };
+
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+  for (const k of ['status', 'area', 'showClosed']) if (k in saved) state[k] = saved[k];
+} catch (e) { /* storage is optional */ }
+const saveState = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify({ status: state.status, area: state.area, showClosed: state.showClosed })); } catch (e) { /* optional */ } };
+
+// The folder handle survives a reload in IndexedDB (the permission does not).
+function idb(mode, run) {
+  return new Promise((resolve) => {
+    try {
+      const open = indexedDB.open('development-status', 1);
+      open.onupgradeneeded = () => open.result.createObjectStore('handles');
+      open.onerror = () => resolve(null);
+      open.onsuccess = () => {
+        try {
+          const tx = open.result.transaction('handles', mode);
+          const req = run(tx.objectStore('handles'));
+          tx.oncomplete = () => resolve(req ? req.result : null);
+          tx.onerror = tx.onabort = () => resolve(null);
+        } catch (e) { resolve(null); }
+      };
+    } catch (e) { resolve(null); }
+  });
+}
+const rememberHandle = (h) => idb('readwrite', (s) => s.put(h, STORE_KEY));
+const forgetHandle = () => idb('readwrite', (s) => s.delete(STORE_KEY));
+const recallHandle = () => idb('readonly', (s) => s.get(STORE_KEY));
+
+// ───────────────────────── Refresh loop ─────────────────────────
+
+function describeChange(path, before, after) {
+  if (after && after.kind === 'ticket') {
+    if (!before) return { label: after.label, text: 'új jegy: ' + after.title + ' (' + statusName(after.status) + ')' };
+    const parts = [];
+    if (before.status !== after.status) parts.push('állapot: ' + statusName(before.status) + ' → ' + statusName(after.status));
+    if (before.checks.done !== after.checks.done || before.checks.total !== after.checks.total) parts.push(`pontok: ${before.checks.done}/${before.checks.total} → ${after.checks.done}/${after.checks.total}`);
+    if (after.comments.length > before.comments.length) parts.push('új megjegyzés: ' + after.comments[after.comments.length - 1].title);
+    if (before.title !== after.title) parts.push('új cím: ' + after.title);
+    if (before.fields['blocked by'] !== after.fields['blocked by']) parts.push('Blocked by: ' + (after.fields['blocked by'] || 'nincs'));
+    return { label: after.label, text: parts.join('; ') || 'a szövege módosult' };
+  }
+  const name = path.split('/').slice(-2).join('/');
+  if (!after) return { label: before && before.label ? before.label : name, text: 'a fájl törlődött' };
+  return { label: name, text: before ? 'módosult' : 'új fájl' };
+}
+
+async function refresh() {
+  if (busy || !source) return;
+  busy = true;
+  try {
+    const listing = await scan(source);
+    const seen = new Set();
+    const touched = [];
+    for (const e of listing.entries) {
+      seen.add(e.path);
+      const old = cache.get(e.path);
+      if (old && old.size === e.size && old.mtime === e.mtime) continue;
+      // A file caught mid-write is read again in the next round.
+      try { cache.set(e.path, { size: e.size, mtime: e.mtime, text: await e.file.text() }); touched.push(e.path); } catch (err) { if (err.name === 'NotAllowedError' || err.name === 'ServerDownError') throw err; }
+    }
+    for (const path of [...cache.keys()]) if (!seen.has(path)) { cache.delete(path); touched.push(path); }
+    const shape = listing.trackerPath + '|' + listing.adrPath + '|' + listing.others.length;
+    const first = !model;
+    if (first || touched.length || shape !== source.shape) {
+      source.shape = shape;
+      const next = buildModel(source.name, cache, listing.others, listing.trackerPath, listing.adrPath);
+      if (!first && touched.length) {
+        const now = Date.now();
+        const items = touched.map((path) => ({ path, ...describeChange(path, model.byPath.get(path), next.byPath.get(path)) }));
+        changeLog.unshift({ at: new Date(), items });
+        changeLog = changeLog.slice(0, 40);
+        for (const path of touched) recent.set(path, now);
+        setTimeout(() => { if (model) renderView(); }, FRESH_MS + 500);
+      }
+      model = next;
+      renderAll();
+    }
+    lastChecked = new Date();
+    lostAccess = false;
+    serverDown = false;
+    if (await refreshGit() && model) { renderTabs(); if (state.view === 'git') renderView(); }
+  } catch (err) {
+    // The server stopped: keep what was read, keep asking; it may come back.
+    if (err && err.name === 'ServerDownError') serverDown = true;
+    else if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) lostAccess = true;
+    else if (err && err.name === 'NotFoundError') source.roots = null;
+    else console.error(err);
+    if (!model) showStart('Nem sikerült beolvasni a mappát: ' + (err && err.message ? err.message : err));
+  } finally {
+    busy = false;
+    renderLive(true);
+  }
+}
+
+// The launcher's git history; true when it changed. The server is told what
+// the page has, and answers "unchanged" while no ref moved.
+async function refreshGit() {
+  if (!source || !source.server || !source.git) return false;
+  const known = gitState.data && gitState.data.limit === gitState.limit ? '&known=' + gitState.data.fingerprint : '';
+  let data;
+  try { data = await serverJson('/git?limit=' + gitState.limit + known); } catch (err) { return false; }
+  if (data.unchanged) return false;
+  if (!data.available) {
+    const error = data.error || 'nincs';
+    const changed = gitState.data !== null || gitState.error !== error;
+    gitState.data = null;
+    gitState.error = error;
+    return changed;
+  }
+  gitState.data = data;
+  gitState.error = '';
+  return true;
+}
+
+function startPolling() {
+  clearInterval(timer);
+  if (source && source.live) timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
+}
+
+async function start(src) {
+  clearInterval(timer);
+  source = src;
+  cache = new Map();
+  model = null;
+  changeLog = [];
+  recent = new Map();
+  lostAccess = false;
+  serverDown = false;
+  gitState = { data: null, error: '', limit: GIT_PAGE, open: new Set(), hit: '' };
+  $('start-error').hidden = true;
+  await refresh();
+  if (model) startPolling();
+}
+
+function showStart(error) {
+  clearInterval(timer);
+  source = null;
+  model = null;
+  $('app').hidden = true;
+  $('live').hidden = true;
+  $('start').hidden = false;
+  $('project').textContent = 'Fejlesztési állapot';
+  document.title = 'Fejlesztési állapot';
+  closeDrawerNow();
+  if (error) { $('start-error').textContent = error; $('start-error').hidden = false; }
+}
+
+// ───────────────────────── Filtering ─────────────────────────
+
+function matches(t, ignoreClosed) {
+  if (state.area && t.area !== state.area) return false;
+  if (state.status && t.status !== state.status) return false;
+  if (state.q && !t.hay.includes(fold(state.q.trim()))) return false;
+  if (!ignoreClosed && !state.showClosed && !state.status && isClosed(t)) return false;
+  return true;
+}
+const visibleTickets = () => model.tickets.filter((t) => matches(t, false));
+
+// ───────────────────────── Rendering ─────────────────────────
+
+const docHref = (path) => '#/' + state.view + '/' + encodeURIComponent(path);
+function ticketLink(t, text) {
+  return `<a class="tref${isClosed(t) ? ' is-closed' : ''}" href="${docHref(t.path)}" data-doc="${esc(t.path)}" title="${esc(t.title + ' (' + statusName(t.status) + ')')}">${esc(text || t.label)}</a>`;
+}
+const blockerLinks = (t) => t.blockers.map((b) => (b.ticket ? ticketLink(b.ticket) : `<span class="tref is-missing" title="Nincs ilyen jegy">${esc(b.raw)}?</span>`)).join(' ');
+const meter = (c) => (c.total ? `<span class="meter" title="${c.done} kész a ${c.total} pontból"><i style="--p:${pct(c.done, c.total)}%"></i>${c.done}/${c.total}</span>` : '<span class="muted">–</span>');
+
+// Blocked by an open ticket, or freed: every blocker it names is closed.
+const isFree = (t) => !isClosed(t) && !t.blocked && t.blockers.length > 0 && t.blockers.every((b) => b.ticket);
+const flags = (t) => (t.blocked ? ' <span class="flag blocked">blokkolva</span>' : isFree(t) ? ' <span class="flag free" title="Minden blokkolója lezárult">indítható</span>' : '');
+
+function ticketRow(t) {
+  const fresh = recent.has(t.path) && Date.now() - recent.get(t.path) < FRESH_MS;
+  const blockers = blockerLinks(t);
+  const sub = [esc(t.area), t.blockers.length ? 'blokkolja: ' + blockers : '', t.lastComment ? `<span class="mono" style="white-space:nowrap">${t.lastComment}</span>` : ''].filter(Boolean).join(' · ');
+  return `<tr data-doc="${esc(t.path)}"${t.blocked ? ' class="is-blocked"' : ''}>
+<td class="c-num">${esc(t.label)}</td>
+<td class="c-title"><a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a>${flags(t)}${fresh ? ' <span class="flag fresh">most változott</span>' : ''}
+${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusNote)}</div>` : ''}<div class="sub"><span class="sub-st">${chip(t.status)}</span>${sub}</div></td>
+<td class="c-area">${esc(t.area)}</td>
+<td class="c-st">${chip(t.status)}</td>
+<td class="c-chk">${meter(t.checks)}</td>
+<td class="c-blk">${blockers || '<span class="muted">–</span>'}</td>
+<td class="c-last">${t.lastComment || '–'}</td>
+</tr>`;
+}
+
+function ticketTable(list) {
+  if (!list.length) return '<div class="empty">Nincs ilyen jegy.</div>';
+  return `<div class="tablewrap"><table class="grid"><thead><tr><th class="c-num">Szám</th><th>Jegy</th><th class="c-area">Terület</th><th class="c-st">Állapot</th><th class="c-chk">Pontok</th><th class="c-blk">Blokkolja</th><th class="c-last">Utolsó megjegyzés</th></tr></thead><tbody>${list.map(ticketRow).join('')}</tbody></table></div>`;
+}
+
+function renderLive(ticked) {
+  if (!source) return;
+  $('live').hidden = false;
+  const dot = $('dot');
+  let text;
+  $('change').hidden = !!source.server;
+  if (serverDown) {
+    dot.className = 'dot warn';
+    text = `A szerver leállt: az utoljára olvasott állás látszik${lastChecked ? ' (' + clock(lastChecked) + ')' : ''}. Indítsd újra${source.launcher ? ' (' + source.launcher + ')' : ''}, és az oldal magától folytatja.`;
+    $('refresh').textContent = 'Próbáld újra';
+  } else if (lostAccess) {
+    dot.className = 'dot warn';
+    text = 'A böngésző már nem engedi olvasni a mappát; az utolsó ismert állás látszik.';
+    $('refresh').textContent = 'Engedély megújítása';
+  } else if (source.live) {
+    dot.className = 'dot on';
+    if (ticked) { dot.classList.remove('tick'); void dot.offsetWidth; dot.classList.add('tick'); }
+    text = `Élő${source.server ? ' · helyi szerver (' + source.server + ')' : ''}: ${POLL_MS / 1000} másodpercenként olvas · ellenőrizve ${lastChecked ? clock(lastChecked) : '–'}`;
+    $('refresh').textContent = 'Frissítés most';
+  } else {
+    dot.className = 'dot';
+    text = `Pillanatkép: beolvasva ${lastChecked ? clock(lastChecked) : '–'}, magától nem frissül`;
+    $('refresh').textContent = 'Újraolvasás (mappa kiválasztása)';
+  }
+  $('live-text').textContent = text;
+  renderVersion();
+}
+
+function renderVersion() {
+  const other = source && source.server && source.version !== VERSION ? source.version || 'régebbi' : '';
+  $('ver').textContent = other ? `v${VERSION} · indító ${other}` : `v${VERSION}`;
+  $('ver').className = 'ver' + (other ? ' warn' : '');
+  $('ver').title = other
+    ? `Az oldal ${VERSION}, az indító (development-status.mjs) ${other}: a két fájl más verzióból való. Másold őket együtt.`
+    : `development-status ${VERSION}`;
+}
+
+function renderOverview() {
+  const m = model;
+  const total = m.tickets.length, open = m.open.length;
+  const statuses = [...m.statusCounts.entries()].sort((a, b) => CLOSED.has(a[0]) - CLOSED.has(b[0]) || b[1] - a[1]);
+  const statusButton = ([s, n]) => `<button type="button" class="chip t-${statusTone(s)}${CLOSED.has(s) ? ' closed' : ''}" data-status="${esc(s)}" aria-pressed="${state.status === s}" title="Szűrés erre az állapotra">${esc(statusName(s))} <b>${n}</b></button>`;
+  const openChips = statuses.filter(([s]) => !CLOSED.has(s)).map(statusButton).join('');
+  const closedChips = statuses.filter(([s]) => CLOSED.has(s)).map(statusButton).join('');
+  // The bar reads as progress: the closed part first, then the open states.
+  const barOrder = [...statuses.filter(([s]) => CLOSED.has(s)), ...statuses.filter(([s]) => !CLOSED.has(s))];
+  const stack = barOrder.map(([s, n]) => `<span class="t-${statusTone(s)}${CLOSED.has(s) ? ' closed' : ''}" style="flex:${n}" title="${esc(statusName(s))}: ${n}"></span>`).join('');
+  const blocked = m.open.filter((t) => t.blocked).length;
+  const inGroup = (id) => m.open.filter((t) => GROUPS.find((g) => g.id === id).has(t.status));
+  const agentAll = inGroup('agent');
+  const agentFree = agentAll.filter((t) => !t.blocked).length;
+  const human = inGroup('human').length;
+  const done = total - open;
+  const kpi = (tone, value, key, sub, extra = '') => `<div class="kpi${tone ? ' t-' + tone : ''}${value === 0 || value === '0' ? ' zero' : ''}${extra}"><span class="v">${value}</span><span class="k">${key}</span>${sub ? `<span class="s">${sub}</span>` : ''}</div>`;
+
+  let changes;
+  if (!changeLog.length) {
+    changes = source.live ? 'Az oldal megnyitása óta nem változott semmi.' : 'Pillanatkép: a változásokat az oldal csak élő módban követi.';
+    changes = `<div class="changes">${changes}</div>`;
+  } else {
+    const item = (it) => `<li>${m.byPath.has(it.path) ? `<a href="${docHref(it.path)}" data-doc="${esc(it.path)}"><b>${esc(it.label)}</b></a>` : `<b>${esc(it.label)}</b>`}: ${esc(it.text)}</li>`;
+    const [latest, ...older] = changeLog;
+    changes = `<details class="changes" data-key="changes"${openDetails.has('changes') ? ' open' : ''}><summary>Legutóbbi változás ${clock(latest.at)}: ${latest.items.slice(0, 3).map((it) => `<b>${esc(it.label)}</b> ${esc(it.text)}`).join('; ')}${latest.items.length > 3 ? `; és még ${latest.items.length - 3}` : ''}</summary>
+<ul>${latest.items.map(item).join('')}</ul>${older.map((b) => `<div style="margin-top:6px">${clock(b.at)}</div><ul>${b.items.map(item).join('')}</ul>`).join('')}</details>`;
+  }
+
+  $('overview').innerHTML = `
+<div class="kpis">
+${kpi('', open, 'nyitott jegy', `${total} összesen · ${m.areaList.length} terület · ${m.adrs.length} ADR`, ' main')}
+${kpi('agent', agentFree, 'megírható most', agentAll.length > agentFree ? `ready-for-agent · további ${agentAll.length - agentFree} blokkolva` : 'ready-for-agent, nincs blokkolva')}
+${kpi('human', human, 'emberre vár', 'ready-for-human, needs-info, needs-triage')}
+${kpi('bad', blocked, 'blokkolva', 'nyitott jegyre vár')}
+${kpi('done', total ? pct(done, total) + '<small>%</small>' : '–', 'kész', `${done} lezárt jegy`)}
+</div>
+${total ? `<div class="progress"><div class="head"><span><b>Haladás</b></span><span>${done} / ${total} lezárva${blocked ? ` · ${blocked} blokkolva` : ''}</span></div>
+<div class="stack" role="img" aria-label="${open} nyitott és ${done} lezárt jegy">${stack}</div>
+<div class="chips">${closedChips}${openChips && closedChips ? '<span class="sep"></span>' : ''}${openChips}</div></div>` : ''}
+${m.trackerPath == null ? `<div class="notice">Ebben a mappában nem találtam jegyeket: nincs <code>${esc(DEFAULT_TRACKER_DIR)}/</code>, és olyan mappa sincs, amelynek az almappáiban <code>issues/</code> van.${source.live ? '' : ` Pillanatképnél a böngészők egy része kihagyja a ponttal kezdődő (rejtett) mappákat: ilyenkor magát a jegyek mappáját (például a <code>${esc(DEFAULT_TRACKER_DIR)}</code> mappát) válaszd ki.`}</div>` : ''}
+${changes}`;
+}
+
+function renderTabs() {
+  $('tabs').innerHTML = VIEWS.map(([id, label]) => {
+    let badge = '';
+    if (id === 'waiting') badge = `<span class="badge">${model.open.length}</span>`;
+    const real = model.problems.filter((p) => !INFO_KINDS.has(p.kind)).length;
+    if (id === 'git' && gitState.data) badge = `<span class="badge">${gitState.data.refs.filter((r) => r.kind === 'branch').length}</span>`;
+    if (id === 'checks' && real) badge = `<span class="badge warn">${real}</span>`;
+    else if (id === 'checks' && model.problems.length) badge = `<span class="badge">${model.problems.length}</span>`;
+    return `<a href="#/${id}"${state.view === id ? ' aria-current="page"' : ''}>${label}${badge}</a>`;
+  }).join('');
+  // On a narrow screen the tabs scroll sideways: keep the current one in sight.
+  const nav = $('tabs'), cur = nav.querySelector('[aria-current]');
+  if (cur && (cur.offsetLeft < nav.scrollLeft || cur.offsetLeft + cur.offsetWidth > nav.scrollLeft + nav.clientWidth)) nav.scrollLeft = cur.offsetLeft - 16;
+}
+
+function renderFilters() {
+  const m = model;
+  if (state.status && !m.statusCounts.has(state.status)) state.status = '';
+  if (state.area && !m.areas.has(state.area)) state.area = '';
+  const statuses = [...m.statusCounts.keys()].sort((a, b) => CLOSED.has(a) - CLOSED.has(b) || a.localeCompare(b));
+  $('f-status').innerHTML = '<option value="">Minden állapot</option>' + statuses.map((s) => `<option value="${esc(s)}"${s === state.status ? ' selected' : ''}>${esc(statusName(s))} (${m.statusCounts.get(s)})</option>`).join('');
+  const areas = [...m.areas.values()].filter((a) => a.name).sort((a, b) => a.name.localeCompare(b.name));
+  $('f-area').innerHTML = '<option value="">Minden terület</option>' + areas.map((a) => `<option value="${esc(a.name)}"${a.name === state.area ? ' selected' : ''}>${esc(a.name)} (${a.open}/${a.tickets.length})</option>`).join('');
+  $('f-closed').checked = state.showClosed;
+  if ($('q').value !== state.q) $('q').value = state.q;
+}
+
+function renderSummary() {
+  const shown = visibleTickets().length;
+  const hidden = model.tickets.filter((t) => matches(t, true)).length - shown;
+  $('f-summary').innerHTML = `${shown} jegy látszik` + (hidden ? ` · ${hidden} zárt rejtve <button type="button" class="quiet" data-act="show-closed">mutasd</button>` : '') + (state.q || state.status || state.area ? ' <button type="button" class="quiet" data-act="clear">szűrők törlése</button>' : '');
+}
+
+const VIEW_RENDERERS = {
+  waiting() {
+    const list = visibleTickets();
+    const used = new Set();
+    const section = (title, hint, items, always) => {
+      items.forEach((t) => used.add(t));
+      if (!items.length && !always) return '';
+      items = [...items].sort((a, b) => a.blocked - b.blocked);
+      const blocked = items.filter((t) => t.blocked).length;
+      return `<section class="group"><h2>${esc(title)} <span class="count">${items.length}</span>${blocked ? `<span class="flag blocked">${blocked} blokkolva</span>` : ''}<span class="hint">${esc(hint)}</span></h2>${ticketTable(items)}</section>`;
+    };
+    let html = GROUPS.map((g) => section(g.title, g.hint, list.filter((t) => g.has(t.status)), g.id === 'agent' || g.id === 'human')).join('');
+    const rest = list.filter((t) => !used.has(t) && !isClosed(t) && t.status !== UNPARSED);
+    for (const s of [...new Set(rest.map((t) => t.status))].sort()) html += section(s, 'az oldal nem ismeri ezt az állapotot; nyitottnak veszi', rest.filter((t) => t.status === s));
+    html += section('Nem értelmezhető állapot', 'nincs Status sor, vagy nem olvasható ki belőle állapot; nyitottnak számít', list.filter((t) => t.status === UNPARSED));
+    html += section('Lezárt', [...CLOSED].join(', '), list.filter(isClosed));
+    return html;
+  },
+
+  areas() {
+    const q = fold(state.q.trim());
+    const rows = model.areaList.filter((a) => (!state.area || a.name === state.area)).map((a) => {
+      const tickets = a.tickets.filter((t) => matches(t, false));
+      if ((q || state.status) && !tickets.length && !(q && !state.status && fold(a.name + ' ' + (a.spec ? a.spec.title : '')).includes(q))) return '';
+      const key = 'area:' + a.name;
+      const docs = a.docs.map((d) => `<li><span class="kind">${esc(d.rel.split('/').length > 1 ? d.rel.split('/')[0] : 'md')}</span><a href="${docHref(d.path)}" data-doc="${esc(d.path)}">${esc(d.title)}</a><span class="path">${esc(d.rel)}</span></li>`).join('');
+      return `<details class="area" data-key="${esc(key)}"${openDetails.has(key) ? ' open' : ''}>
+<summary><span class="name">${esc(a.name || '(a gyökérben)')}</span>
+<span class="spec">${a.spec ? '<span class="kind">spec</span>' + esc(a.spec.title) : '<i>nincs spec</i>'}</span>
+<span class="bar2${a.tickets.length ? '' : ' none'}" title="${a.closed} lezárt a ${a.tickets.length} jegyből"><i style="--p:${pct(a.closed, a.tickets.length)}%"></i></span>
+<span class="cnt">${a.tickets.length ? `<b>${a.open}</b> nyitott · ${a.closed} lezárt` : 'nincs jegy'}</span></summary>
+<div class="inner"><ul class="doclist">
+${a.spec ? `<li><span class="kind">spec</span><a href="${docHref(a.spec.path)}" data-doc="${esc(a.spec.path)}">${esc(a.spec.title)}</a><span class="path">${esc(a.spec.rel)}</span></li>` : ''}
+${docs}${a.extras ? `<li class="muted"><span class="kind">egyéb</span>${a.extras} nem markdown fájl a mappában (prototípus, kép, adat)</li>` : ''}</ul>
+${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.length ? `<p class="muted">${a.tickets.length - tickets.length} jegyet a szűrők elrejtenek.</p>` : ''}</div></details>`;
+    }).join('');
+    return `<p class="lead">Egy terület a jegykövető egy mappája: benne a spec, a jegyek és a többi dokumentum. A sáv a lezárt jegyek arányát mutatja.</p>${rows || '<div class="empty">Nincs a szűrőknek megfelelő terület.</div>'}`;
+  },
+
+  deps() {
+    const visible = new Set(visibleTickets());
+    // The closed blockers of the visible tickets stay in the picture, dimmed:
+    // they show what has already been unlocked.
+    const nodes = new Set(visible);
+    for (const t of visible) for (const b of t.blockers) if (b.ticket && !visible.has(b.ticket) && matches(b.ticket, true)) nodes.add(b.ticket);
+    const children = (t) => t.dependents.filter((d) => nodes.has(d));
+    const parents = (t) => t.blockers.map((b) => b.ticket).filter((b) => b && nodes.has(b));
+    const linked = [...nodes].filter((t) => children(t).length || parents(t).length);
+    const placed = new Set();
+    const node = (t, path) => {
+      placed.add(t);
+      const loop = path.includes(t);
+      const kids = loop ? [] : children(t);
+      const others = parents(t).filter((p) => p !== path[path.length - 1]);
+      const ctx = !visible.has(t);
+      return `<li><div class="node${ctx ? ' ctx' : ''}">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)}${flags(t)}${loop ? ' <span class="flag blocked">kör</span>' : ''}${path.length && others.length ? `<span class="rel">vár még erre is: ${others.map((p) => ticketLink(p)).join(' ')}</span>` : ''}</div>${kids.length ? `<span class="unlocks">feloldja ↓</span><ul>${kids.map((k) => node(k, [...path, t])).join('')}</ul>` : ''}</li>`;
+    };
+    let html = '';
+    for (const t of linked) if (!parents(t).length) html += node(t, []);
+    for (const t of linked) if (!placed.has(t)) html += node(t, []);
+    const waiting = linked.filter((t) => visible.has(t) && t.blocked).length;
+    const free = linked.filter((t) => visible.has(t) && isFree(t)).length;
+    const legend = html ? `<div class="legend"><span><span class="flag blocked">blokkolva</span> nyitott jegyre vár</span><span><span class="flag free">indítható</span> minden blokkolója lezárult</span><span class="muted">halványan: lezárt blokkoló, ami már feloldott valamit</span></div>` : '';
+    return `<p class="lead">Melyik jegy mit old fel: felül a blokkoló, alatta behúzva, ami rá vár. ${state.showClosed || state.status ? '' : 'A nyitott jegyek láncai látszanak, a már lezárt blokkolóikkal együtt; a „Zárt jegyek is” kapcsolóval minden lezárt jegy. '}${waiting ? `Most ${waiting} nyitott jegy vár másik nyitott jegyre.` : 'Most egyetlen nyitott jegy sem vár másik nyitott jegyre.'}${free ? ` ${free} jegy blokkolói mind lezárultak: ezek indíthatók.` : ''}</p>${legend}${html ? `<ul class="tree">${html}</ul>` : '<div class="empty">A látható jegyek között nincs Blocked by kapcsolat.</div>'}`;
+  },
+
+  activity() {
+    const days = new Map();
+    for (const c of model.comments) {
+      if (!matches(c.ticket, true)) continue;
+      if (!days.has(c.date)) days.set(c.date, new Map());
+      const byTicket = days.get(c.date);
+      if (!byTicket.has(c.ticket)) byTicket.set(c.ticket, []);
+      byTicket.get(c.ticket).push(c);
+    }
+    const all = [...days.entries()];
+    const html = all.slice(0, state.activityDays).map(([date, byTicket]) => `<section class="day"><h3>${date} <span class="muted">· ${byTicket.size} jegy</span></h3><ul>${[...byTicket.entries()].map(([t, list]) => `<li><div class="node">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)} <span class="rel">${esc(t.area)}</span></div><div class="notes">${list.map((c) => `<div>${esc(c.title)}</div>`).join('')}</div></li>`).join('')}</ul></section>`).join('');
+    return `<p class="lead">A jegyek megjegyzései (a dátummal kezdődő címsorok) napok szerint visszafelé, a zárt jegyekéi is.</p>${html || '<div class="empty">Nincs dátumozott megjegyzés a szűrőknek megfelelő jegyekben.</div>'}${all.length > state.activityDays ? `<button type="button" data-act="more-days">Korábbi napok (${all.length - state.activityDays})</button>` : ''}`;
+  },
+
+  checks() {
+    const q = fold(state.q.trim());
+    const list = model.problems.filter((p) => p.tickets.some((t) => (!state.area || t.area === state.area) && (!q || t.hay.includes(q))));
+    const html = PROBLEM_KINDS.map(([kind, title, info]) => {
+      const items = list.filter((p) => p.kind === kind);
+      if (!items.length) return '';
+      const openOnes = items.filter((p) => p.tickets.some((t) => !isClosed(t))).length;
+      return `<section class="group${info ? ' info' : ''}"><h2>${title} <span class="count">${items.length}</span><span class="hint">${info ? 'tájékoztatás, nem feltétlenül hiba · ' : ''}${openOnes} nyitott jegyet érint</span></h2><div class="tablewrap"><table class="grid"><thead><tr><th>Jegy</th><th class="c-st">Állapot</th><th>Mi a gond</th></tr></thead><tbody>${items.map((p) => `<tr><td class="c-title">${p.tickets.map((t) => `${ticketLink(t)} <a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a><div class="note">${esc(t.path)}</div>`).join('')}</td><td class="c-st">${p.tickets.map((t) => chip(t.status)).join('<br>')}</td><td>${esc(p.text)}</td></tr>`).join('')}</tbody></table></div></section>`;
+    }).join('');
+    return `<p class="lead">Amit az oldal a fájlok összevetéséből ellentmondásnak lát. Egy részük régi, lezárt jegy öröksége; a nyitott jegyeket érintők számítanak. A „tájékoztatás” jelű csoport nem hiba, csak érdemes tudni róla.</p>${html || '<div class="empty">Az oldal nem talált következetlenséget.</div>'}`;
+  },
+
+  git: renderGitView,
+
+  docs() {
+    const q = fold(state.q.trim());
+    const ok = (d) => (!state.area || d.area === state.area) && (!q || d.hay.includes(q));
+    const link = (d) => `<a class="open" href="${docHref(d.path)}" data-doc="${esc(d.path)}">${esc(d.title)}</a>`;
+    const table = (head, rows) => (rows.length ? `<div class="tablewrap"><table class="grid"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<div class="empty">Nincs ilyen dokumentum.</div>');
+    const specs = model.docs.filter((d) => d.kind === 'spec' && ok(d));
+    const other = model.docs.filter((d) => d.kind === 'doc' && ok(d));
+    const adrs = state.area ? [] : model.adrs.filter((d) => !q || d.hay.includes(q));
+    const row = (d) => `<tr data-doc="${esc(d.path)}"><td class="c-area">${esc(d.area || '–')}</td><td class="c-title">${link(d)}<div class="note">${esc(d.path)}</div></td></tr>`;
+    const own = state.area ? [] : [model.readme, ...model.glossaries].filter((d) => d && (!q || d.hay.includes(q)));
+    return `${own.length ? `<section class="group"><h2>A projekt leírása és szószedete<span class="hint">README, GLOSSARY.md (régi neve CONTEXT.md)</span></h2>${table(['Fájl', 'Cím'], own.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-area"><span class="kind">${d.kind === 'readme' ? 'leírás' : 'szószedet'}</span>${esc(d.path)}</td><td class="c-title">${link(d)}</td></tr>`))}</section>` : ''}
+<section class="group"><h2>Egyéb dokumentumok <span class="count">${other.length}</span><span class="hint">a jegykövető mappájának nem jegy, nem spec markdown fájljai (összefoglalók, kutatás, átadók)</span></h2>${table(['Terület', 'Dokumentum'], other.map(row))}</section>
+<section class="group"><h2>Specek <span class="count">${specs.length}</span></h2>${table(['Terület', 'Spec'], specs.map(row))}</section>
+${state.area ? '' : `<section class="group"><h2>ADR-ek <span class="count">${adrs.length}</span><span class="hint">${model.adrPath ? esc(model.adrPath) + '/' : 'nincs ADR-mappa'}</span></h2>${table(['Szám', 'Döntés', 'Jelölés'], adrs.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-num">${esc(d.num || '–')}</td><td class="c-title">${link(d)}</td><td>${d.status ? esc(d.status) : '<span class="muted">–</span>'}</td></tr>`))}</section>`}`;
+  },
+};
+
+// ───────────────────────── Git branches ─────────────────────────
+
+const shortHash = (h) => h.slice(0, 7);
+const relTime = (sec) => {
+  const d = Date.now() / 1000 - sec;
+  if (d < 90) return 'most';
+  if (d < 3600) return Math.round(d / 60) + ' perce';
+  if (d < 86400) return Math.round(d / 3600) + ' órája';
+  if (d < 86400 * 45) return Math.round(d / 86400) + ' napja';
+  return new Date(sec * 1000).toLocaleDateString('hu-HU');
+};
+const fullTime = (sec) => new Date(sec * 1000).toLocaleString('hu-HU');
+
+// The branch a merge commit brought in, when its subject is git's own wording.
+function mergedName(subject) {
+  const m = /^Merge (?:remote-tracking )?branch '([^']+)'/.exec(subject) || /^Merge pull request #\d+ from \S+?\/(\S+)/.exec(subject) || /^Merge branch (\S+)/.exec(subject);
+  return m ? m[1] : '';
+}
+
+// Lanes: each commit gets a column. A lane holds the commit it waits for next
+// (the first parent of the one above); a merge opens or joins a lane for each
+// further parent; lanes that wait for the same commit end in it (where a
+// branch forked). The base branch keeps lane 0, so its line runs straight.
+function layoutGit(g) {
+  const index = new Map(g.commits.map((c, i) => [c.hash, i]));
+  const base = g.refs.find((r) => r.kind === 'branch' && r.name === g.base);
+  const lanes = [];
+  let color = 1;
+  // Held for the base until its tip comes; nothing is drawn in it before.
+  if (base && index.has(base.hash)) lanes[0] = { hash: base.hash, color: 0, held: true };
+  const free = () => { let k = 0; while (lanes[k]) k++; return k; };
+  let width = 1;
+  const rows = g.commits.map((c) => {
+    const before = lanes.map((l) => (l ? { ...l } : null));
+    let at = lanes.findIndex((l) => l && l.hash === c.hash);
+    if (at < 0) { at = free(); lanes[at] = { hash: c.hash, color: color++ % GIT_COLORS }; }
+    const own = lanes[at].color;
+    const ends = [];
+    lanes.forEach((l, k) => { if (l && k !== at && l.hash === c.hash) { ends.push({ k, color: l.color }); lanes[k] = null; } });
+    const outs = [];
+    if (c.parents.length) { lanes[at] = { hash: c.parents[0], color: own }; outs.push({ k: at, color: own }); } else lanes[at] = null;
+    for (const p of c.parents.slice(1)) {
+      let k = lanes.findIndex((l) => l && l.hash === p);
+      if (k < 0) { k = free(); lanes[k] = { hash: p, color: color++ % GIT_COLORS }; }
+      outs.push({ k, color: lanes[k].color });
+    }
+    while (lanes.length && !lanes[lanes.length - 1]) lanes.pop();
+    width = Math.max(width, lanes.length, at + 1);
+    // Lanes that only pass by this row.
+    const through = [];
+    before.forEach((l, k) => { if (l && !l.held && l.hash !== c.hash && lanes[k] && lanes[k].hash === l.hash) through.push({ k, color: l.color }); });
+    return { c, at, color: own, ends, outs, through, start: !before[at] || before[at].hash !== c.hash || !!before[at].held };
+  });
+  return { rows, width };
+}
+
+function gitSvg(layout) {
+  const x = (k) => 10 + k * GIT_LANE_W, H = GIT_ROW_H;
+  const paths = [], dots = [];
+  const curve = (x1, y1, x2, y2) => (x1 === x2 ? `M${x1} ${y1}V${y2}` : `M${x1} ${y1}C${x1} ${(y1 + y2) / 2} ${x2} ${(y1 + y2) / 2} ${x2} ${y2}`);
+  layout.rows.forEach((r, i) => {
+    const top = i * H, mid = top + H / 2, bottom = top + H, cx = x(r.at);
+    for (const t of r.through) paths.push(`<path class="lane${t.color}" d="M${x(t.k)} ${top}V${bottom}" stroke="var(--c)"/>`);
+    if (!r.start) paths.push(`<path class="lane${r.color}" d="M${cx} ${top}V${mid}" stroke="var(--c)"/>`);
+    for (const e of r.ends) paths.push(`<path class="lane${e.color}" d="${curve(x(e.k), top, cx, mid)}" stroke="var(--c)"/>`);
+    for (const o of r.outs) paths.push(`<path class="lane${o.color}" d="${curve(cx, mid, x(o.k), bottom)}" stroke="var(--c)"/>`);
+    const merge = r.c.parents.length > 1;
+    dots.push(`<circle class="lane${r.color}" cx="${cx}" cy="${mid}" r="${merge ? 3.5 : 4.5}" stroke="var(--c)" fill="${merge ? 'var(--surface)' : 'var(--c)'}"/>`);
+  });
+  const w = x(layout.width) + 2;
+  return { w, svg: `<svg width="${w}" height="${layout.rows.length * H}" aria-hidden="true">${paths.join('')}${dots.join('')}</svg>` };
+}
+
+function refPill(r, color, asButton) {
+  const cls = `ref ${r.kind === 'tag' ? 'tag' : r.kind === 'remote' ? 'remote lane' + color : 'lane' + color}${r.head ? ' head' : ''}`;
+  const title = r.kind === 'tag' ? 'címke' : r.kind === 'remote' ? 'távoli ág' : r.head ? 'a kivett ág (HEAD)' : 'helyi ág';
+  return asButton
+    ? `<button type="button" class="${cls}" data-git-jump="${esc(r.hash)}" title="${esc(title)}: ugrás a csúcsára">${esc(r.name)}</button>`
+    : `<span class="${cls}" title="${esc(title)}">${esc(r.name)}</span>`;
+}
+
+function branchState(r, g) {
+  if (r.kind === 'branch' && r.name === g.base) return '<span class="flag free">alapág</span>';
+  if (r.ahead == null) return '<span class="muted">–</span>';
+  // The base's own remote: not merged into it, only behind or ahead of it.
+  const baseRef = g.refs.find((b) => b.kind === 'branch' && b.name === g.base);
+  if (r.kind === 'remote' && baseRef && baseRef.upstream === r.name) {
+    if (!r.ahead && !r.behind) return `<span class="flag free">egyezik a ${esc(g.base)}-nel</span>`;
+    return [r.behind ? `<span class="flag fresh">${r.behind} commit nincs feltöltve</span>` : '', r.ahead ? `<span class="flag fresh">${r.ahead} commit nincs letöltve</span>` : ''].filter(Boolean).join(' ');
+  }
+  if (r.ahead === 0) return `<span class="flag free">beolvadt a ${esc(g.base)}-be</span>${r.behind ? ` <span class="muted">${r.behind} commit azóta a ${esc(g.base)}-ben</span>` : ''}`;
+  return `<span class="flag fresh">${r.ahead} commit nincs a ${esc(g.base)}-ben</span>${r.behind ? ` <span class="muted">${r.behind} lemaradás</span>` : ''}`;
+}
+
+function renderGitView() {
+  if (!source || !source.server) {
+    return `<p class="lead">Az ággráfot az indító adja: <code>node development-status.mjs</code>. Mappaválasztással megnyitva a böngésző nem tud gitet futtatni.</p>`;
+  }
+  if (!source.git) {
+    return `<div class="notice">Az indító (development-status.mjs${source.version ? ' ' + esc(source.version) : ''}) régebbi, mint az oldal (${VERSION}), és nem ad git adatot. Másold mellé az oldallal egyező verziót, és indítsd újra.</div>`;
+  }
+  const g = gitState.data;
+  if (!g) {
+    return gitState.error
+      ? `<div class="empty">${gitState.error === 'nincs' ? 'A mappa nem egy git-tároló teteje, így nincs mit rajzolni.' : 'A git nem válaszolt: ' + esc(gitState.error)}</div>`
+      : '<div class="empty">A git adatai töltődnek…</div>';
+  }
+  const layout = layoutGit(g);
+  const color = new Map(layout.rows.map((r) => [r.c.hash, r.color]));
+  const refsAt = new Map();
+  for (const r of g.refs) { if (!refsAt.has(r.hash)) refsAt.set(r.hash, []); refsAt.get(r.hash).push(r); }
+  const order = { branch: 0, remote: 1, tag: 2 };
+  for (const list of refsAt.values()) list.sort((a, b) => b.head - a.head || order[a.kind] - order[b.kind] || a.name.localeCompare(b.name));
+
+  // The branches, the newest first; the base on top.
+  const branches = g.refs.filter((r) => r.kind !== 'tag').sort((a, b) => (b.name === g.base && b.kind === 'branch') - (a.name === g.base && a.kind === 'branch') || b.date - a.date);
+  const baseUp = (g.refs.find((r) => r.kind === 'branch' && r.name === g.base) || {}).upstream;
+  const merged = branches.filter((r) => r.ahead === 0 && !(r.kind === 'remote' && r.name === baseUp)).length;
+  const merges = g.commits.filter((c) => c.parents.length > 1).length;
+  const table = `<div class="tablewrap"><table class="grid"><thead><tr><th>Ág</th><th>Viszony a ${esc(g.base || 'alapághoz')}</th><th class="c-last">Utolsó commit</th></tr></thead><tbody>${branches.map((r) => `<tr><td class="c-branch">${refPill(r, color.get(r.hash) ?? 7, true)}${r.worktree && !r.head ? ' <span class="flag fresh" title="egy másik munkakönyvtárban (worktree) ki van véve">worktree</span>' : ''}${r.upstream ? ` <span class="muted">→ ${esc(r.upstream)}</span>` : ''}</td><td>${branchState(r, g)}</td><td class="c-last" title="${esc(fullTime(r.date))}">${esc(relTime(r.date))}</td></tr>`).join('')}</tbody></table></div>`;
+
+  const w = 10 + layout.width * GIT_LANE_W + 2;   // as gitSvg draws it
+  const rows = layout.rows.map((r) => {
+    const c = r.c, merge = c.parents.length > 1;
+    const into = merge ? mergedName(c.subject) : '';
+    const pills = (refsAt.get(c.hash) || []).map((ref) => refPill(ref, r.color, false)).join('');
+    const open = gitState.open.has(c.hash);
+    const detail = open ? `<div class="detail"><div class="mono">${esc(c.hash)}</div><div>${esc(c.subject)}</div><div class="muted">${esc(c.author)} · ${esc(fullTime(c.date))}${merge ? ` · összefésülés, ${c.parents.length} szülő: ${c.parents.map((p) => `<span class="mono">${esc(shortHash(p))}</span>`).join(', ')}` : c.parents.length ? '' : ' · az első commit'}${into ? ` · beolvasztott ág: <b>${esc(into)}</b>` : ''}</div></div>` : '';
+    return `<div class="row${merge ? ' merge' : ''}${gitState.hit === c.hash ? ' hit' : ''}" data-commit="${esc(c.hash)}" title="${esc(c.subject)}"><span class="h">${esc(shortHash(c.hash))}</span>${pills ? `<span class="refs">${pills}</span>` : ''}<span class="s">${esc(c.subject)}</span><span class="who">${esc(c.author)}</span><span class="when" title="${esc(fullTime(c.date))}">${esc(relTime(c.date))}</span></div>${detail}`;
+  });
+  // A detail line pushes the rows below it down: the graph is drawn per block.
+  let html = '', block = [], blockRows = [];
+  const flush = () => {
+    if (!blockRows.length) return;
+    const part = gitSvg({ rows: blockRows, width: layout.width });
+    html += `<div class="block" style="position:relative;padding-left:${part.w}px">${part.svg}${block.join('')}</div>`;
+    block = []; blockRows = [];
+  };
+  layout.rows.forEach((r, i) => {
+    const opened = gitState.open.has(r.c.hash);
+    const [line, detail] = opened ? [rows[i].slice(0, rows[i].indexOf('<div class="detail">')), rows[i].slice(rows[i].indexOf('<div class="detail">'))] : [rows[i], ''];
+    block.push(line); blockRows.push(r);
+    if (opened) { flush(); html += `<div style="padding-left:${w}px">${detail}</div>`; }
+  });
+  flush();
+  const shown = g.commits.length;
+  return `<p class="lead">A tároló ágai és commitjai, a legújabb felül. Egy szín egy ág vonala; az üres karika összefésülés (merge), ahol egy ág beolvadt. Egy sorra kattintva a commit részletei, egy ág nevére kattintva a csúcsa látszik.</p>
+<section class="group"><h2>Ágak <span class="count">${branches.length}</span><span class="hint">${merged} beolvadt a ${esc(g.base)}-be · ${g.refs.filter((r) => r.kind === 'tag').length} címke${g.headBranch ? ' · kivéve: ' + esc(g.headBranch) : ' · leválasztott HEAD'}</span></h2>${table}</section>
+<section class="group"><h2>Gráf <span class="count">${shown}</span><span class="hint">${shown < g.total ? `a legújabb ${shown} a ${g.total} commitból` : 'minden commit'} · ${merges} összefésülés</span></h2>
+<div class="graph" style="--row-h:${GIT_ROW_H}px"><div class="rows">${html}</div></div>
+<div class="graph-foot">${shown < g.total ? `<button type="button" data-act="more-commits">Korábbi commitok (még ${Math.min(GIT_PAGE, g.total - shown)})</button>` : ''}<span>Legenda: ${refPill({ kind: 'branch', name: 'helyi ág', hash: '' }, 0, false)} ${refPill({ kind: 'remote', name: 'távoli ág', hash: '' }, 0, false)} ${refPill({ kind: 'tag', name: 'címke', hash: '' }, 0, false)} ${refPill({ kind: 'branch', name: 'kivett ág', hash: '', head: true }, 0, false)}</span></div></section>`;
+}
+
+function renderView() {
+  if (!model) return;
+  const y = window.scrollY;
+  $('filters').hidden = state.view === 'git';
+  $('view').innerHTML = (VIEW_RENDERERS[state.view] || VIEW_RENDERERS.waiting)();
+  renderSummary();
+  window.scrollTo(0, y);
+}
+
+function renderDrawer() {
+  const doc = model && state.doc ? model.byPath.get(state.doc) : null;
+  const drawer = $('drawer');
+  if (!doc) {
+    if (!drawer.hidden) closeDrawerNow();
+    return;
+  }
+  const body = $('drawer-body');
+  const keepScroll = drawer.dataset.path === doc.path ? body.scrollTop : 0;
+  let meta = '';
+  if (doc.kind === 'ticket') {
+    const t = doc;
+    const area = model.areas.get(t.area);
+    const row = (k, v) => (v ? `<dt>${k}</dt><dd>${v}</dd>` : '');
+    meta = `<dl class="meta">
+${row('Állapot', chip(t.status) + flags(t) + (t.statusNote ? ' ' + esc(t.statusNote) : ''))}
+${row('Terület', esc(t.area) + (area && area.spec ? ` · <a href="${docHref(area.spec.path)}" data-doc="${esc(area.spec.path)}"><span class="kind">spec</span>${esc(area.spec.title)}</a>` : ''))}
+${row('Pontok', t.checks.total ? meter(t.checks) : '')}
+${row('Blokkolja', blockerLinks(t) + (t.notes.length ? ' <span class="muted">' + esc(t.notes.join('; ')) + '</span>' : ''))}
+${row('Feloldja', t.dependents.map((d) => ticketLink(d)).join(' '))}
+${row('Korábbi név', esc(t.earlier))}${row('Típus', esc(t.type))}
+${row('Utolsó megjegyzés', t.lastComment ? `<span class="mono">${t.lastComment}</span> · ${t.comments.length} megjegyzés` : '')}
+${row('Fájl', `<span class="mono">${esc(t.path)}</span>`)}</dl>`;
+    $('drawer-title').innerHTML = `<span class="num">${esc(t.label)}</span>${esc(t.title)}`;
+  } else {
+    meta = `<dl class="meta"><dt>Fájl</dt><dd><span class="mono">${esc(doc.path)}</span></dd>${doc.kind === 'adr' && doc.status ? `<dt>Jelölés</dt><dd>${esc(doc.status)}</dd>` : ''}</dl>`;
+    $('drawer-title').textContent = doc.title;
+  }
+  body.innerHTML = meta + '<div class="md">' + renderMarkdown(doc.text, { path: doc.path, model }) + '</div>';
+  const wasHidden = drawer.hidden;
+  drawer.hidden = false;
+  $('shade').hidden = false;
+  $('top').inert = true;
+  $('main').inert = true;
+  document.body.style.overflow = 'hidden';
+  body.scrollTop = keepScroll;
+  if (wasHidden || drawer.dataset.path !== doc.path) $('drawer-close').focus();
+  drawer.dataset.path = doc.path;
+}
+
+function closeDrawerNow() {
+  $('drawer').hidden = true;
+  $('shade').hidden = true;
+  $('top').inert = false;
+  $('main').inert = false;
+  document.body.style.overflow = '';
+  delete $('drawer').dataset.path;
+}
+
+function closeDrawer() {
+  const back = lastOpener;
+  location.hash = '#/' + state.view;
+  requestAnimationFrame(() => {
+    const el = back && [...document.querySelectorAll('#main a[data-doc]')].find((a) => a.dataset.doc === back);
+    if (el) el.focus();
+  });
+}
+
+function renderAll() {
+  $('start').hidden = true;
+  $('app').hidden = false;
+  $('project').innerHTML = `${esc(model.projectName)}<small>fejlesztési állapot</small>`;
+  document.title = `${model.open.length} nyitott · ${model.projectName}`;
+  renderOverview();
+  renderTabs();
+  renderFilters();
+  renderView();
+  renderDrawer();
+  renderLive(false);
+}
+
+// ───────────────────────── Routing and events ─────────────────────────
+
+function readHash() {
+  const m = /^#\/([a-z]+)(?:\/(.+))?$/.exec(location.hash);
+  const view = m && VIEW_RENDERERS[m[1]] ? m[1] : 'waiting';
+  let doc = null;
+  if (m && m[2]) { try { doc = decodeURIComponent(m[2]); } catch (e) { doc = null; } }
+  const viewChanged = view !== state.view;
+  state.view = view;
+  state.doc = doc;
+  if (!model) return;
+  if (viewChanged) { renderTabs(); renderOverview(); renderView(); window.scrollTo(0, 0); }
+  renderDrawer();
+}
+window.addEventListener('hashchange', readHash);
+
+function filtersChanged() {
+  saveState();
+  renderOverview();
+  renderFilters();
+  renderView();
+}
+
+let typing = null;
+$('q').addEventListener('input', () => {
+  state.q = $('q').value;
+  clearTimeout(typing);
+  typing = setTimeout(renderView, 120);
+});
+$('f-status').addEventListener('change', (e) => { state.status = e.target.value; filtersChanged(); });
+$('f-area').addEventListener('change', (e) => { state.area = e.target.value; filtersChanged(); });
+$('f-closed').addEventListener('change', (e) => { state.showClosed = e.target.checked; filtersChanged(); });
+
+document.addEventListener('click', (e) => {
+  const act = e.target.closest('[data-act]');
+  if (act) {
+    if (act.dataset.act === 'show-closed') state.showClosed = true;
+    if (act.dataset.act === 'clear') { state.q = ''; state.status = ''; state.area = ''; }
+    if (act.dataset.act === 'more-days') { state.activityDays += 30; renderView(); return; }
+    if (act.dataset.act === 'more-commits') { gitState.limit += GIT_PAGE; act.disabled = true; refreshGit().then(() => renderView()); return; }
+    filtersChanged();
+    return;
+  }
+  const jump = e.target.closest('[data-git-jump]');
+  if (jump) {
+    gitState.hit = jump.dataset.gitJump;
+    renderView();
+    const row = document.querySelector(`.graph .row[data-commit="${CSS.escape(gitState.hit)}"]`);
+    if (row) row.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    else { gitState.hit = ''; }
+    return;
+  }
+  const commitRow = e.target.closest('.graph .row[data-commit]');
+  if (commitRow && !String(window.getSelection())) {
+    const h = commitRow.dataset.commit;
+    if (gitState.open.has(h)) gitState.open.delete(h); else gitState.open.add(h);
+    renderView();
+    return;
+  }
+  const statusChip = e.target.closest('button[data-status]');
+  if (statusChip) {
+    state.status = state.status === statusChip.dataset.status ? '' : statusChip.dataset.status;
+    if (state.view !== 'waiting' && state.view !== 'areas') location.hash = '#/waiting';
+    filtersChanged();
+    return;
+  }
+  const link = e.target.closest('a[data-doc]');
+  if (link) { if (!$('drawer').contains(link)) lastOpener = link.dataset.doc; return; }
+  const row = e.target.closest('tr[data-doc]');
+  if (row && !e.target.closest('a, button') && !String(window.getSelection())) {
+    lastOpener = row.dataset.doc;
+    location.hash = docHref(row.dataset.doc);
+  }
+});
+document.addEventListener('toggle', (e) => {
+  const key = e.target.dataset && e.target.dataset.key;
+  if (key) { if (e.target.open) openDetails.add(key); else openDetails.delete(key); }
+}, true);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('drawer').hidden) { e.preventDefault(); closeDrawer(); return; }
+  if (e.key === '/' && !$('app').hidden && $('drawer').hidden && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $('q').focus(); }
+});
+$('drawer-close').addEventListener('click', closeDrawer);
+$('shade').addEventListener('click', closeDrawer);
+
+// ───────────────────────── Choosing the folder ─────────────────────────
+
+const canPick = typeof window.showDirectoryPicker === 'function';
+
+async function useHandle(handle) {
+  await rememberHandle(handle);
+  await start({ adapter: handleAdapter, root: handle, name: handle.name, live: true });
+}
+
+async function pickFolder() {
+  try {
+    await useHandle(await window.showDirectoryPicker({ mode: 'read', id: 'development-status' }));
+  } catch (err) {
+    if (err && err.name === 'AbortError') return;
+    $('start-error').textContent = 'A mappa megnyitása nem sikerült: ' + (err && err.message ? err.message : err);
+    $('start-error').hidden = false;
+  }
+}
+
+$('pick').addEventListener('click', pickFolder);
+$('snapshot').addEventListener('click', () => $('dir-input').click());
+$('dir-input').addEventListener('change', async (e) => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  if (!files.length) return;
+  const tree = treeFromFiles(files);
+  await start({ adapter: treeAdapter, root: tree.root, name: tree.name, live: false });
+});
+$('change').addEventListener('click', async () => {
+  await forgetHandle();
+  showStart();
+  if (canPick) pickFolder();
+});
+$('refresh').addEventListener('click', async () => {
+  if (!source) return;
+  if (!source.live) { $('dir-input').click(); return; }
+  if (lostAccess) {
+    try { if (await source.root.requestPermission({ mode: 'read' }) !== 'granted') return; } catch (e) { return; }
+  }
+  refresh();
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden && source && source.live) refresh(); });
+
+// A dropped folder: live where the browser hands out a handle, a snapshot elsewhere.
+let dragDepth = 0;
+const hasFiles = (e) => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+document.addEventListener('dragenter', (e) => { if (hasFiles(e)) { dragDepth++; document.body.classList.add('dragging'); } });
+document.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragging'); } });
+document.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+document.addEventListener('drop', async (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove('dragging');
+  const item = [...e.dataTransfer.items].find((it) => it.kind === 'file');
+  if (!item) return;
+  // Both calls must happen before the handler yields.
+  const handlePromise = typeof item.getAsFileSystemHandle === 'function' ? item.getAsFileSystemHandle() : null;
+  const entry = typeof item.webkitGetAsEntry === 'function' ? item.webkitGetAsEntry() : null;
+  let handle = null;
+  try { handle = handlePromise ? await handlePromise : null; } catch (err) { handle = null; }
+  if (handle && handle.kind === 'directory') return useHandle(handle);
+  if (entry && entry.isDirectory) return start({ adapter: entryAdapter, root: entry, name: entry.name, live: false });
+  $('start-error').textContent = 'Egy mappát húzz ide, ne fájlt.';
+  $('start-error').hidden = false;
+});
+
+// ───────────────────────── Theme and layout ─────────────────────────
+// Automatic (the system's), light or dark; the choice is kept in this browser.
+
+const THEME_KEY = 'development-status:theme';
+const THEMES = [['', '◐', 'automatikus'], ['light', '☀', 'világos'], ['dark', '☾', 'sötét']];
+function showTheme() {
+  const now = document.documentElement.dataset.theme || '';
+  const [, icon, name] = THEMES.find((x) => x[0] === now) || THEMES[0];
+  $('theme').textContent = icon;
+  $('theme').title = 'Színséma: ' + name + ' (kattints a váltáshoz)';
+  $('theme').setAttribute('aria-label', 'Színséma: ' + name + '. Váltás.');
+}
+$('theme').addEventListener('click', () => {
+  const now = document.documentElement.dataset.theme || '';
+  const next = THEMES[(THEMES.findIndex((x) => x[0] === now) + 1) % THEMES.length][0];
+  if (next) document.documentElement.dataset.theme = next; else delete document.documentElement.dataset.theme;
+  try { if (next) localStorage.setItem(THEME_KEY, next); else localStorage.removeItem(THEME_KEY); } catch (e) { /* optional */ }
+  showTheme();
+});
+showTheme();
+// The sticky day headings sit right under the top bar, whatever its height.
+const topHeight = () => document.documentElement.style.setProperty('--top-h', (getComputedStyle($('top')).position === 'sticky' ? $('top').offsetHeight : 0) + 'px');
+if (typeof ResizeObserver === 'function') new ResizeObserver(topHeight).observe($('top'));
+window.addEventListener('resize', topHeight);
+topHeight();
+
+// ───────────────────────── Boot ─────────────────────────
+
+async function boot() {
+  $('pick').hidden = !canPick;
+  $('mode-note').textContent = canPick
+    ? `A kiválasztott mappát az oldal ${POLL_MS / 1000} másodpercenként újraolvassa, és magától követi a változásokat. A „pillanatkép” egyszer olvas be, utána nem frissül.`
+    : 'Ez a böngésző nem ad folyamatos hozzáférést egy mappához (ahhoz Chrome vagy Edge kell), ezért itt pillanatképet kapsz: az oldal egyszer beolvassa a fájlokat, a frissítéshez újra ki kell választani a mappát.';
+  renderVersion();
+  readHash();
+  const hello = await findServer();
+  if (hello) { await start(serverSource(hello)); return; }
+  if (!canPick) return;
+  const saved = await recallHandle();
+  if (!saved || typeof saved.queryPermission !== 'function') return;
+  let permission = 'prompt';
+  try { permission = await saved.queryPermission({ mode: 'read' }); } catch (e) { /* ask again */ }
+  if (permission === 'granted') { await start({ adapter: handleAdapter, root: saved, name: saved.name, live: true }); return; }
+  $('resume').hidden = false;
+  $('resume-btn').textContent = 'Folytatás: ' + saved.name;
+  $('pick').classList.remove('primary');
+  $('pick').textContent = 'Másik mappa kiválasztása';
+  $('resume-btn').onclick = async () => {
+    try {
+      if (await saved.requestPermission({ mode: 'read' }) === 'granted') await start({ adapter: handleAdapter, root: saved, name: saved.name, live: true });
+    } catch (err) {
+      $('start-error').textContent = 'A mappa már nem érhető el: ' + (err && err.message ? err.message : err);
+      $('start-error').hidden = false;
+    }
+  };
+}
+
+// For checks from the console or a test: the parsed state, read only.
+window.developmentStatus = { get model() { return model; }, get source() { return source; }, get changes() { return changeLog; }, refresh, renderMarkdown };
+
+boot();
+})();
+</script>
+</body>
+</html>

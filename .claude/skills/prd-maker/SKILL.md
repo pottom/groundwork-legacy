@@ -61,14 +61,14 @@ Questions, the choices you offered, and your recommendations never go on the map
 
 ## Tools
 
-All access goes through `node mindmap/mm.mjs`. Never write the map or the documents by hand: `apply` merges with edits the human is making at the same moment.
+All access goes through `node modules/plan/plan.mjs`. Never write the map or the documents by hand: `apply` merges with edits the human is making at the same moment.
 
 - `init "<name>"`: create an empty map whose root is the system or product name.
 - `show`: print the outline with ids, statuses, documents and section state, plus any human edits you have not seen yet.
 - `apply`: change the map and the documents, then print the outline. Pass a JSON op array on stdin with a quoted heredoc in the Bash tool. This avoids Windows quoting problems:
 
   ```bash
-  node mindmap/mm.mjs apply <<'EOF'
+  node modules/plan/plan.mjs apply <<'EOF'
   [{"op":"add","id":"c-app","parent":"root","topic":"Mobilapp","component":"software"},
    {"op":"add","id":"doc-app-prd","parent":"c-app","topic":"Termék","doc":"prd"},
    {"op":"add","id":"t-app-users","parent":"doc-app-prd","topic":"Felhasználók","status":"topic"},
