@@ -10,7 +10,7 @@ import { startServer } from '../../core/server.mjs'
 import { openMap } from './map-store.mjs'
 import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'
-import { listen } from '../../core/sse-client.mjs'
+import { listen } from '../../core/sse-client.test-helper.mjs'
 
 const open = (dir) => openMap(dir, moduleFiles(dir, plan))
 

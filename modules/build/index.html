@@ -10,7 +10,7 @@
   a project whose tickets, specs and decisions live in markdown files.
 
   No build, no dependencies. Two ways to open it:
-    - from the Groundwork core server (npx groundwork, at /build/):
+    - from the Groundwork core server (npx @pottom/groundwork, at /build/):
       the Build module's read-only endpoints (/api/build/, module.mjs) hand
       the page the markdown files, so it goes live at once, in every browser;
     - or open this file by double click: it asks once for the project folder
@@ -78,6 +78,8 @@
                        (Server-Sent Events, /api/events) instead of polling;
                        ?prd=<id> shows only the tickets of that PRD item (Plan
                        links here); /api/build/prd counts them for Plan
+    (Groundwork 0.1.0, 2026-10-19: the last own version, 2.6.0, is followed by
+    the package's; the header shows it, and the page/launcher check is gone)
 -->
 <link rel="stylesheet" href="/shell/theme.css">
 <script>try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }</script>

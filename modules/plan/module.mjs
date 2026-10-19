@@ -30,7 +30,7 @@ export default {
   // What `groundwork init` puts into a project for Claude Code.
   claude: {
     skills: [path.join(HERE, 'skills', 'groundwork-prd-maker')],
-    hooks: [{ event: 'UserPromptSubmit', command: 'npx groundwork plan hook' }],
+    hooks: [{ event: 'UserPromptSubmit', run: 'plan hook' }],   // installed as `<RUNNER> plan hook`
   },
   watch: (p) => (p === 'docs/product/mindmap.json' ? 'plan.map' : p === 'GLOSSARY.md' ? 'plan.glossary' : null),
   api({ root, files }) {

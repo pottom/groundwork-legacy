@@ -120,7 +120,7 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
       return async (req, res, sub, url) => {
         const head = req.method === 'HEAD';
         if (req.method !== 'GET' && !head) return sendText(res, 405, 'Method not allowed'), true;
-        if (sub === '/hello') return sendJson(res, { version: VERSION, git: true, github: true, name, launcher: 'npx groundwork' }, head), true;
+        if (sub === '/hello') return sendJson(res, { version: VERSION, git: true, github: true, name, launcher: 'npx @pottom/groundwork' }, head), true;
         if (sub === '/list') return sendJson(res, { name, ...project.list() }, head), true;
         if (sub === '/file') {
           const body = project.readFile(url.searchParams.get('path') || '');

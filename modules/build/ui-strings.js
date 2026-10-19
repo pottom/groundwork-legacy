@@ -34,7 +34,6 @@ const BUILD_STRINGS = {
     'live.snapshot': 'Snapshot: read at {at}, does not refresh by itself',
     'live.reread': 'Read again (choose the folder)',
 
-
     'error.server-down': 'The local server does not answer.',
     'error.not-our-server': 'Something other than the status page\'s server answers at this address.',
     'error.read': 'Could not read the folder: {error}',
@@ -246,8 +245,8 @@ const BUILD_STRINGS = {
     'git.behind-merged': 'commits in {base} since: {n}',
     'git.ahead': 'commits not in {base}: {n}',
     'git.behind': 'behind: {n}',
-    'git.no-server': 'The branch graph comes from the Groundwork server: <code>npx groundwork</code>, then <code>/build/</code>. Opened with a folder picker, the browser cannot run git.',
-    'git.old-server': 'The Build module\'s server gives no git data. Start it again with npx groundwork.',
+    'git.no-server': 'The branch graph comes from the Groundwork server: <code>npx @pottom/groundwork</code>, then <code>/build/</code>. Opened with a folder picker, the browser cannot run git.',
+    'git.old-server': 'The Build module\'s server gives no git data. Start it again with npx @pottom/groundwork.',
     'git.no-repo': 'The folder is not the top of a git repository, so there is nothing to draw.',
     'git.error': 'Git did not answer: {error}',
     'git.loading': 'Loading the git data…',
@@ -303,7 +302,6 @@ const BUILD_STRINGS = {
     'live.server': ' · helyi szerver ({host})',
     'live.snapshot': 'Pillanatkép: beolvasva {at}, magától nem frissül',
     'live.reread': 'Újraolvasás (mappa kiválasztása)',
-
 
     'error.server-down': 'A helyi szerver nem válaszol.',
     'error.not-our-server': 'Ezen a címen nem az állapotoldal szervere válaszol.',
@@ -516,8 +514,8 @@ const BUILD_STRINGS = {
     'git.behind-merged': '{n} commit azóta a {base}-ben',
     'git.ahead': '{n} commit nincs a {base}-ben',
     'git.behind': '{n} lemaradás',
-    'git.no-server': 'Az ággráfot a Groundwork szervere adja: <code>npx groundwork</code>, utána <code>/build/</code>. Mappaválasztással megnyitva a böngésző nem tud gitet futtatni.',
-    'git.old-server': 'A Build modul szervere nem ad git adatot. Indítsd újra: npx groundwork.',
+    'git.no-server': 'Az ággráfot a Groundwork szervere adja: <code>npx @pottom/groundwork</code>, utána <code>/build/</code>. Mappaválasztással megnyitva a böngésző nem tud gitet futtatni.',
+    'git.old-server': 'A Build modul szervere nem ad git adatot. Indítsd újra: npx @pottom/groundwork.',
     'git.no-repo': 'A mappa nem egy git-tároló teteje, így nincs mit rajzolni.',
     'git.error': 'A git nem válaszolt: {error}',
     'git.loading': 'A git adatai töltődnek…',

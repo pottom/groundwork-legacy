@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The command: `npx groundwork` (this file is the package's bin), or `node core/groundwork.mjs`.
+// The command: `npx @pottom/groundwork` (this file is the package's bin), or `node core/groundwork.mjs`.
 // It checks the Node.js version, then runs the command (commands.mjs): by default it starts the
 // core server (start.mjs) for a project.
 //
