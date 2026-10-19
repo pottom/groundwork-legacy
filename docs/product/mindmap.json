@@ -375,8 +375,9 @@
                     "note": "Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót.",
                     "metadata": {
                       "status": "decision",
-                      "impl": "partial"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/README.md"
                   }
                 ]
               },
