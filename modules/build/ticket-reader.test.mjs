@@ -70,7 +70,7 @@ test('GitHub issues: closed is closed or wontfix; open takes its state label', (
     issue(4, { labels: ['needs-triage'] }),
     issue(5, { labels: ['enhancement'] }),
   ]));
-  assert.deepEqual(m.tickets.map((t) => [t.label, t.status]), [['#1', 'closed'], ['#2', 'wontfix'], ['#3', 'ready-for-agent'], ['#4', 'needs-triage'], ['#5', 'open']]);
+  assert.deepEqual(m.tickets.map((t) => [t.label, t.status]), [['#1', 'closed'], ['#2', 'wontfix'], ['#3', 'ready-for-agent'], ['#4', 'needs-triage'], ['#5', 'needs-triage']]);
   assert.deepEqual(m.open.map((t) => t.label), ['#3', '#4', '#5']);
   assert.deepEqual(byLabel(m, '#3').labels, ['bug', 'ready-for-agent']);
   assert.equal(byLabel(m, '#3').url, 'https://github.com/acme/app/issues/3');
@@ -186,6 +186,32 @@ test('without the PRD map no id is unknown, and a missing PRD line counts only o
     '.scratch/core/issues/02-two.md': '# Two\n\nStatus: ready-for-agent\n**PRD:** f-anything\n',
   }));
   assert.deepEqual(prdProblems(some), [['no-prd', 'core 01', 'problem.no-prd.text', {}]]);
+});
+
+test('a PRD line of a dash, "none" or only a remark says "deliberately no PRD": no ids, no missing PRD', () => {
+  const m = readTickets(withMap(local({
+    '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**PRD:** — (no decision yet; the look was chosen from a prototype)\n',
+    '.scratch/core/issues/02-two.md': '# Two\n\nStatus: ready-for-agent\n**PRD:** —\n',
+    '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n**PRD:** none\n',
+    '.scratch/core/issues/04-four.md': '# Four\n\nStatus: ready-for-agent\nPRD: nincs (még)\n',
+    '.scratch/core/issues/05-five.md': '# Five\n\nStatus: ready-for-agent\n**PRD:** n/a\n',
+    '.scratch/core/issues/06-six.md': '# Six\n\nStatus: ready-for-agent\n**PRD:** (to be grilled first)\n',
+    '.scratch/core/issues/07-seven.md': '# Seven\n\nStatus: ready-for-agent\n**PRD:** f-known (the shell part only), d-trace\n',
+    '.scratch/core/issues/08-eight.md': '# Eight\n\nStatus: ready-for-agent\n**PRD:** f-known needs a grilling session first\n',
+  }), ['f-known', 'd-trace']));
+  for (const label of ['core 01', 'core 02', 'core 03', 'core 04', 'core 05', 'core 06']) {
+    assert.deepEqual(byLabel(m, label).prd, [], label);
+    assert.equal(byLabel(m, label).prdNone, true, label);
+  }
+  assert.deepEqual(byLabel(m, 'core 07').prd, ['f-known', 'd-trace']);
+  assert.deepEqual(byLabel(m, 'core 08').prd, ['f-known'], 'plain words are not ids');
+  assert.equal(byLabel(m, 'core 07').prdNone, false);
+  assert.deepEqual(prdProblems(m), []);
+});
+
+test('a GitHub issue without a state label is waiting to be triaged', () => {
+  const m = readTickets(github([issue(1), issue(2, { labels: ['bug'] })]));
+  assert.deepEqual(m.tickets.map((t) => t.status), ['needs-triage', 'needs-triage']);
 });
 
 // ───────── Where the tickets are: one rule for the page and the server ─────────
