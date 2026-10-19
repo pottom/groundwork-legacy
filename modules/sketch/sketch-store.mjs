@@ -12,6 +12,10 @@
 //                                        409 when `to` is taken; a sketch not drawn
 //                                        yet (read() gives the empty scene) becomes an empty `to`
 //   isSketchName(name)                   a plain name: letters, digits, "-" and "_"
+//   threadsFile(name)                    the path of the sketch's threads (threads.mjs)
+//   isObject(v), dict(o)                 a plain object (not an array); a copy of o without a
+//                                        prototype, so a key like "constructor" or "__proto__"
+//                                        (a sketch's name, a shape's id) is only a key
 //
 // A save merges element by element with what is on disk (merge.mjs), so a save of the page and a
 // write of `groundwork sketch apply` at the same time both survive; a deleted element stays in the
@@ -38,16 +42,17 @@ export class SketchError extends Error {
 
 export { isSketchName }
 
-const fileOf = (name) => {
+const pathOf = (name, ext) => {
   if (!isSketchName(name)) throw new SketchError(`not a sketch name: ${JSON.stringify(name)}`)
-  return `${DIR}/${name}${EXT}`
+  return `${DIR}/${name}${ext}`
 }
-
-const threadsOf = (name) => `${DIR}/${name}.threads.json`
+const fileOf = (name) => pathOf(name, EXT)
+export const threadsFile = (name) => pathOf(name, '.threads.json')
 
 const emptyScene =() => ({ type: 'excalidraw', version: 2, source: SOURCE, elements: [], appState: { gridSize: null, viewBackgroundColor: '#ffffff' }, files: {} })
 
-const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+export const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+export const dict = (o) => Object.assign(Object.create(null), isObject(o) ? o : {})
 
 // The scene as it is stored: the standard file, without the viewer's state.
 function normalise(scene) {
@@ -104,7 +109,7 @@ export function openSketches(files, root) {
       }
       move(src, dest, files.exists(src) ? files.read(src) : json(emptyScene()))
       // Its threads (threads.mjs) go along, so no comment is left behind on the old name.
-      const [tsrc, tdest] = [threadsOf(from), threadsOf(to)]
+      const [tsrc, tdest] = [threadsFile(from), threadsFile(to)]
       if (files.exists(tsrc)) move(tsrc, tdest, files.read(tsrc))
     },
     read(name) {

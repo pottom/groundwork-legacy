@@ -28,7 +28,8 @@
 // groundwork-sketch skill that `groundwork init` installs. A change of a sketch file is the topic
 // sketch.files, on which the open page reads the sketch again, so Claude's drawing shows at once.
 //
-// <name> is a plain name (sketches.mjs) and defaults to "main". Every write must be JSON (415), so
+// <name> is a plain name (sketches.mjs) and defaults to "main". The reads answer GET (and HEAD) only,
+// 405 otherwise. Every write must be JSON (415, core/http.mjs isJson), so
 // another site cannot post a form into the sketches. The module is a tool, not a step
 // of the workflow: the shell shows its tab after the others, behind a separator (`tool: true`).
 
@@ -36,7 +37,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { send, readJson } from '../../core/http.mjs'
+import { send, readJson, isJson } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { openSketches, SketchError, DIR } from './sketch-store.mjs'
 import { openThreads } from './threads.mjs'
@@ -67,18 +68,18 @@ export default {
     const nameIn = (url) => url.searchParams.get('name') ?? 'main'
     const links = openLinks(files)
     return async (req, res, sub, url) => {
-      if (sub === '/threads') return answer(res, () => send(res, 200, { threads: threads.list(nameIn(url)) }))
+      if (sub === '/threads') return read(req, res, () => ({ threads: threads.list(nameIn(url)) }))
       if (sub === '/comment') return change(req, res, async (b) => send(res, 200, threads.comment(nameIn(url), b.element, { text: b.text, author: b.author || developer(root) })))
       if (sub === '/close') return change(req, res, async (b) => send(res, 200, threads.close(nameIn(url), b.element, b.closed)))
-      if (sub === '/list') return send(res, 200, { sketches: store.list().map((name) => ({ name })) }), true
-      if (sub === '/links') return send(res, 200, links.index()), true
+      if (sub === '/list') return read(req, res, () => ({ sketches: store.list().map((name) => ({ name })) }))
+      if (sub === '/links') return read(req, res, () => links.index())
       if (sub === '/create') return change(req, res, async (body) => (store.create(body.name), links.created(body.name), send(res, 201, { name: body.name })))
       if (sub === '/rename') return change(req, res, async ({ from, to }) => (store.rename(from, to), links.renamed(from, to), send(res, 200, { name: to })))
       if (sub === '/link') return change(req, res, async ({ name, target }) => (links.add(name, target), send(res, 200, links.index())))
       if (sub === '/unlink') return change(req, res, async ({ name, target }) => (links.remove(name, target), send(res, 200, links.index())))
       if (sub !== '/scene') return false
       try {
-        const name = url.searchParams.get('name') ?? 'main'
+        const name = nameIn(url)
         if (req.method === 'GET' || req.method === 'HEAD') return send(res, 200, store.read(name)), true
         if (req.method !== 'PUT') return send(res, 405, { error: 'Method not allowed' }), true
         if (!isJson(req)) return send(res, 415, { error: 'expected application/json' }), true
@@ -92,9 +93,6 @@ export default {
   },
 }
 
-// A write must say it is JSON, so another site cannot post a form into the sketches.
-const isJson = (req) => /^application\/json\b/i.test(req.headers['content-type'] ?? '')
-
 // A request's JSON body; what does not parse is the client's error (400).
 async function body(req) {
   try {
@@ -104,10 +102,12 @@ async function body(req) {
   }
 }
 
-// A read; its SketchError (a name that is not a plain name) is the client's.
-function answer(res, fn) {
+// A read (GET or HEAD; 405 otherwise) that answers what fn gives; its SketchError (a name that is
+// not a plain name) is the client's.
+function read(req, res, fn) {
   try {
-    fn()
+    if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'Method not allowed' }), true
+    send(res, 200, fn())
   } catch (e) {
     send(res, e instanceof SketchError ? e.status : 500, { error: e.message })
   }

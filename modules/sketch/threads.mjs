@@ -21,26 +21,19 @@
 // A wrong call throws SketchError: 400 (no text, too long, not a plain name), 404 (no such shape, no
 // such thread); nothing is written then.
 
-import { SketchError, DIR, isSketchName } from './sketch-store.mjs'
+import { SketchError, threadsFile, isObject, dict } from './sketch-store.mjs'
 
+export { threadsFile }
 export const MAX_COMMENT = 4000
-
-export const threadsFile = (name) => {
-  if (!isSketchName(name)) throw new SketchError(`not a sketch name: ${JSON.stringify(name)}`)
-  return `${DIR}/${name}.threads.json`
-}
-
-const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
 export function openThreads(files, sketches) {
   const load = (name) => {
     const rel = threadsFile(name)
-    if (!files.exists(rel)) return {}
+    if (!files.exists(rel)) return dict()
     try {
-      const data = JSON.parse(files.read(rel))
-      return isObject(data?.threads) ? data.threads : {}
+      return dict(JSON.parse(files.read(rel))?.threads)
     } catch {
-      return {}
+      return dict()
     }
   }
   const store = (name, threads) => files.write(threadsFile(name), JSON.stringify({ threads }, null, 2) + '\n')
@@ -50,7 +43,7 @@ export function openThreads(files, sketches) {
     list(name) {
       const threads = load(name)
       const there = live(name)
-      return Object.entries(threads).map(([element, t]) => ({
+      return Object.entries(threads).filter(([, t]) => isObject(t)).map(([element, t]) => ({
         element,
         closed: t.closed === true,
         orphaned: !there.has(element),
@@ -63,17 +56,17 @@ export function openThreads(files, sketches) {
       if (!said) throw new SketchError('a comment needs a text')
       if (said.length > MAX_COMMENT) throw new SketchError(`a comment may be at most ${MAX_COMMENT} characters`)
       const threads = load(name)
-      if (!threads[element] && !live(name).has(element)) throw new SketchError(`no shape ${element} in the sketch ${name}`, 404)
-      const thread = threads[element] ?? { closed: false, comments: [] }
+      if (!Object.hasOwn(threads, element) && !live(name).has(element)) throw new SketchError(`no shape ${element} in the sketch ${name}`, 404)
+      const thread = isObject(threads[element]) ? threads[element] : { closed: false, comments: [] }
       thread.closed = false
-      thread.comments = [...(thread.comments ?? []), { author: String(author || 'someone'), at: new Date().toISOString(), text: said }]
+      thread.comments = [...(Array.isArray(thread.comments) ? thread.comments : []), { author: String(author || 'someone'), at: new Date().toISOString(), text: said }]
       threads[element] = thread
       store(name, threads)
       return thread
     },
     close(name, element, closed = true) {
       const threads = load(name)
-      if (!threads[element]) throw new SketchError(`no thread on ${element} in the sketch ${name}`, 404)
+      if (!isObject(threads[element])) throw new SketchError(`no thread on ${element} in the sketch ${name}`, 404)
       threads[element].closed = closed !== false
       store(name, threads)
       return threads[element]

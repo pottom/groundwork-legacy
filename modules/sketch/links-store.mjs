@@ -18,12 +18,13 @@
 //
 // Bad input throws SketchError (400). The file is written only when something changed.
 
-import { SketchError, isSketchName, DIR } from './sketch-store.mjs'
+import { SketchError, isSketchName, DIR, dict } from './sketch-store.mjs'
 import { KINDS, target as makeTarget, parseTarget } from './view/targets.mjs'
 
 export const LINKS_FILE = `${DIR}/links.json`
 
-const empty = () => ({ links: {}, renamed: {} })
+// Without a prototype, so a sketch named "constructor" or "toString" is only a key (sketch-store.mjs).
+const empty = () => ({ links: dict(), renamed: dict() })
 const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b, 'en')))
 
 export function openLinks(files) {
@@ -31,7 +32,7 @@ export function openLinks(files) {
     if (!files.exists(LINKS_FILE)) return empty()
     try {
       const d = JSON.parse(files.read(LINKS_FILE))
-      return { links: { ...d.links }, renamed: { ...d.renamed } }
+      return { links: dict(d.links), renamed: dict(d.renamed) }
     } catch {
       return empty()
     }
@@ -51,7 +52,7 @@ export function openLinks(files) {
     add(name, target) {
       const t = check(name, target)
       const d = read()
-      const list = d.links[name] ?? []
+      const list = Array.isArray(d.links[name]) ? d.links[name] : []
       if (list.includes(t)) return
       d.links[name] = [...list, t]
       write(d)
@@ -82,8 +83,9 @@ export function openLinks(files) {
     },
     index() {
       const d = read()
-      const linked = Object.fromEntries(KINDS.map((k) => [k, {}]))
+      const linked = Object.fromEntries(KINDS.map((k) => [k, dict()]))
       for (const [name, list] of Object.entries(d.links)) {
+        if (!Array.isArray(list)) continue
         for (const uri of list) {
           const t = parseTarget(uri)
           if (!t) continue

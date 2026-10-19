@@ -272,3 +272,16 @@ test('a renamed sketch takes its threads along', async () => {
 test('a change of a threads file is sketch.files too, so a comment from Claude shows on the open page', () => {
   assert.equal(sketch.watch('docs/product/sketches/main.threads.json'), 'sketch.files')
 })
+
+test('a shape whose id is a built-in of JavaScript objects (__proto__, toString) gets its thread like any other', async () => {
+  await withServer(async ({ root, base }) => {
+    await put(base, scene({ elements: [rect, { ...rect, id: '__proto__' }, { ...rect, id: 'toString' }] }))
+    assert.equal((await comment(base, { element: 'constructor', text: 'Hi' })).status, 404, 'no such shape')
+    assert.equal((await post(base, 'close?name=main', { element: 'toString' })).status, 404, 'no thread to close yet')
+    assert.equal((await comment(base, { element: '__proto__', text: 'One', author: 'Ann' })).status, 200)
+    assert.equal((await comment(base, { element: 'toString', text: 'Two', author: 'Ann' })).status, 200)
+    const got = await threadsOf(base)
+    assert.deepEqual(got.map((t) => [t.element, t.comments.map((c) => c.text)]), [['__proto__', ['One']], ['toString', ['Two']]])
+    assert.deepEqual(Object.keys(JSON.parse(fs.readFileSync(THREADS(root), 'utf8')).threads), ['__proto__', 'toString'])
+  })
+})

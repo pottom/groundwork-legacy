@@ -85,3 +85,32 @@ test('a change of the links is a live topic of its own', () => {
   assert.equal(sketch.watch('docs/product/sketches/links.json'), 'sketch.links')
   assert.deepEqual(sketch.public, ['GET /api/sketch/links'])
 })
+
+test('a sketch named like a built-in of JavaScript objects (constructor, toString) links like any other', async () => {
+  await withServer(async ({ base }) => {
+    await post(base, 'create', { name: 'constructor' })
+    assert.equal((await post(base, 'link', { name: 'constructor', target: 'groundwork://idea/I-1' })).status, 200)
+    assert.equal((await post(base, 'link', { name: 'flow', target: 'groundwork://sketch/toString' })).status, 200)
+    assert.equal((await post(base, 'link', { name: 'flow', target: 'groundwork://node/hasOwnProperty' })).status, 200)
+    const r = await fetch(`${base}/api/sketch/links`)
+    assert.equal(r.status, 200)
+    const got = await r.json()
+    assert.deepEqual(got.sketches.constructor, ['groundwork://idea/I-1'])
+    assert.deepEqual(got.linked.sketch, { toString: ['flow'] })
+    assert.deepEqual(got.linked.idea, { 'I-1': ['constructor'] })
+    assert.deepEqual(got.linked.node, { hasOwnProperty: ['flow'] })
+    assert.equal((await post(base, 'unlink', { name: 'toString', target: 'groundwork://idea/I-1' })).status, 200, 'nothing to remove')
+    assert.equal((await post(base, 'rename', { from: 'constructor', to: 'valueOf' })).status, 200)
+    assert.deepEqual((await links(base)).sketches.valueOf, ['groundwork://idea/I-1'])
+  })
+})
+
+test('the reads answer GET only, like the other modules', async () => {
+  await withServer(async ({ base }) => {
+    for (const sub of ['list', 'links', 'threads?name=main']) {
+      assert.equal((await fetch(`${base}/api/sketch/${sub}`)).status, 200, sub)
+      assert.equal((await post(base, sub, {})).status, 405, `POST ${sub}`)
+      assert.equal((await fetch(`${base}/api/sketch/${sub}`, { method: 'DELETE' })).status, 405, `DELETE ${sub}`)
+    }
+  })
+})
