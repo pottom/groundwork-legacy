@@ -1,0 +1,86 @@
+/* The shared look of Groundwork: colours and typography for the shell and every module.
+   Served by the core at /shell/theme.css. A module's page links it and uses the variables:
+
+     <link rel="stylesheet" href="/shell/theme.css">
+     body { background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-text) var(--gw-font); }
+
+   Light or dark follows the operating system (prefers-color-scheme); there is no switch.
+   Only the colours change between the two; the names stay the same.
+
+   Colours
+     --gw-bg            page background
+     --gw-surface       cards, panels, the header
+     --gw-sunken        wells, inputs, code blocks: a step below the page
+     --gw-fg            main text
+     --gw-fg-2          secondary text, still readable
+     --gw-muted         hints, captions, disabled
+     --gw-line          borders and dividers
+     --gw-line-strong   borders that must stand out (inputs, hover)
+     --gw-accent        links, the current item, primary buttons
+     --gw-accent-fg     text on an --gw-accent background
+     --gw-focus         focus ring
+     --gw-ok            done, success
+     --gw-warn          waiting, attention
+     --gw-bad           error, missing
+     --gw-shadow        the shadow of a raised surface
+
+   Typography and shape
+     --gw-font          the interface font (Inter, bundled)
+     --gw-font-serif    reading text in documents (Source Serif 4, bundled)
+     --gw-font-mono     code, ids, paths
+     --gw-text          body text size/line height, for `font: var(--gw-text) var(--gw-font)`
+     --gw-text-small    small text, same form
+     --gw-radius        corner radius
+     --gw-space         the base spacing step; use multiples (calc(var(--gw-space) * 2))
+     --gw-header-height the height of the shell's header */
+
+@import url('/vendor/fonts.css');
+
+:root {
+  color-scheme: light dark;
+
+  --gw-bg: #fbfaf7;
+  --gw-surface: #ffffff;
+  --gw-sunken: #f3f1ec;
+  --gw-fg: #1d1c1a;
+  --gw-fg-2: #4a4843;
+  --gw-muted: #6b6860;
+  --gw-line: #e4e0d7;
+  --gw-line-strong: #cfcac0;
+  --gw-accent: #2f5bd3;
+  --gw-accent-fg: #ffffff;
+  --gw-focus: #2f5bd3;
+  --gw-ok: #1f8a4c;
+  --gw-warn: #b45309;
+  --gw-bad: #c0392b;
+  --gw-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
+
+  --gw-font: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --gw-font-serif: 'Source Serif 4', Georgia, serif;
+  --gw-font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --gw-text: 15px/1.5;
+  --gw-text-small: 13px/1.4;
+  --gw-radius: 10px;
+  --gw-space: 8px;
+  --gw-header-height: 48px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gw-bg: #15161a;
+    --gw-surface: #1c1e23;
+    --gw-sunken: #24262c;
+    --gw-fg: #ecebe8;
+    --gw-fg-2: #c3c1bb;
+    --gw-muted: #9a978f;
+    --gw-line: #2f3238;
+    --gw-line-strong: #464a52;
+    --gw-accent: #7d9cf0;
+    --gw-accent-fg: #15161a;
+    --gw-focus: #7d9cf0;
+    --gw-ok: #5cc58a;
+    --gw-warn: #f0b45d;
+    --gw-bad: #ee7a6c;
+    --gw-shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
+  }
+}
