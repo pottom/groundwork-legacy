@@ -75,7 +75,19 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `module.mjs` | a modul a mag szerver számára: manifest, nézet, végpontok `/api/plan/` alatt |
 | `map-store.mjs` | a térkép olvasása, írása és összefésülése; a CLI, a hook és a szerver is ezt használja |
 | `plan.mjs` | CLI (`init`, `apply`, `show`, `kinds`, `hook`), futtatva: `npx @pottom/groundwork plan <parancs>` (a manifest `cli` mezője) |
-| `index.html` | a térkép és a dokumentum panel ([Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1, [marked](https://marked.js.org) 12.0.2; a csomagban, a mag szolgálja ki a `/vendor/` alól, hálózat nélkül is működik) |
+| `index.html` | az oldal vékony váza: a stíluslapok, a konténerek és a `view/main.mjs` betöltése; minden más a `view/` mappában van |
+| `view/` | a térkép és a dokumentum panel kis ES modulokban, build lépés nélkül. A térképet a [Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1 rajzolja; az eszköztár, a jelmagyarázat, az állapotsáv, az értesítés és a dokumentum panel [lit-html](https://lit.dev) 3.2.1 sablonokkal készül, a [marked](https://marked.js.org) 12.0.2 Markdown-kimenete `unsafeHTML`-lel kerül bele. Mind a csomagban, a mag szolgálja ki a `/vendor/` alól, hálózat nélkül is működik. Minden fájlnak szerepelnie kell a manifest `view.files` listájában (a szerver csak ezeket szolgálja ki; a `view.test.mjs` ellenőrzi) |
+| `view/main.mjs` | belépési pont: összeköti a részeket, nyelvváltáskor mindent újrafeliratoz |
+| `view/state.mjs` | az oldal állapota egy objektumban (mód, nézet, fókusz, megnyitott dokumentum, szerkesztő…) és a térkép-lekérdezések |
+| `view/strings.mjs` | a felület nyelve: a mag fordítója a `ui-strings.mjs` szövegeivel |
+| `view/data.mjs` | a térkép betöltése, mentése és összefésülése, a szószedet, a jegyszámok; az élő frissítések (`subscribe`) |
+| `view/map.mjs` | a térkép: ágvonalak (a pill széléig érnek minden nagyításon), téma, a csomópontok díszítése (ikon minden csomóponton, jelvény a pillen belül), húzás, illesztés, kijelölés |
+| `view/focus.mjs` | mit mutat a térkép (egész, összetevő, dokumentum), a dokumentumválasztóval együtt; a közvetlen link |
+| `view/chrome.mjs` | a térkép körüli felület kirajzolása az állapotból: eszköztár, jelmagyarázat, értesítés, a panel széle, állapotsáv, `.gw-toast`-ok, üres állapot |
+| `view/toolbar.mjs`, `view/dock.mjs`, `view/legend.mjs` | az eszköztár (fókusz, nézet, mód) és a panel széle; az alsó állapotsáv; a jelmagyarázat (`.gw-popover`) |
+| `view/document.mjs`, `view/editor.mjs` | a dokumentum panel (a változás felvillan, a kijelölt sor kiemelve); a bekezdésszerkesztő |
+| `view/icons.mjs` | a felület ikonjai lit-html sablonként, a csomópont-ikonok CSS maszkként |
+| `view/plan.css`, `view/map.css` | a felület és a térkép kinézete, csak a shell tokenjeivel (`/shell/theme.css`; a „kérdezz rá” színe a `--gw-pink`) |
 | `documents.mjs` | dokumentum-modell a térképből (összetevők, dokumentumok, fejezetek) + Markdown export (közös a szerverrel) |
 | `doc-strings.mjs` | a dokumentumok állandó szövegei nyelvenként (közös a szerverrel) |
 | `ui-strings.mjs` | a felület szövegei nyelvenként (angol alapértelmezés, magyar fordítás), a mag fordítójához (`/shell/i18n.mjs`) |

@@ -118,7 +118,7 @@ export function openMap(dir, io) {
     },
 
     saveFromBrowser(base, data) {
-      delete data.theme // presentation lives in index.html, not in the map file
+      delete data.theme // presentation lives in the page (view/), not in the map file
       const sent = JSON.stringify(data) // `data` may be mutated below
       const cur = read()
       // A version this store never saw (e.g. the server restarted meanwhile) cannot be diffed:
