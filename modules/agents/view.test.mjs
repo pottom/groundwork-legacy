@@ -100,6 +100,18 @@ test('a duration reads as m:ss, or h:mm:ss from an hour on', () => {
   assert.equal(duration(-5), '0:00')
 })
 
+test('an agent or session that needs attention stands out with its reason, judged live by the page clock', () => {
+  const list = read('view/list.mjs')
+  assert.match(list, /import \{ attentionOf \} from '\.\.\/attention\.mjs'/, 'the same rule as the shell\'s count')
+  assert.match(list, /attentionOf\([^)]*, now\)/)
+  assert.match(list, /data-attention=\$\{/)
+  assert.match(list, /ui\(`attention\.\$\{/)
+  for (const r of ['waiting', 'stalled', 'failed']) assert.ok(UI_STRINGS.en[`attention.${r}`] && UI_STRINGS.hu[`attention.${r}`], r)
+  const css = read('agents.css')
+  assert.match(css, /\[data-attention\]/)
+  assert.match(css, /var\(--gw-warn/, 'attention is the warn tone')
+})
+
 test('the English and the Hungarian set have the same keys, translated; no Hungarian outside the strings', () => {
   const { en, hu } = UI_STRINGS
   assert.deepEqual(Object.keys(hu).sort(), Object.keys(en).sort())

@@ -31,6 +31,8 @@ export default {
   view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
   writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
   public: ['GET /api/plan/ids', 'POST /api/plan/todo'],  // the endpoints other modules may use (see below)
+  attention: '/api/agents/attention',                    // optional (Agents): what needs the user, counted on the tab and toasted
+                                                         // by the shell: { items: [{ key, reason, text: { en, hu } }], recheck }
   moves: { '.prd-maker': '.groundwork/plan' },           // optional: old state the core moves over once
   watch: (path) => (path === 'docs/product/mindmap.json' ? 'plan.map' : null),  // optional: live-update topic of a changed file
   cli: path.join(HERE, 'plan.mjs'),                      // optional: run by `groundwork plan <args>`

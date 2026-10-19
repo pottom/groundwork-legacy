@@ -14,6 +14,16 @@ The log holds a summary only: the event, session and agent ids, the tool's name,
 
 Opening an agent (`#agent=<session>/<agent>`, or a session: `#agent=<session>`) shows its timeline: its tool calls grouped into steps (files read, files changed, commands, tools; test runs, commits, skills and subagents as steps of their own), from `timeline.mjs`. Once a subagent stops, its final report shows below as Markdown. The report is SubagentStop's `last_assistant_message`, which the hook keeps apart from the log in `.groundwork/agents/reports/<agent>.md`: redacted (keys, tokens, passwords, a URL's credentials and query), capped at 40 000 characters, the newest 200 kept. The page renders it with raw HTML shown as text, safe links only and no images (`view/markdown.mjs`). No transcript is read or stored.
 
+## Attention
+
+A session or agent that needs the user stands out in the list, with its reason (f-agents-attention, `attention.mjs`):
+
+- **waiting**: a Notification asked the user (`permission_prompt`, `elicitation_dialog`, `elicitation_url_dialog`), until the next event of the same agent. Claude Code's docs show no `agent_id` on a Notification: one that has it marks that agent, one without it marks the session (where the prompt is answered anyway), until any later event of the session, its agents' included. `idle_prompt` (a done session waiting for the next prompt) is not attention.
+- **stalled**: running, and no event for 10 minutes. A session with a running agent is not stalled itself; the agent carries it.
+- **failed**: stopped with an error (its Agent call failed, or its session ended first).
+
+Anything older than 12 hours is old news and no longer counts. The page judges it by its 1 s clock, so a stall shows without a new event. The manifest names `GET /api/agents/attention` as its `attention` endpoint: the shell counts the items on the Agents tab and shows a toast once for each new one (`core/shell/attention.mjs`); `recheck` tells it when to ask again without an event.
+
 ## Worktrees and branches
 
 Below the sessions, the page lists the project's git worktrees and local branches (`GET /api/agents/worktrees`, `git-worktrees.mjs`): each against the integration branch it was cut from (guessed from the graph), commits ahead and behind, merged or not, uncommitted changes, locked (Claude Code locks an agent's worktree while it runs), and the agent working in it and its ticket when known. A merged, clean, unlocked one is ready to clean up: the page shows the `git worktree remove` / `git branch -d` lines to copy and runs nothing. The server only reads git (`GIT_OPTIONAL_LOCKS=0`). A ref or a worktree changing is the topic `agents.git`; the page also reads the list again on `agents.events`.
@@ -22,9 +32,10 @@ Below the sessions, the page lists the project's git worktrees and local branche
 
 | File | What it is |
 |---|---|
-| `module.mjs` | the manifest (hooks, `writes: ['.groundwork/agents']`), `GET /api/agents/list`, `GET /api/agents/agent?session=&agent=` (timeline and report) and the public `GET /api/agents/tickets` |
+| `module.mjs` | the manifest (hooks, `writes: ['.groundwork/agents']`, `attention`), `GET /api/agents/list`, `GET /api/agents/agent?session=&agent=` (timeline and report), `GET /api/agents/attention` (for the shell) and the public `GET /api/agents/tickets` |
 | `hook.mjs` | the hook: one file needing only Node; `summarize(input)` is the line, with the schema at its top; `redact(text)` for the report |
 | `agents-log.mjs` | `readAgents(text)`: the sessions and agents the log tells of, with their states, times and cwd |
+| `attention.mjs` | `attentionOf(item, now)`, `needingAttention(sessions, now)`: who needs attention and why; shared by the server and the page |
 | `timeline.mjs` | `readTimeline(text, { session, agent })`: one agent's steps |
 | `agent-tickets.mjs` | `linkTickets(sessions, git)`: each one's branch and ticket; `ticketIn`, `branchTicket` |
 | `agent-git.mjs` | `readGit(root, since)`: the worktrees and their branches' own commits (read-only `git`) |

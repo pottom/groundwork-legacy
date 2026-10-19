@@ -125,6 +125,9 @@ body.gw-shell {
 .gw-tab-text { display: flex; flex-direction: column; line-height: 1.25; }
 .gw-tab-name { font-weight: 600; color: var(--gw-fg); }
 .gw-tab-tagline { font-size: 12px; color: var(--gw-muted); }
+/* how many things in the module need attention (a manifest's `attention`; attention.mjs) */
+.gw-tab-count { align-self: center; min-width: 1.6em; justify-content: center; font-variant-numeric: tabular-nums; }
+.gw-tab-count[hidden] { display: none; }
 
 /* the current tab opens into the page below it, marked with the gradient */
 .gw-nav a[aria-current="page"] {

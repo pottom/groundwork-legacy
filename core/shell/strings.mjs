@@ -19,6 +19,7 @@ export const SHELL_STRINGS = {
     liveTitle: 'The local server sends changes as they happen',
     offline: 'Offline',
     offlineTitle: 'The local server cannot be reached; trying again',
+    attentionCount: '{count} need attention',
   },
   hu: {
     nav: 'Modulok',
@@ -35,5 +36,6 @@ export const SHELL_STRINGS = {
     liveTitle: 'A helyi szerver azonnal küldi a változásokat',
     offline: 'Nincs kapcsolat',
     offlineTitle: 'A helyi szerver nem érhető el; újrapróbálja',
+    attentionCount: '{count} figyelmet kér',
   },
 }

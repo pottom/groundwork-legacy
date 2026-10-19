@@ -1864,8 +1864,10 @@
                     "topic": "Figyelmet kérő agent kiemelése: engedélyre vár, elakadt, hibázott",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "note": "Kiemelve, az okkal: engedélyre vár (permission_prompt vagy elicitation Notification, az agent vagy a munkamenet következő eseményéig), elakadt (fut, de 10 perce nincs eseménye; a futó agentű munkamenet nem, azt az agent viseli), hibával állt le. 12 óránál régebbi nem számít. Az oldal a másodperces órájával ítél, így az elakadás új esemény nélkül is látszik. A héjban az Agents fülén szám, és minden új esetre egyszer toast jelenik meg (core/shell/attention.mjs).",
+                    "hyperLink": "modules/agents/attention.mjs"
                   },
                   {
                     "id": "f-agents-live",
@@ -2003,6 +2005,15 @@
                     },
                     "note": "A szerver csak olvas (GIT_OPTIONAL_LOCKS=0). Az integrációs ágat a gráfból becsüli: a linkelt worktree-ben ki nem vett, máshová még nem beolvadt branchek közül az, amelyhez képest a legkevesebb saját commitja van; döntetlennél az alapértelmezett ág, aztán a legkevésbé lemaradt. Egy beolvasztott branch nem alapja annak, amibe beolvadt (first-parent ellenőrzés). Egy-egy hívás branchenként a for-each-ref %(ahead-behind)-del (git 2.41+), régebbin rev-list.",
                     "hyperLink": "modules/agents/git-worktrees.mjs"
+                  },
+                  {
+                    "id": "d-agents-attention-notification",
+                    "topic": "A Notification agent_id nélkül a munkamenethez tartozik",
+                    "note": "A dokumentáció Notification-sémájában nincs agent_id (a SubagentStart/Stop és a subagenten belüli eszközhívások kapnak), valódi interaktív futással nem ellenőriztük. Mindkét esetet kezeljük: agent_id-vel az agent vár, nélküle a munkamenet (ott kell válaszolni), a munkamenet bármely következő eseményéig, az agentjeiét is beleértve. Az idle_prompt nem figyelmet kérő állapot.",
+                    "hyperLink": "modules/agents/agents-log.mjs",
+                    "metadata": {
+                      "status": "decision"
+                    }
                   }
                 ]
               },
@@ -2052,6 +2063,15 @@
                       "status": "decision"
                     },
                     "hyperLink": "modules/agents/module.mjs"
+                  },
+                  {
+                    "id": "d-agents-attention-shell",
+                    "topic": "A héj a manifest attention végpontjából számol és jelez",
+                    "note": "A manifest attention mezője (Agents: /api/agents/attention) { items: [{ key, reason, text: { en, hu } }], recheck } választ ad. A héj a fülön számot mutat, és kulcsonként egyszer toastot; a megnyitáskor már meglévőket csak számolja. Hellóra és a modul témáira kérdez újra, és egyszer a recheck időpontjában (amikor csak az idő múlása változtat), lekérdezgetés nélkül. Modul nélkül nincs szám.",
+                    "hyperLink": "core/shell/attention.mjs",
+                    "metadata": {
+                      "status": "decision"
+                    }
                   }
                 ]
               },
