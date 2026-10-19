@@ -15,9 +15,9 @@ Az Ötletek a Planhez és a Buildhez hasonló modul: a manifestje adja a nézete
 
 ## 2. Adatok és tárolás
 
-Minden ötlet egy saját Markdown-fájl a docs/product/ideas/ alatt: a fejléc tartalmazza a mezőket, a törzs a leírást és a megbeszélést. Gitben van, így a csapat látja, és a döntések visszakövethetők. A következő szám a legnagyobb meglévő plusz egy; ha két ágon ugyanaz a szám születik, összefésüléskor az újabb ötlet új számot kap.
+Minden ötlet egy saját Markdown-fájl a docs/product/ideas/items/ alatt: a fejléc tartalmazza a mezőket, a törzs a leírást és a megbeszélést. Gitben van, így a csapat látja, és a döntések visszakövethetők. A következő szám a legnagyobb meglévő plusz egy; ha két ágon ugyanaz a szám születik, összefésüléskor az újabb ötlet új számot kap.
 
-- Ötletenként egy Markdown-fájl a docs/product/ideas/ alatt, gitben — Pl. I-012-gyors-tabvaltas.md, fejlécben a mezőkkel; jól olvasható a diffben.
+- Ötletenként egy Markdown-fájl a docs/product/ideas/items/ alatt, gitben — Pl. I-012-gyors-tabvaltas.md, fejlécben a mezőkkel; a docs/product/ideas/ mappában a modul saját PRD-je és TECH-je is ott van.
 - _Két ágon azonos szám születhet; összefésüléskor az újabb új számot kap_
 
 ## 3. Integrációk és interfészek
@@ -29,6 +29,6 @@ A termékötletből a Plan saját, kis végpontja készít todo csomópontot, a 
 
 ## 4. Biztonság
 
-A modul a core írójával dolgozik, és csak a docs/product/ideas/ mappába írhat. A Markdown-tartalom biztonságos renderelővel jelenik meg, nyers HTML nélkül.
+A modul a core írójával dolgozik, és csak a docs/product/ideas/items/ mappába írhat. A Markdown-tartalom biztonságos renderelővel jelenik meg, nyers HTML nélkül.
 
-- Csak a docs/product/ideas/ alá írhat
+- Csak a docs/product/ideas/items/ alá írhat

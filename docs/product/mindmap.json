@@ -1341,14 +1341,14 @@
                 "topic": "Adatok és tárolás",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Minden ötlet egy saját Markdown-fájl a docs/product/ideas/ alatt: a fejléc tartalmazza a mezőket, a törzs a leírást és a megbeszélést. Gitben van, így a csapat látja, és a döntések visszakövethetők. A következő szám a legnagyobb meglévő plusz egy; ha két ágon ugyanaz a szám születik, összefésüléskor az újabb ötlet új számot kap.",
+                  "prose": "Minden ötlet egy saját Markdown-fájl a docs/product/ideas/items/ alatt: a fejléc tartalmazza a mezőket, a törzs a leírást és a megbeszélést. Gitben van, így a csapat látja, és a döntések visszakövethetők. A következő szám a legnagyobb meglévő plusz egy; ha két ágon ugyanaz a szám születik, összefésüléskor az újabb ötlet új számot kap.",
                   "progress": "done"
                 },
                 "children": [
                   {
                     "id": "d-ideas-store",
-                    "topic": "Ötletenként egy Markdown-fájl a docs/product/ideas/ alatt, gitben",
-                    "note": "Pl. I-012-gyors-tabvaltas.md, fejlécben a mezőkkel; jól olvasható a diffben.",
+                    "topic": "Ötletenként egy Markdown-fájl a docs/product/ideas/items/ alatt, gitben",
+                    "note": "Pl. I-012-gyors-tabvaltas.md, fejlécben a mezőkkel; a docs/product/ideas/ mappában a modul saját PRD-je és TECH-je is ott van.",
                     "metadata": {
                       "status": "decision"
                     }
@@ -1393,13 +1393,13 @@
                 "topic": "Biztonság",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A modul a core írójával dolgozik, és csak a docs/product/ideas/ mappába írhat. A Markdown-tartalom biztonságos renderelővel jelenik meg, nyers HTML nélkül.",
+                  "prose": "A modul a core írójával dolgozik, és csak a docs/product/ideas/items/ mappába írhat. A Markdown-tartalom biztonságos renderelővel jelenik meg, nyers HTML nélkül.",
                   "progress": "done"
                 },
                 "children": [
                   {
                     "id": "d-ideas-writes",
-                    "topic": "Csak a docs/product/ideas/ alá írhat",
+                    "topic": "Csak a docs/product/ideas/items/ alá írhat",
                     "metadata": {
                       "status": "decision"
                     }
