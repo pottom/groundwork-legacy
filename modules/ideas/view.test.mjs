@@ -77,6 +77,60 @@ test('the view renders through lit-html templates, not hand-built HTML strings, 
   assert.doesNotMatch(src, /new EventSource/)
 })
 
+test('a card opens in a drawer where every field can be edited, saved through PUT /api/ideas/item/<id> on the version seen', () => {
+  const drawer = read('view/drawer.mjs')
+  for (const field of ['title', 'body', 'source', 'kind', 'impact', 'effort', 'rationale', 'status', 'reason', 'links']) {
+    assert.match(drawer, new RegExp(`name="${field}"`), field)
+  }
+  const src = viewSource()
+  assert.match(src, /`\/api\/ideas\/item\/\$\{[^}]+\}`/)
+  assert.match(src, /method: 'PUT'/)
+  assert.match(src, /'content-type': 'application\/json'/)
+  assert.match(src, /base: [\w.]*version/)
+  assert.match(src, /\.status === 409/)
+})
+
+test('cards move between columns by drag and drop and by a keyboard menu; Rejected asks for a reason, shown on the card', () => {
+  const board = read('view/board.mjs')
+  assert.match(board, /draggable="true"/)
+  assert.match(board, /@dragstart=/)
+  assert.match(board, /@dragover=/)
+  assert.match(board, /@drop=/)
+  assert.match(board, /aria-haspopup="menu"/, 'a move menu button on every card')
+  assert.match(board, /role="menuitem"/)
+  assert.match(board, /idea\.reason/)
+  const reject = read('view/reject.mjs')
+  assert.match(reject, /name="reason"[^>]*required/)
+})
+
+test('a second view, the impact–effort matrix: quadrants from matrix.mjs, quick wins highlighted, unestimated ideas apart', () => {
+  const matrix = read('view/matrix.mjs')
+  assert.match(matrix, /from '\.\.\/matrix\.mjs'/)
+  assert.match(matrix, /placeOnMatrix\(/)
+  assert.match(matrix, /QUADRANTS\.map\(/)
+  assert.match(matrix, /unestimated/)
+  assert.match(read('view/ideas.css'), /\.quadrant--quick-wins/, 'the quick-win quadrant is highlighted')
+})
+
+test('a card moves between quadrants by drag and drop and by a keyboard menu, which saves its new impact and effort', () => {
+  const matrix = read('view/matrix.mjs')
+  assert.match(matrix, /draggable="true"/)
+  assert.match(matrix, /@dragstart=/)
+  assert.match(matrix, /@drop=/)
+  assert.match(matrix, /aria-haspopup="menu"/)
+  assert.match(matrix, /role="menuitem"/)
+  assert.match(read('view/main.mjs'), /saveIdea\([^)]*estimateFor\(/)
+})
+
+test('the view switch (Kanban / Matrix) is a segmented control, remembered in the browser', () => {
+  const main = read('view/main.mjs')
+  assert.match(viewSource(), /class="gw-seg\b/)
+  assert.match(viewSource(), /aria-pressed=/)
+  assert.match(main, /localStorage\.getItem\(/)
+  assert.match(main, /localStorage\.setItem\(/)
+  assert.match(main, /try \{[^}]*localStorage/, 'storage may be refused: it never breaks the page')
+})
+
 test('the board has the four columns in order, and a card shows number, title, author and source', () => {
   const board = read('view/board.mjs')
   assert.match(board, /STATUSES\.map\(/)

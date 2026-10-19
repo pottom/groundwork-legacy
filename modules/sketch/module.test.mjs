@@ -97,6 +97,64 @@ test('what is not a scene, or a name that is not a plain name, is refused', asyn
   })
 })
 
+const post = (base, sub, body) =>
+  fetch(`${base}/api/sketch/${sub}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+const names = async (base) => (await (await fetch(`${base}/api/sketch/list`)).json()).sketches.map((s) => s.name)
+const sketchFile = (root, name) => path.join(root, 'docs', 'product', 'sketches', `${name}.excalidraw`)
+
+test('the list names every sketch in docs/product/sketches/; a new one is its own empty file', async () => {
+  await withServer(async ({ root, base }) => {
+    assert.deepEqual(await names(base), [], 'no sketches yet')
+    const r = await post(base, 'create', { name: 'flow' })
+    assert.equal(r.status, 201)
+    const file = JSON.parse(fs.readFileSync(sketchFile(root, 'flow'), 'utf8'))
+    assert.equal(file.type, 'excalidraw')
+    assert.deepEqual(file.elements, [])
+    await put(base, scene(), 'Architecture')
+    fs.writeFileSync(path.join(root, 'docs', 'product', 'sketches', 'notes.txt'), 'not a sketch')
+    assert.deepEqual(await names(base), ['Architecture', 'flow'])
+  })
+})
+
+test('a sketch is not created twice, nor under a name that is not a plain name', async () => {
+  await withServer(async ({ root, base }) => {
+    await put(base, scene(), 'flow')
+    const before = fs.readFileSync(sketchFile(root, 'flow'), 'utf8')
+    assert.equal((await post(base, 'create', { name: 'flow' })).status, 409)
+    assert.equal(fs.readFileSync(sketchFile(root, 'flow'), 'utf8'), before, 'the drawing is kept')
+    assert.equal((await post(base, 'create', { name: '../evil' })).status, 400)
+    assert.equal((await post(base, 'create', {})).status, 400)
+  })
+})
+
+test('a renamed sketch keeps its drawing under the new name, and the old file is gone', async () => {
+  await withServer(async ({ root, base }) => {
+    await put(base, scene(), 'main')
+    const r = await post(base, 'rename', { from: 'main', to: 'checkout-flow' })
+    assert.equal(r.status, 200)
+    assert.equal(fs.existsSync(sketchFile(root, 'main')), false)
+    assert.deepEqual((await (await fetch(`${base}/api/sketch/scene?name=checkout-flow`)).json()).elements, [rect])
+    assert.deepEqual(await names(base), ['checkout-flow'])
+  })
+})
+
+test('a rename does not overwrite another sketch, and a sketch not drawn yet renames as an empty one', async () => {
+  await withServer(async ({ root, base }) => {
+    await put(base, scene(), 'a')
+    await post(base, 'create', { name: 'b' })
+    assert.equal((await post(base, 'rename', { from: 'a', to: 'b' })).status, 409)
+    assert.deepEqual(await names(base), ['a', 'b'])
+    assert.equal((await post(base, 'rename', { from: 'a', to: 'x/y' })).status, 400)
+    assert.equal((await post(base, 'rename', { from: 'main', to: 'first' })).status, 200, 'the page shows main before anything is drawn')
+    assert.deepEqual(await names(base), ['a', 'b', 'first'])
+    assert.equal((await post(base, 'rename', { from: 'a', to: 'a' })).status, 200, 'the same name changes nothing')
+    assert.deepEqual((await (await fetch(`${base}/api/sketch/scene?name=a`)).json()).elements, [rect])
+    assert.equal((await post(base, 'rename', { from: 'a', to: 'A' })).status, 200, 'only the case changes')
+    assert.deepEqual(await names(base), ['A', 'b', 'first'])
+    assert.deepEqual((await (await fetch(`${base}/api/sketch/scene?name=A`)).json()).elements, [rect], 'the drawing is kept')
+  })
+})
+
 test('a save must say it is JSON, so another site cannot post a form into the sketch', async () => {
   await withServer(async ({ root, base }) => {
     const r = await fetch(`${base}/api/sketch/scene?name=main`, { method: 'PUT', headers: { 'content-type': 'text/plain' }, body: JSON.stringify(scene()) })

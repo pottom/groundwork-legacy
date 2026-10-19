@@ -1,7 +1,8 @@
 // `groundwork sketch <command>`: the Sketch module's command line (the core runs this file), how
 // Claude reads and draws on a sketch (d-board-cli).
 //
-//   groundwork sketch show <name>           the sketch as text: ids, kinds, labels, places, arrows (digest.mjs)
+//   groundwork sketch list                  the sketches' names, one per line
+//   groundwork sketch show <name>          the sketch as text: ids, kinds, labels, places, arrows (digest.mjs)
 //   groundwork sketch apply <name> [ops]    draws: a JSON array of ops (ops.mjs), as an argument or on stdin
 //
 // <name> is the sketch's file name, docs/product/sketches/<name>.excalidraw ("main" by default).
@@ -18,7 +19,8 @@ import { openSketches } from './sketch-store.mjs'
 import { applyOps } from './ops.mjs'
 import { digest } from './digest.mjs'
 
-const USAGE = 'usage: groundwork sketch show <name>\n' +
+const USAGE = 'usage: groundwork sketch list\n' +
+  '       groundwork sketch show <name>\n' +
   '       groundwork sketch apply <name> \'[{"op":"add","type":"rectangle","x":0,"y":0,"label":"API"}, ...]\'   (or the ops on stdin)'
 
 function run(args) {
@@ -33,8 +35,12 @@ function run(args) {
   }
   const [cmd, name = 'main', ops] = words
   const dir = path.resolve(root ?? (process.env.MINDMAP_DIR || process.cwd()))
-  const store = openSketches(moduleFiles(dir, sketchModule))
-  if (cmd === 'show') {
+  const store = openSketches(moduleFiles(dir, sketchModule), dir)
+  if (cmd === 'list') {
+    if (words.length > 1) throw new Error('list takes no name')
+    const names = store.list()
+    console.log(names.length ? names.join('\n') : 'No sketches yet.')
+  } else if (cmd === 'show') {
     if (words.length > 2) throw new Error('show takes one name')
     console.log(digest(name, store.read(name)))
   } else if (cmd === 'apply') {

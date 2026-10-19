@@ -5,7 +5,7 @@ description: Reads and draws on the project's Excalidraw sketches (docs/product/
 
 A sketch is a drawing the human and you share. The human draws in the browser (Groundwork's Sketch tab); you read it and draw on it with the commands below. What you draw appears in the open sketch at once, and what the human draws at the same time stays: the two are merged element by element. Never edit the `.excalidraw` file by hand.
 
-Every command below is `{{groundwork}} sketch <command>`, run in the project folder. `<name>` is the sketch's name, `main` unless the user names another.
+Every command below is `{{groundwork}} sketch <command>`, run in the project folder. `<name>` is the sketch's name, `main` unless the user names another; `{{groundwork}} sketch list` prints the names there are. Applying to a new name makes that sketch.
 
 ## Reading a sketch
 
@@ -21,7 +21,7 @@ text note "Draft" at 0,200
 
 A shape's label shows on the shape. Coordinates are canvas pixels, x to the right, y down.
 
-The text says what is there, not how it looks. When the picture matters (a freehand drawing, an image, a layout question, checking your own drawing), look at it in the **browser pane**: open the running Groundwork page with `?module=sketch` (by default `http://localhost:4477/?module=sketch`) and take a screenshot. The server renders no image itself.
+The text says what is there, not how it looks. When the picture matters (a freehand drawing, an image, a layout question, checking your own drawing), look at it in the **browser pane**: open the running Groundwork page with `?module=sketch&sketch=<name>` (by default `http://localhost:4477/?module=sketch&sketch=main`) and take a screenshot. The server renders no image itself.
 
 ## Drawing
 

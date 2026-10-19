@@ -260,8 +260,9 @@ test('Build needs the server: no copy of the theme, no file:// mode, no folder p
   }
 });
 
-test('light or dark follows the operating system: the view has no switch of its own', () => {
-  assert.doesNotMatch(PAGE, /data-theme|dataset\.theme/);
+test('light or dark follows the shell\'s switch (/shell/theme.js): the view has no switch of its own', () => {
+  assert.doesNotMatch(PAGE, /setAttribute\(\s*'data-theme'|dataset\.theme\s*=|groundworkTheme\.set\(|groundwork:theme/);
+  assert.match(PAGE, /<script src="\/shell\/theme\.js"><\/script>/);
 });
 
 // ───────── Live updates and Plan's ticket counts ─────────
@@ -349,6 +350,32 @@ test('Plan\'s counts read the same ticket files as the Build page: a ticket the 
   } finally { await srv.close(); }
 });
 
+test('the Ideas module\'s ticket list: per idea, the tickets naming it on their Idea line, with their number and state', async () => {
+  const root = project();
+  const write = (rel, text) => { fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); fs.writeFileSync(path.join(root, rel), text); };
+  write('.scratch/core/issues/01-first.md', '# First\n\n**Idea:** I-12\n**Status:** done\n');
+  write('.scratch/core/issues/02-second.md', '# Second\n\n**Idea:** I-12, I-3\n**Status:** wontfix\n');
+  write('.scratch/core/issues/03-third.md', '# Third\n\n**Status:** ready-for-agent\n');
+  const srv = await startServer({ root, modules: [buildModule({ githubRequest: async () => [] })], port: 0 });
+  try {
+    const items = (await (await fetch(`http://127.0.0.1:${srv.port}/api/build/ideas`)).json()).items;
+    assert.deepEqual(Object.keys(items).sort(), ['I-12', 'I-3']);
+    assert.deepEqual(items['I-12'].map((t) => [t.label, t.title, t.status, t.closed]), [['core 01', 'First', 'done', true], ['core 02', 'Second', 'wontfix', true]]);
+    assert.deepEqual(items['I-3'].map((t) => [t.label, t.status, t.closed]), [['core 02', 'wontfix', true]]);
+    write('.scratch/core/issues/03-third.md', '# Third\n\n**Idea:** I-3\n**Status:** ready-for-agent\n');
+    const later = (await (await fetch(`http://127.0.0.1:${srv.port}/api/build/ideas`)).json()).items;
+    assert.deepEqual(later['I-3'].map((t) => [t.label, t.status, t.closed]), [['core 02', 'wontfix', true], ['core 03', 'ready-for-agent', false]], 'a new ticket shows without a restart');
+  } finally { await srv.close(); }
+});
+
+test('a ticket\'s ideas link to the Ideas module in the whole window, beside its PRD items', () => {
+  const parts = readBuild('page/parts.mjs');
+  assert.match(parts, /export const ideaLinks = /);
+  assert.match(parts, /\/\?module=ideas&idea=/);
+  assert.match(readBuild('page/views/tickets.mjs'), /ideaLinks\(t\)/);
+  assert.match(readBuild('page/views/drawer.mjs'), /ideaLinks\(t\)/);
+});
+
 test('the view follows the shell\'s one stream (subscribe from /shell/live.mjs) and asks Plan only for the map ids', () => {
   assert.doesNotMatch(PAGE, /new EventSource/);
   assert.match(PAGE, /import \{ subscribe \} from '\/shell\/live\.mjs'/);
@@ -362,7 +389,7 @@ test('the view follows the shell\'s one stream (subscribe from /shell/live.mjs) 
 test('index.html is a thin skeleton: no inline script or style, the theme, the styles and the entry module', () => {
   const page = readBuild('index.html');
   assert.doesNotMatch(page, /<style/);
-  assert.deepEqual([...page.matchAll(/<script\b([^>]*)>/g)].map((m) => m[1].trim()), ['type="module" src="page/main.mjs"']);
+  assert.deepEqual([...page.matchAll(/<script\b([^>]*)>/g)].map((m) => m[1].trim()), ['src="/shell/theme.js"', 'type="module" src="page/main.mjs"']);
   assert.match(page, /<link rel="stylesheet" href="\/shell\/theme\.css">/);
   assert.match(page, /<link rel="stylesheet" href="build\.css">/);
 });

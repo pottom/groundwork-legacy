@@ -69,6 +69,15 @@ test('show prints a digest Claude can reason about: ids, kinds, labels, places a
   assert.doesNotMatch(r.stdout, /containerId|versionNonce/, 'labels show on their shape, not as texts of their own')
 })
 
+test('list prints the sketches\' names, and apply draws on the one it names', async () => {
+  const dir = project()
+  assert.equal((await apply(dir, [{ op: 'add', type: 'rectangle', x: 0, y: 0 }], 'flows')).code, 0)
+  assert.equal((await apply(dir, [{ op: 'add', type: 'rectangle', x: 0, y: 0 }], 'main')).code, 0)
+  const r = await sketch(dir, 'list')
+  assert.equal(r.code, 0, r.stderr)
+  assert.deepEqual(r.stdout.trim().split(/\r?\n/), ['flows', 'main'])
+})
+
 test('show of a sketch not drawn yet says it is empty', async () => {
   const r = await sketch(project(), 'show', 'main')
   assert.equal(r.code, 0, r.stderr)

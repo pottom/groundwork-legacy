@@ -65,7 +65,7 @@ test('with only Build, its page and endpoints work, and Plan\'s endpoint is simp
 
 test('each module declares the endpoints other modules may read, and the server answers them', async () => {
   assert.deepEqual(plan.public, ['GET /api/plan/ids'])
-  assert.deepEqual(build.public, ['GET /api/build/prd'])
+  assert.deepEqual(build.public, ['GET /api/build/prd', 'GET /api/build/ideas'])
   await withServer(MODULES, async (get) => {
     for (const m of MODULES) for (const e of m.public) {
       const [method, p] = e.split(' ')

@@ -40,6 +40,35 @@ test('ideas list prints every idea with its number, column, title, author and so
   assert.match(r.stdout, /I-1\s+new\s+Quick tab switching\s+\(claude, grilling\)/)
 })
 
+test('ideas move puts an idea in New or Considering, and refuses To develop and Rejected: those are the human\'s', async () => {
+  const dir = project()
+  await ideas(dir, 'add', 'Quick tabs')
+  const moved = await ideas(dir, 'move', 'I-1', 'considering')
+  assert.equal(moved.code, 0, moved.stderr)
+  assert.match(moved.stdout, /I-1.*considering/)
+  const file = path.join(dir, ITEMS, 'I-001-quick-tabs.md')
+  assert.match(fs.readFileSync(file, 'utf8'), /\nstatus: considering\n/)
+
+  for (const status of ['to-develop', 'rejected']) {
+    const r = await ideas(dir, 'move', 'I-1', status)
+    assert.equal(r.code, 1, status)
+    assert.match(r.stderr, /only a human.*browser/i, status)
+  }
+  assert.match(fs.readFileSync(file, 'utf8'), /\nstatus: considering\n/)
+  assert.equal((await ideas(dir, 'move', 'I-9', 'new')).code, 1)
+  assert.equal((await ideas(dir, 'move', 'I-1', 'done')).code, 1)
+
+  assert.equal((await ideas(dir, 'move', 'I-1', 'new')).code, 0)
+  assert.match(fs.readFileSync(file, 'utf8'), /\nstatus: new\n/)
+
+  // nor does it take an idea back out of a human's decision
+  fs.writeFileSync(file, '---\ntitle: Quick tabs\nstatus: rejected\nreason: No.\n---\n')
+  const back = await ideas(dir, 'move', 'I-1', 'considering')
+  assert.equal(back.code, 1)
+  assert.match(back.stderr, /only a human.*browser/i)
+  assert.match(fs.readFileSync(file, 'utf8'), /\nstatus: rejected\n/)
+})
+
 test('--root names the project folder', async () => {
   const dir = project()
   const r = await ideas(os.tmpdir(), 'add', 'Rooted', '--root', dir)
