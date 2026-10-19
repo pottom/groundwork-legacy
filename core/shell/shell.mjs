@@ -46,11 +46,8 @@ const THEMES = [
   ['dark', 'themeDark', '<path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z"/>'],
 ]
 
-const LOGO = `<svg class="gw-logo" viewBox="0 0 32 32" aria-hidden="true">
-    <rect width="32" height="32" rx="9" fill="url(#gw-logo-fill)"/>
-    <defs><linearGradient id="gw-logo-fill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--gw-accent)"/><stop offset="1" stop-color="var(--gw-accent-2)"/></linearGradient></defs>
-    <path d="M8 20.5l8 4 8-4M8 16l8 4 8-4M16 7.5l8 4-8 4-8-4z" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
-  </svg>`
+// The brand mark, the same file as the browser tab's icon (see <head>).
+const LOGO = '<img class="gw-logo" src="/shell/logo.svg" alt="">'
 
 // The shell's strings with the modules' taglines added, one set per language.
 function pageStrings(views) {
@@ -92,6 +89,7 @@ export function shellPage({ project, version, modules, active, params }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(project)}${current ? ` · ${esc(current.name)}` : ''} · Groundwork</title>
 <script src="/shell/theme.js"></script>
+<link rel="icon" type="image/svg+xml" href="/shell/logo.svg">
 <link rel="stylesheet" href="/shell/theme.css">
 <link rel="stylesheet" href="/shell/shell.css">
 </head>

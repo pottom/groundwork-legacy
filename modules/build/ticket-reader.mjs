@@ -26,15 +26,17 @@
 //                   statusNote, issue, local, blockedBy, blockers: [{ raw, ticket | null }],
 //                   dependents, blocked, notes, checks: { done, total }, comments: [{ date,
 //                   title, event?, order }], lastComment, text, fields, hay, url?, labels?,
-//                   milestone?, prd: [id] }]   prd: the ids of the PRD items (Plan's map nodes)
-//                   named on the ticket's "**PRD:** a, b" line, [] without one;
-//                   sketches: [name], the sketches named on its "**Sketch:** a, b" line
+//                   milestone?, prd: [id], ideas: [id], sketches: [name] }]   prd: the ids of the
+//                   PRD items (Plan's map nodes) named on the ticket's "**PRD:** a, b" line, [] without
+//                   one; ideas: the ideas (the Ideas module's 'I-12') named on its "**Idea:** I-12"
+//                   line, [] without one; sketches: the sketches named on its "**Sketch:** a, b" line
 //                   (Sketch's own names, docs/product/sketches/<name>.excalidraw)
 //   areas        Map name → { name, spec, tickets, docs, extras, open, closed, local }; a local
 //                ticket's area is its folder, a GitHub issue's is its milestone ('' without one)
 //   areaList, docs, adrs, readme, glossaries, byPath, byIssue, byLocal, resolveIssue(n),
 //   resolveLocal(area, n), areaRef, statusCounts, open, comments, projectName
 //   byPrd        Map PRD item id → [tickets naming it on their PRD line]
+//   byIdea       Map idea id ('I-12') → [tickets naming it on their Idea line]
 //   problems     [{ kind, tickets, key, params }]: the inconsistencies; key and params are the
 //                UI string that tells it (the page translates)
 //
@@ -164,7 +166,7 @@ function ticketPath(path, trackerPath) {
   return dirs.every((d, i) => keepsFolder(d, i)) ? { area: m[1], name: m[2] } : null;
 }
 
-const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type|prd|sketch)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
+const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type|prd|idea|sketch)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
 const COMMENTS_HEADING = /^##\s+(comments?|megjegyzések|hozzászólások)\s*$/i;   // reads Hungarian files too
 const NO_BLOCKER = /^(none|nincs|semmi|nothing|n\/a|[—–-]+)(?![\p{L}\p{N}])/iu;
 
@@ -235,6 +237,12 @@ function parseSketches(raw) {
   return [...new Set(s.split(/[\s,;]+/).map((x) => x.replace(/[.]+$/, '')).filter((x) => SKETCH_NAME.test(x)))];
 }
 
+// "I-12, `I-007` (the follow-up)" → the ideas named, as people say them ('I-12', 'I-7'), each once.
+function parseIdeas(raw) {
+  const ids = [...String(raw || '').matchAll(/\bI-0*(\d+)\b/g)].map((m) => 'I-' + m[1]);
+  return [...new Set(ids)];
+}
+
 function parseTicket(path, area, fileName, text) {
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
   const t = { kind: 'ticket', path, area, fileName, text, fields: {} };
@@ -261,6 +269,7 @@ function parseTicket(path, area, fileName, text) {
   const prd = 'prd' in t.fields ? parsePrd(t.fields.prd) : { ids: [], none: false };
   t.prd = prd.ids;
   t.prdNone = prd.none;
+  t.ideas = parseIdeas(t.fields.idea);
   t.sketches = 'sketch' in t.fields ? parseSketches(t.fields.sketch) : [];
 
   const headingsEnd = (() => { const c = lines.findIndex((l) => COMMENTS_HEADING.test(l)); return c < 0 ? lines.length : c; })();
@@ -361,7 +370,7 @@ function readTickets(source) {
   const m = {
     folderName: source.name || '', trackerPath, adrPath, repo: source.github ? source.github.repo : null,
     tickets: [], docs: [], adrs: [], glossaries: [], areas: new Map(),
-    byPath: new Map(), byIssue: new Map(), byLocal: new Map(), byPrd: new Map(), problems: [],
+    byPath: new Map(), byIssue: new Map(), byLocal: new Map(), byPrd: new Map(), byIdea: new Map(), problems: [],
   };
   const area = (name) => {
     if (!m.areas.has(name)) m.areas.set(name, { name, spec: null, tickets: [], docs: [], extras: 0, local: false });
@@ -427,6 +436,7 @@ function readTickets(source) {
     if (t.issue != null) push(m.byIssue, t.issue, t);
     else if (t.local != null) push(m.byLocal, t.area + '/' + +t.local, t);
     for (const id of t.prd) push(m.byPrd, id, t);
+    for (const id of t.ideas) push(m.byIdea, id, t);
   }
   const alias = new Map();
   for (const t of m.tickets) {

@@ -20,6 +20,8 @@ A ticket may also name the sketches it goes with, on a line of its own: `**Sketc
 
 Plan shows, on each map item, how many tickets name it and how many of them are done; it gets the counts from `/api/build/prd`, which reads the tickets on the server with the same `ticket-reader.mjs` (`project-tickets.mjs`). Clicking the count opens Build with only that item's tickets, closed ones too (`/?module=build&prd=<id>`; the filter shows above the list and can be cleared).
 
+A ticket made from an idea of the Ideas module names it the same way: `**Idea:** I-12` (several separated by commas; `I-012` reads as `I-12`). Build shows the ideas on the ticket and in its details as links that open Ideas on that idea (`/?module=ideas&idea=I-12`). The reader keeps them as `ticket.ideas` and lists the tickets per idea in `model.byIdea`; `/api/build/ideas` gives Ideas each idea's tickets with their number and state, so the idea's card shows them.
+
 ## The page
 
 The page uses the shell's design system (`/shell/theme.css`: the `--gw-*` tokens and the `.gw-*` components). Inside the shell it shows no bar of its own: the shell's header already shows the project, whether the page is live, the version and the language. Opened alone (`/build/`) it has a slim bar with those. What the page does by itself (it read something again, nothing changed) shows as a toast that goes away; a stopped server shows as a notice above the overview. Build needs the core server: it has no mode opened from a file.
@@ -55,7 +57,7 @@ On the core server the page follows the core's live updates through `subscribe` 
 | `ui-strings.mjs` | the UI strings (`BUILD_STRINGS`), English and Hungarian; no markup, code in backticks |
 | `module.mjs` | the manifest and the read-only endpoints under `/api/build/` |
 | `project-reader.mjs` | reads the project: the Markdown files inside the root, and the git history |
-| `project-tickets.mjs` | the tickets read on the server with `ticket-reader.mjs`, and per PRD item how many name it and how many are done (for Plan) |
+| `project-tickets.mjs` | the tickets read on the server with `ticket-reader.mjs`: per PRD item how many name it and how many are done (for Plan), per idea the tickets naming it (for Ideas) |
 | `github-source.mjs` | fetches the GitHub issues on the server (with their dependency links), in the shape the ticket reader takes |
 
 ## Run
@@ -72,6 +74,7 @@ npx @pottom/groundwork                          # in the project folder; then Bu
 | `GET /api/build/git?limit=N&known=F` | branches, tags and commits, when the root is the top of a git repository |
 | `GET /api/build/issues?known=F` | the GitHub issues of the `origin` repository, or `{ available: false, reason }` |
 | `GET /api/build/prd` | `{ items: { <id>: { total, done, tickets } } }`: per PRD item, the tickets naming it (a dropped one, wontfix or legacy, does not count; done, resolved and closed are done) |
+| `GET /api/build/ideas` | `{ items: { 'I-12': [{ path, label, title, status, closed, url? }] } }`: per idea, the tickets naming it on their `**Idea:**` line (dropped ones too) |
 
 ### Public endpoints
 
@@ -80,6 +83,7 @@ Other modules may read only these (the manifest's `public`, see [`modules/README
 | Endpoint | Who reads it |
 |---|---|
 | `GET /api/build/prd` | Plan, for the ticket counts on the map |
+| `GET /api/build/ideas` | Ideas, for the tickets on an idea's card |
 
 Build itself reads only Plan's `GET /api/plan/ids`. A ticket's sketches come from its own `**Sketch:**` line, so Build reads nothing of Sketch. Without Plan (or without a map) the Checks view counts no PRD id as unknown and the ids on a ticket show as plain tags instead of links into Plan.
 

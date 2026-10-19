@@ -72,6 +72,8 @@ export const BUILD_STRINGS = {
     'prd.open': 'Open {id} in Plan',
     'table.sketch-sub': 'Sketch',
     'sketch.open': 'Open the sketch {name}',
+    'table.idea-sub': 'Idea',
+    'idea.open': 'Open {id} in Ideas',
     'table.last-comment': 'Last comment',
     'table.empty': 'No such ticket',
     'table.no-such-ticket': 'There is no such ticket',
@@ -190,6 +192,7 @@ export const BUILD_STRINGS = {
     'drawer.labels': 'Labels',
     'drawer.prd': 'PRD items',
     'drawer.sketch': 'Sketches',
+    'drawer.ideas': 'Ideas',
     'drawer.github': 'GitHub issue',
     'drawer.comments': '{n} comments',
 
@@ -363,6 +366,8 @@ export const BUILD_STRINGS = {
     'prd.open': '{id} megnyitása a Plan modulban',
     'table.sketch-sub': 'Vázlat',
     'sketch.open': 'A(z) {name} vázlat megnyitása',
+    'table.idea-sub': 'Ötlet',
+    'idea.open': '{id} megnyitása az Ötletek modulban',
     'table.last-comment': 'Utolsó megjegyzés',
     'table.empty': 'Nincs ilyen jegy',
     'table.no-such-ticket': 'Nincs ilyen jegy',
@@ -481,6 +486,7 @@ export const BUILD_STRINGS = {
     'drawer.labels': 'Címkék',
     'drawer.prd': 'PRD-elemek',
     'drawer.sketch': 'Vázlatok',
+    'drawer.ideas': 'Ötletek',
     'drawer.github': 'Issue a GitHubon',
     'drawer.comments': '{n} megjegyzés',
 

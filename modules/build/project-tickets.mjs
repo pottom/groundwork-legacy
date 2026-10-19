@@ -6,6 +6,9 @@
 //                                               and, when given, the GitHub issues { repo, issues }
 //   prdProgress(model)                          { [PRD item id]: { total, done, tickets: [{ path,
 //                                               label, title, status, done, url? }] } }
+//   ideaTickets(model)                          { ['I-12']: [{ path, label, title, status, closed,
+//                                               url? }] }: per idea, the tickets naming it on their
+//                                               "**Idea:**" line (the Ideas module shows them)
 //
 // Which folder holds the tickets and which files are tickets is the ticket reader's own rule
 // (locateProject, ticketPath), the one the page uses too: Plan counts exactly the ticket files
@@ -14,7 +17,7 @@
 // A dropped ticket (wontfix, legacy) does not count for its PRD items; a done one is done,
 // resolved or closed (the reader's DROPPED and DONE).
 
-import { readTickets, locateProject, ticketPath, isDone, isDropped } from './ticket-reader.mjs';
+import { readTickets, locateProject, ticketPath, isDone, isDropped, isClosed } from './ticket-reader.mjs';
 
 
 export function openTickets(project) {
@@ -54,6 +57,15 @@ export function prdProgress(model) {
       done: counted.filter(isDone).length,
       tickets: counted.map((t) => ({ path: t.path, label: t.label, title: t.title, status: t.status, done: isDone(t), ...(t.url ? { url: t.url } : {}) })),
     };
+  }
+  return items;
+}
+
+// Every ticket naming an idea counts here, a dropped one too: the idea shows what became of it.
+export function ideaTickets(model) {
+  const items = {};
+  for (const [id, tickets] of model.byIdea) {
+    items[id] = tickets.map((t) => ({ path: t.path, label: t.label, title: t.title, status: t.status, closed: isClosed(t), ...(t.url ? { url: t.url } : {}) }));
   }
   return items;
 }

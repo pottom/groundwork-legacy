@@ -103,6 +103,34 @@ test('cards move between columns by drag and drop and by a keyboard menu; Reject
   assert.match(reject, /name="reason"[^>]*required/)
 })
 
+test('a second view, the impact–effort matrix: quadrants from matrix.mjs, quick wins highlighted, unestimated ideas apart', () => {
+  const matrix = read('view/matrix.mjs')
+  assert.match(matrix, /from '\.\.\/matrix\.mjs'/)
+  assert.match(matrix, /placeOnMatrix\(/)
+  assert.match(matrix, /QUADRANTS\.map\(/)
+  assert.match(matrix, /unestimated/)
+  assert.match(read('view/ideas.css'), /\.quadrant--quick-wins/, 'the quick-win quadrant is highlighted')
+})
+
+test('a card moves between quadrants by drag and drop and by a keyboard menu, which saves its new impact and effort', () => {
+  const matrix = read('view/matrix.mjs')
+  assert.match(matrix, /draggable="true"/)
+  assert.match(matrix, /@dragstart=/)
+  assert.match(matrix, /@drop=/)
+  assert.match(matrix, /aria-haspopup="menu"/)
+  assert.match(matrix, /role="menuitem"/)
+  assert.match(read('view/main.mjs'), /saveIdea\([^)]*estimateFor\(/)
+})
+
+test('the view switch (Kanban / Matrix) is a segmented control, remembered in the browser', () => {
+  const main = read('view/main.mjs')
+  assert.match(viewSource(), /class="gw-seg\b/)
+  assert.match(viewSource(), /aria-pressed=/)
+  assert.match(main, /localStorage\.getItem\(/)
+  assert.match(main, /localStorage\.setItem\(/)
+  assert.match(main, /try \{[^}]*localStorage/, 'storage may be refused: it never breaks the page')
+})
+
 test('the board has the four columns in order, and a card shows number, title, author and source', () => {
   const board = read('view/board.mjs')
   assert.match(board, /STATUSES\.map\(/)

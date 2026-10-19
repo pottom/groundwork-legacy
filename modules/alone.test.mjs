@@ -29,7 +29,8 @@ async function withServer(modules, fn) {
   const srv = await startServer({ root, modules, port: 0 })
   const base = `http://127.0.0.1:${srv.port}`
   const get = (p) => fetch(base + p)
-  try { await fn(get) } finally { await srv.close() }
+  const send = (method, p, body, type) => fetch(base + p, { method, body, headers: { 'content-type': type } })
+  try { await fn(get, send) } finally { await srv.close() }
 }
 
 const tabs = (html) => [...html.matchAll(/<a href="\/\?module=([^"]+)"/g)].map((m) => m[1])
@@ -64,13 +65,18 @@ test('with only Build, its page and endpoints work, and Plan\'s endpoint is simp
 })
 
 test('each module declares the endpoints other modules may read, and the server answers them', async () => {
-  assert.deepEqual(plan.public, ['GET /api/plan/ids'])
-  assert.deepEqual(build.public, ['GET /api/build/prd'])
-  await withServer(MODULES, async (get) => {
+  assert.deepEqual(plan.public, ['GET /api/plan/ids', 'POST /api/plan/todo'])
+  assert.deepEqual(build.public, ['GET /api/build/prd', 'GET /api/build/ideas'])
+  // Reads are GETs. The one write another module may ask for is Plan's: an idea as a map node, and
+  // only as a JSON request, so no other web site can send it (CSRF).
+  const writes = { 'POST /api/plan/todo': { idea: 'I-1', title: 'From Ideas' } }
+  await withServer(MODULES, async (get, send) => {
     for (const m of MODULES) for (const e of m.public) {
       const [method, p] = e.split(' ')
-      assert.equal(method, 'GET')
-      assert.equal((await get(p)).status, 200, e)
+      if (method === 'GET') { assert.equal((await get(p)).status, 200, e); continue }
+      assert.ok(writes[e], `${e}: a public endpoint is a GET, or a write listed here`)
+      assert.equal((await send(method, p, JSON.stringify(writes[e]), 'text/plain')).status, 415, `${e} refuses a non-JSON request`)
+      assert.equal((await send(method, p, JSON.stringify(writes[e]), 'application/json')).status, 200, e)
     }
   })
 })

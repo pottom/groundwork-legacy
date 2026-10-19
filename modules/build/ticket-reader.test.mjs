@@ -189,6 +189,26 @@ test('a ticket a link names (?ticket=): an issue number, an area and number, or 
   assert.equal(reader.ticketFilter('?ticket=%2334'), '#34');
 });
 
+test('the Idea line names the ideas a ticket was made from, in both sources', () => {
+  const m = readTickets({
+    ...local({
+      '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**Idea:** I-12\n',
+      '.scratch/core/issues/02-two.md': '# Two\n\nStatus: ready-for-agent\n- Idea: `I-3`, I-007 (the follow-up)\n',
+      '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n',
+    }),
+    github: { repo: 'acme/app', issues: [
+      issue(4, { body: '**PRD:** d-trace\n**Idea:** I-12\n\n## What to build\n\nIt.\n' }),
+      issue(5, { body: '## What to build\n\nLike **Idea:** I-9 said.\n' }),
+    ] },
+  });
+  assert.deepEqual(byLabel(m, 'core 01').ideas, ['I-12']);
+  assert.deepEqual(byLabel(m, 'core 02').ideas, ['I-3', 'I-7'], 'the number as people say it');
+  assert.deepEqual(byLabel(m, 'core 03').ideas, []);
+  assert.deepEqual(byLabel(m, '#4').ideas, ['I-12']);
+  assert.deepEqual(byLabel(m, '#5').ideas, [], 'only an Idea line of its own counts');
+  assert.deepEqual(m.byIdea.get('I-12').map((t) => t.label), ['core 01', '#4']);
+});
+
 // The ids of the PRD map (Plan's docs/product/mindmap.json), when the page could read the map.
 const withMap = (src, ids) => ({ ...src, mapIds: ids });
 const prdProblems = (m) => m.problems.filter((p) => /prd/.test(p.kind)).map((p) => [p.kind, p.tickets.map((t) => t.label).join(' '), p.key, p.params])

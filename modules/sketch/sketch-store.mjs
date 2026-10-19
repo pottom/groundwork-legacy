@@ -5,19 +5,23 @@
 //                                             root: the project, to list the sketches
 //   store.list()                         the sketches' names, in name order
 //   store.read(name)                     the scene, or an empty one when it is not drawn yet
-//   store.save(name, scene)              writes it; throws SketchError (status 400 or 413)
+//   store.save(name, scene)              merges it with the file on disk and writes the result, which
+//                                        it returns; throws SketchError (status 400 or 413)
 //   store.create(name)                   a new empty sketch; SketchError 409 when the name is taken
 //   store.rename(from, to)               moves the file; 409 when `to` is taken; a sketch not drawn
 //                                        yet (read() gives the empty scene) becomes an empty `to`
 //   isSketchName(name)                   a plain name: letters, digits, "-" and "_"
 //
-// A save keeps only what the drawing is: the elements, the embedded images, and the two settings of
-// the canvas (background, grid). Zoom, scroll and selection are the viewer's, not the sketch's, and
+// A save merges element by element with what is on disk (merge.mjs), so a save of the page and a
+// write of `groundwork sketch apply` at the same time both survive; a deleted element stays in the
+// file (isDeleted: true) for that. Embedded images are merged by id. A save keeps only what the
+// drawing is: the elements, the embedded images, and the two settings of the canvas (background, grid). Zoom, scroll and selection are the viewer's, not the sketch's, and
 // would only make noise in git. An embedded image may be at most MAX_IMAGE_BYTES (as its data URL).
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { isSketchName } from './view/sketches.mjs'   // one rule for a name, here and in the page
+import { mergeElements } from './merge.mjs'
 
 export const DIR = 'docs/product/sketches'
 const EXT = '.excalidraw'
@@ -102,6 +106,11 @@ export function openSketches(files, root) {
     save(name, scene) {
       const rel = fileOf(name)
       const stored = normalise(scene)
+      if (files.exists(rel)) {
+        const disk = JSON.parse(files.read(rel))
+        stored.elements = mergeElements(Array.isArray(disk.elements) ? disk.elements : [], stored.elements)
+        stored.files = { ...(isObject(disk.files) ? disk.files : {}), ...stored.files }
+      }
       files.write(rel, JSON.stringify(stored, null, 2) + '\n')
       return stored
     },

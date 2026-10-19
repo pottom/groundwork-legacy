@@ -6,6 +6,9 @@
 //   saveIdea(idea, changes)     PUT /api/ideas/item/<id> on the version the page saw (idea.version):
 //                               { ok: true, idea } | { stale: true, idea } (saved elsewhere meanwhile)
 //                               | { error } (a wrong value, or no answer)
+//   ideaTickets()               { 'I-12': [{ label, title, status, closed, url? }] }: the tickets naming
+//                               each idea, from Build's public GET /api/build/ideas; {} without Build
+//                               or without an answer (nothing to show, no error)
 
 export async function listIdeas() {
   const res = await fetch('/api/ideas/list', { cache: 'no-store' })
@@ -35,5 +38,14 @@ export async function saveIdea(idea, changes) {
     return { ok: true, idea: body.idea }
   } catch (e) {
     return { error: e.message }
+  }
+}
+
+export async function ideaTickets() {
+  try {
+    const res = await fetch('/api/build/ideas', { cache: 'no-store' })
+    return res.ok ? ((await res.json()).items ?? {}) : {}
+  } catch {
+    return {}
   }
 }

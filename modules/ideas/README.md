@@ -16,7 +16,9 @@ groundwork ideas move I-12 new|considering
 
 An idea by `--author claude` must say its source and carry an estimate (impact, effort, rationale); `--links` must name existing ideas. `groundwork init` installs the `groundwork-ideas` skill (`skills/groundwork-ideas/`), which tells Claude to file side observations this way: `similar` first, then link instead of duplicating.
 
-Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-limits): `move` takes an idea only between New and Considering, and refuses To develop and Rejected with a message saying they are set in the browser. On the board a card opens in a drawer where every field can be edited, moves by drag and drop or by its move menu (keyboard: arrow keys, Enter, Escape), and a move to Rejected asks for a reason, which the card then shows. Each save is made on the version of the file the page saw; if it changed meanwhile the save is refused (409) and the page shows the newer version. The board follows the files live (topic `ideas.items`), and a new idea is tinted for a moment when it arrives.
+Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-limits): `move` takes an idea only between New and Considering, and refuses To develop and Rejected with a message saying they are set in the browser. On the board a card opens in a drawer where every field can be edited, moves by drag and drop or by its move menu (keyboard: arrow keys, Enter, Escape), and a move to Rejected asks for a reason, which the card then shows. Each save is made on the version of the file the page saw; if it changed meanwhile the save is refused (409) and the page shows the newer version. A switch above the board (remembered by the browser) shows the open ideas (New and Considering) instead as an impact–effort matrix: quick wins (high impact, low effort) highlighted, big bets, fill-ins, time sinks, and an Unestimated strip for ideas without both values. A Medium estimate counts as the less favourable half (low impact, high effort), so only a sure quick win shows as one. Moving a card to another quadrant (drag and drop or its move menu) sets the half that differs to High or Low. The board follows the files live (topic `ideas.items`), and a new idea is tinted for a moment when it arrives.
+
+An **engineering** idea in To develop becomes a ticket (d-ideas-ticket-line): its card offers "Make a ticket", which copies a ready prompt for Claude (`ticket.mjs`); Claude, following the skill, creates the GitHub issue with an `**Idea:** I-12` line among its first lines. Build reads that line and shows the idea as a link on the ticket (`/?module=ideas&idea=I-12`, which opens the idea in the drawer), and the card shows the ticket's number and state, read from Build's public `GET /api/build/ideas` (again when Build's tickets change). Without Build the card shows no tickets, and the button still copies the prompt.
 
 | File | What it is |
 |---|---|
@@ -24,19 +26,26 @@ Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-li
 | `store.mjs` | the idea files: list, add, update (checked values, versioned), the front matter |
 | `fields.mjs` | the values of the fields and the number formats, shared by the server and the page |
 | `ideas.mjs` | `groundwork ideas add|similar|list|move` |
+| `matrix.mjs` | the impact–effort matrix: which quadrant an idea sits in, the estimate a move sets; shared by the page and the tests |
 | `similar.mjs` | the likely duplicates of a text: word overlap with each idea's title and description, no dependencies |
 | `skills/groundwork-ideas/` | the skill `groundwork init` installs for Claude |
 | `index.html` | the page: a thin skeleton; `view/main.mjs` is its entry |
-| `view/main.mjs` | the page's state and actions: reading, saving, moving, the dialogs, toasts |
+| `view/main.mjs` | the page's state and actions: reading, saving, moving, the Kanban / Matrix switch, the dialogs, toasts |
 | `view/board.mjs` | the kanban, as lit-html templates on the shell's `.gw-*` components: drag and drop, the move menu |
+| `view/matrix.mjs` | the matrix view: four quadrants and the Unestimated strip, drag and drop, the move menu |
 | `view/drawer.mjs` | the drawer: one idea, every field editable |
 | `view/reject.mjs` | the reason a move to Rejected asks for |
-| `view/api.mjs` | the page's calls: list the ideas, save one |
+| `view/api.mjs` | the page's calls: list the ideas, save one, each idea's tickets from Build |
+| `view/tickets.mjs` | a card's tickets (number and state), or its "Make a ticket" button |
+| `ticket.mjs` | which idea may become a ticket, and the prompt for Claude that makes it |
+| `view/plan.mjs` | the way to Plan's map: an idea as a node through Plan's `POST /api/plan/todo`, then the node among the idea's links; which links are map nodes |
 | `view/strings.mjs`, `ui-strings.mjs` | the UI text, English and Hungarian |
 | `view/ideas.css` | the layout of the board, the menu and the dialogs |
 
-A card shows the sketches that link to its idea ("Sketch: <name>"), each opening that sketch in the shell; Ideas reads them from Sketch's public `GET /api/sketch/links` and follows them live (topic `sketch.links`). Without Sketch the cards show none, with no error. A link to an idea, `/?module=ideas&idea=I-12` (a sketch's or a shape's), opens it in the drawer.
+To Plan (f-ideas-to-plan, d-ideas-plan-endpoint): a product idea moved to To develop goes to Plan's map as a `todo` node. Ideas never writes the map; the page asks Plan through its public `POST /api/plan/todo`, Plan adds the node to an "Ideas" section of the first PRD with a link back to the idea (`/?module=ideas&idea=I-12`, which opens the idea in the drawer), and the page adds the node's id to the idea's `links`. The card then links to the node on the map (a link that is not an idea, a ticket or an address is a map node). The rejection dialog can also send the idea as an `excluded` item with its reason, so the PRD lists it among its non-goals. Without Plan, or without a map, a toast says the map is unavailable and the idea stays as it is. An engineering idea goes to a ticket instead (above).
+
+A card shows the sketches that link to its idea ("Sketch: <name>"), each opening that sketch in the shell; Ideas reads them from Sketch's public `GET /api/sketch/links` and follows them live (topic `sketch.links`). Without Sketch the cards show none, with no error.
 
 ## Public endpoints
 
-None yet.
+None yet. Ideas itself uses Plan's `POST /api/plan/todo`, Build's `GET /api/build/ideas` and Sketch's `GET /api/sketch/links`.

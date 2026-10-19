@@ -7,7 +7,11 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { startServer } from '../../core/server.mjs'
+import { listen } from '../../core/sse-client.test-helper.mjs'
+import { moduleFiles } from '../../core/files.mjs'
 import sketch from './module.mjs'
+import { openSketches } from './sketch-store.mjs'
+import { applyOps } from './ops.mjs'
 
 const FILE = path.join('docs', 'product', 'sketches', 'main.excalidraw')
 
@@ -157,4 +161,33 @@ test('a save must say it is JSON, so another site cannot post a form into the sk
     assert.equal(r.status, 415)
     assert.equal(fs.existsSync(path.join(root, FILE)), false)
   })
+})
+
+test('a save merges with the sketch on disk: what Claude drew meanwhile stays, the page\'s newer edit wins', async () => {
+  await withServer(async ({ root, base }) => {
+    const claude = { id: 'c1', type: 'ellipse', x: 0, y: 0, width: 50, height: 50, version: 1, versionNonce: 5, isDeleted: false }
+    fs.mkdirSync(path.dirname(path.join(root, FILE)), { recursive: true })
+    fs.writeFileSync(path.join(root, FILE), JSON.stringify(scene({ elements: [{ ...rect, x: 0, version: 2 }, claude] })))
+    // The page had read the sketch before Claude drew: it knows r1 only, and moved it.
+    assert.equal((await put(base, scene({ elements: [{ ...rect, x: 99, version: 3 }] }))).status, 200)
+    const file = JSON.parse(fs.readFileSync(path.join(root, FILE), 'utf8'))
+    assert.deepEqual(file.elements.map((e) => [e.id, e.x]), [['r1', 99], ['c1', 0]])
+  })
+})
+
+test('a change to a sketch file is the topic sketch.files, which the open page follows', () => {
+  assert.equal(sketch.watch('docs/product/sketches/main.excalidraw'), 'sketch.files')
+  assert.equal(sketch.watch('docs/product/mindmap.json'), null)
+})
+
+test('what Claude draws reaches the open page as a sketch.files event', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-sketch-'))
+  const srv = await startServer({ root, modules: [sketch], port: 0 })
+  const sse = listen(srv.port)
+  try {
+    await sse.next((e) => e.event === 'hello')
+    const scene = openSketches(moduleFiles(root, sketch)).read('main')
+    openSketches(moduleFiles(root, sketch)).save('main', { ...scene, elements: applyOps(scene.elements, [{ op: 'add', type: 'rectangle', x: 0, y: 0 }]) })
+    await sse.change('sketch.files')
+  } finally { sse.close(); await srv.close() }
 })

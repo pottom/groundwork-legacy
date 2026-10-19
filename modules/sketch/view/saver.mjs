@@ -4,15 +4,16 @@
 // drawing unsaved, so the next change tries again.
 //
 //   const saver = createSaver({ save })        save(elements, appState, files): a promise
-//   saver.loaded(elements, files)              the drawing as read: nothing to save yet
+//   saver.loaded(elements, files)              the drawing as read (first, and each time the file
+//                                              changed on disk): what is on disk needs no save
 //   saver.change(elements, appState, files)    Excalidraw's onChange
 //   saver.flush()                              save now what is waiting (leaving the page)
 
 export const DELAY_MS = 700
 
-// What tells one drawing from another: its elements' versions and its images.
+// What tells one drawing from another: its elements' versions and its images, in any order.
 const signature = (elements, files) =>
-  elements.map((e) => `${e.id}:${e.version}`).join(',') + '|' + Object.keys(files ?? {}).sort().join(',')
+  elements.map((e) => `${e.id}:${e.version}`).sort().join(',') + '|' + Object.keys(files ?? {}).sort().join(',')
 
 export function createSaver({ save, delay = DELAY_MS, timers = globalThis }) {
   let saved = null      // the signature on disk

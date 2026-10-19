@@ -11,6 +11,8 @@
 // Every idea is a Markdown file under docs/product/ideas/items/ (store.mjs); that folder is the only
 // one Ideas may write to. `groundwork ideas add|list|move` (ideas.mjs) writes and reads the same files.
 // The browser may set every column; the command only New and Considering (d-ideas-ai-limits).
+// A product idea to develop goes to Plan's map through Plan's POST /api/plan/todo, which the page
+// calls (view/plan.mjs): Ideas never writes the map.
 //
 // Live updates (core/events.mjs): an idea file changing is the topic "ideas.items"; the page then
 // asks /api/ideas/list again.
@@ -33,8 +35,8 @@ export default {
   // entry), and the modules it shares with the server.
   view: { dir: HERE, files: [
     'index.html', 'view/ideas.css', 'view/main.mjs', 'view/board.mjs', 'view/strings.mjs',
-    'view/api.mjs', 'view/drawer.mjs', 'view/reject.mjs',
-    'ui-strings.mjs', 'fields.mjs',
+    'view/api.mjs', 'view/drawer.mjs', 'view/reject.mjs', 'view/matrix.mjs', 'view/tickets.mjs', 'view/plan.mjs',
+    'ui-strings.mjs', 'fields.mjs', 'matrix.mjs', 'ticket.mjs',
   ] },
   // The only folder Ideas may write to: the idea files.
   writes: [ITEMS],

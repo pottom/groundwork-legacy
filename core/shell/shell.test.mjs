@@ -113,3 +113,10 @@ test('light or dark is a three-way segmented control in the header: System, Ligh
   assert.match(js, /groundworkTheme\.set\(/, 'a button switches')
   assert.match(js, /groundworkTheme\.onChange\(/, 'the pressed button follows a change made elsewhere')
 })
+
+test('the brand is the logo file: an image in the bar and the browser tab icon', () => {
+  const html = page()
+  assert.match(html, /<link rel="icon" type="image\/svg\+xml" href="\/shell\/logo\.svg">/)
+  assert.match(html, /<img class="gw-logo" src="\/shell\/logo\.svg" alt="">/)
+  assert.doesNotMatch(html, /gw-logo-fill/, 'no inline logo left')
+})
