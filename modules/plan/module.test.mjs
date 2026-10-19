@@ -41,3 +41,25 @@ test('the map round-trips through /api/plan/map and a browser save is merged', a
     await srv.close()
   }
 })
+
+// Plan's own colours: its node types and implementation states. Everything else
+// (page, panels, text, lines, accent, fonts) comes from the shell's theme.
+const PLAN_COLOURS = ['--topic', '--inferred', '--missing', '--decision', '--parked', '--todo']
+
+test('the Plan view uses the shell theme and defines no base colours of its own', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-look-'))
+  const srv = await startServer({ root, modules: [plan], port: 0 })
+  try {
+    const html = await (await fetch(`http://127.0.0.1:${srv.port}/plan/`)).text()
+    assert.match(html, /<link rel="stylesheet" href="\/shell\/theme\.css">/)
+    const css = html.match(/<style>([\s\S]*?)<\/style>/)[1]
+    for (const name of ['--bg', '--surface', '--fg', '--muted', '--line', '--font', '--font-doc', '--shadow'])
+      assert.doesNotMatch(css, new RegExp(`${name}:`), `Plan defines ${name}`)
+    // a colour literal may only be the value of one of Plan's own colours
+    const stray = css.split(/[;{}]/).map((d) => d.trim())
+      .filter((d) => /#[0-9a-f]{3,8}\b|rgba?\(/i.test(d) && !PLAN_COLOURS.includes(d.split(':')[0].trim()))
+    assert.deepEqual(stray, [])
+  } finally {
+    await srv.close()
+  }
+})
