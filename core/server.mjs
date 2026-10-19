@@ -35,6 +35,7 @@ import { moduleFiles } from './files.mjs'
 import { shellPage } from './shell/shell.mjs'
 import { createEvents } from './events.mjs'
 import { VERSION } from './version.mjs'
+import { projectName } from './project-name.mjs'
 
 export const HOST = '127.0.0.1'
 const HOST6 = '::1'
@@ -84,7 +85,7 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
   const events = createEvents({ root: path.resolve(root), modules })
   const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m), events: events.api }) : null }))
   const byId = new Map(mods.map((m) => [m.id, m]))
-  const project = path.basename(path.resolve(root))
+  const project = projectName(root)
 
   const handler = async (req, res) => {
     try {
