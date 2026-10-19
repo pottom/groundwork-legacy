@@ -1,6 +1,6 @@
 /* The layout of the shell page (shell.mjs): a two-tier header on top (the bar, then a tab per
-   module), the module's view filling the rest. Uses only the variables of theme.css. Modules
-   do not need this file. */
+   module), the module's view filling the rest; in a narrow window the two tiers fold into one
+   row. Uses only the tokens and components of theme.css. Modules do not need this file. */
 
 * { box-sizing: border-box; }
 
@@ -17,6 +17,7 @@ body.gw-shell {
 
 .gw-header {
   position: relative;
+  z-index: 2;
   flex: none;
   background: var(--gw-surface);
   border-bottom: 1px solid var(--gw-line);
@@ -44,16 +45,19 @@ body.gw-shell {
   border-bottom: 1px solid var(--gw-line);
 }
 
-.gw-logo { width: 26px; height: 26px; flex: none; display: block; }
+.gw-logo { width: 26px; height: 26px; flex: none; display: block; filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--gw-accent) 30%, transparent)); }
 
-.gw-brand { font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
+.gw-brand { color: var(--gw-fg-2); font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 
-.gw-sep { color: var(--gw-line-strong); font-size: 18px; }
+.gw-sep { color: var(--gw-line-strong); font-size: 18px; font-weight: 300; }
 
+/* the project: the page's subject, in the interface font (no extra font to load) */
 .gw-project {
   min-width: 0;
   margin-right: auto;
-  font: italic 600 17px/1.2 var(--gw-font-serif);
+  color: var(--gw-fg);
+  font: 680 16px/1.2 var(--gw-font);
+  letter-spacing: -.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -62,41 +66,32 @@ body.gw-shell {
 .gw-live {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   margin-right: calc(var(--gw-space) / 2);
   color: var(--gw-muted);
   font: 500 12px/1 var(--gw-font);
   white-space: nowrap;
 }
-.gw-live i { width: 7px; height: 7px; border-radius: 50%; background: var(--gw-muted); }
+.gw-live i { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--gw-muted); }
 .gw-live[data-state="on"] i {
   background: var(--gw-ok);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--gw-ok) 22%, transparent);
-  animation: gw-pulse 2.4s ease-in-out infinite;
+  animation: gw-live-pulse 2.4s ease-in-out infinite;
 }
+.gw-live[data-state="off"] { color: var(--gw-bad-text); }
 .gw-live[data-state="off"] i { background: var(--gw-bad); }
-@keyframes gw-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--gw-ok) 0%, transparent); } }
+@keyframes gw-live-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--gw-ok) 0%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .gw-live[data-state="on"] i { animation: none; } }
 
-.gw-lang {
-  appearance: none;
-  padding: 4px 10px;
-  border: 1px solid var(--gw-line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--gw-fg-2);
-  font: 500 12px/1.2 var(--gw-font);
-  cursor: pointer;
-}
-.gw-lang:hover { border-color: var(--gw-line-strong); }
+/* the language: a quiet EN · HU segmented control, a track only on hover */
+.gw-lang { padding: 2px; background: transparent; box-shadow: none; transition: background .15s; }
+.gw-lang:hover { background: var(--gw-sunken); }
+.gw-lang > button { height: 24px; padding: 0 8px; font: 600 11.5px/1 var(--gw-font); letter-spacing: .03em; }
+.gw-lang > button::after { display: none; }
+.gw-lang > button[aria-pressed="true"] { background: var(--gw-sunken); box-shadow: none; }
+.gw-lang:hover > button[aria-pressed="true"] { background: var(--gw-surface); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
 
-.gw-version {
-  padding: 4px 7px;
-  border-radius: 6px;
-  background: var(--gw-sunken);
-  color: var(--gw-muted);
-  font: 500 11px/1 var(--gw-font-mono);
-}
+.gw-version { color: var(--gw-muted); font-size: 11px; }
 
 /* ---- the tabs: one per module ---- */
 
@@ -111,7 +106,7 @@ body.gw-shell {
   border-radius: 12px 12px 0 0;
   color: var(--gw-fg-2);
   text-decoration: none;
-  transition: background .15s;
+  transition: background .15s, color .15s;
 }
 .gw-nav a:hover { background: var(--gw-sunken); }
 
@@ -121,7 +116,7 @@ body.gw-shell {
 .gw-tab-name { font-weight: 600; color: var(--gw-fg); }
 .gw-tab-tagline { font-size: 12px; color: var(--gw-muted); }
 
-/* the current tab opens into the page below it */
+/* the current tab opens into the page below it, marked with the gradient */
 .gw-nav a[aria-current="page"] {
   background: var(--gw-bg);
   color: var(--gw-accent);
@@ -141,10 +136,10 @@ body.gw-shell {
   left: 12px; right: 12px; top: -1px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--gw-accent), var(--gw-accent-2));
+  background: var(--gw-gradient);
 }
 
-.gw-nav a:focus-visible, .gw-lang:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; }
+.gw-nav a:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; }
 
 /* ---- the module's view ---- */
 
@@ -152,12 +147,23 @@ body.gw-shell {
 
 .gw-view { display: block; width: 100%; height: 100%; border: 0; background: var(--gw-bg); }
 
-.gw-empty { padding: calc(var(--gw-space) * 3); color: var(--gw-muted); }
-
-/* narrow windows: the essentials only */
+/* narrow windows: one row, the tabs as a segmented control in the bar */
 @media (max-width: 760px) {
-  .gw-bar { padding: 0 calc(var(--gw-space) * 1.5); }
+  .gw-header { display: flex; align-items: center; gap: var(--gw-space); height: 52px; padding: 0 calc(var(--gw-space) * 1.5); }
+  .gw-bar { display: contents; }
   .gw-brand, .gw-sep, .gw-version, .gw-live span, .gw-tab-tagline { display: none; }
-  .gw-nav { padding-left: var(--gw-space); }
-  .gw-nav a { padding: 8px 12px 10px; }
+  .gw-project { order: 1; flex: 1; font-size: 15px; }
+  .gw-nav { order: 2; gap: 2px; padding: 3px; border-radius: 10px; background: var(--gw-sunken); }
+  .gw-nav a { gap: 6px; padding: 0 10px; height: 30px; border-radius: 7px; font-size: 13px; }
+  .gw-nav a:hover { background: transparent; color: var(--gw-fg); }
+  .gw-nav a[aria-current="page"] { background: var(--gw-surface); box-shadow: 0 1px 2px rgb(0 0 0 / .08), 0 0 0 1px color-mix(in srgb, var(--gw-line) 80%, transparent); }
+  .gw-nav a[aria-current="page"]::after { display: none; }
+  .gw-nav a[aria-current="page"]::before { top: auto; bottom: 2px; left: 10px; right: 10px; }
+  .gw-icon { width: 16px; height: 16px; }
+  .gw-live { order: 3; margin: 0 2px; }
+  .gw-lang { order: 4; }
+}
+@media (max-width: 400px) {
+  .gw-project { display: none; }
+  .gw-nav { margin-right: auto; }
 }

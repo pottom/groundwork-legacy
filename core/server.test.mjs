@@ -290,7 +290,7 @@ test('the shell shows its text in English and marks every string for translation
     assert.match(page, /<html lang="en">/)
     assert.match(page, /<nav class="gw-nav" aria-label="Modules" data-i18n-aria-label="nav"/)
     const empty = shellPage({ project: 'p', modules: [], active: null })
-    assert.match(empty, /<p class="gw-empty" data-i18n="noView">No module has a view\.<\/p>/)
+    assert.match(empty, /<p class="gw-empty__title" data-i18n="noView">No module has a view\.<\/p>/)
     const keys = [...new Set([...i18nKeys(page), ...i18nKeys(empty)])].filter((k) => !k.startsWith('module.'))  // taglines: the manifests'
     assert.ok(keys.length >= 3, keys.join())
     for (const k of keys) {
@@ -303,9 +303,9 @@ test('the shell shows its text in English and marks every string for translation
 test('the shell has a language picker and serves the translation module to its pages', async () => {
   await withShell(async ({ port }) => {
     const page = (await get(port, '/')).body
-    assert.match(page, /<select class="gw-lang"[^>]*>\s*<option value="en">English<\/option>\s*<option value="hu">Magyar<\/option>/)
+    assert.match(page, /<div class="gw-seg gw-lang" role="group"[^>]*>\s*<button type="button" data-lang="en" title="English"[^>]*>EN<\/button>\s*<button type="button" data-lang="hu" title="Magyar"[^>]*>HU<\/button>/)
     assert.match(page, /import \{ createI18n \} from '\/shell\/i18n\.mjs'/)
-    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs']) {
+    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs', '/shell/live.mjs']) {
       const r = await get(port, js)
       assert.equal(r.status, 200, js)
       assert.match(r.headers['content-type'], /javascript/)
@@ -353,7 +353,7 @@ test('the header shows the brand, the version and whether the page is live', asy
   const page = shellPage({ project: 'p', version: '9.8.7', modules: [], active: null })
   assert.match(page, /<header[^>]*>[\s\S]*Groundwork[\s\S]*v9\.8\.7[\s\S]*<\/header>/)
   assert.match(page, /<span class="gw-live" data-state="connecting"[^>]*><i><\/i><span data-i18n="connecting">/)
-  assert.match(page, /new EventSource\('\/api\/events'\)/)
+  assert.match(page, /relayEvents\(/, 'the shell owns the live stream (live.mjs)')
   for (const k of ['live', 'offline', 'connecting']) assert.ok(SHELL_STRINGS.hu[k] && SHELL_STRINGS.en[k], k)
 })
 

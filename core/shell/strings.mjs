@@ -7,6 +7,7 @@ export const SHELL_STRINGS = {
   en: {
     nav: 'Modules',
     noView: 'No module has a view.',
+    noViewText: 'The modules that show a page get a tab here.',
     language: 'Language',
     connecting: 'Connecting',
     connectingTitle: 'Connecting to the local server',
@@ -18,6 +19,7 @@ export const SHELL_STRINGS = {
   hu: {
     nav: 'Modulok',
     noView: 'Egyik modulnak sincs nézete.',
+    noViewText: 'Az oldallal rendelkező modulok itt kapnak fület.',
     language: 'Nyelv',
     connecting: 'Kapcsolódás',
     connectingTitle: 'Kapcsolódás a helyi szerverhez',

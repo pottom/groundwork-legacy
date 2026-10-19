@@ -56,7 +56,7 @@ export function isLocalHost(header) {
 export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
 export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
 // The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
-const SHELL_BROWSER_FILES = new Set(['theme.css', 'shell.css', 'i18n.mjs', 'strings.mjs'])
+const SHELL_BROWSER_FILES = new Set(['theme.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs'])
 
 // The file under `dir` that the URL path `rest` (still percent-encoded) names, or null when it
 // leaves the folder, names a dot file, or has a type the server does not serve (README, LICENSE).
