@@ -89,6 +89,31 @@ test('the view is served under /<module>/, only its listed files', async () => {
   })
 })
 
+test('the bundled dependencies are served under /vendor/', async () => {
+  await withServer(async ({ port }) => {
+    const js = await get(port, '/vendor/marked/marked.esm.js')
+    assert.equal(js.status, 200)
+    assert.match(js.headers['content-type'], /^text\/javascript/)
+    const css = await get(port, '/vendor/fonts.css')
+    assert.equal(css.status, 200)
+    assert.match(css.headers['content-type'], /^text\/css/)
+    const font = await get(port, '/vendor/fonts/inter/inter-latin-wght-normal.woff2')
+    assert.equal(font.status, 200)
+    assert.equal(font.headers['content-type'], 'font/woff2')
+  })
+})
+
+test('/vendor/ refuses paths outside the folder, dot files, folders and unserved types', async () => {
+  await withServer(async ({ port }) => {
+    for (const p of [
+      '/vendor/..%2fserver.mjs', '/vendor/..%5cserver.mjs', '/vendor/%2e%2e%2fserver.mjs',
+      '/vendor/marked/..%2f..%2fserver.mjs', '/vendor/%2fetc%2fpasswd', '/vendor/C:%5cWindows%5cwin.ini',
+      '/vendor/', '/vendor/marked', '/vendor/README.md', '/vendor/marked/LICENSE.md', '/vendor/missing.js',
+      '/vendor/%E0%A4%A',
+    ]) assert.equal((await get(port, p)).status, 404, p)
+  })
+})
+
 test('the start page links every module', async () => {
   await withServer(async ({ port }) => {
     const r = await get(port, '/')

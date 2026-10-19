@@ -3,6 +3,7 @@
 //   GET  /                     start page, links every module
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
 //   *    /api/<module>/...     the module's endpoints
+//   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
 //   GET  /<module>/...         the module's view (only the files its manifest lists)
 //
 // It listens on 127.0.0.1 only and answers a request whose Host header names any
@@ -17,6 +18,7 @@
 import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { send, TYPES } from './http.mjs'
 
 export const HOST = '127.0.0.1'
@@ -32,7 +34,21 @@ export function isLocalHost(header) {
   return LOCAL_NAMES.has(hostName(header))
 }
 
-export function startServer({ root, modules, port = 4477 }) {
+export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
+
+// The file under `dir` that the URL path `rest` (still percent-encoded) names, or null when it
+// leaves the folder, names a dot file, or has a type the server does not serve (README, LICENSE).
+export function staticFile(dir, rest) {
+  let rel
+  try { rel = decodeURIComponent(rest) } catch { return null }
+  if (!rel || rel.includes('\0') || rel.split(/[\\/]/).some((p) => p.startsWith('.'))) return null
+  const base = path.resolve(dir)
+  const f = path.resolve(base, rel)
+  if (!f.startsWith(base + path.sep) || !TYPES[path.extname(f)]) return null
+  return fs.statSync(f, { throwIfNoEntry: false })?.isFile() ? f : null
+}
+
+export function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR }) {
   const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root }) : null }))
   const byId = new Map(mods.map((m) => [m.id, m]))
 
@@ -51,6 +67,11 @@ export function startServer({ root, modules, port = 4477 }) {
         if (mod?.handle && (await mod.handle(req, res, sub, url)) === true) return
         if (!res.headersSent) send(res, 404, { error: 'not found' })
         return
+      }
+      if (parts[1] === 'vendor' && req.method === 'GET') {
+        const f = staticFile(vendor, parts.slice(2).join('/'))
+        if (f) return send(res, 200, fs.readFileSync(f), TYPES[path.extname(f)])
+        return send(res, 404, { error: 'not found' })
       }
       const mod = byId.get(parts[1])
       if (mod?.view && req.method === 'GET') {

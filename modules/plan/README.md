@@ -68,7 +68,7 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 | `module.mjs` | a modul a mag szerver számára: manifest, nézet, végpontok `/api/plan/` alatt |
 | `map-store.mjs` | a térkép olvasása, írása és összefésülése; a CLI, a hook és a szerver is ezt használja |
 | `plan.mjs` | CLI (`init`, `apply`, `show`, `hook`) |
-| `index.html` | a térkép és a dokumentum panel ([Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1, [marked](https://marked.js.org)) |
+| `index.html` | a térkép és a dokumentum panel ([Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1, [marked](https://marked.js.org) 12.0.2; a csomagban, a mag szolgálja ki a `/vendor/` alól, hálózat nélkül is működik) |
 | `documents.mjs` | dokumentum-modell a térképből (összetevők, dokumentumok, fejezetek) + Markdown export (közös a szerverrel) |
 | `node-types.mjs` | csomópont-típusok: címke, [Lucide](https://lucide.dev) ikon |
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
