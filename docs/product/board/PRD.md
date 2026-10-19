@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Tábla modul: Műszaki terv](../board/TECH.md)._
 
-> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 0 kész, 0 részben, 7 hiányzik.
+> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 0 kész, 0 részben, 8 hiányzik.
 
 ## 1. Probléma és cél
 
@@ -23,12 +23,13 @@ A fejlesztő felvázol valamit, és megkérdezi Claude-ot; Claude elolvassa a ra
 A modul névvel ellátott táblákat kezel; mindegyik egy Excalidraw-rajz a közös keretben. Claude parancssori eszközön és skillen át olvassa és rajzolja a táblát, Mermaid-leírásból is. A tábla lényege a szálak: egy alakzatra tűzött rövid beszélgetés, amelyben ember és Claude felváltva válaszol. Minden változás élőben jelenik meg. Egy tábla hivatkozhat ötletre, térképcsomópontra vagy jegyre, és azok is a táblára.
 
 - Excalidraw-szerkesztő a keretben `hiányzik`
-- Több tábla névvel: lista, létrehozás, átnevezés `hiányzik`
+- Tetszőleges számú tábla névvel: lista, létrehozás, átnevezés `hiányzik`
 - Claude olvassa a táblát: alakzatok, szövegek, kapcsolatok `hiányzik`
 - Claude rajzol: alakzatok, nyilak, szövegek, Mermaidből is `hiányzik`
 - Alakzatokhoz tűzött megjegyzésszálak `hiányzik`
 - Élő frissítés: Claude rajza és válasza azonnal megjelenik `hiányzik`
-- Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza `hiányzik`
+- Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza `hiányzik` — Jó, ha van, de nem feltétlenül szükséges.
+- Egy alakzat is hivatkozhat ötletre, térképcsomópontra, jegyre vagy másik táblára `hiányzik` — Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges.
 
 ## 4. Funkcionális követelmények
 
