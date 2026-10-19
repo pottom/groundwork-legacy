@@ -100,6 +100,26 @@ test('the board offers Hungarian, which Excalidraw 0.17.6 leaves out of its lang
   assert.equal(boardProps({ scene, lang: 'en', dark: true }).theme, 'dark')
 })
 
+test('which sketch opens: the deep link, else the one opened last, else the first, else main', async () => {
+  const { chooseSketch } = await import('./view/sketches.mjs')
+  const names = ['architecture', 'flow']
+  assert.equal(chooseSketch({ asked: 'flow', remembered: 'architecture', names }), 'flow')
+  assert.equal(chooseSketch({ asked: 'brand-new', names }), 'brand-new', 'a deep link to a sketch not drawn yet opens it empty')
+  assert.equal(chooseSketch({ asked: '../x', remembered: 'flow', names }), 'flow', 'not a plain name: ignored')
+  assert.equal(chooseSketch({ asked: null, remembered: 'flow', names }), 'flow')
+  assert.equal(chooseSketch({ asked: null, remembered: 'gone', names }), 'architecture', 'a remembered sketch renamed or deleted since')
+  assert.equal(chooseSketch({ asked: null, remembered: null, names: [] }), 'main')
+})
+
+test('the page opens the sketch the shell deep-links to (/?module=sketch&sketch=<name>) and remembers it', () => {
+  const main = read('view/main.mjs')
+  assert.match(main, /new URLSearchParams\(location\.search\)\.get\('sketch'\)/)
+  assert.match(main, /localStorage/)
+  const bar = read('view/sketches.mjs')
+  for (const api of ['/api/sketch/list', '/api/sketch/create', '/api/sketch/rename']) assert.ok((main + bar).includes(api), api)
+  assert.match(read('index.html'), /<nav[^>]*id="sketches"/)
+})
+
 test('the strings: same keys in English and Hungarian, translated, and every one used', () => {
   const { en, hu } = STRINGS
   assert.deepEqual(Object.keys(hu).sort(), Object.keys(en).sort())
