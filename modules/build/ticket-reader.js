@@ -38,7 +38,7 @@
 //
 // A ticket's state: a local file's Status line (the first word; the rest is the note); a GitHub
 // issue's state: closed is "closed" ("wontfix" when closed as not planned or duplicate), open is
-// its first state label (ready-for-agent, needs-triage, ...), else "open". "Blocked by": the
+// its first state label (ready-for-agent, needs-triage, ...), else "needs-triage". "Blocked by": the
 // "Blocked by:" line or a "## Blocked by" section in the text, and for an issue also GitHub's
 // own dependency links. "#12" names an issue (global), "core 3" or "3" a local ticket of an
 // area; a title or a file name names a ticket too.
@@ -194,12 +194,19 @@ function parseBlockedBy(raw) {
 }
 
 // "f-build-trace, `d-trace`; [x-own](…) and n-1" → the ids of the PRD items (map nodes), each once.
+// A remark in parentheses is not an id, and only what looks like a map id counts (a hyphen,
+// an underscore or a digit in it): "f-known needs a grilling" names f-known only. A line that
+// is only a dash, "none" (nincs, n/a) or a remark says "deliberately no PRD": none is true.
 const PRD_ID = /^[\p{L}\p{N}][\p{L}\p{N}_.-]*$/u;
+const PRD_NONE = /^(?:[—–-]+|none|nincs|n\/a|nothing|semmi)(?![\p{L}\p{N}-])/iu;
 function parsePrd(raw) {
-  const ids = String(raw).replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*]/g, '')
-    .split(/[\s,;]+/).map((s) => s.replace(/[.)]+$/, '').replace(/^\(+/, ''))
-    .filter((s) => PRD_ID.test(s) && !/^(and|és|or|vagy)$/i.test(s));
-  return [...new Set(ids)];
+  let s = String(raw).replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*]/g, '');
+  for (let k = 0; k < 4 && /\([^()]*\)/.test(s); k++) s = s.replace(/\([^()]*\)/g, ' ');
+  s = s.trim();
+  if (!s || PRD_NONE.test(s)) return { ids: [], none: true };
+  const ids = s.split(/[\s,;]+/).map((x) => x.replace(/[.)]+$/, '').replace(/^\(+/, ''))
+    .filter((x) => PRD_ID.test(x) && /[-_\d]/.test(x));
+  return { ids: [...new Set(ids)], none: false };
 }
 
 function parseTicket(path, area, fileName, text) {
@@ -225,7 +232,9 @@ function parseTicket(path, area, fileName, text) {
   t.mismatch = issueField && fm && fm[1].length >= 3 && +fm[1] !== +issueField[1] ? { file: +fm[1], field: +issueField[1] } : null;
   t.earlier = t.fields['earlier name'] || '';
   t.type = t.fields.type || '';
-  t.prd = parsePrd(t.fields.prd || '');
+  const prd = 'prd' in t.fields ? parsePrd(t.fields.prd) : { ids: [], none: false };
+  t.prd = prd.ids;
+  t.prdNone = prd.none;
 
   const headingsEnd = (() => { const c = lines.findIndex((l) => COMMENTS_HEADING.test(l)); return c < 0 ? lines.length : c; })();
   // The issue template's form: a "## Blocked by" (or "## Status") heading with
@@ -469,7 +478,7 @@ function findProblems(m, mapIds) {
   for (const t of m.tickets) {
     const unknown = mapIds ? t.prd.filter((id) => !mapIds.has(id)) : [];
     if (unknown.length) add('unknown-prd', [t], 'problem.unknown-prd.text', { list: unknown.join(', ') });
-    if (linksPrd && !t.prd.length && !isClosed(t)) add('no-prd', [t], 'problem.no-prd.text');
+    if (linksPrd && !t.prd.length && !t.prdNone && !isClosed(t)) add('no-prd', [t], 'problem.no-prd.text');
     if (!t.statusLine) add('no-status', [t], 'problem.no-status.text');
     else if (t.status === UNPARSED) {
       if (t.statusNote) add('bad-status', [t], 'problem.bad-status.text', { line: t.statusNote });
@@ -512,7 +521,7 @@ function parseIssue(issue, repo) {
   if (issue.state === 'closed') {
     t.status = issue.stateReason === 'not_planned' || issue.stateReason === 'duplicate' ? 'wontfix' : 'closed';
   } else {
-    t.status = (labels.find((l) => STATE_LABEL.test(l)) || 'open').toLowerCase();
+    t.status = (labels.find((l) => STATE_LABEL.test(l)) || 'needs-triage').toLowerCase();   // no state label yet: to be triaged
   }
   t.statusNote = '';
   t.fields.status = t.status;

@@ -74,8 +74,9 @@ test('English by default; the language chosen in the shell is followed', () => {
 })
 
 test('alone, the page has its own language picker; inside the shell it uses the shell\'s', () => {
-  assert.match(PAGE, /<select id="lang" class="gw-lang"/)
-  assert.match(PAGE, /\.in-shell #lang\s*\{\s*display:\s*none/)
+  assert.match(PAGE, /<select id="lang" class="gw-lang[ "]/)
+  assert.match(PAGE, /<header id="top">[\s\S]*<select id="lang"[\s\S]*<\/header>/, 'the picker is in the page\'s own bar')
+  assert.match(PAGE, /\.in-shell #top\s*\{\s*display:\s*none/, 'which the shell hides')
   assert.match(PAGE, /i18n\.set\(/)
   assert.match(PAGE, /i18n\.onChange\(/)
 })
