@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { startServer } from '../../core/server.mjs';
-import build from './module.mjs';
+import build, { buildModule } from './module.mjs';
 
 const hasGit = (() => { try { execFileSync('git', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
 
@@ -121,11 +121,55 @@ test('the git history of the project, read only', { skip: !hasGit && 'git is not
   assert.deepEqual(snapshot(root), before);
 });
 
+test('a project without a GitHub remote has no issues', async () => {
+  const root = project();
+  await withServer(root, async (base) => {
+    const answer = await (await fetch(`${base}/api/build/issues`)).json();
+    assert.equal(answer.server, 'development-status');
+    assert.deepEqual([answer.available, answer.reason], [false, 'no-repo']);
+  });
+});
+
+test('the GitHub issues of the project\'s origin, fetched by the server', { skip: !hasGit && 'git is not installed' }, async () => {
+  const root = project();
+  execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: root, stdio: 'pipe' });
+  execFileSync('git', ['remote', 'add', 'origin', 'https://github.com/acme/app.git'], { cwd: root, stdio: 'pipe' });
+  const asked = [];
+  const request = async (p) => {
+    asked.push(p);
+    return p.startsWith('repos/acme/app/issues?') ? [{ number: 4, title: 'Four', state: 'open', labels: [{ name: 'ready-for-agent' }], milestone: { title: 'M1' }, body: '## Blocked by\n\n- #2\n' }] : [];
+  };
+  const srv = await startServer({ root, modules: [buildModule({ githubRequest: request })], port: 0 });
+  try {
+    const base = `http://127.0.0.1:${srv.port}`;
+    const answer = await (await fetch(`${base}/api/build/issues`)).json();
+    assert.equal(answer.available, true);
+    assert.equal(answer.repo, 'acme/app');
+    assert.deepEqual(answer.issues.map((i) => [i.number, i.title, i.milestone, i.labels]), [[4, 'Four', 'M1', ['ready-for-agent']]]);
+    const again = await (await fetch(`${base}/api/build/issues?known=${answer.fingerprint}`)).json();
+    assert.deepEqual([again.unchanged, again.fingerprint], [true, answer.fingerprint]);
+    assert.equal(asked.length, 1, 'polling is answered from what the server keeps');
+  } finally { await srv.close(); }
+});
+
+test('the page reads tickets with the ticket reader, a classic script beside it', async () => {
+  await withServer(project(), async (base) => {
+    const reader = await fetch(`${base}/build/ticket-reader.js`);
+    assert.equal(reader.status, 200);
+    assert.doesNotMatch(await reader.text(), /^\s*(import|export)\s/m, 'not an ES module: the page works from file:// too');
+    const page = await (await fetch(`${base}/build/`)).text();
+    assert.match(page, /<script src="ticket-reader\.js"><\/script>/);
+    assert.match(page, /\} = GroundworkTickets;/);
+    assert.match(page, /readTickets\(\{/);
+    assert.doesNotMatch(page, /function parseTicket|function buildModel/, 'no copy of the reader left in the page');
+  });
+});
+
 test('reading the project writes nothing into it', async () => {
   const root = project();
   const before = snapshot(root);
   await withServer(root, async (base) => {
-    for (const p of ['/build/', '/api/build/hello', '/api/build/list', '/api/build/file?path=README.md', '/api/build/git']) await fetch(base + p);
+    for (const p of ['/build/', '/api/build/hello', '/api/build/list', '/api/build/file?path=README.md', '/api/build/git', '/api/build/issues']) await fetch(base + p);
   });
   assert.deepEqual(snapshot(root), before);
 });

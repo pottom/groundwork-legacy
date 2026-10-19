@@ -7,6 +7,11 @@
 //   GET /api/build/file?path=<p>         the text of a listed markdown file
 //   GET /api/build/git[?limit=n&known=f] branches, tags, commits and merges when the root is the top of a
 //                                        git repository; { unchanged: true } while nothing moved since `known`
+//   GET /api/build/issues[?known=f]      the GitHub issues of the "origin" remote's repository (github-source.mjs):
+//                                        { available, repo, issues, fingerprint, error? }, or { available: false,
+//                                        reason }; { unchanged: true } while they are the same as `known`
+//
+// GitHub is asked by the server only (gh CLI, or GITHUB_TOKEN): no token ever reaches the page.
 //
 // HEAD is answered too; every other method gets 405. Nothing is ever written
 // into the project: files are only read (project-reader.mjs keeps them inside
@@ -18,6 +23,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openProject } from './project-reader.mjs';
+import { githubRepo, openGitHub } from './github-source.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,7 +31,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 // SERVER_ID, SERVER_API and VERSION in index.html.
 const SERVER_ID = 'development-status';
 const API_VERSION = 1;
-const VERSION = '2.2.0';
+const VERSION = '2.3.0';
 
 const GIT_LIMIT = 400;
 const GIT_MAX_LIMIT = 5000;
@@ -58,25 +64,43 @@ async function git(project, url) {
   }
 }
 
-export default {
-  id: 'build',
-  name: 'Build',
-  version: VERSION,
-  view: { dir: HERE, files: ['index.html', 'i18n.js', 'ui-strings.js'] },
-  api({ root }) {
-    const project = openProject(root);
-    const name = path.basename(project.root);
-    return async (req, res, sub, url) => {
-      const head = req.method === 'HEAD';
-      if (req.method !== 'GET' && !head) return sendText(res, 405, 'Method not allowed'), true;
-      if (sub === '/hello') return sendJson(res, { version: VERSION, git: true, name, launcher: 'node core/groundwork.mjs' }, head), true;
-      if (sub === '/list') return sendJson(res, { name, ...project.list() }, head), true;
-      if (sub === '/file') {
-        const body = project.readFile(url.searchParams.get('path') || '');
-        return (body ? send(res, 200, 'text/plain; charset=utf-8', body, head) : sendText(res, 404, 'Not found', head)), true;
-      }
-      if (sub === '/git') return sendJson(res, await git(project, url), head), true;
-      return false;
-    };
-  },
-};
+// The issues of the project's GitHub repository, when its origin is on GitHub.
+function issuesOf(project, githubRequest) {
+  let source = null;
+  return async (url) => {
+    source ??= project.gitRemoteUrl().then((remote) => openGitHub({ repo: githubRepo(remote), ...(githubRequest ? { request: githubRequest } : {}) }));
+    const answer = await (await source).issues();
+    const known = url.searchParams.get('known');
+    return known && answer.fingerprint === known ? { available: true, unchanged: true, fingerprint: known } : answer;
+  };
+}
+
+// The manifest; githubRequest replaces how GitHub is asked (tests).
+export function buildModule({ githubRequest } = {}) {
+  return {
+    id: 'build',
+    name: 'Build',
+    version: VERSION,
+    view: { dir: HERE, files: ['index.html', 'i18n.js', 'ui-strings.js', 'ticket-reader.js'] },
+    api({ root }) {
+      const project = openProject(root);
+      const name = path.basename(project.root);
+      const issues = issuesOf(project, githubRequest);
+      return async (req, res, sub, url) => {
+        const head = req.method === 'HEAD';
+        if (req.method !== 'GET' && !head) return sendText(res, 405, 'Method not allowed'), true;
+        if (sub === '/hello') return sendJson(res, { version: VERSION, git: true, github: true, name, launcher: 'node core/groundwork.mjs' }, head), true;
+        if (sub === '/list') return sendJson(res, { name, ...project.list() }, head), true;
+        if (sub === '/file') {
+          const body = project.readFile(url.searchParams.get('path') || '');
+          return (body ? send(res, 200, 'text/plain; charset=utf-8', body, head) : sendText(res, 404, 'Not found', head)), true;
+        }
+        if (sub === '/git') return sendJson(res, await git(project, url), head), true;
+        if (sub === '/issues') return sendJson(res, await issues(url), head), true;
+        return false;
+      };
+    },
+  };
+}
+
+export default buildModule();
