@@ -66,7 +66,7 @@ test('with only Build, its page and endpoints work, and Plan\'s endpoint is simp
 
 test('each module declares the endpoints other modules may read, and the server answers them', async () => {
   assert.deepEqual(plan.public, ['GET /api/plan/ids', 'POST /api/plan/todo'])
-  assert.deepEqual(build.public, ['GET /api/build/prd'])
+  assert.deepEqual(build.public, ['GET /api/build/prd', 'GET /api/build/ideas'])
   // Reads are GETs. The one write another module may ask for is Plan's: an idea as a map node, and
   // only as a JSON request, so no other web site can send it (CSRF).
   const writes = { 'POST /api/plan/todo': { idea: 'I-1', title: 'From Ideas' } }

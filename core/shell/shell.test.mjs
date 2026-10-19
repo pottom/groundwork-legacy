@@ -90,3 +90,26 @@ test('a hidden module frame keeps its size and place: hidden by visibility, stac
   assert.match(hidden, /display:\s*block/, 'not display: none, which would lay the module out again at 0×0')
   assert.match(hidden, /visibility:\s*hidden/)
 })
+
+test('the theme switch loads first in <head>, before the look, so the page paints in the chosen theme', () => {
+  const head = /<head>([\s\S]*?)<\/head>/.exec(page())[1]
+  const at = (s) => head.indexOf(s)
+  assert.ok(at('<script src="/shell/theme.js"></script>') >= 0, 'a plain script, not a deferred module')
+  assert.ok(at('<script src="/shell/theme.js">') < at('/shell/theme.css'))
+})
+
+test('light or dark is a three-way segmented control in the header: System, Light, Dark, translated', () => {
+  const html = page()
+  const seg = /<div class="gw-seg gw-theme" role="group"([^>]*)>([\s\S]*?)<\/div>/.exec(html)
+  assert.ok(seg, 'a .gw-seg group')
+  assert.match(seg[1], /aria-label="Theme" data-i18n-aria-label="theme"/)
+  const buttons = [...seg[2].matchAll(/<button type="button" data-theme-choice="(\w+)" title="([^"]+)" aria-label="\2" data-i18n-title="(\w+)" data-i18n-aria-label="\3" aria-pressed="(true|false)">/g)]
+    .map((m) => [m[1], m[2], m[4]])
+  assert.deepEqual(buttons, [['system', 'Follow the system', 'true'], ['light', 'Light', 'false'], ['dark', 'Dark', 'false']])
+  for (const k of ['theme', 'themeSystem', 'themeLight', 'themeDark']) {
+    assert.ok(SHELL_STRINGS.en[k] && SHELL_STRINGS.hu[k] && SHELL_STRINGS.hu[k] !== SHELL_STRINGS.en[k], k)
+  }
+  const js = script(html)
+  assert.match(js, /groundworkTheme\.set\(/, 'a button switches')
+  assert.match(js, /groundworkTheme\.onChange\(/, 'the pressed button follows a change made elsewhere')
+})

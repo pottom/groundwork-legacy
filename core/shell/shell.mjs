@@ -19,6 +19,9 @@
 //
 // The look (the tokens and the .gw-* components, light or dark) comes from theme.css next to this
 // file, served at /shell/theme.css; modules link the same file to share it (see README.md here).
+// Light or dark follows the OS until the user picks one in the header (System · Light · Dark);
+// theme.js, loaded first in every page's <head>, keeps the choice and switches the shell and
+// every module frame alike, live.
 //
 // The UI text is English here and marked with data-i18n keys (strings.mjs, plus each module's
 // tagline as module.<id>.tagline); in the browser i18n.mjs switches it to the chosen language,
@@ -35,6 +38,13 @@ const scriptJson = (v) => JSON.stringify(v).replace(/</g, '\\u003c')
 // A module without an icon of its own gets a plain square.
 const PLAIN_ICON = '<rect x="4.5" y="4.5" width="15" height="15" rx="3.5"/>'
 const icon = (m) => `<svg class="gw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${m.icon ?? PLAIN_ICON}</svg>`
+
+// The theme control's choices: the key of its translated name, and its icon.
+const THEMES = [
+  ['system', 'themeSystem', '<rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M9 20h6M12 16.5V20"/>'],
+  ['light', 'themeLight', '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>'],
+  ['dark', 'themeDark', '<path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z"/>'],
+]
 
 const LOGO = `<svg class="gw-logo" viewBox="0 0 32 32" aria-hidden="true">
     <rect width="32" height="32" rx="9" fill="url(#gw-logo-fill)"/>
@@ -72,6 +82,7 @@ export function shellPage({ project, version, modules, active, params }) {
     ? `<iframe class="gw-view" data-module="${esc(current.id)}" title="${esc(current.name)}" src="/${esc(encodeURIComponent(current.id))}/${esc(query)}"></iframe>`
     : `<div class="gw-empty"><span class="gw-empty__icon">${icon({})}</span><p class="gw-empty__title" data-i18n="noView">${esc(T.noView)}</p><p class="gw-empty__text" data-i18n="noViewText">${esc(T.noViewText)}</p></div>`
   const langs = Object.entries(LANGS).map(([code, name]) => `<button type="button" data-lang="${code}" title="${esc(name)}" aria-pressed="${code === DEFAULT_LANG}">${code.toUpperCase()}</button>`)
+  const themes = THEMES.map(([choice, key, path]) => `<button type="button" data-theme-choice="${choice}" title="${esc(T[key])}" aria-label="${esc(T[key])}" data-i18n-title="${key}" data-i18n-aria-label="${key}" aria-pressed="${choice === 'system'}"><svg class="gw-theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg></button>`)
   // what the script needs to switch tabs in place: the page title's parts and each module's name
   const nav = { project, modules: Object.fromEntries(views.map((m) => [m.id, m.name])) }
   return `<!doctype html>
@@ -80,6 +91,7 @@ export function shellPage({ project, version, modules, active, params }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(project)}${current ? ` · ${esc(current.name)}` : ''} · Groundwork</title>
+<script src="/shell/theme.js"></script>
 <link rel="stylesheet" href="/shell/theme.css">
 <link rel="stylesheet" href="/shell/shell.css">
 </head>
@@ -93,6 +105,9 @@ export function shellPage({ project, version, modules, active, params }) {
     <span class="gw-live" data-state="connecting" title="${esc(T.connectingTitle)}" data-i18n-title="connectingTitle"><i></i><span data-i18n="connecting">${esc(T.connecting)}</span></span>
     <div class="gw-seg gw-lang" role="group" aria-label="${esc(T.language)}" data-i18n-aria-label="language">
       ${langs.join('\n      ')}
+    </div>
+    <div class="gw-seg gw-theme" role="group" aria-label="${esc(T.theme)}" data-i18n-aria-label="theme">
+      ${themes.join('\n      ')}
     </div>
     ${version ? `<span class="gw-version">v${esc(version)}</span>` : ''}
   </div>
@@ -120,6 +135,13 @@ const show = () => {
 for (const b of langs) b.onclick = () => i18n.set(b.dataset.lang)
 i18n.onChange(show)
 show()
+
+// Light or dark (theme.js): the pressed button is the choice, also one made in another tab.
+const themes = [...document.querySelectorAll('.gw-theme [data-theme-choice]')]
+const showTheme = () => { for (const b of themes) b.setAttribute('aria-pressed', String(b.dataset.themeChoice === groundworkTheme.choice)) }
+for (const b of themes) b.onclick = () => groundworkTheme.set(b.dataset.themeChoice)
+groundworkTheme.onChange(showTheme)
+showTheme()
 
 // Live: the tab's one stream of server events, relayed to every module frame (live.mjs).
 relayEvents({ onState: (state) => { live.dataset.state = state; show() } })

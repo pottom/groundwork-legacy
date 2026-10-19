@@ -35,8 +35,8 @@ export default {
   // entry), and the modules it shares with the server.
   view: { dir: HERE, files: [
     'index.html', 'view/ideas.css', 'view/main.mjs', 'view/board.mjs', 'view/strings.mjs',
-    'view/api.mjs', 'view/drawer.mjs', 'view/reject.mjs', 'view/plan.mjs',
-    'ui-strings.mjs', 'fields.mjs',
+    'view/api.mjs', 'view/drawer.mjs', 'view/reject.mjs', 'view/matrix.mjs', 'view/tickets.mjs', 'view/plan.mjs',
+    'ui-strings.mjs', 'fields.mjs', 'matrix.mjs', 'ticket.mjs',
   ] },
   // The only folder Ideas may write to: the idea files.
   writes: [ITEMS],

@@ -8,6 +8,7 @@
 <!-- The Sketch module's board: Excalidraw (its 0.17 UMD build, global ExcalidrawLib) on React 18's UMD
      builds, all from /vendor/ and loaded only by this page. asset-path.js tells Excalidraw where its
      fonts and locales are before it loads. view/main.mjs reads the sketch and saves it. -->
+<script src="/shell/theme.js"></script>
 <link rel="stylesheet" href="/shell/theme.css">
 <link rel="stylesheet" href="./sketch.css">
 <script src="./view/asset-path.js"></script>
@@ -16,6 +17,7 @@
 <script src="/vendor/excalidraw/excalidraw.production.min.js"></script>
 </head>
 <body>
+<nav class="sk-bar gw-toolbar" id="sketches" data-i18n-aria-label="bar.label" aria-label="Sketches"></nav>
 <main id="board"></main>
 <div class="gw-toasts" id="toasts" aria-live="polite"></div>
 <script type="module" src="./view/main.mjs"></script>

@@ -1,40 +1,73 @@
 // The Ideas page: the entry module index.html loads. It reads the ideas (api.mjs), draws the board
-// (board.mjs), and reads them again when the shell says an idea file changed (topic "ideas.items")
-// or the connection came back. An idea that arrives live is marked for a moment.
+// (board.mjs) or the impact–effort matrix (matrix.mjs), as the switch above them says (remembered
+// by the browser), and reads them again when the shell says an idea file changed (topic
+// "ideas.items") or the connection came back. An idea that arrives live is marked for a moment.
 //
 // Here the human decides (d-ideas-human-decides): a card opens in the drawer (drawer.mjs) to edit
-// every field, and moves by drag and drop or its move menu; a move to Rejected first asks why
-// (reject.mjs). Each save is made on the version the page saw; when the file changed meanwhile the
-// page says so and shows the newer one. Saving and errors are short toasts. The language follows the
-// shell (strings.mjs).
+// every field, and moves by drag and drop or its move menu (on the matrix, a move to another
+// quadrant changes its impact and effort); a move to Rejected first asks why (reject.mjs).
+// Each save is made on the version the page saw; when the file changed meanwhile the page says so
+// and shows the newer one. Saving and errors are short toasts. The language follows the shell
+// (strings.mjs).
+//
+// An engineering idea in To develop offers "Make a ticket" (tickets.mjs): it copies a prompt for
+// Claude. The tickets naming an idea come from Build (GET /api/build/ideas), read again when Build
+// says its tickets changed ("build.files", "build.issues"). A link with ?idea=I-12 (Build's link from
+// a ticket, or the link on the idea's node on Plan's map) opens that idea in the drawer.
 //
 // A product idea moved to To develop goes to Plan's map as a todo node, and a rejected one, when the
-// human asks, as a non-goal (plan.mjs); without Plan a toast says the map is unavailable. An address
-// with ?idea=I-12 (the link on the idea's node) opens that idea in the drawer.
+// human asks, as a non-goal (plan.mjs); without Plan a toast says the map is unavailable.
 
 import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
 import { i18n, ui } from './strings.mjs'
-import { listIdeas, saveIdea } from './api.mjs'
+import { listIdeas, saveIdea, ideaTickets } from './api.mjs'
 import { board } from './board.mjs'
+import { matrix } from './matrix.mjs'
+import { estimateFor } from '../matrix.mjs'
 import { drawer, valuesOf, changesOf } from './drawer.mjs'
 import { rejectForm } from './reject.mjs'
+import { copyText } from './tickets.mjs'
+import { ticketPrompt } from '../ticket.mjs'
 import { toMap } from './plan.mjs'
 
 const $ = (id) => document.getElementById(id)
-const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null }
+// The view chosen (Kanban or Matrix), remembered by the browser when it may.
+const VIEW_KEY = 'groundwork-ideas:view'
+const VIEWS = ['kanban', 'matrix']
+function recallView() { try { return localStorage.getItem(VIEW_KEY) } catch { return null } }
+function rememberView(view) { try { localStorage.setItem(VIEW_KEY, view) } catch {} }
+
+const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null, tickets: {},
+  view: VIEWS.includes(recallView()) ? recallView() : 'kanban' }
 let draft = null    // the idea open in the drawer: { idea, values, saving, error }
 let ask = null      // the reason a move to Rejected asks for: { idea, reason, error }
 let toasts = []
 let known = null    // the ids seen so far; null before the first read
 let freshTimer
-let linked = new URLSearchParams(location.search).get('idea')   // the idea the address names, until opened
+let wanted = new URLSearchParams(location.search).get('idea')   // the idea a link asks to open, once
 
 function draw() {
-  render(board(state, boardActs), $('board'))
+  render(page(), $('board'))
   render(drawer(draft, drawerActs), $('drawer'))
   render(rejectForm(ask, rejectActs), $('reject'))
   render(toasts.map((t) => html`<div class="gw-toast gw-toast--${t.tone}" role=${t.tone === 'bad' ? 'alert' : 'status'}>${t.text}</div>`), $('toasts'))
+}
+
+// The board or the matrix, under the switch between them (shown once there are ideas to switch over).
+function page() {
+  if (state.error || !state.ideas?.length) return board(state, boardActs)
+  return html`<div class="gw-seg views" role="group" aria-label=${ui('view.label')}>
+      ${VIEWS.map((v) => html`<button type="button" aria-pressed=${state.view === v ? 'true' : 'false'}
+        @click=${() => pick(v)}>${ui(`view.${v}`)}</button>`)}
+    </div>
+    ${state.view === 'matrix' ? matrix(state, matrixActs) : board(state, boardActs)}`
+}
+
+function pick(view) {
+  Object.assign(state, { view, menu: null, over: null })
+  rememberView(view)
+  draw()
 }
 
 function toast(text, tone = 'ok') {
@@ -62,9 +95,14 @@ async function read() {
   }
   document.body.dataset.state = 'ready'
   draw()
-  // An address naming an idea (/?module=ideas&idea=I-12, e.g. from its node on Plan's map) opens it once.
-  const wanted = linked && state.ideas?.find((i) => i.id === linked)
-  if (wanted) { linked = null; boardActs.open(wanted) }
+  const asked = wanted && state.ideas?.find((i) => i.id === wanted)
+  wanted = null
+  if (asked) boardActs.open(asked)
+}
+
+async function readTickets() {
+  state.tickets = await ideaTickets()
+  draw()
 }
 
 // A save's answer: the idea as saved, or the newer one when someone else saved first.
@@ -115,6 +153,19 @@ const boardActs = {
     else if (was) document.querySelector(`[data-idea="${was}"] .idea__move`)?.focus()
   },
   over(status) { state.over = status; draw() },
+  async copyPrompt(idea) {
+    if (await copyText(ticketPrompt(idea))) toast(ui('toast.prompt-copied', { id: idea.id }))
+    else toast(ui('toast.copy-failed'), 'bad')
+  },
+}
+
+// The matrix: the same card actions; a move to another quadrant saves the new impact and effort.
+const matrixActs = {
+  ...boardActs,
+  async place(idea, quadrant) {
+    answered(await saveIdea(idea, estimateFor(idea, quadrant)), () => {})
+    document.querySelector(`[data-idea="${idea.id}"] .idea__move`)?.focus()
+  },
 }
 
 const drawerActs = {
@@ -137,13 +188,13 @@ const rejectActs = {
   edit(reason) { ask.reason = reason; draw() },
   toMap(on) { ask.toMap = on; draw() },
   async confirm() {
-    const { toMap: wanted } = ask
+    const nonGoal = ask.toMap
     const r = await saveIdea(ask.idea, { status: 'rejected', reason: ask.reason })
     if (r.error) ask = { ...ask, error: r.error }
     answered(r, () => {})
     if (r.error) return
     $('reject').close()
-    if (r.ok && wanted) await sendToMap(r.idea, 'excluded', r.idea.reason)
+    if (r.ok && nonGoal) await sendToMap(r.idea, 'excluded', r.idea.reason)
   },
   cancel() { $('reject').close() },
 }
@@ -159,6 +210,9 @@ document.addEventListener('click', (e) => {
 document.documentElement.lang = i18n.lang
 i18n.onChange(() => { document.documentElement.lang = i18n.lang; draw() })
 subscribe({
-  onHello: read,
-  onChange: (topics) => { if (topics.includes('ideas.items')) read() },
+  onHello: () => { read(); readTickets() },
+  onChange: (topics) => {
+    if (topics.includes('ideas.items')) read()
+    if (topics.includes('build.files') || topics.includes('build.issues')) readTickets()
+  },
 })

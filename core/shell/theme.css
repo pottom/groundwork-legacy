@@ -11,8 +11,14 @@
      <link rel="stylesheet" href="/shell/theme.css">
      body { background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-text) var(--gw-font); }
 
-   Light or dark follows the operating system (prefers-color-scheme); there is no switch.
-   Only the values change between the two; the names stay the same.
+   Light or dark follows the operating system (prefers-color-scheme) until the user picks Light or
+   Dark in the shell's header; the choice is kept in localStorage. Every page, the shell and each
+   module's, loads the switch first in its <head>, before this file, so it shows the chosen theme
+   from its first paint and switches live when the choice changes:
+     <script src="/shell/theme.js"></script>
+   It sets <html data-theme="light|dark"> (none for System). Code that draws with colours of its
+   own (a canvas, a library) follows groundworkTheme.theme and groundworkTheme.onChange((theme) => …),
+   documented at the top of theme.js. Only the values change between the two; the names stay the same.
 
    Rules of the look
      - Hues are for fills, dots and icons; text in a status colour uses its -text token (WCAG AA,
@@ -166,6 +172,7 @@
   --gw-bad: #c0392b;
   --gw-info: #0284c7;
   --gw-violet: #8b5cf6;
+  --gw-pink: #d6336c;
   --gw-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
   --gw-shadow-lg: 0 2px 6px rgb(0 0 0 / .06), 0 12px 32px rgb(0 0 0 / .10);
 
@@ -175,6 +182,7 @@
   --gw-info-text: #075a8c;
   --gw-violet-text: #6d3fd8;
   --gw-accent-text: #2a52c4;
+  --gw-pink-text: #b02659;
 
   --gw-ok-soft: color-mix(in srgb, var(--gw-ok) 12%, transparent);
   --gw-warn-soft: color-mix(in srgb, var(--gw-warn) 12%, transparent);
@@ -182,6 +190,7 @@
   --gw-info-soft: color-mix(in srgb, var(--gw-info) 12%, transparent);
   --gw-violet-soft: color-mix(in srgb, var(--gw-violet) 12%, transparent);
   --gw-accent-soft: color-mix(in srgb, var(--gw-accent) 12%, transparent);
+  --gw-pink-soft: color-mix(in srgb, var(--gw-pink) 12%, transparent);
 
   --gw-gradient: linear-gradient(90deg, var(--gw-accent), var(--gw-accent-2));
   --gw-gradient-fill: linear-gradient(135deg, #2f5bd3, #7547e6);
@@ -202,8 +211,10 @@
   --gw-header-height: 48px;
 }
 
+/* Dark: when the OS is dark and light is not chosen, and when dark is chosen (theme.js sets
+   <html data-theme>). The two blocks hold the same values; theme.test.mjs keeps them equal. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --gw-bg: #15161a;
     --gw-surface: #1c1e23;
     --gw-sunken: #24262c;
@@ -221,6 +232,7 @@
     --gw-bad: #ee7a6c;
     --gw-info: #5ab8e8;
     --gw-violet: #b48cf8;
+    --gw-pink: #f472b6;
     --gw-shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
     --gw-shadow-lg: 0 2px 8px rgb(0 0 0 / .35), 0 16px 40px rgb(0 0 0 / .4);
     --gw-ok-text: #6fd49b;
@@ -229,19 +241,41 @@
     --gw-info-text: #7cc8f0;
     --gw-violet-text: #c4a3fa;
     --gw-accent-text: #97b0f5;
+    --gw-pink-text: #f68fc6;
     --gw-gradient-fill: linear-gradient(135deg, var(--gw-accent), var(--gw-accent-2));
   }
 }
 
-/* a sixth hue: "ask about it" (Plan's to-do items); text in it uses --gw-pink-text (AA) */
-:root {
-  --gw-pink: #d6336c;
-  --gw-pink-text: #b02659;
-  --gw-pink-soft: color-mix(in srgb, var(--gw-pink) 12%, transparent);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --gw-pink: #f472b6;
-    --gw-pink-text: #f68fc6;
-  }
+:root[data-theme="light"] { color-scheme: light; }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --gw-bg: #15161a;
+  --gw-surface: #1c1e23;
+  --gw-sunken: #24262c;
+  --gw-fg: #ecebe8;
+  --gw-fg-2: #c3c1bb;
+  --gw-muted: #9a978f;
+  --gw-line: #2f3238;
+  --gw-line-strong: #464a52;
+  --gw-accent: #7d9cf0;
+  --gw-accent-2: #b48cf8;
+  --gw-accent-fg: #15161a;
+  --gw-focus: #7d9cf0;
+  --gw-ok: #5cc58a;
+  --gw-warn: #f0b45d;
+  --gw-bad: #ee7a6c;
+  --gw-info: #5ab8e8;
+  --gw-violet: #b48cf8;
+  --gw-pink: #f472b6;
+  --gw-shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
+  --gw-shadow-lg: 0 2px 8px rgb(0 0 0 / .35), 0 16px 40px rgb(0 0 0 / .4);
+  --gw-ok-text: #6fd49b;
+  --gw-warn-text: #f5c27a;
+  --gw-bad-text: #f48f82;
+  --gw-info-text: #7cc8f0;
+  --gw-violet-text: #c4a3fa;
+  --gw-accent-text: #97b0f5;
+  --gw-pink-text: #f68fc6;
+  --gw-gradient-fill: linear-gradient(135deg, var(--gw-accent), var(--gw-accent-2));
 }

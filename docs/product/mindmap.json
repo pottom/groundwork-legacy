@@ -1500,8 +1500,9 @@
                     "topic": "Tetszőleges számú vázlat névvel: lista, létrehozás, átnevezés",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/view/sketches.mjs"
                   },
                   {
                     "id": "f-board-claude-read",

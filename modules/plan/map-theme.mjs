@@ -1,4 +1,5 @@
-// The map's Mind Elixir theme, light or dark, following the operating system.
+// The map's Mind Elixir theme, light or dark, following the shell's theme (the user's choice in
+// the shell's header, else the operating system).
 // The colours come from the shell (/shell/theme.css, --gw-*); `css(name)` reads one
 // of them as it is now, so a theme built after a switch picks up the new values.
 
@@ -41,9 +42,9 @@ export function mapTheme({ dark, css, generateMainBranch, generateSubBranch }) {
   }
 }
 
-// Calls apply(dark) now and on every light/dark switch of `scheme`
-// (matchMedia('(prefers-color-scheme: dark)')), without a reload.
-export function followColorScheme(scheme, apply) {
-  apply(scheme.matches)
-  scheme.addEventListener('change', (e) => apply(e.matches))
+// Calls apply(dark) now and on every light/dark switch of `theme` (window.groundworkTheme from
+// /shell/theme.js, which index.html loads), without a reload.
+export function followTheme(theme, apply) {
+  apply(theme.theme === 'dark')
+  theme.onChange((now) => apply(now === 'dark'))
 }

@@ -3,11 +3,13 @@
    progress, empty state, callout, toast, pill, stat). This sheet only lays out Build's own views
    with them. */
 
-/* Build's own colours: the lanes of the branch graph. */
+/* Build's own colours: the lanes of the branch graph. Dark as the shell's theme is (theme.css):
+   the OS's dark unless light is chosen, and a chosen dark. */
 :root { --g0: #2f5bd3; --g1: #c2410c; --g2: #1f8a4c; --g3: #7c3aed; --g4: #0b7269; --g5: #b4235a; --g6: #8a6d00; --g7: #4a6fa5; }
 @media (prefers-color-scheme: dark) {
-  :root { --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd; }
+  :root:not([data-theme="light"]) { --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd; }
 }
+:root[data-theme="dark"] { --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }

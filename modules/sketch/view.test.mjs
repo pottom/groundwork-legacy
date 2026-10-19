@@ -22,6 +22,7 @@ test('index.html is a thin page: no inline script or style; React, then Excalidr
   assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>/, 'no inline script')
   const scripts = [...html.matchAll(/<script\b([^>]*)\bsrc="([^"]+)"/g)].map((m) => m[2])
   assert.deepEqual(scripts, [
+    '/shell/theme.js',
     './view/asset-path.js',
     '/vendor/react/react.production.min.js',
     '/vendor/react-dom/react-dom.production.min.js',
@@ -75,11 +76,13 @@ test('Sketch is the last tab, a tool after the workflow', () => {
   assert.ok(tabs.slice(0, -1).every((m) => !m.tool))
 })
 
-test('the board follows the shell: light or dark from the OS, the UI language, and embeds are off', () => {
+test('the board follows the shell: light or dark as the shell\'s switch says, the UI language, and embeds are off', () => {
   const board = read('view/board.mjs')
   const main = read('view/main.mjs')
   assert.match(main, /followTheme\(\(dark\) => board\.set\(\{ dark \}\)\)/)
-  assert.match(read('view/theme.mjs'), /matchMedia\('\(prefers-color-scheme: dark\)'\)/, 'the one place that knows where light or dark comes from')
+  const theme = read('view/theme.mjs')
+  assert.match(theme, /groundworkTheme\.onChange\(/, 'the one place that knows where light or dark comes from: /shell/theme.js')
+  assert.doesNotMatch(theme, /prefers-color-scheme/, 'not the OS alone: the shell\'s choice')
   assert.match(board, /theme: dark \? 'dark' : 'light'/)
   assert.match(board, /langCode: lang === 'hu' \? 'hu-HU' : 'en'/)
   assert.match(main, /i18n\.onChange\(/)
@@ -95,6 +98,26 @@ test('the board offers Hungarian, which Excalidraw 0.17.6 leaves out of its lang
   const scene = { elements: [], appState: {}, files: {} }
   assert.equal(boardProps({ scene, lang: 'hu' }).langCode, 'hu-HU')
   assert.equal(boardProps({ scene, lang: 'en', dark: true }).theme, 'dark')
+})
+
+test('which sketch opens: the deep link, else the one opened last, else the first, else main', async () => {
+  const { chooseSketch } = await import('./view/sketches.mjs')
+  const names = ['architecture', 'flow']
+  assert.equal(chooseSketch({ asked: 'flow', remembered: 'architecture', names }), 'flow')
+  assert.equal(chooseSketch({ asked: 'brand-new', names }), 'brand-new', 'a deep link to a sketch not drawn yet opens it empty')
+  assert.equal(chooseSketch({ asked: '../x', remembered: 'flow', names }), 'flow', 'not a plain name: ignored')
+  assert.equal(chooseSketch({ asked: null, remembered: 'flow', names }), 'flow')
+  assert.equal(chooseSketch({ asked: null, remembered: 'gone', names }), 'architecture', 'a remembered sketch renamed or deleted since')
+  assert.equal(chooseSketch({ asked: null, remembered: null, names: [] }), 'main')
+})
+
+test('the page opens the sketch the shell deep-links to (/?module=sketch&sketch=<name>) and remembers it', () => {
+  const main = read('view/main.mjs')
+  assert.match(main, /new URLSearchParams\(location\.search\)\.get\('sketch'\)/)
+  assert.match(main, /localStorage/)
+  const bar = read('view/sketches.mjs')
+  for (const api of ['/api/sketch/list', '/api/sketch/create', '/api/sketch/rename']) assert.ok((main + bar).includes(api), api)
+  assert.match(read('index.html'), /<nav[^>]*id="sketches"/)
 })
 
 test('the strings: same keys in English and Hungarian, translated, and every one used', () => {

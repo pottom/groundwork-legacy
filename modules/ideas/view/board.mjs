@@ -7,23 +7,24 @@
 //
 //   board(state, act)   the template
 //     state  { ideas, error, fresh: Set of ids that just arrived, menu: the id whose move menu is open,
-//              over: the column a card is dragged over }
-//     act    { open(idea), move(idea, status), menu(id | null), over(status | null) }
+//              over: the column a card is dragged over, tickets: { 'I-12': [ticket] } from Build }
+//     act    { open(idea), move(idea, status), menu(id | null), over(status | null), copyPrompt(idea) }
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js'
 import { repeat } from '/vendor/lit-html/directives/repeat.js'
 import { STATUSES } from '../fields.mjs'
 import { ui } from './strings.mjs'
+import { ticketPart } from './tickets.mjs'
 import { mapLinks } from './plan.mjs'
 
 const BULB = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>`
 const MOVE = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`
 export const TONES = { new: 'info', considering: 'warn', 'to-develop': 'ok', rejected: 'neutral' }
 const AUTHOR_TONES = { claude: 'violet', human: 'accent' }
-const DRAG_TYPE = 'text/x-groundwork-idea'
+export const DRAG_TYPE = 'text/x-groundwork-idea'   // a card being dragged, on the board and the matrix
 
 // The move menu: the other columns, as menu items. Arrow keys walk it, Escape closes it.
-function menuKeys(e, act) {
+export function menuKeys(e, act) {
   const items = [...e.currentTarget.querySelectorAll('[role="menuitem"]')]
   const at = items.indexOf(document.activeElement)
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -66,6 +67,7 @@ const card = (idea, state, act) => html`
     ${mapLinks(idea).length ? html`<p class="idea__map">${mapLinks(idea).map((l) => html`<a class="gw-tag" href=${l.href} target="_top"
       title=${ui('card.on-map', { node: l.id })} aria-label=${ui('card.on-map', { node: l.id })}>${l.id}</a>`)}</p>` : nothing}
     ${idea.status === 'rejected' && idea.reason ? html`<p class="idea__reason"><span class="idea__reason-label">${ui('card.reason')}</span> ${idea.reason}</p>` : nothing}
+    ${ticketPart(idea, state.tickets?.[idea.id], act)}
   </li>`
 
 function drop(e, status, ideas, act) {
