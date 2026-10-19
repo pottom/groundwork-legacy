@@ -2,7 +2,7 @@
 
 # Groundwork — Ötletek modul: Termék
 
-_Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md)._
+_Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md)._
 
 > Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 0 kész, 0 részben, 8 hiányzik.
 

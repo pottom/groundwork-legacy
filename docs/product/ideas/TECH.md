@@ -2,7 +2,7 @@
 
 # Groundwork — Ötletek modul: Műszaki terv
 
-_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md)._
+_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md)._
 
 > Állapot: 4 kész, 0 folyamatban, 0 érintetlen fejezet.
 
