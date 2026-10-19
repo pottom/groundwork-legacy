@@ -548,7 +548,7 @@
                 "topic": "Platform és futtatási környezet",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható; a Build szerver nélküli, mappaválasztós módja csak Chromium-alapú böngészőben működik.",
+                  "prose": "A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható.",
                   "progress": "done"
                 },
                 "children": [
@@ -608,7 +608,7 @@
                       "status": "decision",
                       "impl": "done"
                     },
-                    "note": "A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; a fájlból megnyitott Build egy generált, commitolt klasszikus szkriptet (page.bundle.js) tölt be."
+                    "note": "A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; build-lépés nincs, a böngésző a szerverről tölti be őket. A közös téma is több fájl: a theme.css a tokeneket tartja és importálja a komponenseket."
                   },
                   {
                     "id": "x-framework",
@@ -902,7 +902,7 @@
                 "topic": "Hatókör és fő funkciók",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. Szerver nélkül, mappaválasztóval is megnyitható. A prototípus minden funkciója része az első verziónak.\n\nÚj képessége lesz, hogy egy jegyről egy kattintással el lehet jutni ahhoz a PRD-elemhez, amiből született. Egy Claude-skill, amely a chatben foglalja össze a projekt állapotát, később jöhet.",
+                  "prose": "A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. A Groundwork szerverén fut; fájlból, szerver nélkül nem nyitható meg. A prototípus minden funkciója része az első verziónak.\n\nÚj képessége lesz, hogy egy jegyről egy kattintással el lehet jutni ahhoz a PRD-elemhez, amiből született. Egy Claude-skill, amely a chatben foglalja össze a projekt állapotát, később jöhet.",
                   "progress": "done"
                 },
                 "children": [
@@ -1067,7 +1067,7 @@
                   {
                     "id": "d-prd-counts",
                     "topic": "A Plan jegyszámai a Build jegyolvasójából (/api/build/prd)",
-                    "note": "A szerver ugyanazzal a ticket-reader.js-szel olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed.",
+                    "note": "A szerver ugyanazzal a jegyolvasóval (ticket-reader.mjs) olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed.",
                     "hyperLink": "modules/build/project-tickets.mjs",
                     "metadata": {
                       "status": "decision",

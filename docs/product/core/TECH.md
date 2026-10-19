@@ -71,7 +71,7 @@ Saját tokent vagy jelszót nem kér és nem tárol. A GitHub olvasásához a fe
 
 ## 6. Platform és futtatási környezet
 
-A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható; a Build szerver nélküli, mappaválasztós módja csak Chromium-alapú böngészőben működik.
+A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható.
 
 - Windows, macOS, Linux
 - Node 20 vagy újabb
@@ -85,7 +85,7 @@ Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és ford
 A felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a csomagba tett sablonkönyvtár, a lit-html rajzolja deklaratívan és hatékonyan, a közös megjelenést pedig a keret theme.css-e adja kész komponensekkel. Hogy a kód áttekinthető maradjon, minden modul oldala kis fájlokra bomlik (nézetek, állapot, adatlekérés), nem egyetlen nagy index.html-re. Így megkapjuk egy keretrendszer előnyeit, a build-lépés és a függőségi lánc nélkül.
 
 - Sima JavaScript ES-modulok, build-lépés nélkül — Mindkét meglévő eszköz már így készült.
-- Modulonként több kisebb fájl, nem egy óriásfájl `kész` — A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; a fájlból megnyitott Build egy generált, commitolt klasszikus szkriptet (page.bundle.js) tölt be.
+- Modulonként több kisebb fájl, nem egy óriásfájl `kész` — A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; build-lépés nincs, a böngésző a szerverről tölti be őket. A közös téma is több fájl: a theme.css a tokeneket tartja és importálja a komponenseket.
 - Deklaratív nézetek lit-html-lel, a csomagba téve `kész` — lit-html 3.2.1, kb. 7 KB, a core/vendor/ alatt; fordítási lépés nélkül fut, offline is. ([core/vendor/lit-html/lit-html.js](../../../core/vendor/lit-html/lit-html.js))
 - Közös dizájnrendszer a theme.css-ben (.gw-* komponensek) `kész` ([core/shell/theme.css](../../../core/shell/theme.css))
 
