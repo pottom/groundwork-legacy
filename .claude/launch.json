@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prd-maker",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["mindmap/mm.mjs", "serve", "--port", "4477"],
+      "port": 4477
+    }
+  ]
+}

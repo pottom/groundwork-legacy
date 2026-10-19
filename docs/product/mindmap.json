@@ -1,0 +1,915 @@
+{
+  "nodeData": {
+    "id": "root",
+    "topic": "Groundwork",
+    "children": [
+      {
+        "id": "doc-system",
+        "topic": "Áttekintés",
+        "metadata": {
+          "doc": "system"
+        },
+        "children": [
+          {
+            "id": "t-goal",
+            "topic": "Cél és érintettek",
+            "metadata": {
+              "status": "topic",
+              "prose": "A Groundwork egy hordozható, nyílt forrású csomag, amely egy projektet az ötlettől a megvalósításig kísér végig. Tervezéskor egy élő gondolattérképből termékdokumentáció (PRD, műszaki terv és társaik) készül; fejlesztés közben ugyanott látszik, hol tartanak a jegyek és az ágak.\n\nBármilyen projekthez használható, nem kötődik egyetlen termékhez vagy területhez sem. A tartalmat Claude Code-dal építjük, de a nézetek Claude nélkül is megnyithatók és olvashatók, így a projekt követői is látják az állapotot.",
+              "progress": "done"
+            },
+            "children": [
+              {
+                "id": "d-idea-to-build",
+                "topic": "Ötlettől a megvalósításig egy csomagban",
+                "note": "Tervezés (PRD) → fejlesztés (jegyek) egy helyen.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-any-project",
+                "topic": "Bármilyen projekthez használható",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-portable",
+                "topic": "Hordozható, bárki telepítheti",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-name",
+                "topic": "Név: Groundwork",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-users",
+                "topic": "Claude Code-dal épül, a nézetek Claude nélkül is olvashatók",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-license",
+                "topic": "Nyílt forrás, MIT licenc",
+                "metadata": {
+                  "status": "decision"
+                }
+              }
+            ]
+          },
+          {
+            "id": "t-modules",
+            "topic": "Modulok és határaik",
+            "metadata": {
+              "status": "topic",
+              "prose": "A Groundwork egy közös **Magból** és arra épülő **modulokból** áll. A Mag adja a helyi szervert és a közös keretet (fejléc, navigáció, téma), saját felhasználói funkciója nincs.\n\nAz első két modul a **Plan** (tervezés: interjú, térkép, dokumentumok) és a **Build** (fejlesztés: jegyek, függések, ágak). A kettőt egy stabil azonosító köti össze: a jegy megnevezi azt a PRD-elemet, amiből született, így egy döntéstől el lehet jutni a megvalósításáig, és vissza. Később további modulok is csatlakozhatnak a Mag módosítása nélkül.",
+              "progress": "done"
+            },
+            "children": [
+              {
+                "id": "d-extensible",
+                "topic": "Később új modulokkal bővíthető",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-structure",
+                "topic": "Mag + két modul: Plan és Build",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-core-role",
+                "topic": "A Mag: közös szerver és keret, felhasználói funkció nélkül",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-trace",
+                "topic": "Jegy ↔ PRD-elem kapcsolat stabil azonosítóval",
+                "note": "A jegyben pl. **PRD:** d-npm sor.",
+                "metadata": {
+                  "status": "decision"
+                }
+              }
+            ]
+          },
+          {
+            "id": "t-roadmap",
+            "topic": "Közös ütemterv",
+            "metadata": {
+              "status": "topic",
+              "prose": "A Groundwork négy lépésben épül. Először a két meglévő prototípus változatlanul beköltözik az új repóba, egy közös szerver mögé, így már az elején egy helyen működik minden. Ezután jön a közös kinézet és az angol felület, majd a Plan és a Build összekötése, végül az npm-kiadás.",
+              "progress": "done"
+            },
+            "children": [
+              {
+                "id": "r-1",
+                "topic": "1. Új repó, Mag-szerver, a két modul átköltöztetve",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "r-2",
+                "topic": "2. Közös kinézet és angol felület",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "r-3",
+                "topic": "3. Plan és Build összekötése",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "r-4",
+                "topic": "4. npm-kiadás",
+                "metadata": {
+                  "status": "decision"
+                }
+              }
+            ]
+          },
+          {
+            "id": "t-risks",
+            "topic": "Kockázatok és függőségek",
+            "metadata": {
+              "status": "topic",
+              "prose": "A Groundwork néhány külső dologra épít, amelyek változhatnak. A gondolattérképet a Mind Elixir rajzolja, amely lényegében egyetlen fejlesztő projektje. A Claude Code-dal a skilleken és a hookon keresztül kapcsolódik, ezek formátuma változhat. A Build a mattpocock-skillek jegykonvencióiból olvas, amelyek szintén módosulhatnak.\n\nBelső kockázat, hogy Claude és a felhasználó egyszerre szerkesztheti a térképet. Az összefésülés a tartalmat megőrzi, de a testvér-elemek sorrendje ilyenkor elveszhet.",
+              "progress": "done"
+            },
+            "children": [
+              {
+                "id": "n-risk-me",
+                "topic": "A Mind Elixir egyszemélyes projekt",
+                "metadata": {
+                  "status": "note"
+                }
+              },
+              {
+                "id": "n-risk-cc",
+                "topic": "A Claude Code skill- és hook-formátuma változhat",
+                "metadata": {
+                  "status": "note"
+                }
+              },
+              {
+                "id": "n-risk-conv",
+                "topic": "A mattpocock-konvenciók változhatnak",
+                "metadata": {
+                  "status": "note"
+                }
+              },
+              {
+                "id": "n-risk-merge",
+                "topic": "Egyidejű szerkesztésnél a sorrend elveszhet",
+                "metadata": {
+                  "status": "note"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-core",
+        "topic": "Mag",
+        "metadata": {
+          "component": "software"
+        },
+        "children": [
+          {
+            "id": "doc-core-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-core-server",
+                "topic": "Helyi szerver",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egyetlen helyi szerver szolgálja ki az összes modult, mindegyiket a saját API-jával. A szerver Node.js-en fut, csak beépített modulokkal, telepítendő függőség nélkül.\n\nAz írási jog modulonként adható: a Plan a saját dokumentumait írja, a Build csak olvas.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "n-node-builtin",
+                    "topic": "Mindkettő Node, csak beépített modulokkal",
+                    "hyperLink": "mindmap/mm.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "d-one-server",
+                    "topic": "Egy közös szerver, modulonkénti API-val",
+                    "note": "Az írási jogot modulonként adjuk.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-two-servers",
+                    "topic": "Modulonként külön szerver",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-core-contract",
+                "topic": "Modulszerződés",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egy modul egy mappa a csomagon belül. Leírja magát (azonosító, név, verzió), a saját `/api/<modul>/` útvonala alatt adja a szerver-végpontjait, és egy nézetet ad a közös keretbe. Hozhat skilleket és hookokat is, ezeket az `init` telepíti. Megnevezi a mappákat, ahová írhat; a Mag csak ezeket engedi.\n\nAz első verzióban minden modul a csomagon belül él, de a szerződés úgy készül, hogy később külső npm-csomag is beépülhessen modulként.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-builtin-modules",
+                    "topic": "v1: a modulok a csomagon belül élnek",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "p-external-modules",
+                    "topic": "Külső npm-modulok (groundwork-module-*)",
+                    "note": "A szerződés már erre készül.",
+                    "metadata": {
+                      "status": "parked"
+                    }
+                  },
+                  {
+                    "id": "g-module-parts",
+                    "topic": "Egy modul egy mappa, benne:",
+                    "metadata": {
+                      "status": "topic"
+                    },
+                    "children": [
+                      {
+                        "id": "d-mod-manifest",
+                        "topic": "Leíró: azonosító, név, verzió",
+                        "metadata": {
+                          "status": "decision"
+                        }
+                      },
+                      {
+                        "id": "d-mod-api",
+                        "topic": "Szerver-végpontok a /api/<modul>/ alatt",
+                        "metadata": {
+                          "status": "decision"
+                        }
+                      },
+                      {
+                        "id": "d-mod-view",
+                        "topic": "Nézet a közös keretben",
+                        "metadata": {
+                          "status": "decision"
+                        }
+                      },
+                      {
+                        "id": "d-mod-skills",
+                        "topic": "Opcionális skillek és hookok (az init telepíti)",
+                        "metadata": {
+                          "status": "decision"
+                        }
+                      },
+                      {
+                        "id": "d-mod-writes",
+                        "topic": "Mappák, ahová írhat (a Mag ellenőrzi)",
+                        "metadata": {
+                          "status": "decision"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "t-core-shell",
+                "topic": "Közös keret (fejléc, navigáció, téma)",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Minden modul egy közös kinézetet használ, amelyet a Mag ad; ez követi az operációs rendszer világos vagy sötét beállítását. A felület alapnyelve angol, magyar fordítással. A generált dokumentumok nyelvét nem a felület, hanem a beszélgetés nyelve határozza meg.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ui-lang",
+                    "topic": "Felület angolul, magyar fordítással",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-shared-look",
+                    "topic": "Közös kinézet a Magból, minden modul ehhez igazodik",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-theme-os",
+                    "topic": "Világos vagy sötét az OS beállítása szerint",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-core-dist",
+                "topic": "Csomagolás és terjesztés",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Groundwork npm-csomagként jut el a felhasználóhoz, és `npx groundwork` paranccsal indítható. Minden függőségét magával hozza, így internet nélkül is működik. Egyetlen közös verziószáma van (semver), a modulok a csomaggal együtt verziózódnak.\n\nAz `npx groundwork init` a projektbe teszi a Claude Code-hoz szükséges részeket: a skilleket a `.claude/skills/` alá, a hookot a `.claude/settings.json`-ba, a helyi állapot mappáját pedig a `.gitignore`-ba. A meglévő beállításokat megtartja, és csak azután ír, hogy megmutatta, mit fog módosítani, és jóváhagytad. Claude Code pluginként később is kiadható.\n\nA kód új, `groundwork` nevű repóban él; a prd-maker prototípus ennek a magja, és ide költözik a fejlesztési dashboard-prototípus is. A licenc MIT.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-npm",
+                    "topic": "npm-csomag: npx groundwork",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "p-plugin",
+                    "topic": "Claude Code plugin",
+                    "metadata": {
+                      "status": "parked"
+                    }
+                  },
+                  {
+                    "id": "x-copy",
+                    "topic": "Bemásolható mappa",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-repo",
+                    "topic": "Új groundwork repó (ez a mappa, átnevezve)",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-move-dashboard",
+                    "topic": "A dashboard-prototípus beköltözik",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-init",
+                    "topic": "npx groundwork init: skillek és hook a projektbe",
+                    "note": "A .claude/skills/ alá és a .claude/settings.json-ba, a meglévőt megtartva, csak jóváhagyás után.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-offline",
+                    "topic": "Minden függőség a csomagban, internet nélkül is működik",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-semver",
+                    "topic": "Egy közös semver verzió, a modulok a csomaggal együtt",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-pair-version",
+                    "topic": "Külön oldal–indító verziópár",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-core-sec",
+                "topic": "Biztonság",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egyetlen szerver ír és olvas, ezért a hozzáférés szűk: csak a helyi gépről (`127.0.0.1`) érhető el, és idegen `Host` fejlécű kérést elutasít. Írni csak a projekt dokumentációs mappájába (`docs/product/`) és a saját helyi állapotába (`.groundwork/`) tud. Tokent vagy jelszót nem használ, mert csak helyben fut.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-sec-local",
+                    "topic": "Csak 127.0.0.1, idegen Host → 403",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-sec-write",
+                    "topic": "Írni csak a docs/product/ és a .groundwork/ alá",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-sec-token",
+                    "topic": "Token vagy jelszó",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-core-platform",
+                "topic": "Platform és futtatási környezet",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható; a Build szerver nélküli, mappaválasztós módja csak Chromium-alapú böngészőben működik.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-os",
+                    "topic": "Windows, macOS, Linux",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-node",
+                    "topic": "Node 20 vagy újabb",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-browsers",
+                    "topic": "Chrome, Edge, Firefox, Safari",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-core-stack",
+                "topic": "Technológiai stack",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és fordítási lépés nélkül, ahogy a két meglévő eszköz is. Amit módosítunk, az azonnal fut, és nincs függőségi lánc, ami csendben eltörhetne. Hogy a kód áttekinthető maradjon, minden modul több kisebb fájlra bomlik, nem egyetlen nagy fájlra.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-vanilla",
+                    "topic": "Sima JavaScript ES-modulok, build-lépés nélkül",
+                    "note": "Mindkét meglévő eszköz már így készült.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-small-files",
+                    "topic": "Modulonként több kisebb fájl, nem egy óriásfájl",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-framework",
+                    "topic": "Keretrendszer (React, Svelte, …)",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "x-build-step",
+                    "topic": "Fordítási lépés",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-plan",
+        "topic": "Plan modul",
+        "note": "A prd-maker prototípus.",
+        "metadata": {
+          "component": "software"
+        },
+        "children": [
+          {
+            "id": "doc-plan-prd",
+            "topic": "Termék",
+            "metadata": {
+              "doc": "prd"
+            },
+            "children": [
+              {
+                "id": "t-plan-scope",
+                "topic": "Hatókör és fő funkciók",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Plan modul a prd-maker prototípusból születik. Egy grilling-interjú közben élő, közösen szerkeszthető gondolattérképet rajzol, és abból termékdokumentációt generál a `docs/product/` alá. Kezeli az összetevőkből álló rendszereket és a különböző dokumentumtípusokat, meglévő projektnél pedig a kódból tölti fel a térképet. A prototípus minden funkciója része az első verziónak.\n\nÚj képessége lesz, hogy döntésenként megmutatja, hány jegy született belőle, és azok közül mennyi kész. A jegyeket továbbra is a mattpocock `to-tickets` skillje készíti; utána Claude minden jegybe beírja, melyik PRD-elemből született.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "f-plan-map",
+                    "topic": "Élő, közösen szerkeszthető gondolattérkép",
+                    "hyperLink": "mindmap/index.html",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-plan-docs",
+                    "topic": "Dokumentumok generálása (PRD, TECH, …)",
+                    "hyperLink": "mindmap/prd.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-plan-components",
+                    "topic": "Összetevők és dokumentumtípusok",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-plan-existing",
+                    "topic": "Meglévő projekt feltöltése kódból",
+                    "note": "A skill leírja, nincs külön eszköz hozzá.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "partial"
+                    }
+                  },
+                  {
+                    "id": "f-plan-modes",
+                    "topic": "Nézet/szerkesztés mód, fókusz, összecsukás",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-plan-skill",
+                    "topic": "prd-maker skill + hook",
+                    "note": "A hook élesben még nem futott.",
+                    "hyperLink": ".claude/skills/prd-maker/SKILL.md",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "partial"
+                    }
+                  },
+                  {
+                    "id": "d-plan-lang",
+                    "topic": "Dokumentumok a beszélgetés nyelvén",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "f-plan-trace",
+                    "topic": "Döntésenként látszik, hány jegy lett és mennyi kész",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "d-trace-how",
+                    "topic": "A to-tickets után Claude írja be a PRD-hivatkozást",
+                    "note": "A to-tickets változatlan marad.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-own-tickets",
+                    "topic": "Saját jegykészítő skill",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-plan-users",
+                "topic": "Felhasználók és használati esetek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Plan felhasználója a Claude Code-ot használó fejlesztő, aki egyedül vagy kis csapatban dolgozik, és Claude-dal együtt tervezi meg a terméket.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-plan-user",
+                    "topic": "Claude Code-ot használó fejlesztő, egyedül vagy kis csapatban",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "doc-plan-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-plan-stack",
+                "topic": "Technológiai stack",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A gondolattérképet a Mind Elixir, a dokumentumok Markdown-megjelenítését a marked adja. Mindkettő a csomag része, nem CDN-ről töltődik, így a Plan internet nélkül is működik.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "s-plan-me",
+                    "topic": "Mind Elixir 5.15.1 (CDN)",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "note": "A csomagba téve, nem CDN-ről."
+                  },
+                  {
+                    "id": "s-plan-marked",
+                    "topic": "marked (CDN)",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "note": "A csomagba téve, nem CDN-ről."
+                  },
+                  {
+                    "id": "x-cdn",
+                    "topic": "Függőségek CDN-ről",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-plan-data",
+                "topic": "Adatok és tárolás",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Plan egyetlen igazságforrása a `docs/product/mindmap.json`; ebből generálódnak a dokumentumok ugyanebbe a mappába. Ez a projekt dokumentációja, ezért gitbe kerül. A böngészőben tett, Claude által még fel nem dolgozott szerkesztések helyi állapotként a `.groundwork/plan/` alá kerülnek, és nem kerülnek gitbe.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "n-plan-json",
+                    "topic": "docs/product/mindmap.json az igazságforrás",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "d-git-docs",
+                    "topic": "A docs/product/ gitbe kerül",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-state-dir",
+                    "topic": "Helyi állapot: .groundwork/<modul>/, .gitignore-ban",
+                    "note": "Ma .prd-maker/; az init teszi a .gitignore-ba.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-build",
+        "topic": "Build modul",
+        "note": "Egy korábban kipróbált fejlesztési dashboard-prototípus.",
+        "metadata": {
+          "component": "software"
+        },
+        "children": [
+          {
+            "id": "doc-build-prd",
+            "topic": "Termék",
+            "metadata": {
+              "doc": "prd"
+            },
+            "children": [
+              {
+                "id": "t-build-scope",
+                "topic": "Hatókör és fő funkciók",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. Szerver nélkül, mappaválasztóval is megnyitható. A prototípus minden funkciója része az első verziónak.\n\nÚj képessége lesz, hogy egy jegyről egy kattintással el lehet jutni ahhoz a PRD-elemhez, amiből született. Egy Claude-skill, amely a chatben foglalja össze a projekt állapotát, később jöhet.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "f-build-tickets",
+                    "topic": "Jegyek és területek a .scratch-ből",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-build-deps",
+                    "topic": "Függések (Blocked by), aktivitás",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-build-incons",
+                    "topic": "Ellentmondások kiszűrése",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-build-docs",
+                    "topic": "Dokumentumok: specek, ADR-ek, fogalomtár",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-build-branches",
+                    "topic": "Git ágak és merge-ök gráfja",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "f-build-fileonly",
+                    "topic": "Szerver nélkül is: mappaválasztóval (Chromium)",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "note": "Csak Chromium-alapú böngészőben."
+                  },
+                  {
+                    "id": "f-build-trace",
+                    "topic": "Jegyről egy kattintással a PRD-elemhez",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "p-build-skill",
+                    "topic": "Claude-skill a projekt állapotáról",
+                    "metadata": {
+                      "status": "parked"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-build-users",
+                "topic": "Felhasználók és használati esetek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Build nézeteit bárki használhatja, aki a projektet követi, Claude nélkül is. Claude nélkül csak olvasni lehet.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-build-user",
+                    "topic": "Bárki, aki a projektet követi, Claude nélkül is",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "n-build-ro-user",
+                    "topic": "Claude nélkül csak olvasás",
+                    "metadata": {
+                      "status": "note"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "doc-build-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-build-sec",
+                "topic": "Biztonság",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Build csak olvas: a projekt fájljait és a git történetét jeleníti meg, semmit nem módosít.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "n-build-ro",
+                    "topic": "Csak olvas, csak 127.0.0.1, idegen Host → 403",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-build-conv",
+                "topic": "Integrációk: mattpocock-konvenciók",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Build a mattpocock-skillek konvencióit olvassa: a `.scratch/<terület>/issues/` alatti jegyeket, a területek `spec.md` fájljait, a `docs/adr/` döntéseit és a fogalomtárat. Az első verzió csak ezeket a helyi Markdown-jegyeket kezeli; a GitHub- és GitLab-issue-k később jöhetnek.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "n-build-conv",
+                    "topic": ".scratch/<terület>/issues, spec.md, docs/adr, GLOSSARY",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "d-local-tickets",
+                    "topic": "v1: csak helyi Markdown-jegyek (.scratch/)",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "p-gh-issues",
+                    "topic": "GitHub és GitLab issue-k",
+                    "metadata": {
+                      "status": "parked"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "direction": 1
+}

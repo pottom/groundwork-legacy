@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>prd-maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mind-elixir@5.15.1/dist/MindElixir.css">
+<style>
+  :root {
+    --font: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+    --bg: #f6f7fb;
+    --dot: #d9dce7;
+    --surface: #ffffff;
+    --fg: #1d2333;
+    --muted: #7a8195;
+    --line: #e4e7ef;
+    --glass: rgba(255, 255, 255, .78);
+    --shadow: 0 1px 2px rgba(20, 24, 40, .06), 0 4px 14px -6px rgba(20, 24, 40, .12);
+    --topic: #7c3aed;
+    --inferred: #0284c7;
+    --missing: #dc2626;
+    --decision: #12a150;
+    --parked: #d48806;
+    --todo: #e0457b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --dot: #1f2633;
+      --surface: #161c27;
+      --fg: #e6e9f2;
+      --muted: #8a93a8;
+      --line: #252d3c;
+      --glass: rgba(22, 28, 39, .78);
+      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px -8px rgba(0, 0, 0, .6);
+      --topic: #a78bfa;
+      --inferred: #38bdf8;
+      --missing: #f87171;
+      --decision: #34d399;
+      --parked: #fbbf24;
+      --todo: #f472b6;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.4 var(--font); }
+  body { overflow: hidden; }
+
+  #map {
+    position: fixed !important; inset: 0; width: auto !important; height: auto !important; /* Mind Elixir sets position: relative inline */
+    background: radial-gradient(circle, var(--dot) 1.2px, transparent 1.3px) 0 0 / 22px 22px, var(--bg);
+  }
+  #empty { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; color: var(--muted); gap: 8px; }
+  #empty code { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; }
+
+  /* ---- floating chrome ---- */
+  .glass {
+    background: var(--glass);
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+  #title {
+    position: fixed; top: 14px; left: 14px; z-index: 20;
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 14px 7px 12px; border-radius: 999px;
+    font-weight: 600; font-size: 13px; letter-spacing: .01em;
+  }
+  #sync { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 500; font-size: 12px; }
+  #sync i { width: 7px; height: 7px; border-radius: 50%; background: var(--decision); box-shadow: 0 0 0 3px color-mix(in srgb, var(--decision) 22%, transparent); }
+  #sync.busy i { background: var(--parked); box-shadow: 0 0 0 3px color-mix(in srgb, var(--parked) 22%, transparent); }
+  #sync.err i { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, .22); }
+
+  #dock {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20;
+    display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 14px;
+    max-width: calc(100vw - 32px); overflow-x: auto;
+  }
+  #dock .hint { color: var(--muted); font-size: 12px; padding: 0 8px; white-space: nowrap; }
+  #dock button {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 500 12.5px var(--font); color: var(--fg);
+    background: transparent; border: 0; border-radius: 9px; padding: 6px 10px; cursor: pointer; white-space: nowrap;
+  }
+  #dock button i {
+    width: 15px; height: 15px; background: var(--c);
+    -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+  }
+  #dock button:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 14%, transparent); }
+  #dock button.on { background: color-mix(in srgb, var(--c) 20%, transparent); }
+  #dock button:disabled { opacity: .4; cursor: default; }
+  #dock button.impl em { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+  #dock .sep { width: 1px; align-self: stretch; margin: 4px 2px; background: var(--line); }
+
+  /* Mind Elixir's own toolbars */
+  .mind-elixir-toolbar { background: var(--glass) !important; border: 1px solid var(--line); border-radius: 12px !important; box-shadow: var(--shadow) !important; backdrop-filter: blur(12px); }
+  .mind-elixir-toolbar.lt { top: 64px !important; }
+  .mind-elixir-toolbar svg { color: var(--muted); }
+
+  .map-container .context-menu .menu-list {
+    background: var(--glass) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 4px; overflow: hidden;
+  }
+  .map-container .context-menu .menu-list li {
+    background: transparent !important; color: var(--fg) !important; border: 0 !important;
+    border-radius: 8px; font: 500 13px var(--font); margin: 1px 0;
+  }
+  .map-container .context-menu .menu-list li:hover { background: color-mix(in srgb, #8b5cf6 16%, transparent) !important; }
+  .map-container .context-menu .key { background: var(--surface) !important; color: var(--muted) !important; border: 1px solid var(--line); border-radius: 5px; }
+
+  /* ---- the map ---- */
+  .map-container { font-family: var(--font) !important; cursor: grab; }
+  .map-container.panning, .map-container.panning * { cursor: grabbing !important; }
+  .map-container me-tpc { cursor: pointer; }
+  .map-container .lines path { stroke-width: 3px; stroke-linecap: round; }
+  .map-container .subLines path { stroke-width: 2px; stroke-linecap: round; opacity: .75; }
+  .map-container me-tpc { font-family: var(--font); transition: box-shadow .2s, transform .2s; }
+  .map-container me-tpc .tags { display: none; }
+
+  /* root */
+  .map-container me-root me-tpc {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #d946ef 100%);
+    color: #fff; font-size: 19px; font-weight: 700; letter-spacing: -.01em;
+    padding: 14px 26px; border: 0; border-radius: 999px;
+    box-shadow: 0 12px 32px -12px rgba(139, 92, 246, .75), inset 0 1px 0 rgba(255, 255, 255, .25);
+  }
+
+  /* main topics: pill tinted with the branch color */
+  .map-container me-main > me-wrapper > me-parent > me-tpc {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    color: var(--fg);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 65%, transparent);
+    border-radius: 999px; padding: 8px 18px;
+    font-size: 15px; font-weight: 600;
+    box-shadow: var(--shadow);
+  }
+  .map-container me-main > me-wrapper > me-parent > me-tpc::before {
+    content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%;
+    background: var(--accent); vertical-align: 1px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+
+  /* everything deeper: cards */
+  .map-container me-children me-tpc {
+    background: var(--surface); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 6px 12px; font-size: 13.5px; font-weight: 500;
+    box-shadow: var(--shadow);
+  }
+  .map-container me-children me-tpc[data-status]::before {
+    content: ''; display: inline-block; width: 15px; height: 15px; margin-right: 7px; vertical-align: -3px;
+    background: var(--st);
+    -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+  }
+  .map-container me-tpc[data-status="topic"]    { --st: var(--topic);    --icon: var(--i-topic); }
+  .map-container me-tpc[data-status="decision"] { --st: var(--decision); --icon: var(--i-decision); }
+  .map-container me-tpc[data-status="note"]     { --st: var(--muted);    --icon: var(--i-note); }
+  .map-container me-tpc[data-status="excluded"] { --st: var(--muted);    --icon: var(--i-excluded); }
+  .map-container me-tpc[data-status="parked"]   { --st: var(--parked);   --icon: var(--i-parked); }
+  .map-container me-tpc[data-status="todo"]     { --st: var(--todo);     --icon: var(--i-todo); }
+  .map-container me-tpc[data-status="inferred"] { --st: var(--inferred); --icon: var(--i-inferred); }
+  .map-container me-children me-tpc[data-status="inferred"] {
+    border: 1.5px dashed color-mix(in srgb, var(--inferred) 70%, transparent);
+    background: color-mix(in srgb, var(--inferred) 7%, var(--surface));
+  }
+
+  /* implementation layer: a small pill after the text (replaces the note dot) */
+  .map-container me-tpc[data-impl][data-impl]::after { /* beats the note dot */
+    content: attr(data-impl-label); display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px;
+    font: 600 10px var(--font); letter-spacing: .02em; vertical-align: 1px; width: auto; height: auto;
+    color: var(--ic); background: color-mix(in srgb, var(--ic) 16%, transparent);
+  }
+  .map-container me-tpc[data-impl="done"]    { --ic: var(--decision); }
+  .map-container me-tpc[data-impl="partial"] { --ic: var(--parked); }
+  .map-container me-tpc[data-impl="missing"] { --ic: var(--missing); }
+  /* Status badges match the dock exactly: same icon, same status color.
+     The branch color only marks which branch a node belongs to (lines, main pills). */
+  .map-container me-children me-tpc[data-status="topic"] {
+    font-weight: 600; border-color: color-mix(in srgb, var(--topic) 45%, var(--line));
+  }
+
+  .map-container me-children me-tpc[data-status="decision"] {
+    border-color: color-mix(in srgb, var(--decision) 35%, var(--line));
+    background: linear-gradient(90deg, color-mix(in srgb, var(--decision) 10%, var(--surface)), var(--surface) 70%);
+  }
+
+  .map-container me-children me-tpc[data-status="note"] {
+    background: transparent; border-color: transparent; box-shadow: none;
+    color: var(--muted); font-weight: 400; font-style: italic; padding-left: 6px;
+  }
+
+  .map-container me-children me-tpc[data-status="excluded"] {
+    background: transparent; box-shadow: none; border-style: dashed;
+    color: var(--muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 70%, transparent);
+  }
+
+  .map-container me-children me-tpc[data-status="parked"] { border: 1px dashed var(--parked); }
+
+  .map-container me-children me-tpc[data-status="todo"] {
+    border: 1.5px dashed var(--todo);
+    background: color-mix(in srgb, var(--todo) 9%, var(--surface));
+    animation: mm-todo 2.4s ease-in-out infinite;
+  }
+  @keyframes mm-todo { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--todo) 18%, transparent); } }
+
+  /* a node with a note gets a subtle marker */
+  .map-container me-tpc[data-has-note]::after {
+    content: ''; display: inline-block; width: 5px; height: 5px; margin-left: 7px; border-radius: 50%;
+    background: color-mix(in srgb, var(--accent, var(--muted)) 80%, transparent); vertical-align: 2px;
+  }
+  .map-container me-tpc .hyper-link { margin-left: 6px; opacity: .6; text-decoration: none; }
+
+  /* selection + new-node flash */
+  .map-container me-tpc.selected { outline: 2px solid var(--accent, #8b5cf6) !important; outline-offset: 3px; }
+  me-tpc.mm-new { animation: mm-flash 2.5s ease-out; }
+  @keyframes mm-flash { 0%, 25% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent, #8b5cf6) 45%, transparent); transform: scale(1.04); } 100% { box-shadow: var(--shadow); transform: none; } }
+
+  /* note tooltip */
+  #tip {
+    position: fixed; z-index: 30; max-width: 280px; pointer-events: none;
+    padding: 8px 11px; border-radius: 10px; font-size: 12.5px; color: var(--fg);
+    opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s;
+  }
+  #tip.show { opacity: 1; transform: none; }
+
+  /* ---- views: map | split | prd ---- */
+  :root { --prd-w: min(46vw, 640px); --font-doc: 'Source Serif 4', Georgia, serif; }
+  body[data-view="split"] #map { right: var(--prd-w) !important; }
+  body[data-view="prd"] #map { visibility: hidden; }
+  body[data-view="map"] #prd { display: none; }
+  body[data-view="prd"] #prd { width: 100%; }
+  body[data-view="split"] #dock { left: calc((100vw - var(--prd-w)) / 2); }
+  body[data-view="prd"] #dock { display: none; }
+  body[data-view="split"] .mind-elixir-toolbar.rb { right: 16px !important; }
+
+  .picker {
+    font: 600 12px var(--font); color: var(--fg); background: color-mix(in srgb, var(--fg) 7%, transparent);
+    border: 0; border-radius: 999px; padding: 4px 10px; cursor: pointer; max-width: 240px;
+  }
+  .picker option, .picker optgroup { background: var(--surface); color: var(--fg); }
+  body[data-layered="no"] #focus { display: none; }
+  #views { display: inline-flex; gap: 2px; padding: 2px; margin-left: 4px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 7%, transparent); }
+  #views button { font: 500 12px var(--font); color: var(--muted); background: transparent; border: 0; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+  #views button.on { background: var(--surface); color: var(--fg); box-shadow: var(--shadow); }
+
+  /* collapse / reopen handle on the PRD panel's edge */
+  #prd-toggle {
+    position: fixed; top: 50%; z-index: 15; transform: translateY(-50%);
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+    font: 600 12px var(--font); color: var(--muted);
+    background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+    transition: color .15s, background .15s;
+  }
+  #prd-toggle:hover { color: var(--fg); background: color-mix(in srgb, var(--topic) 10%, var(--surface)); }
+  #prd-toggle svg { width: 14px; height: 14px; }
+  body[data-view="split"] #prd-toggle { right: var(--prd-w); border-right: 0; border-radius: 10px 0 0 10px; padding: 14px 4px; }
+  body[data-view="split"] #prd-toggle span { display: none; }
+  body[data-view="map"] #prd-toggle { right: 0; border-right: 0; border-radius: 10px 0 0 10px; padding: 10px 8px 10px 10px; writing-mode: vertical-rl; }
+  body[data-view="map"] #prd-toggle svg { transform: rotate(180deg); }
+  body[data-view="prd"] #prd-toggle { display: none; }
+
+  /* view / edit mode */
+  #mode { display: inline-flex; align-items: center; gap: 6px; font: 500 12px var(--font); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px 3px 8px; cursor: pointer; }
+  #mode svg { width: 13px; height: 13px; }
+  #mode:hover { color: var(--fg); }
+  body[data-mode="edit"] #mode { color: var(--topic); border-color: color-mix(in srgb, var(--topic) 55%, transparent); background: color-mix(in srgb, var(--topic) 12%, transparent); }
+  body[data-mode="view"] #dock { display: none; }
+  body[data-mode="view"] #prd .edit, body[data-mode="view"] #prd .add { display: none; }
+  body[data-mode="view"] #prd .prose:hover { background: none; }
+  body[data-mode="view"] #prd .prose.human:hover { background: color-mix(in srgb, var(--parked) 9%, transparent); }
+
+  /* document switcher in the panel */
+  #prd .docpick { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  #prd .docpick span { font-size: 12px; color: var(--muted); }
+  #prd .docpick .picker { font-size: 13px; max-width: 100%; }
+
+  /* sections inside a document layer: pills tinted with their own color */
+  .map-container me-children me-tpc[data-section] {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--fg);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 14px;
+  }
+  .map-container me-children me-tpc[data-section]::before {
+    content: ''; width: 8px; height: 8px; border-radius: 50%; margin-right: 9px; vertical-align: 1px;
+    background: var(--accent); -webkit-mask: none; mask: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  /* document layers (Termék / Technika) */
+  .map-container me-tpc[data-layer] { font-weight: 650; }
+  .map-container me-tpc[data-layer]::before {
+    content: ''; display: inline-block; width: 15px; height: 15px; margin-right: 8px; vertical-align: -3px; border-radius: 0; box-shadow: none;
+    background: var(--accent, var(--topic)); -webkit-mask: var(--i-doc) center / contain no-repeat; mask: var(--i-doc) center / contain no-repeat;
+  }
+  .map-container me-main > me-wrapper > me-parent > me-tpc[data-layer] { font-size: 16px; padding: 9px 20px; letter-spacing: .01em; }
+  /* components: a type chip after the name */
+  .map-container me-tpc[data-component] { font-weight: 700; }
+  .map-container me-tpc[data-component]::after {
+    content: attr(data-component-label); display: inline-block; margin-left: 9px; padding: 1px 8px; border-radius: 999px; vertical-align: 2px;
+    font: 600 10px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: color-mix(in srgb, var(--fg) 9%, transparent);
+  }
+  .map-container me-root me-tpc[data-component]::after { color: rgba(255, 255, 255, .9); background: rgba(255, 255, 255, .2); }
+
+  /* ---- PRD panel ---- */
+  #prd {
+    position: fixed; top: 0; right: 0; bottom: 0; width: var(--prd-w); z-index: 10;
+    overflow-y: auto; background: var(--surface); border-left: 1px solid var(--line);
+  }
+  #prd .doc { max-width: 720px; margin: 0 auto; padding: 72px 40px 120px; }
+  #prd h1 { font: 700 26px/1.25 var(--font); letter-spacing: -.02em; margin: 0 0 6px; }
+  #prd .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  #prd .bar { display: flex; gap: 4px; margin: 0 0 6px; }
+  #prd .bar span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); cursor: pointer; transition: transform .15s; }
+  #prd .bar span:hover { transform: scaleY(1.6); }
+  #prd .bar span.done { background: var(--decision); }
+  #prd .bar span.active { background: var(--parked); }
+  #prd .counts { font-size: 12px; color: var(--muted); margin-bottom: 34px; }
+
+  #prd section { margin: 0 0 34px; scroll-margin-top: 24px; }
+  #prd h2 {
+    font: 650 19px/1.3 var(--font); letter-spacing: -.01em; margin: 0 0 10px;
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+  }
+  #prd h2 .num { color: var(--muted); font-weight: 500; min-width: 1.4em; }
+  #prd .chip { font: 600 10.5px var(--font); letter-spacing: .03em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+  #prd .chip.done { color: var(--decision); background: color-mix(in srgb, var(--decision) 14%, transparent); }
+  #prd .chip.active { color: var(--parked); background: color-mix(in srgb, var(--parked) 14%, transparent); }
+  #prd .chip.untouched { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+
+  #prd .prose { position: relative; font: 400 16.5px/1.65 var(--font-doc); margin: 0 0 12px; border-radius: 8px; padding: 2px 8px; margin-left: -8px; }
+  #prd .prose p { margin: 0 0 10px; }
+  #prd .prose p:last-child { margin-bottom: 0; }
+  #prd .prose:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+  #prd .prose.human { background: color-mix(in srgb, var(--parked) 9%, transparent); padding: 8px 10px; margin-left: -10px; }
+  #prd .who { display: block; font: 500 11px var(--font); color: var(--muted); margin-bottom: 3px; }
+  #prd .prose .edit {
+    position: absolute; top: 4px; right: 4px; opacity: 0; transition: opacity .12s;
+    font: 500 11.5px var(--font); color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer;
+  }
+  #prd .prose:hover .edit { opacity: 1; }
+  #prd .placeholder { font: italic 400 15px var(--font-doc); color: var(--muted); margin: 0 0 12px; }
+
+  #prd ul.items { list-style: none; margin: 4px 0 10px; padding: 0 0 0 2px; border-left: 2px solid var(--line); }
+  #prd ul.items li {
+    display: flex; align-items: baseline; gap: 8px; padding: 3px 8px 3px 12px; margin-left: calc(var(--d, 0) * 18px);
+    font-size: 14px; border-radius: 0 6px 6px 0; cursor: pointer;
+  }
+  #prd ul.items li:hover { background: color-mix(in srgb, var(--fg) 5%, transparent); }
+  #prd li i { flex: none; width: 14px; height: 14px; align-self: flex-start; margin-top: 3px; background: var(--st, var(--muted)); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+  #prd li .c { flex: 1; min-width: 0; }
+  #prd li .t { font-weight: 500; }
+  #prd li[data-status="topic"] .t { font-weight: 650; }
+  #prd li[data-status="note"] .t { font-weight: 400; font-style: italic; color: var(--muted); }
+  #prd li[data-status="excluded"] .t { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+  #prd li .n { color: var(--muted); font-size: 13px; }
+  #prd li .s { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; }
+  #prd li a { font-size: 12px; color: var(--topic); }
+  #prd li[data-status="topic"]    { --st: var(--topic);    --icon: var(--i-topic); }
+  #prd li[data-status="decision"] { --st: var(--decision); --icon: var(--i-decision); }
+  #prd li[data-status="note"]     { --st: var(--muted);    --icon: var(--i-note); }
+  #prd li[data-status="excluded"] { --st: var(--muted);    --icon: var(--i-excluded); }
+  #prd li[data-status="parked"]   { --st: var(--parked);   --icon: var(--i-parked); }
+  #prd li[data-status="todo"]     { --st: var(--todo);     --icon: var(--i-todo); }
+  #prd li[data-status="inferred"] { --st: var(--inferred); --icon: var(--i-inferred); }
+  #prd li[data-status="inferred"] .t { font-weight: 400; }
+  #prd li .inf { font-size: 11.5px; color: var(--inferred); white-space: nowrap; }
+  #prd li .impl { font: 600 10px var(--font); letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; white-space: nowrap; color: var(--ic); background: color-mix(in srgb, var(--ic) 16%, transparent); }
+  #prd li .impl.done { --ic: var(--decision); }
+  #prd li .impl.partial { --ic: var(--parked); }
+  #prd li .impl.missing { --ic: var(--missing); }
+  #prd .counts b { font-weight: 600; }
+  #prd li:not([data-status]) i    { --icon: var(--i-note); }
+
+  #prd .add { font: 500 12.5px var(--font); color: var(--muted); background: none; border: 1px dashed var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  #prd .add:hover { color: var(--fg); border-color: var(--muted); }
+  #prd .cross h2 { font-size: 16px; }
+  #prd .glossary { font: 400 15px/1.6 var(--font-doc); }
+  #prd .glossary h1, #prd .glossary h2 { display: none; }
+
+  #prd .editor textarea {
+    width: 100%; min-height: 110px; resize: vertical; font: 400 15.5px/1.6 var(--font-doc); color: var(--fg);
+    background: var(--bg); border: 1px solid var(--topic); border-radius: 8px; padding: 10px 12px; outline: none;
+  }
+  #prd .editor .row { display: flex; gap: 6px; margin-top: 6px; }
+  #prd .editor button { font: 500 12.5px var(--font); border-radius: 7px; padding: 5px 12px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+  #prd .editor button.primary { background: var(--topic); border-color: var(--topic); color: #fff; }
+  #prd .editor button.danger { margin-left: auto; color: #ef4444; }
+  #prd .editor .tip { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  #prd .active-row { background: color-mix(in srgb, var(--topic) 14%, transparent) !important; }
+  #prd .fresh { animation: prd-fresh 3s ease-out; }
+  @keyframes prd-fresh { 0%, 30% { background: color-mix(in srgb, var(--decision) 22%, transparent); } 100% { background: transparent; } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="title" class="glass"><span id="name">prd-maker</span><span id="sync"><i></i><b>betöltés…</b></span>
+  <select id="focus" class="picker" title="Mit mutasson a térkép"></select>
+  <span id="views"><button data-v="map">Térkép</button><button data-v="split">Mindkettő</button><button data-v="prd">Dokumentum</button></span>
+  <button id="mode" type="button"></button></div>
+<aside id="prd"><article class="doc"></article></aside>
+<button id="prd-toggle" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg><span>PRD</span></button>
+<div id="dock" class="glass"><span class="hint">Jelölj ki egy csomópontot</span></div>
+<div id="tip" class="glass"></div>
+
+<script type="module">
+import MindElixir from 'https://cdn.jsdelivr.net/npm/mind-elixir@5.15.1/dist/MindElixir.js'
+import { STATUSES, IMPL, iconUrl } from '/status.mjs'
+import { buildPrd, progressSummary, PROGRESS_LABEL, IMPL_LABEL, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from '/prd.mjs'
+import { marked } from 'https://cdn.jsdelivr.net/npm/marked@12.0.2/lib/marked.esm.js'
+
+for (const key of Object.keys(STATUSES)) document.documentElement.style.setProperty(`--i-${key}`, iconUrl(key))
+// document icon (Lucide file-text)
+document.documentElement.style.setProperty('--i-doc', `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>')}")`)
+
+const dark = matchMedia('(prefers-color-scheme: dark)').matches
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+
+const PALETTE = dark
+  ? ['#60a5fa', '#34d399', '#f472b6', '#fbbf24', '#a78bfa', '#22d3ee', '#fb923c', '#f87171']
+  : ['#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#ef4444']
+
+// Branch lines that leave the parent's right edge and enter the child's left edge
+// at mid-height (the default draws underline-style lines).
+function subBranch({ pT, pL, pW, pH, cT, cL, cW, cH, direction }) {
+  const y1 = pT + pH / 2, y2 = cT + cH / 2
+  if (direction === 'down') {
+    const x1 = pL + pW / 2, x2 = cL + cW / 2, my = (pT + pH + cT) / 2
+    return `M ${x1} ${pT + pH} C ${x1} ${my} ${x2} ${my} ${x2} ${cT}`
+  }
+  // the child's box includes the node gap as padding on the parent's side
+  const gap = parseInt(this.container.style.getPropertyValue('--node-gap-x')) || 0
+  const x1 = direction === 'lhs' ? pL : pL + pW
+  const x2 = direction === 'lhs' ? cL + cW - gap : cL + gap
+  const mx = (x1 + x2) / 2
+  return `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`
+}
+
+const THEME = {
+  name: dark ? 'grill-dark' : 'grill-light',
+  type: dark ? 'dark' : 'light',
+  palette: PALETTE,
+  generateSubBranch: subBranch,
+  cssVar: {
+    '--bgcolor': 'transparent',
+    '--color': css('--fg'),
+    '--main-color': css('--fg'),
+    '--main-bgcolor': css('--surface'),
+    '--main-bgcolor-transparent': 'transparent',
+    '--root-color': '#ffffff',
+    '--root-bgcolor': '#7c3aed',
+    '--root-border-color': 'transparent',
+    '--root-radius': '999px',
+    '--main-radius': '999px',
+    '--topic-padding': '6px 12px',
+    '--node-gap-x': '56px',
+    '--node-gap-y': '9px',
+    '--main-gap-x': '70px',
+    '--main-gap-y': '22px',
+    '--selected': '#8b5cf6',
+    '--accent-color': '#8b5cf6',
+    '--panel-color': css('--fg'),
+    '--panel-bgcolor': css('--surface'),
+    '--panel-border-color': css('--line'),
+    '--map-padding': '60px 80px',
+  },
+}
+
+const syncEl = document.getElementById('sync')
+const setSync = (cls, text) => { syncEl.className = cls; syncEl.querySelector('b').textContent = text }
+
+let mind, version = null, dirty = false, saving = false, timer = null
+// In focus mode Mind Elixir's nodeData is just the focused branch; this is always the whole map.
+// Mind Elixir's findEle throws when a node is not on screen (collapsed or outside the focused layer).
+const ele = (id) => { try { return mind.findEle(id) } catch { return null } }
+const fullTree = () => (mind.isFocusMode ? mind.nodeDataBackup : mind.nodeData)
+let prdEditing = false // a PRD paragraph editor is open
+const editing = () => !!document.getElementById('input-box') || prdEditing
+
+// ---- decoration: status, branch color, notes ----
+function decorate() {
+  const data = { nodeData: fullTree() }
+  const structured = listDocs(data).some((d) => !d.legacy)
+  const setAccent = (n, i) => {
+    const wrapper = ele(n.id)?.closest('me-wrapper')
+    if (wrapper) wrapper.style.setProperty('--accent', n.branchColor || PALETTE[i % PALETTE.length])
+  }
+  // the main branches of the current view follow Mind Elixir's line palette...
+  const visibleMain = mind.nodeData.children || []
+  visibleMain.forEach(setAccent)
+  // ...and every section below them still gets a color of its own
+  if (structured) {
+    let i = visibleMain.length
+    for (const d of listDocs(data)) for (const sec of d.node.children || []) if (!visibleMain.includes(sec)) setAccent(sec, i++)
+  }
+  for (const tpc of mind.container.querySelectorAll('me-tpc')) {
+    const n = tpc.nodeObj
+    if (!n) continue
+    const st = n.metadata?.status
+    if (st) tpc.dataset.status = st; else delete tpc.dataset.status
+    if (n.metadata?.doc) tpc.dataset.layer = n.metadata.doc; else delete tpc.dataset.layer
+    const ct = n.metadata?.component
+    if (ct) { tpc.dataset.component = ct; tpc.dataset.componentLabel = COMPONENT_TYPES[ct] || ct } else { delete tpc.dataset.component; delete tpc.dataset.componentLabel }
+    if (structured && isSection(data, n.id)) tpc.dataset.section = ''; else delete tpc.dataset.section
+    if (n.note) tpc.dataset.hasNote = ''; else delete tpc.dataset.hasNote
+    const impl = n.metadata?.impl
+    if (impl) { tpc.dataset.impl = impl; tpc.dataset.implLabel = IMPL[impl].label } else { delete tpc.dataset.impl; delete tpc.dataset.implLabel }
+  }
+  refreshDock()
+  renderPrd()
+}
+
+// ---- status dock ----
+const dock = document.getElementById('dock')
+const hint = dock.querySelector('.hint')
+const COLORS = { inferred: 'var(--inferred)', topic: 'var(--topic)', decision: 'var(--decision)', note: 'var(--muted)', excluded: 'var(--muted)', parked: 'var(--parked)', todo: 'var(--todo)' }
+const buttons = {}
+for (const [key, s] of Object.entries(STATUSES)) {
+  const b = document.createElement('button')
+  b.style.setProperty('--c', COLORS[key])
+  b.innerHTML = `<i style="--icon: var(--i-${key})"></i>${s.label}`
+  b.onclick = () => setNodeStatus(b.classList.contains('on') ? undefined : key)
+  dock.appendChild(b)
+  buttons[key] = b
+}
+const IMPL_COLORS = { done: 'var(--decision)', partial: 'var(--parked)', missing: 'var(--missing)' }
+const implButtons = {}
+dock.insertAdjacentHTML('beforeend', '<span class="sep"></span>')
+for (const [key, s] of Object.entries(IMPL)) {
+  const b = document.createElement('button')
+  b.className = 'impl'
+  b.style.setProperty('--c', IMPL_COLORS[key])
+  b.innerHTML = `<em></em>${s.label}`
+  b.title = 'Megvalósítás: ' + s.label
+  b.onclick = () => setNodeImpl(b.classList.contains('on') ? undefined : key)
+  dock.appendChild(b)
+  implButtons[key] = b
+}
+
+function refreshDock() {
+  const n = mind?.currentNode?.nodeObj
+  const isRoot = n && !n.parent
+  hint.textContent = n ? (isRoot ? 'A gyökérnek nincs státusza' : n.topic) : 'Jelölj ki egy csomópontot'
+  hint.style.maxWidth = '180px'
+  hint.style.overflow = 'hidden'
+  hint.style.textOverflow = 'ellipsis'
+  for (const [key, b] of Object.entries(buttons)) {
+    b.disabled = !n || isRoot
+    b.classList.toggle('on', !!n && n.metadata?.status === key)
+  }
+  for (const [key, b] of Object.entries(implButtons)) {
+    b.disabled = !n || isRoot
+    b.classList.toggle('on', !!n && n.metadata?.impl === key)
+  }
+}
+
+function setNodeImpl(key) {
+  const tpc = mind.currentNode
+  if (!tpc || !tpc.nodeObj.parent) return
+  mind.reshapeNode(tpc, { metadata: { ...(tpc.nodeObj.metadata || {}), impl: key } })
+}
+
+function setNodeStatus(key) {
+  const tpc = mind.currentNode
+  if (!tpc || !tpc.nodeObj.parent) return
+  mind.reshapeNode(tpc, { metadata: { ...(tpc.nodeObj.metadata || {}), status: key } })
+}
+
+// ---- background pan ----
+// Mind Elixir 5.15 always box-selects on a left-drag over the empty background
+// when editing is on. Pan instead; Shift+drag still box-selects.
+function enableBackgroundPan() {
+  const c = mind.container
+  let last = null, moved = false
+  const isBackground = (t) => c.contains(t) &&
+    !t.closest('me-tpc, me-epd, .mind-elixir-toolbar, .context-menu, #input-box, .circle, .svg-label, .topiclinks')
+  window.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.shiftKey || e.pointerType !== 'mouse' || !isBackground(e.target)) return
+    e.stopPropagation()
+    last = { x: e.clientX, y: e.clientY }
+    moved = false
+    c.classList.add('panning')
+  }, true)
+  window.addEventListener('pointermove', (e) => {
+    if (!last) return
+    const dx = e.clientX - last.x, dy = e.clientY - last.y
+    if (Math.abs(dx) + Math.abs(dy) > 0) { mind.move(dx, dy); moved = true }
+    last = { x: e.clientX, y: e.clientY }
+  }, true)
+  window.addEventListener('pointerup', () => {
+    if (!last) return
+    if (!moved) { mind.clearSelection(); refreshDock() } // a plain click on the background deselects
+    last = null
+    c.classList.remove('panning')
+  }, true)
+}
+
+// ---- view / edit mode ----
+const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+const PEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></svg>'
+const modeBtn = document.getElementById('mode')
+function setMode(m) {
+  m = m === 'edit' ? 'edit' : 'view'
+  document.body.dataset.mode = m
+  modeBtn.innerHTML = m === 'edit' ? `${PEN}Szerkesztés` : `${LOCK}Nézet`
+  modeBtn.title = m === 'edit' ? 'Szerkesztés: kattints a zároláshoz' : 'Csak nézet: kattints a szerkesztéshez'
+  try { localStorage.setItem('prd-maker:mode', m) } catch {}
+  if (mind) {
+    if (m === 'edit') mind.enableEdit(); else { mind.disableEdit(); document.getElementById('input-box')?.blur() }
+  }
+}
+modeBtn.onclick = () => setMode(document.body.dataset.mode === 'edit' ? 'view' : 'edit')
+const isEditMode = () => document.body.dataset.mode === 'edit'
+{
+  let saved = null
+  try { saved = localStorage.getItem('prd-maker:mode') } catch {}
+  setMode(saved || 'view')
+}
+
+// ---- focus: the whole map, one component, or one document ----
+// Uses Mind Elixir's focus mode, in step with the document panel.
+let currentFocus = 'all'
+try { currentFocus = localStorage.getItem('prd-maker:focus') || 'all' } catch {}
+const focusSel = document.getElementById('focus')
+
+const findNode = (id) => { const f = (n) => n.id === id ? n : (n.children || []).map(f).find(Boolean); return f(fullTree()) }
+
+function groupDocs(docs) {
+  const groups = [], byComp = new Map()
+  for (const d of docs) {
+    if (!d.component) { groups.push({ doc: d }); continue }
+    if (!byComp.has(d.component.id)) { const g = { component: d.component, docs: [] }; byComp.set(d.component.id, g); groups.push(g) }
+    byComp.get(d.component.id).docs.push(d)
+  }
+  return groups
+}
+
+function fillFocusPicker(docs) {
+  const opts = ['<option value="all">Teljes térkép</option>']
+  for (const g of groupDocs(docs)) {
+    if (g.doc) { opts.push(`<option value="${g.doc.id}">${esc(g.doc.label)}</option>`); continue }
+    opts.push(`<optgroup label="${esc(g.component.topic)}"><option value="${g.component.id}">${esc(g.component.topic)}: egész</option>${g.docs.map((d) => `<option value="${d.id}">${esc(d.label)}</option>`).join('')}</optgroup>`)
+  }
+  focusSel.innerHTML = opts.join('')
+  focusSel.value = currentFocus
+}
+
+function applyFocus({ keepView = true } = {}) {
+  if (!mind) return
+  const docs = listDocs({ nodeData: fullTree() }).filter((d) => !d.legacy)
+  document.body.dataset.layered = docs.length ? 'yes' : 'no'
+  const target = currentFocus !== 'all' ? findNode(currentFocus) : null
+  if (!target) currentFocus = 'all'
+  const transform = mind.map.style.transform
+  if (mind.isFocusMode) mind.cancelFocus()
+  if (target) { reveal(target.id); const el = ele(target.id); if (el) mind.focusNode(el) }
+  if (keepView) mind.map.style.transform = transform
+  fillFocusPicker(docs)
+  decorate()
+}
+
+// focusing a document shows it in the panel; focusing a component shows its first document
+function setFocus(id) {
+  currentFocus = id
+  try { localStorage.setItem('prd-maker:focus', id) } catch {}
+  const data = { nodeData: fullTree() }
+  const docs = listDocs(data)
+  const asDoc = docs.find((d) => d.id === id)
+  const inComp = docs.filter((d) => d.component?.id === id)
+  if (asDoc) currentDoc = asDoc.id
+  else if (inComp.length && !inComp.some((d) => d.id === currentDoc)) currentDoc = inComp[0].id
+  lastSnapshot = null
+  applyFocus({ keepView: false })
+  requestAnimationFrame(() => mind.scaleFit())
+  renderPrd()
+  document.getElementById('prd').scrollTop = 0
+}
+focusSel.onchange = () => setFocus(focusSel.value)
+
+// choosing a document in the panel moves the map focus along, unless the map shows everything
+function pickDoc(docId) {
+  if (currentFocus === 'all') { currentDoc = docId; lastSnapshot = null; renderPrd(); document.getElementById('prd').scrollTop = 0; return }
+  const d = listDocs({ nodeData: fullTree() }).find((x) => x.id === docId)
+  if (d?.component && d.component.id === currentFocus) { currentDoc = docId; lastSnapshot = null; renderPrd(); document.getElementById('prd').scrollTop = 0; return }
+  setFocus(docId)
+}
+
+// ---- views ----
+const VIEWS = ['map', 'split', 'prd']
+function setView(v, { fit = true } = {}) {
+  if (!VIEWS.includes(v)) v = 'split'
+  document.body.dataset.view = v
+  for (const b of document.querySelectorAll('#views button')) b.classList.toggle('on', b.dataset.v === v)
+  const toggle = document.getElementById('prd-toggle')
+  if (toggle) toggle.title = v === 'split' ? 'PRD becsukása' : 'PRD megnyitása'
+  try { localStorage.setItem('prd-maker:view', v) } catch {}
+  if (fit && mind && v !== 'prd') requestAnimationFrame(() => mind.scaleFit())
+}
+for (const b of document.querySelectorAll('#views button')) b.onclick = () => setView(b.dataset.v)
+const prdToggle = document.getElementById('prd-toggle')
+prdToggle.onclick = () => setView(document.body.dataset.view === 'split' ? 'map' : 'split')
+{
+  let saved = null
+  try { saved = localStorage.getItem('prd-maker:view') } catch {}
+  setView(saved || (innerWidth >= 1100 ? 'split' : 'map'), { fit: false })
+}
+
+// ---- PRD panel ----
+const doc = document.querySelector('#prd .doc')
+let currentDoc = null // id of the document shown in the panel
+let glossary = ''
+let lastSnapshot = null // id -> rendered content, to flash what changed
+const esc = (t = '') => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const md = (t) => marked.parse(t || '', { breaks: false })
+const newId = () => Math.random().toString(16).slice(2, 10)
+
+async function loadGlossary() {
+  try { glossary = (await (await fetch('/api/glossary')).json()).text || '' } catch { glossary = '' }
+}
+
+function itemHtml(it, { showSection = false } = {}) {
+  const link = it.link ? ` <a href="#" data-link="${esc(it.link)}" title="${esc(it.link)}">↗ ${esc(it.link)}</a>` : ''
+  const note = it.note ? `<span class="n">— ${esc(it.note)}</span>` : ''
+  const sec = showSection ? `<span class="s">${esc(it.untouched ? 'érintetlen fejezet' : it.section)}</span>` : ''
+  const st = it.status ? ` data-status="${it.status}"` : ''
+  const impl = it.impl ? ` <span class="impl ${it.impl}">${IMPL_LABEL[it.impl]}</span>` : ''
+  const inf = it.status === 'inferred' ? ' <span class="inf">kódból · megerősítésre vár</span>' : ''
+  return `<li data-id="${it.id}"${st} style="--d:${showSection ? 0 : it.depth}"><i></i><span class="c"><span class="t">${esc(it.topic)}</span>${impl}${inf} ${note}${link}</span>${sec}</li>`
+}
+
+function renderPrd() {
+  if (!mind || prdEditing) return
+  const scrollTop = document.getElementById('prd').scrollTop
+  const data = { nodeData: fullTree() }
+  const docs = listDocs(data)
+  if (!docs.some((d) => d.id === currentDoc)) currentDoc = docs[0].id
+  const prd = buildPrd(data, currentDoc)
+  const D = { subtitle: prd.subtitle, cross: prd.cross, file: `${BASE_DIR}/${prd.doc.file}` }
+  const count = progressSummary(prd)
+  const parts = []
+  if (docs.length > 1) {
+    const label = (d) => { const c = progressSummary(buildPrd(data, d.id)); return `${esc(d.label)} · ${c.done}/${c.done + c.active + c.untouched}` }
+    const opts = groupDocs(docs).map((g) => g.doc
+      ? `<option value="${g.doc.id}">${label(g.doc)}</option>`
+      : `<optgroup label="${esc(g.component.topic)}">${g.docs.map((d) => `<option value="${d.id}">${label(d)}</option>`).join('')}</optgroup>`)
+    parts.push(`<div class="docpick"><span>Dokumentum</span><select class="picker" data-docpick>${opts.join('')}</select></div>`)
+  }
+  parts.push(`<h1>${esc(prd.title)}</h1>`)
+  parts.push(`<div class="sub"><span>${D.subtitle} · élő</span><span>${D.file} automatikusan frissül</span></div>`)
+  parts.push(`<div class="bar">${prd.sections.map((s) => `<span class="${s.progress}" data-jump="${s.id}" title="${esc(s.title)}: ${PROGRESS_LABEL[s.progress]}"></span>`).join('')}</div>`)
+  const implTotal = count.impl.done + count.impl.partial + count.impl.missing
+  parts.push(`<div class="counts">${count.done} kész · ${count.active} folyamatban · ${count.untouched} érintetlen fejezet` +
+    (count.inferred ? ` · <b style="color:var(--inferred)">${count.inferred} kódból, megerősítésre vár</b>` : '') +
+    (implTotal ? `<br>Megvalósítás: <b style="color:var(--decision)">${count.impl.done} kész</b> · <b style="color:var(--parked)">${count.impl.partial} részben</b> · <b style="color:var(--missing)">${count.impl.missing} hiányzik</b>` : '') +
+    '</div>')
+
+  prd.sections.forEach((s, i) => {
+    parts.push(`<section id="sec-${s.id}" data-section="${s.id}">`)
+    parts.push(`<h2 data-id="${s.id}"><span class="num">${i + 1}.</span><span>${esc(s.title)}</span><span class="chip ${s.progress}">${PROGRESS_LABEL[s.progress]}</span></h2>`)
+    if (s.prose) parts.push(`<div class="prose claude" data-key="${s.id}:claude"><button class="edit" data-edit="claude">Szerkesztés</button>${md(s.prose)}</div>`)
+    for (const h of s.human) parts.push(`<div class="prose human" data-key="${s.id}:${h.id}"><span class="who">Te írtad · Claude nem írja felül</span><button class="edit" data-edit="${h.id}">Szerkesztés</button>${md(h.text)}</div>`)
+    if (!s.prose && !s.human.length && !s.items.length) parts.push('<p class="placeholder">Még nem beszéltük át.</p>')
+    if (s.items.length) parts.push(`<ul class="items">${s.items.map((it) => itemHtml(it)).join('')}</ul>`)
+    parts.push(`<button class="add" data-add="${s.id}">+ Saját bekezdés</button>`)
+    parts.push('</section>')
+  })
+
+  const cross = [[D.cross.nonGoals, prd.nonGoals], [D.cross.later, prd.later], [D.cross.open, prd.open]]
+  for (const [title, list] of cross) {
+    if (!list.length) continue
+    parts.push(`<section class="cross"><h2>${title}</h2><ul class="items">${list.map((it) => itemHtml(it, { showSection: true })).join('')}</ul></section>`)
+  }
+  if ((prd.kind === 'prd' || prd.kind === 'system') && glossary.trim()) parts.push(`<section class="cross"><h2>Fogalmak</h2><div class="glossary">${md(glossary)}</div></section>`)
+
+  doc.innerHTML = parts.join('')
+  const pick = doc.querySelector('[data-docpick]')
+  if (pick) { pick.value = currentDoc; pick.onchange = () => pickDoc(pick.value) }
+  document.getElementById('prd').scrollTop = scrollTop
+
+  // flash what changed since the last render
+  const snap = new Map()
+  for (const el of doc.querySelectorAll('[data-id], [data-key]')) snap.set(el.dataset.key || el.dataset.id, el.textContent)
+  if (lastSnapshot) for (const [k, text] of snap) {
+    if (lastSnapshot.get(k) === text) continue
+    doc.querySelector(`[data-key="${CSS.escape(k)}"], li[data-id="${CSS.escape(k)}"]`)?.classList.add('fresh')
+  }
+  lastSnapshot = snap
+  highlightInPrd(mind.currentNode?.nodeObj?.id, { scroll: false })
+}
+
+function highlightInPrd(id, { scroll = true } = {}) {
+  for (const el of doc.querySelectorAll('.active-row')) el.classList.remove('active-row')
+  if (!id) return
+  const owner = docOf({ nodeData: fullTree() }, id)
+  if (scroll && owner && owner !== currentDoc && !prdEditing) { currentDoc = owner; lastSnapshot = null; renderPrd() }
+  const el = doc.querySelector(`li[data-id="${CSS.escape(id)}"]`) || doc.querySelector(`h2[data-id="${CSS.escape(id)}"]`)
+  if (!el) return
+  el.classList.add('active-row')
+  if (scroll && document.body.dataset.view !== 'map') el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+}
+
+// Expands every collapsed ancestor so the node is visible on the map.
+function reveal(id) {
+  const path = []
+  const find = (n) => { if (n.id === id) return true; for (const c of n.children || []) if (find(c)) { path.unshift(n); return true } return false }
+  find(fullTree())
+  for (const n of path) if (n.expanded === false) { const el = ele(n.id); if (el) mind.expandNode(el, true) }
+}
+
+function selectOnMap(id) {
+  reveal(id)
+  const el = ele(id)
+  if (!el) return
+  mind.selectNode(el)
+  refreshDock()
+  highlightInPrd(id, { scroll: false })
+}
+
+// Section text lives on the main topic node: metadata.prose (Claude) and
+// metadata.humanProse (yours). Editing Claude's text turns it into yours.
+function updateSection(sectionId, fn) {
+  const tpc = ele(sectionId)
+  if (!tpc) return
+  const m = { ...(tpc.nodeObj.metadata || {}) }
+  m.humanProse = [...(m.humanProse || [])]
+  fn(m)
+  if (!m.humanProse.length) delete m.humanProse
+  if (!m.prose) delete m.prose
+  mind.reshapeNode(tpc, { metadata: m })
+}
+
+function openEditor(sectionId, which, anchor) {
+  const node = ele(sectionId)?.nodeObj
+  if (!node || prdEditing) return
+  const m = node.metadata || {}
+  const text = which === 'claude' ? m.prose : which === 'new' ? '' : (m.humanProse || []).find((h) => h.id === which)?.text
+  prdEditing = true
+  const box = document.createElement('div')
+  box.className = 'editor'
+  box.innerHTML = `<textarea></textarea>
+    <div class="tip">${which === 'claude' ? 'Ha átírod, a bekezdés a tiéd lesz, és Claude nem írja felül.' : 'Markdown is használható. Ctrl+Enter: mentés, Esc: mégse.'}</div>
+    <div class="row"><button class="primary" data-a="save">Mentés</button><button data-a="cancel">Mégse</button>${which !== 'new' ? '<button class="danger" data-a="delete">Törlés</button>' : ''}</div>`
+  const ta = box.querySelector('textarea')
+  ta.value = text || ''
+  anchor.replaceWith(box)
+  ta.focus()
+  const close = (result) => {
+    prdEditing = false
+    if (result === undefined) { renderPrd(); return }
+    updateSection(sectionId, (mm) => {
+      if (which === 'claude') {
+        delete mm.prose
+        if (result) mm.humanProse.unshift({ id: newId(), text: result })
+      } else if (which === 'new') {
+        if (result) mm.humanProse.push({ id: newId(), text: result })
+      } else {
+        const i = mm.humanProse.findIndex((h) => h.id === which)
+        if (i >= 0) { if (result) mm.humanProse[i] = { ...mm.humanProse[i], text: result }; else mm.humanProse.splice(i, 1) }
+      }
+    })
+  }
+  box.addEventListener('click', (e) => {
+    const a = e.target.dataset.a
+    if (a === 'save') close(ta.value.trim())
+    if (a === 'cancel') close(undefined)
+    if (a === 'delete') close('')
+  })
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close(undefined)
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) close(ta.value.trim())
+  })
+}
+
+doc.addEventListener('click', (e) => {
+  const t = e.target
+  if (t.dataset.link) { e.preventDefault(); return }
+  if ((t.dataset.edit || t.dataset.add) && !isEditMode()) return
+  if (t.dataset.jump) { document.getElementById('sec-' + t.dataset.jump)?.scrollIntoView({ behavior: 'smooth' }); selectOnMap(t.dataset.jump); return }
+  if (t.dataset.edit) { const sec = t.closest('section').dataset.section; openEditor(sec, t.dataset.edit, t.closest('.prose')); return }
+  if (t.dataset.add) { openEditor(t.dataset.add, 'new', t); return }
+  const row = t.closest('li[data-id], h2[data-id]')
+  if (row) selectOnMap(row.dataset.id)
+})
+doc.addEventListener('dblclick', (e) => {
+  const p = e.target.closest('.prose')
+  if (!p || prdEditing || !isEditMode()) return
+  const btn = p.querySelector('.edit')
+  if (btn) openEditor(p.closest('section').dataset.section, btn.dataset.edit, p)
+})
+
+// ---- note tooltip ----
+const tip = document.getElementById('tip')
+document.addEventListener('mouseover', (e) => {
+  const tpc = e.target.closest?.('me-tpc')
+  const note = tpc?.nodeObj?.note
+  if (!note) { tip.classList.remove('show'); return }
+  tip.textContent = note
+  const r = tpc.getBoundingClientRect()
+  tip.style.left = Math.min(r.left, innerWidth - 300) + 'px'
+  tip.style.top = r.bottom + 8 + 'px'
+  tip.classList.add('show')
+})
+
+// ---- sync with the server ----
+// The map file stores content only. Mind Elixir's getData() also returns the
+// theme (whose functions do not survive JSON), so it is dropped both ways.
+// Big maps start with their sections collapsed, like a table of contents.
+function collapseBig(data) {
+  let count = 0, hasState = false
+  const walkAll = (n) => { count++; if ('expanded' in n) hasState = true; (n.children || []).forEach(walkAll) }
+  walkAll(data.nodeData)
+  if (count <= 40 || hasState) return data
+  const sections = new Set()
+  for (const d of listDocs(data)) for (const s of d.legacy ? data.nodeData.children || [] : d.node.children || []) sections.add(s.id)
+  const rec = (n, below) => {
+    const inside = below || sections.has(n.id)
+    if (inside && n.children?.length) n.expanded = false
+    ;(n.children || []).forEach((c) => rec(c, inside))
+  }
+  rec(data.nodeData, false)
+  return data
+}
+
+function content(data) {
+  const { theme, ...rest } = data
+  return { ...rest, direction: MindElixir.RIGHT }
+}
+
+function ids(data) {
+  const out = new Set()
+  const rec = (n) => { out.add(n.id); (n.children || []).forEach(rec) }
+  rec(data.nodeData)
+  return out
+}
+
+// The file does not store what is collapsed in this browser; carry it over a refresh.
+function keepExpanded(data) {
+  const state = new Map()
+  const read = (n) => { if ('expanded' in n) state.set(n.id, n.expanded); (n.children || []).forEach(read) }
+  read(fullTree())
+  const write = (n) => { if (!('expanded' in n) && state.has(n.id)) n.expanded = state.get(n.id); (n.children || []).forEach(write) }
+  write(data.nodeData)
+  return data
+}
+
+function show(data, { flashNew = false } = {}) {
+  const before = flashNew ? ids(mind.getData()) : null
+  const selected = mind.currentNode?.nodeObj?.id
+  if (mind.isFocusMode) { mind.isFocusMode = false; mind.tempDirection = null } // refresh replaces the whole tree
+  mind.refresh(content(keepExpanded(data)))
+  applyFocus({ keepView: true })
+  loadGlossary().then(renderPrd)
+  document.getElementById('name').textContent = data.nodeData.topic
+  if (selected) { const el = ele(selected); if (el) mind.selectNode(el) }
+  decorate()
+  if (before) for (const id of ids(data)) if (!before.has(id)) { reveal(id); ele(id)?.classList.add('mm-new') } // open collapsed branches so new items show
+}
+
+function schedule() {
+  dirty = true
+  clearTimeout(timer)
+  timer = setTimeout(save, 500)
+}
+
+async function save() {
+  if (editing() || saving) { timer = setTimeout(save, 500); return }
+  saving = true
+  dirty = false
+  setSync('busy', 'mentés…')
+  try {
+    const r = await fetch('/api/map', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ base: version, data: content(mind.getData()) }),
+    })
+    const j = await r.json()
+    if (!r.ok) throw new Error(j.error)
+    version = j.v
+    if (j.changed && !dirty && !editing()) show(j.data)
+    setSync('', 'mentve ' + new Date().toLocaleTimeString())
+  } catch (e) {
+    setSync('err', 'mentési hiba: ' + e.message)
+    dirty = true
+  } finally {
+    saving = false
+  }
+}
+
+async function poll() {
+  if (saving || dirty || editing()) return
+  try {
+    const r = await fetch('/api/map?v=' + encodeURIComponent(version))
+    const j = await r.json()
+    if (!r.ok) throw new Error(j.error)
+    if (!j.same) {
+      version = j.v
+      show(j.data, { flashNew: true })
+      setSync('', 'frissítve ' + new Date().toLocaleTimeString())
+    }
+  } catch (e) {
+    setSync('err', 'nincs kapcsolat')
+  }
+}
+
+async function start() {
+  const r = await fetch('/api/map')
+  const j = await r.json()
+  if (!r.ok) {
+    document.getElementById('map').innerHTML =
+      `<div id="empty"><div>${j.error}</div><div>Indítsd: <code>node mindmap/mm.mjs init "Téma"</code></div></div>`
+    setTimeout(start, 2000)
+    return
+  }
+  document.getElementById('map').innerHTML = ''
+  version = j.v
+  mind = new MindElixir({
+    el: '#map',
+    direction: MindElixir.RIGHT,
+    editable: true,
+    contextMenu: true,
+    toolBar: true,
+    keypress: true,
+    allowUndo: true,
+    newTopicName: 'új ág',
+    theme: THEME,
+    generateSubBranch: subBranch,
+  })
+  mind.bus.addListener('linkDiv', decorate)
+  mind.init(content(collapseBig(j.data)))
+  if (!isEditMode()) mind.disableEdit()
+  {
+    const docs = listDocs({ nodeData: fullTree() })
+    currentDoc = (docs.find((d) => d.id === currentFocus) || docs.find((d) => d.component?.id === currentFocus) || docs[0]).id
+  }
+  applyFocus({ keepView: false })
+  document.getElementById('name').textContent = j.data.nodeData.topic
+  decorate()
+  enableBackgroundPan()
+  mind.scaleFit()
+  window.mind = mind // handy for debugging from the console
+  mind.bus.addListener('operation', (op) => { if (op.name !== 'beginEdit') schedule() })
+  for (const ev of ['selectNewNode', 'selectNodes', 'unselectNodes']) mind.bus.addListener(ev, () => setTimeout(() => {
+    refreshDock()
+    highlightInPrd(mind.currentNode?.nodeObj?.id)
+  }))
+  loadGlossary().then(renderPrd)
+  setSync('', 'élő')
+  setInterval(poll, 1000)
+}
+
+start()
+</script>
+</body>
+</html>

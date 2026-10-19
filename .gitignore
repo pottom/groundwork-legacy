@@ -1,0 +1,9 @@
+# local state of the Groundwork modules (unprocessed browser edits, generated-file lists)
+.groundwork/
+# the same, from before the rename
+.prd-maker/
+
+node_modules/
+*.tmp
+.DS_Store
+Thumbs.db
