@@ -85,7 +85,7 @@ Other modules may read only these (the manifest's `public`, see [`modules/README
 | `GET /api/build/prd` | Plan, for the ticket counts on the map |
 | `GET /api/build/ideas` | Ideas, for the tickets on an idea's card |
 
-Build itself reads only Plan's `GET /api/plan/ids` and Sketch's `GET /api/sketch/links`. Without Sketch a ticket shows only the sketches of its own `**Sketch:**` line. Without Plan (or without a map) the Checks view counts no PRD id as unknown and the ids on a ticket show as plain tags instead of links into Plan.
+Build itself reads only Plan's `GET /api/plan/ids`, Sketch's `GET /api/sketch/links` and Agents' `GET /api/agents/tickets`. Without Sketch a ticket shows only the sketches of its own `**Sketch:**` line. Without Agents no ticket shows a "Being worked on" badge; with it, a ticket an agent is working on shows one per agent, linking to it in Agents, live (topic `agents.events`). Without Plan (or without a map) the Checks view counts no PRD id as unknown and the ids on a ticket show as plain tags instead of links into Plan.
 
 It never writes. It serves only the page, the project's Markdown files inside the root, in a git repository the branch history, and the GitHub issues of its origin; git and GitHub are only asked to read.
 

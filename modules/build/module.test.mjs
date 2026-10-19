@@ -384,6 +384,14 @@ test('a ticket shows the sketches linked to it from Sketch (its public GET /api/
   for (const f of ['page/views/tickets.mjs', 'page/views/drawer.mjs']) assert.match(readBuild(f), /sketchesOf\(t\)\.length/, f);
 });
 
+test('a ticket shows the agent working on it (Agents\' public GET /api/agents/tickets), linking to it, followed live', () => {
+  assert.match(PAGE, /fetch\('\/api\/agents\/tickets'/);
+  assert.match(PAGE, /'agents\.events'/, 'read again when the agents change');
+  assert.match(PAGE, /linkedAgents\(/);
+  assert.match(readBuild('page/parts.mjs'), /agentLink\(/);
+  for (const f of ['page/views/tickets.mjs', 'page/views/drawer.mjs']) assert.match(readBuild(f), /agentsOf\(t\)\.length/, f);
+});
+
 test('the view follows the shell\'s one stream (subscribe from /shell/live.mjs) and asks Plan only for the map ids', () => {
   assert.doesNotMatch(PAGE, /new EventSource/);
   assert.match(PAGE, /import \{ subscribe \} from '\/shell\/live\.mjs'/);

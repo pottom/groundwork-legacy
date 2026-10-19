@@ -1,5 +1,6 @@
 // Reading the project from the server, and again when it changed: the Markdown files, the GitHub
-// issues, Plan's map ids, the sketches that link to tickets (Sketch) and the git history, all in parallel.
+// issues, Plan's map ids, the sketches that link to tickets (Sketch), the agents working on them (Agents)
+// and the git history, all in parallel.
 // A live update names what changed, and only that is asked again; every (re)connect reads all.
 
 import { reader, FRESH_MS, NO_REPO } from './config.mjs';
@@ -10,7 +11,7 @@ import { subscribe } from '/shell/live.mjs';
 import { serverJson } from './server.mjs';
 import { renderAll, renderView, renderDrawer, renderNav, renderNotices, renderLive, showStartScreen, toast } from './render.mjs';
 
-const { readTickets, linkedSketches } = reader;
+const { readTickets, linkedSketches, linkedAgents } = reader;
 
 function describeChange(path, before, after) {
   if (after && after.kind === 'ticket') {
@@ -28,8 +29,8 @@ function describeChange(path, before, after) {
   return { label: name, text: () => ui(before ? 'change.modified' : 'change.new-file') };
 }
 
-const ALL_PARTS = ['files', 'issues', 'map', 'sketches', 'git'];
-const TOPIC_PART = { 'build.files': 'files', 'build.issues': 'issues', 'build.git': 'git', 'plan.map': 'map', 'sketch.links': 'sketches' };
+const ALL_PARTS = ['files', 'issues', 'map', 'sketches', 'agents', 'git'];
+const TOPIC_PART = { 'build.files': 'files', 'build.issues': 'issues', 'build.git': 'git', 'plan.map': 'map', 'sketch.links': 'sketches', 'agents.events': 'agents' };
 function partsOf(topics) {
   const parts = new Set();
   for (const t of topics) {
@@ -83,12 +84,13 @@ async function refreshOnce(want) {
   const src = app.source;
   const wasDown = app.serverDown;
   try {
-    const [files, issues, , gitChanged, sketchesChanged] = await Promise.all([
+    const [files, issues, , gitChanged, sketchesChanged, agentsChanged] = await Promise.all([
       want.has('files') || !app.listing ? readFiles() : [],
       want.has('issues') ? refreshIssues() : [],
       want.has('map') ? refreshMap() : null,
       want.has('git') ? refreshGit() : false,
       want.has('sketches') ? refreshSketches() : false,
+      want.has('agents') ? refreshAgents() : false,
     ]);
     if (src !== app.source) return;
     const touched = [...files, ...issues];
@@ -114,11 +116,14 @@ async function refreshOnce(want) {
       }
       app.model = next;
       app.sketches.byTicket = linkedSketches(next, app.sketches.linked);
+      app.agents.byTicket = linkedAgents(next, app.agents.linked);
       renderAll();
       if (first && actions.openLinked) actions.openLinked();
     } else {
       if (gitChanged && app.model) { renderNav(true); if (state.view === 'git') renderView(); }
-      if (sketchesChanged && app.model) { app.sketches.byTicket = linkedSketches(app.model, app.sketches.linked); renderView(); renderDrawer(); }
+      if (sketchesChanged && app.model) app.sketches.byTicket = linkedSketches(app.model, app.sketches.linked);
+      if (agentsChanged && app.model) app.agents.byTicket = linkedAgents(app.model, app.agents.linked);
+      if ((sketchesChanged || agentsChanged) && app.model) { renderView(); renderDrawer(); }
     }
     app.lastChecked = new Date();
     app.serverDown = false;
@@ -188,6 +193,23 @@ async function refreshSketches() {
   const key = JSON.stringify(linked || {});
   if (key === app.sketches.key) return false;
   app.sketches = { ...app.sketches, key, linked };
+  return true;
+}
+
+// The agents working on tickets, from Agents' side (its public GET /api/agents/tickets: tickets,
+// { '#37': [{ id, session, label, branch, start }] }); true when they changed. No Agents (not
+// running, no answer): no agent on any ticket, no error.
+async function refreshAgents() {
+  let linked = null;
+  try {
+    const res = await fetch('/api/agents/tickets', { cache: 'no-store' });
+    linked = res.ok ? (await res.json()).tickets || null : null;
+  } catch (err) {
+    linked = null;
+  }
+  const key = JSON.stringify(linked || {});
+  if (key === app.agents.key) return false;
+  app.agents = { ...app.agents, key, linked };
   return true;
 }
 
