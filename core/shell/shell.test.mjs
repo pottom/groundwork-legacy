@@ -58,6 +58,25 @@ test('the tools come after the workflow, behind one separator: Plan → Build | 
   assert.match(SHELL_CSS, /\.gw-nav-sep\s*\{/)
 })
 
+test('a module that names an attention endpoint gets a count on its tab and the shell\'s toasts; others do not', () => {
+  const agents = { ...view('agents', 'Agents'), tool: true, attention: '/api/agents/attention' }
+  const html = page({ modules: [view('plan', 'Plan'), agents] })
+  const tab = /<a href="\/\?module=agents"[^>]*>[\s\S]*?<\/a>/.exec(html)[0]
+  assert.match(tab, /data-attention="\/api\/agents\/attention"/)
+  assert.match(tab, /<span class="gw-badge gw-badge--warn gw-tab-count" hidden><\/span>/)
+  const plan = /<a href="\/\?module=plan"[^>]*>[\s\S]*?<\/a>/.exec(html)[0]
+  assert.doesNotMatch(plan, /data-attention|gw-tab-count/)
+  assert.match(html, /<div class="gw-toasts" id="toasts" aria-live="polite"><\/div>/)
+  const js = script(html)
+  assert.match(js, /import \{ watchAttention \} from '\/shell\/attention\.mjs'/)
+  assert.match(js, /import \{ createToasts \} from '\/shell\/toasts\.mjs'/)
+  assert.match(js, /onHello: \(\) => attention\.refresh\(\)/)
+  assert.match(js, /onChange: \(topics\) => attention\.refresh\(topics\)/)
+  assert.ok(SHELL_STRINGS.en.attentionCount && SHELL_STRINGS.hu.attentionCount)
+  assert.match(SHELL_CSS, /\.gw-tab-count\s*\{/)
+  assert.doesNotMatch(page(), /data-attention="|gw-tab-count" hidden/, 'no module asks, nothing to count')
+})
+
 test('the project name needs no extra font: no italic, and not the serif', () => {
   const rule = /\.gw-project\s*\{([^}]*)\}/.exec(SHELL_CSS)[1]
   assert.doesNotMatch(rule, /italic|--gw-font-serif/)

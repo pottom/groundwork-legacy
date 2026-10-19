@@ -53,8 +53,9 @@ function ownStream(win, EventSource, url, on) {
 }
 
 // The shell's side: open the tab's one stream and relay it to every frame of the page.
-// onState(state) reports 'on' / 'off' for the shell's own indicator.
-export function relayEvents({ win = globalThis.window, EventSource = globalThis.EventSource, url = URL, onState } = {}) {
+// onState(state) reports 'on' / 'off' for the shell's own indicator; onHello() and onChange(topics)
+// let the shell itself hear the stream too (its tabs' attention counts).
+export function relayEvents({ win = globalThis.window, EventSource = globalThis.EventSource, url = URL, onState, onHello, onChange } = {}) {
   const origin = win.location.origin
   let state = 'connecting'
   const post = (target, msg) => { try { target.postMessage({ type: LIVE_MESSAGE, ...msg }, origin) } catch {} }
@@ -67,8 +68,8 @@ export function relayEvents({ win = globalThis.window, EventSource = globalThis.
   }
   const stop = ownStream(win, EventSource, url, {
     state: setState,
-    hello: () => toFrames({ event: 'hello' }),
-    change: (topics) => toFrames({ event: 'change', topics }),
+    hello: () => { toFrames({ event: 'hello' }); onHello?.() },
+    change: (topics) => { toFrames({ event: 'change', topics }); onChange?.(topics) },
   })
   const onMessage = (e) => {
     if (e.origin !== origin || e.data?.type !== LIVE_MESSAGE || !e.data.want || !e.source) return

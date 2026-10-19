@@ -15,6 +15,9 @@ body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-
 .agents-session[data-focus], .agents-agent[data-focus] { position: relative; }
 .agents-session[data-focus]::before, .agents-agent[data-focus]::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--gw-gradient); border-radius: var(--gw-radius-sm); }
 .agents-agent[data-focus] { padding-left: calc(var(--gw-space) * 1.5); }
+/* one that needs attention (waiting, stalled, failed): a warn edge, its reason as a badge */
+.agents-session[data-attention] { border-color: color-mix(in srgb, var(--gw-warn) 45%, var(--gw-line)); }
+.agents-agent[data-attention] { background: var(--gw-warn-soft); box-shadow: inset 3px 0 0 var(--gw-warn); padding-left: calc(var(--gw-space) * 1.5); border-radius: var(--gw-radius-sm); }
 .agents-none { margin: 0; color: var(--gw-muted); font: var(--gw-text-small) var(--gw-font); }
 .agents-open { margin-left: 0; }
 

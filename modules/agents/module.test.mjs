@@ -153,3 +153,33 @@ test('a new event in the log is the topic agents.events, so the open page reads 
     } finally { sse.close() }
   })
 })
+
+test('GET /api/agents/attention, which the manifest names for the shell: who needs attention, in both languages', async () => {
+  assert.equal(agents.attention, '/api/agents/attention')
+  await withServer(async ({ root, base }) => {
+    assert.deepEqual(await (await fetch(`${base}/api/agents/attention`)).json(), { items: [], recheck: null })
+    hook(root, { hook_event_name: 'PreToolUse', tool_name: 'Agent', tool_use_id: 't1', tool_input: { description: 'Implement #39', prompt: 'x', subagent_type: 'general-purpose' } })
+    hook(root, { hook_event_name: 'SubagentStart', agent_id: 'a-1', agent_type: 'general-purpose' })
+    hook(root, { hook_event_name: 'Notification', agent_id: 'a-1', agent_type: 'general-purpose', notification_type: 'permission_prompt', message: 'Claude needs your permission' })
+    const r = await fetch(`${base}/api/agents/attention`)
+    assert.equal(r.status, 200)
+    const { items } = await r.json()
+    assert.equal(items.length, 1)
+    const [item] = items
+    assert.deepEqual([item.session, item.agent, item.reason, item.label], ['s-1', 'a-1', 'waiting', 'Implement #39'])
+    assert.match(item.key, /^s-1\/a-1:waiting:/)
+    assert.deepEqual(item.text, { en: 'Implement #39 is waiting for permission', hu: 'Implement #39: engedélyre vár' })
+    assert.doesNotMatch(JSON.stringify(items), /needs your permission/, 'the message text is not stored, nor sent')
+    assert.equal((await fetch(`${base}/api/agents/attention`, { method: 'POST' })).status, 405)
+  })
+})
+
+test('the list carries what the page highlights by: each item\'s latest event and an open prompt', async () => {
+  await withServer(async ({ root, base }) => {
+    hook(root, { hook_event_name: 'SessionStart', source: 'startup' })
+    hook(root, { hook_event_name: 'Notification', notification_type: 'permission_prompt' })
+    const [s] = (await (await fetch(`${base}/api/agents/list`)).json()).sessions
+    assert.equal(typeof s.last, 'string')
+    assert.equal(s.waiting, s.last, 'without an agent id the session waits')
+  })
+})

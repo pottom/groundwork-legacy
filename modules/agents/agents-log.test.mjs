@@ -17,8 +17,8 @@ test('a session with a subagent: both listed, the agent labelled by its Agent ca
   ]
   const running = readAgents(log(...start))
   assert.deepEqual(running.sessions, [{
-    id: 's-1', cwd: '/p', state: 'running', start: T(0), end: null,
-    agents: [{ id: 'a-1', type: 'general-purpose', description: 'Implement #35', state: 'running', start: T(2), end: null, cwd: '/p' }],
+    id: 's-1', cwd: '/p', state: 'running', start: T(0), end: null, last: T(3), waiting: null,
+    agents: [{ id: 'a-1', type: 'general-purpose', description: 'Implement #35', state: 'running', start: T(2), end: null, cwd: '/p', last: T(3), waiting: null }],
   }])
   const done = readAgents(log(...start,
     { at: T(9), event: 'SubagentStop', agent: 'a-1', agentType: 'general-purpose' },
@@ -26,7 +26,7 @@ test('a session with a subagent: both listed, the agent labelled by its Agent ca
     { at: T(12), event: 'Stop' }))
   assert.equal(done.sessions[0].state, 'done')
   assert.equal(done.sessions[0].end, T(12))
-  assert.deepEqual(done.sessions[0].agents[0], { id: 'a-1', type: 'general-purpose', description: 'Implement #35', state: 'done', start: T(2), end: T(9), cwd: '/p' })
+  assert.deepEqual(done.sessions[0].agents[0], { id: 'a-1', type: 'general-purpose', description: 'Implement #35', state: 'done', start: T(2), end: T(9), cwd: '/p', last: T(9), waiting: null })
 })
 
 test('a session that goes on after a Stop is running again', () => {
@@ -64,5 +64,46 @@ test('newest session first; an agent whose start was rotated away is still liste
     + log({ at: T(5), event: 'PostToolUse', session: 'new', agent: 'a-9', agentType: 'Explore', tool: 'Read' })
   const { sessions } = readAgents(text)
   assert.deepEqual(sessions.map((s) => s.id), ['new', 'old'])
-  assert.deepEqual(sessions[0].agents, [{ id: 'a-9', type: 'Explore', description: null, state: 'running', start: T(5), end: null, cwd: '/p' }])
+  assert.deepEqual(sessions[0].agents, [{ id: 'a-9', type: 'Explore', description: null, state: 'running', start: T(5), end: null, cwd: '/p', last: T(5), waiting: null }])
+})
+
+test('each session and agent knows its latest event: a session counts its agents\' events too', () => {
+  const s = readAgents(log(
+    { at: T(0), event: 'SessionStart' },
+    { at: T(1), event: 'SubagentStart', agent: 'a-1', agentType: 'Explore' },
+    { at: T(4), event: 'PostToolUse', agent: 'a-1', agentType: 'Explore', tool: 'Read' },
+  )).sessions[0]
+  assert.equal(s.last, T(4))
+  assert.equal(s.agents[0].last, T(4))
+})
+
+test('a permission prompt with the agent\'s id makes that agent wait, until its next event', () => {
+  const events = [
+    { at: T(0), event: 'SubagentStart', agent: 'a-1', agentType: 'Explore' },
+    { at: T(2), event: 'Notification', agent: 'a-1', agentType: 'Explore', notification: 'permission_prompt' },
+  ]
+  const waiting = readAgents(log(...events)).sessions[0]
+  assert.equal(waiting.agents[0].waiting, T(2))
+  assert.equal(waiting.waiting, null, 'the agent waits, not its session')
+  const answered = readAgents(log(...events, { at: T(5), event: 'PostToolUse', agent: 'a-1', agentType: 'Explore', tool: 'Bash' })).sessions[0]
+  assert.equal(answered.agents[0].waiting, null)
+})
+
+test('a permission prompt without an agent id makes the session wait, until any later event of it, its agents\' too', () => {
+  const events = [
+    { at: T(0), event: 'SubagentStart', agent: 'a-1', agentType: 'Explore' },
+    { at: T(2), event: 'Notification', notification: 'permission_prompt' },
+  ]
+  const waiting = readAgents(log(...events)).sessions[0]
+  assert.equal(waiting.waiting, T(2))
+  assert.equal(waiting.agents[0].waiting, null)
+  const answered = readAgents(log(...events, { at: T(5), event: 'PostToolUse', agent: 'a-1', agentType: 'Explore', tool: 'Bash' })).sessions[0]
+  assert.equal(answered.waiting, null)
+})
+
+test('only a prompt that asks the user waits: idle and other notifications do not', () => {
+  const s = readAgents(log({ at: T(1), event: 'Stop' }, { at: T(61), event: 'Notification', notification: 'idle_prompt' })).sessions[0]
+  assert.equal(s.waiting, null)
+  const asked = readAgents(log({ at: T(1), event: 'Notification', notification: 'elicitation_dialog' })).sessions[0]
+  assert.equal(asked.waiting, T(1))
 })

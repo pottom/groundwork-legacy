@@ -1,6 +1,8 @@
 // The list of sessions and their agents (lit-html), as GET /api/agents/list gives them. An agent's
 // row opens it, a session's head opens the session, through the address: #agent=<session>/<agent>
-// or #agent=<session>. The open one shows its timeline and report (detail.mjs).
+// or #agent=<session>. The open one shows its timeline and report (detail.mjs). One that needs
+// attention (waiting for permission, stalled, failed: ../attention.mjs, judged at `now`, so the
+// page clock makes a stall show) stands out, with its reason.
 //
 //   agentList({ sessions, error, focus, open, detail, detailError }, now)
 //     the page's content; `now` (ms) times what still runs; `focus`: the session or agent a link
@@ -11,10 +13,16 @@ import { repeat } from '/vendor/lit-html/directives/repeat.js'
 import { ui } from './strings.mjs'
 import { duration, clock } from './time.mjs'
 import { agentDetail } from './detail.mjs'
+import { attentionOf } from '../attention.mjs'
 
 const TONE = { running: 'info', done: 'ok', failed: 'bad' }
 
 const badge = (state) => html`<span class="gw-badge gw-badge--dot gw-badge--${TONE[state] ?? 'neutral'}">${ui(`state.${state}`)}</span>`
+
+// Why it needs attention, if it does.
+const reason = (need) => need
+  ? html`<span class="gw-badge gw-badge--warn agents-attention">${ui(`attention.${need.reason}`, { time: clock(need.since) })}</span>`
+  : nothing
 
 // When it started and how long it took (or has run so far).
 function times(item, now) {
@@ -44,8 +52,10 @@ const detail = (view, agent, state) => agentDetail({ detail: view.detail, error:
 
 function agentRow(s, a, view, now) {
   const opened = isOpen(view.open, s, a)
-  return html`<li class="agents-agent" id=${'agent-' + a.id} data-state=${a.state} ?data-focus=${view.focus === a.id} data-open=${opened ? 'true' : nothing}>
+  const need = attentionOf(a, now)
+  return html`<li class="agents-agent" id=${'agent-' + a.id} data-state=${a.state} data-attention=${need?.reason ?? nothing} ?data-focus=${view.focus === a.id} data-open=${opened ? 'true' : nothing}>
     ${badge(a.state)}
+    ${reason(need)}
     <span class="agents-name">${a.description || ui('agent.unnamed')}</span>
     ${a.type ? html`<span class="gw-tag">${a.type}</span>` : nothing}
     ${links(a)}
@@ -57,9 +67,11 @@ function agentRow(s, a, view, now) {
 
 function sessionCard(s, view, now) {
   const opened = isOpen(view.open, s, null)
-  return html`<section class="gw-card agents-session" id=${'agent-' + s.id} data-state=${s.state} ?data-focus=${view.focus === s.id}>
+  const need = attentionOf(s, now)
+  return html`<section class="gw-card agents-session" id=${'agent-' + s.id} data-state=${s.state} data-attention=${need?.reason ?? nothing} ?data-focus=${view.focus === s.id}>
     <header class="gw-card__head agents-session__head">
       ${badge(s.state)}
+      ${reason(need)}
       <h2 class="agents-session__title">${ui('session', { id: s.id.slice(0, 8) })}</h2>
       ${s.cwd ? html`<span class="gw-tag agents-cwd" title=${s.cwd}>${s.cwd}</span>` : nothing}
       ${links(s)}

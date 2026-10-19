@@ -17,6 +17,10 @@
 // it to every module frame, hidden ones too (live.mjs here, served at /shell/live.mjs; a module
 // calls its subscribe()). The header's indicator is the only place that shows whether the page is live.
 //
+// A module whose manifest names an `attention` endpoint (Agents) gets a count on its tab of what
+// needs the user's attention there, and the shell shows a toast once for each new one, whichever
+// module is shown (attention.mjs here, served at /shell/attention.mjs).
+//
 // The look (the tokens and the .gw-* components, light or dark) comes from theme.css next to this
 // file, served at /shell/theme.css; modules link the same file to share it (see README.md here).
 // Light or dark follows the OS until the user picks one in the header (System · Light · Dark);
@@ -74,7 +78,9 @@ export function shellPage({ project, version, modules, active, params }) {
   // A tool (manifest `tool: true`, like Sketch) comes after the workflow's modules, behind one separator.
   const firstTool = views.findIndex((m) => m.tool)
   const sep = (i) => (i > 0 && i === firstTool ? '<span class="gw-nav-sep" aria-hidden="true"></span>' : '')
-  const tabs = views.map((m, i) => `${sep(i)}<a href="/?module=${esc(encodeURIComponent(m.id))}"${m === current ? ' aria-current="page"' : ''}>${icon(m)}<span class="gw-tab-text"><b class="gw-tab-name">${esc(m.name)}</b>${tagline(m)}</span></a>`)
+  const attention = (m) => (typeof m.attention === 'string' ? ` data-attention="${esc(m.attention)}"` : '')
+  const count = (m) => (typeof m.attention === 'string' ? '<span class="gw-badge gw-badge--warn gw-tab-count" hidden></span>' : '')
+  const tabs = views.map((m, i) => `${sep(i)}<a href="/?module=${esc(encodeURIComponent(m.id))}"${m === current ? ' aria-current="page"' : ''}${attention(m)}>${icon(m)}<span class="gw-tab-text"><b class="gw-tab-name">${esc(m.name)}</b>${tagline(m)}</span>${count(m)}</a>`)
   const rest = new URLSearchParams(current && current.id === active ? params : undefined)
   rest.delete('module')
   const query = rest.size ? '?' + rest : ''
@@ -117,10 +123,13 @@ export function shellPage({ project, version, modules, active, params }) {
   </nav>
 </header>
 <main class="gw-main">${main}</main>
+<div class="gw-toasts" id="toasts" aria-live="polite"></div>
 <script type="module">
 import { createI18n } from '/shell/i18n.mjs'
 import { relayEvents } from '/shell/live.mjs'
 import { moduleFrames } from '/shell/frames.mjs'
+import { watchAttention } from '/shell/attention.mjs'
+import { createToasts } from '/shell/toasts.mjs'
 const i18n = createI18n(${scriptJson(pageStrings(views))})
 const NAV = ${scriptJson(nav)}
 const langs = [...document.querySelectorAll('.gw-lang [data-lang]')]
@@ -144,8 +153,31 @@ for (const b of themes) b.onclick = () => groundworkTheme.set(b.dataset.themeCho
 groundworkTheme.onChange(showTheme)
 showTheme()
 
+// What needs attention, counted on the tabs of the modules that ask (attention.mjs), a toast for each new one.
+const counts = []
+const attention = watchAttention({
+  sources: [...document.querySelectorAll('.gw-nav a[data-attention]')].map((a) => {
+    const badge = a.querySelector('.gw-tab-count')
+    const shown = { count: 0 }
+    const label = () => { badge.title = i18n.t('attentionCount', { count: shown.count }); badge.setAttribute('aria-label', badge.title) }
+    counts.push(label)
+    return {
+      id: new URL(a.href, location.href).searchParams.get('module'),
+      url: a.dataset.attention,
+      show: (count) => { shown.count = count; badge.textContent = count; badge.hidden = !count; label() },
+    }
+  }),
+  toast: createToasts(document.getElementById('toasts'), { ms: 6000 }),
+  lang: () => i18n.lang,
+})
+i18n.onChange(() => { for (const label of counts) label() })
+
 // Live: the tab's one stream of server events, relayed to every module frame (live.mjs).
-relayEvents({ onState: (state) => { live.dataset.state = state; show() } })
+relayEvents({
+  onState: (state) => { live.dataset.state = state; show() },
+  onHello: () => attention.refresh(),
+  onChange: (topics) => attention.refresh(topics),
+})
 
 // The tabs switch modules in place: no page load, so the header stays and nothing reconnects.
 // Each visited module keeps its frame, only hidden (frames.mjs), so it keeps its state.

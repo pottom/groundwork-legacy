@@ -18,6 +18,11 @@
 //                             ready, commands, agent, ticket }] }: the worktrees and local branches
 //                             (git-worktrees.mjs); git is only asked to read, the commands are text
 //                             to copy. A ref or a worktree changing is the topic "agents.git".
+//   GET /api/agents/attention { items: [{ key, session, agent, reason, since, label, text: { en, hu } }], recheck }
+//                             the sessions and agents that need attention (attention.mjs): waiting for
+//                             permission, stalled or failed, with a line for a toast in each UI language;
+//                             `recheck` is when the answer changes without an event. The manifest names
+//                             it as `attention`, so the shell counts them on the tab and shows a toast.
 //   All: GET and HEAD only, 405 otherwise.
 //
 // The hook (hook.mjs) is a Claude Code command hook that `groundwork init` copies into the project
@@ -32,6 +37,9 @@ import { fileURLToPath } from 'node:url'
 import { send } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { readAgents } from './agents-log.mjs'
+import { needingAttention } from './attention.mjs'
+import { UI_STRINGS } from './ui-strings.mjs'
+import { createI18n } from '../../core/shell/i18n.mjs'
 import { readTimeline } from './timeline.mjs'
 import { openWorktrees, withAgents } from './git-worktrees.mjs'
 import { linkTickets } from './agent-tickets.mjs'
@@ -47,7 +55,7 @@ const ID = /^[\w-]{1,60}$/   // a session or agent id, as the hook keeps it in a
 // subagent; `Task` is its older name): every other tool call runs the hook once, after it.
 const EVENTS = ['SessionStart', 'SubagentStart', 'SubagentStop', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Notification', 'Stop', 'SessionEnd']
 
-const VIEW_FILES = ['index.html', 'agents.css', 'ui-strings.mjs', 'view/main.mjs', 'view/list.mjs', 'view/strings.mjs', 'view/time.mjs', 'view/worktrees.mjs', 'view/detail.mjs', 'view/markdown.mjs']
+const VIEW_FILES = ['index.html', 'agents.css', 'ui-strings.mjs', 'attention.mjs', 'view/main.mjs', 'view/list.mjs', 'view/strings.mjs', 'view/time.mjs', 'view/worktrees.mjs', 'view/detail.mjs', 'view/markdown.mjs']
 
 // The worktrees and branches (git-worktrees.mjs). A ref, HEAD or a linked worktree's HEAD or lock
 // changing is the topic "agents.git".
@@ -63,6 +71,7 @@ export default {
   view: { dir: HERE, files: VIEW_FILES },
   writes: [DIR],
   public: ['GET /api/agents/tickets'],
+  attention: '/api/agents/attention',
   watch: (p) => (LOGS.includes(p) ? 'agents.events' : GIT_REFS.test(p) ? 'agents.git' : null),
   claude: {
     hooks: EVENTS.map((event) => (event === 'PreToolUse' ? { event, matcher: 'Agent|Task', script: HOOK } : { event, script: HOOK })),
@@ -78,7 +87,7 @@ export default {
     }
     const repo = openWorktrees(root)
     return async (req, res, sub, url) => {
-      if (sub !== '/list' && sub !== '/tickets' && sub !== '/worktrees' && sub !== '/agent') return false
+      if (sub !== '/list' && sub !== '/tickets' && sub !== '/worktrees' && sub !== '/agent' && sub !== '/attention') return false
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'Method not allowed' }), true
       if (sub === '/worktrees') {
         try {
@@ -88,6 +97,7 @@ export default {
         return true
       }
       try {
+        if (sub === '/attention') return send(res, 200, attention(readAgents(log()).sessions, Date.now())), true
         if (sub === '/agent') {
           const session = url.searchParams.get('session'), agent = url.searchParams.get('agent')
           if (!ID.test(session ?? '') || (agent != null && !ID.test(agent))) return send(res, 400, { error: 'session (and agent) must be ids' }), true
@@ -102,6 +112,19 @@ export default {
       return true
     }
   },
+}
+
+// Who needs attention, each with the toast's line in every UI language.
+const TEXTS = Object.keys(UI_STRINGS).map((lang) => [lang, createI18n(UI_STRINGS, { storage: { getItem: () => lang }, win: null }).t])
+function attention(sessions, now) {
+  const { items, recheck } = needingAttention(sessions, now)
+  return {
+    items: items.map((item) => ({
+      ...item,
+      text: Object.fromEntries(TEXTS.map(([lang, t]) => [lang, t(`toast.${item.reason}`, { name: item.label ?? t('session', { id: item.session.slice(0, 8) }) })])),
+    })),
+    recheck,
+  }
 }
 
 // The running sessions and agents that work on a ticket, per ticket: what Build shows as
