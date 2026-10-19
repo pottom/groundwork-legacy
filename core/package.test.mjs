@@ -2,13 +2,13 @@
 // folder outside the repository, started there the way a user starts it (`npx groundwork`).
 // Run: node --test core/   (needs npm on the PATH; the install is from the local tarball only)
 
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import { startCommand } from './cli-process.mjs'
 
 const REPO = fileURLToPath(new URL('..', import.meta.url))
@@ -48,23 +48,35 @@ test('the package leaves out what it does not need: the plan, scratch notes, tes
   assert.deepEqual(extra, [])
 })
 
-test('installed from the packed tarball, `npx groundwork` serves another project: Plan and Build work', { timeout: 180000 }, async () => {
+// The packed tarball, installed globally into a prefix of its own (npm_config_prefix), so the real
+// global folder is untouched and npx finds the package there, as it would after `npm install -g`.
+// Packed and installed once for the tests below; removed after them.
+let install
+function installed() {
+  if (install) return install
   const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'gw-pack-')))
   const tgz = JSON.parse(npm(['pack', '--json', '--ignore-scripts', '--pack-destination', tmp], REPO))[0].filename
-  // Installed globally into a prefix of its own (npm_config_prefix), so the real global folder is
-  // untouched and npx finds the package there, as it would after `npm install -g`.
   const prefix = path.join(tmp, 'global')
   const env = { ...process.env, npm_config_prefix: prefix }
   execFileSync(WIN ? 'npm.cmd' : 'npm', ['install', '--global', '--no-audit', '--no-fund', '--offline', path.join(tmp, tgz)], { cwd: tmp, env, shell: WIN, stdio: 'ignore' })
+  return (install = { tmp, env, dir: path.join(prefix, ...(WIN ? [] : ['lib']), 'node_modules', 'groundwork') })
+}
+after(() => { if (install) fs.rmSync(install.tmp, { recursive: true, force: true, maxRetries: 5 }) })
 
-  const installed = path.join(prefix, ...(WIN ? [] : ['lib']), 'node_modules', 'groundwork')
-  assert.ok(!fs.readFileSync(path.join(installed, 'core', 'groundwork.mjs'), 'utf8').includes('\r'), 'the packed bin has LF line ends, so it runs on macOS and Linux')
-
-  // Another project, with nothing of Groundwork in it.
-  const projectDir = path.join(tmp, 'other project')
+// Another project, with nothing of Groundwork in it.
+function otherProject(name) {
+  const projectDir = path.join(installed().tmp, name)
   fs.mkdirSync(path.join(projectDir, 'docs', 'product'), { recursive: true })
   fs.writeFileSync(path.join(projectDir, 'docs', 'product', 'mindmap.json'), JSON.stringify({ nodeData: { id: 'root', topic: 'Other' } }))
   fs.writeFileSync(path.join(projectDir, 'README.md'), '# Other\n')
+  return projectDir
+}
+
+test('installed from the packed tarball, `npx groundwork` serves another project: Plan and Build work', { timeout: 180000 }, async () => {
+  const { env, dir: installedDir } = installed()
+  assert.ok(!fs.readFileSync(path.join(installedDir, 'core', 'groundwork.mjs'), 'utf8').includes('\r'), 'the packed bin has LF line ends, so it runs on macOS and Linux')
+
+  const projectDir = otherProject('other project')
   const gw = await startCommand(WIN ? 'npx.cmd' : 'npx', ['--no-install', 'groundwork', '--port', '0', '--no-open'], { cwd: projectDir, env, shell: WIN })
   try {
     assert.match(gw.output, new RegExp(`groundwork ${PKG.version.replace(/\./g, '\\.')}`))
@@ -79,6 +91,27 @@ test('installed from the packed tarball, `npx groundwork` serves another project
     assert.ok(list.files.some((f) => f.path === 'README.md'), 'Build reads the other project')
   } finally {
     await gw.stop()
-    fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5 })
   }
+})
+
+test('installed from the packed tarball, `npx groundwork init` sets up another project: the skill and the hook work', { timeout: 180000 }, () => {
+  const { env } = installed()
+  const projectDir = otherProject('init project')
+  // Approved on the prompt, as a user types it.
+  const out = execFileSync(WIN ? 'npx.cmd' : 'npx', ['--no-install', 'groundwork', 'init'], { cwd: projectDir, env, shell: WIN, encoding: 'utf8', input: 'y\n' })
+  assert.match(out, /Apply these changes\? \[y\/N\]/)
+
+  const skill = fs.readFileSync(path.join(projectDir, '.claude', 'skills', 'groundwork-prd-maker', 'SKILL.md'), 'utf8')
+  assert.match(skill, /^name: groundwork-prd-maker$/m)
+  assert.match(skill, /npx groundwork plan apply/)
+  assert.match(fs.readFileSync(path.join(projectDir, '.gitignore'), 'utf8'), /^\.groundwork\/$/m)
+
+  // The hook, run as Claude Code runs it: its command through a shell, the prompt as JSON on stdin.
+  const [command] = JSON.parse(fs.readFileSync(path.join(projectDir, '.claude', 'settings.json'), 'utf8')).hooks.UserPromptSubmit[0].hooks.map((h) => h.command)
+  const hook = execSync(command, { cwd: projectDir, env, encoding: 'utf8', input: JSON.stringify({ cwd: projectDir, prompt: 'grill me about this' }) })
+  assert.match(hook, /load the `groundwork-prd-maker` skill/)
+
+  // The skill's tool works there too.
+  const show = execFileSync(WIN ? 'npx.cmd' : 'npx', ['--no-install', 'groundwork', 'plan', 'show'], { cwd: projectDir, env, shell: WIN, encoding: 'utf8' })
+  assert.match(show, /\[root\] Other/)
 })

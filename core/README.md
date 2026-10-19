@@ -4,7 +4,9 @@ The shared core of Groundwork. It holds what every module uses.
 
 | File | Role |
 |---|---|
-| `groundwork.mjs` | the command and the package's bin: `npx groundwork [--root DIR] [--port N] [--no-open]` (or `node core/groundwork.mjs ...` in this repo). It stops with a clear message under Node.js 20, then loads `start.mjs`; it is kept free of newer syntax so an old Node gets that far |
+| `groundwork.mjs` | the command and the package's bin: `npx groundwork [--root DIR] [--port N] [--no-open]` (or `node core/groundwork.mjs ...` in this repo). It stops with a clear message under Node.js 20, then loads `commands.mjs`; it is kept free of newer syntax so an old Node gets that far |
+| `commands.mjs` | picks the command by the first argument: `init` (`init.mjs`), a module's id with a `cli` in its manifest (`groundwork plan apply` runs `modules/plan/plan.mjs apply`), otherwise the server (`start.mjs`) |
+| `init.mjs` | `groundwork init [--root DIR] [--yes]`: sets a project up for Claude Code from the module manifests' `claude` field: copies each skill to `.claude/skills/<skill>/`, adds each hook to `.claude/settings.json` (keeping everything else there) and `.groundwork/` to `.gitignore`. It lists the changes and asks `[y/N]`; it writes only after a yes (no answer, or closed input, is no; `--yes` is for scripts). Run again, it changes only what is missing or out of date. `planInit({ root, modules })` gives the changes and `write()` |
 | `start.mjs` | starts the server for the project (the current folder by default), prints the addresses and opens the start page in the browser (`--no-open` skips it) |
 | `version.mjs` | `VERSION`: Groundwork's one version, read from `package.json`; the modules' manifests carry it and the shell shows it in the header |
 | `cli-process.mjs` | runs the command for the tests (`startCommand`) and stops its whole process tree |
@@ -17,7 +19,7 @@ The shared core of Groundwork. It holds what every module uses.
 | `http.mjs` | small helpers for the modules' endpoints (`send`, `readJson`) |
 | `vendor/` | the browser-side dependencies (Mind Elixir, marked, the Inter and Source Serif 4 fonts), served at `/vendor/...`; versions and licenses in [`vendor/README.md`](vendor/README.md) |
 | `offline.test.mjs` | checks that no page loads anything from another host |
-| `cli.test.mjs`, `package.test.mjs` | the command as a process (a project folder, the Node version check, the bin's LF line ends), and the npm package: its file list, and the packed tarball installed outside the repo and started with `npx groundwork` |
+| `cli.test.mjs`, `init.test.mjs`, `package.test.mjs` | the command as a process (a project folder, the Node version check, `groundwork plan`, the bin's LF line ends), `groundwork init`, and the npm package: its file list, and the packed tarball installed outside the repo, started with `npx groundwork` and set up with `npx groundwork init` |
 
 The npm package (`package.json` `files`) holds `core/` and `modules/` without the tests and test helpers; `docs/`, `.claude/` and everything else stay out. `.gitattributes` keeps LF line ends on every OS, so a package packed on Windows still runs on macOS and Linux.
 

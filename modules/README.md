@@ -26,6 +26,11 @@ export default {
   writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
   moves: { '.prd-maker': '.groundwork/plan' },           // optional: old state the core moves over once
   watch: (path) => (path === 'docs/product/mindmap.json' ? 'plan.map' : null),  // optional: live-update topic of a changed file
+  cli: path.join(HERE, 'plan.mjs'),                      // optional: run by `groundwork plan <args>`
+  claude: {                                              // optional: what `groundwork init` installs
+    skills: [path.join(HERE, 'skills', 'groundwork-prd-maker')],  // skill folders, copied to .claude/skills/<name>/
+    hooks: [{ event: 'UserPromptSubmit', command: 'npx groundwork plan hook' }],  // added to .claude/settings.json
+  },
   api: ({ root, files, events }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
 }
 ```
