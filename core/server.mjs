@@ -3,7 +3,7 @@
 //   GET  /[?module=<id>]       the shell: header, navigation, the module's view (shell/shell.mjs)
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
 //   *    /api/<module>/...     the module's endpoints
-//   GET  /shell/*.css          the shared look: theme.css (style variables) and shell.css
+//   GET  /shell/...            the shared look (theme.css, shell.css) and the UI translation (i18n.mjs, strings.mjs)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
 //   GET  /<module>/...         the module's view (only the files its manifest lists)
 //
@@ -41,6 +41,8 @@ export function isLocalHost(header) {
 
 export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
 export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
+// The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
+const SHELL_BROWSER_FILES = new Set(['theme.css', 'shell.css', 'i18n.mjs', 'strings.mjs'])
 
 // The file under `dir` that the URL path `rest` (still percent-encoded) names, or null when it
 // leaves the folder, names a dot file, or has a type the server does not serve (README, LICENSE).
@@ -83,7 +85,7 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       }
       if (parts[1] === 'shell' && req.method === 'GET') {
         const f = staticFile(SHELL_DIR, parts.slice(2).join('/'))
-        if (f?.endsWith('.css')) return send(res, 200, fs.readFileSync(f), TYPES['.css'])
+        if (f && SHELL_BROWSER_FILES.has(path.basename(f))) return send(res, 200, fs.readFileSync(f), TYPES[path.extname(f)])
         return send(res, 404, { error: 'not found' })
       }
       if (parts[1] === 'vendor' && req.method === 'GET') {

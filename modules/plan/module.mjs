@@ -16,7 +16,7 @@ export default {
   id: 'plan',
   name: 'Plan',
   version: '0.1.0',
-  view: { dir: HERE, files: ['index.html', 'node-types.mjs', 'documents.mjs', 'doc-strings.mjs'] },
+  view: { dir: HERE, files: ['index.html', 'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs'] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],
   // Local state from before the move to .groundwork/plan/ (the prd-maker prototype).

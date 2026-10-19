@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -272,7 +272,7 @@
     content: ''; width: 8px; height: 8px; border-radius: 50%; margin-right: 9px; vertical-align: 1px;
     background: var(--accent); -webkit-mask: none; mask: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
   }
-  /* document layers (Termék / Technika) */
+  /* document layers (product / technical) */
   .map-container me-tpc[data-layer] { font-weight: 650; }
   .map-container me-tpc[data-layer]::before {
     content: ''; display: inline-block; width: 15px; height: 15px; margin-right: 8px; vertical-align: -3px; border-radius: 0; box-shadow: none;
@@ -380,13 +380,13 @@
 </head>
 <body>
 <div id="map"></div>
-<div id="toolbar" class="glass"><span id="sync"><i></i><b>betöltés…</b></span>
-  <select id="focus" class="picker" title="Mit mutasson a térkép"></select>
-  <span id="views"><button data-v="map">Térkép</button><button data-v="split">Mindkettő</button><button data-v="prd">Dokumentum</button></span>
+<div id="toolbar" class="glass"><span id="sync"><i></i><b>loading…</b></span>
+  <select id="focus" class="picker" title="What the map shows" data-i18n-title="focus.title"></select>
+  <span id="views"><button data-v="map" data-i18n="view.map">Map</button><button data-v="split" data-i18n="view.split">Both</button><button data-v="prd" data-i18n="view.prd">Document</button></span>
   <button id="mode" type="button"></button></div>
 <aside id="prd"><article class="doc"></article></aside>
 <button id="prd-toggle" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg><span>PRD</span></button>
-<div id="dock" class="glass"><span class="hint">Jelölj ki egy csomópontot</span></div>
+<div id="dock" class="glass"><span class="hint"></span></div>
 <div id="tip" class="glass"></div>
 
 <script type="module">
@@ -394,6 +394,13 @@ import MindElixir from '/vendor/mind-elixir/MindElixir.js'
 import { STATUSES, IMPL, iconUrl } from './node-types.mjs'
 import { buildPrd, progressSummary, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from './documents.mjs'
 import { marked } from '/vendor/marked/marked.esm.js'
+import { createI18n } from '/shell/i18n.mjs'
+import { UI_STRINGS } from './ui-strings.mjs'
+
+// The UI language (the core's translation, chosen in the shell); not the document language.
+const i18n = createI18n(UI_STRINGS)
+const ui = i18n.t
+const esc = (t = '') => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
 for (const key of Object.keys(STATUSES)) document.documentElement.style.setProperty(`--i-${key}`, iconUrl(key))
 // document icon (Lucide file-text)
@@ -453,7 +460,13 @@ const THEME = {
 }
 
 const syncEl = document.getElementById('sync')
-const setSync = (cls, text) => { syncEl.className = cls; syncEl.querySelector('b').textContent = text }
+// The sync line keeps its key, so a language switch can say it again.
+let syncState = { cls: '', key: 'sync.loading', vars: undefined }
+const setSync = (cls, key, vars) => {
+  syncState = { cls, key, vars }
+  syncEl.className = cls
+  syncEl.querySelector('b').textContent = ui(key, vars)
+}
 
 let mind, version = null, dirty = false, saving = false, timer = null
 // In focus mode Mind Elixir's nodeData is just the focused branch; this is always the whole map.
@@ -486,11 +499,11 @@ function decorate() {
     if (st) tpc.dataset.status = st; else delete tpc.dataset.status
     if (n.metadata?.doc) tpc.dataset.layer = n.metadata.doc; else delete tpc.dataset.layer
     const ct = n.metadata?.component
-    if (ct) { tpc.dataset.component = ct; tpc.dataset.componentLabel = COMPONENT_TYPES[ct] || ct } else { delete tpc.dataset.component; delete tpc.dataset.componentLabel }
+    if (ct) { tpc.dataset.component = ct; tpc.dataset.componentLabel = COMPONENT_TYPES[ct] ? ui(`component.${ct}`) : ct } else { delete tpc.dataset.component; delete tpc.dataset.componentLabel }
     if (structured && isSection(data, n.id)) tpc.dataset.section = ''; else delete tpc.dataset.section
     if (n.note) tpc.dataset.hasNote = ''; else delete tpc.dataset.hasNote
     const impl = n.metadata?.impl
-    if (impl) { tpc.dataset.impl = impl; tpc.dataset.implLabel = IMPL[impl].label } else { delete tpc.dataset.impl; delete tpc.dataset.implLabel }
+    if (impl) { tpc.dataset.impl = impl; tpc.dataset.implLabel = ui(`impl.${impl}`) } else { delete tpc.dataset.impl; delete tpc.dataset.implLabel }
   }
   refreshDock()
   renderPrd()
@@ -501,10 +514,10 @@ const dock = document.getElementById('dock')
 const hint = dock.querySelector('.hint')
 const COLORS = { inferred: 'var(--inferred)', topic: 'var(--topic)', decision: 'var(--decision)', note: 'var(--gw-muted)', excluded: 'var(--gw-muted)', parked: 'var(--parked)', todo: 'var(--todo)' }
 const buttons = {}
-for (const [key, s] of Object.entries(STATUSES)) {
+for (const key of Object.keys(STATUSES)) {
   const b = document.createElement('button')
   b.style.setProperty('--c', COLORS[key])
-  b.innerHTML = `<i style="--icon: var(--i-${key})"></i>${s.label}`
+  b.innerHTML = `<i style="--icon: var(--i-${key})"></i><span></span>`
   b.onclick = () => setNodeStatus(b.classList.contains('on') ? undefined : key)
   dock.appendChild(b)
   buttons[key] = b
@@ -512,21 +525,30 @@ for (const [key, s] of Object.entries(STATUSES)) {
 const IMPL_COLORS = { done: 'var(--decision)', partial: 'var(--parked)', missing: 'var(--missing)' }
 const implButtons = {}
 dock.insertAdjacentHTML('beforeend', '<span class="sep"></span>')
-for (const [key, s] of Object.entries(IMPL)) {
+for (const key of Object.keys(IMPL)) {
   const b = document.createElement('button')
   b.className = 'impl'
   b.style.setProperty('--c', IMPL_COLORS[key])
-  b.innerHTML = `<em></em>${s.label}`
-  b.title = 'Megvalósítás: ' + s.label
+  b.innerHTML = '<em></em><span></span>'
   b.onclick = () => setNodeImpl(b.classList.contains('on') ? undefined : key)
   dock.appendChild(b)
   implButtons[key] = b
 }
 
+// the labels of the dock's buttons, in the UI language
+function labelDock() {
+  for (const [key, b] of Object.entries(buttons)) b.querySelector('span').textContent = ui(`status.${key}`)
+  for (const [key, b] of Object.entries(implButtons)) {
+    b.querySelector('span').textContent = ui(`impl.${key}`)
+    b.title = ui('dock.implTitle', { label: ui(`impl.${key}`) })
+  }
+}
+labelDock()
+
 function refreshDock() {
   const n = mind?.currentNode?.nodeObj
   const isRoot = n && !n.parent
-  hint.textContent = n ? (isRoot ? 'A gyökérnek nincs státusza' : n.topic) : 'Jelölj ki egy csomópontot'
+  hint.textContent = n ? (isRoot ? ui('dock.root') : n.topic) : ui('dock.hint')
   hint.style.maxWidth = '180px'
   hint.style.overflow = 'hidden'
   hint.style.textOverflow = 'ellipsis'
@@ -588,8 +610,8 @@ const modeBtn = document.getElementById('mode')
 function setMode(m) {
   m = m === 'edit' ? 'edit' : 'view'
   document.body.dataset.mode = m
-  modeBtn.innerHTML = m === 'edit' ? `${PEN}Szerkesztés` : `${LOCK}Nézet`
-  modeBtn.title = m === 'edit' ? 'Szerkesztés: kattints a zároláshoz' : 'Csak nézet: kattints a szerkesztéshez'
+  modeBtn.innerHTML = m === 'edit' ? `${PEN}${esc(ui('mode.edit'))}` : `${LOCK}${esc(ui('mode.view'))}`
+  modeBtn.title = m === 'edit' ? ui('mode.editTitle') : ui('mode.viewTitle')
   try { localStorage.setItem('groundwork-plan:mode', m) } catch {}
   if (mind) {
     if (m === 'edit') mind.enableEdit(); else { mind.disableEdit(); document.getElementById('input-box')?.blur() }
@@ -622,10 +644,10 @@ function groupDocs(docs) {
 }
 
 function fillFocusPicker(docs) {
-  const opts = ['<option value="all">Teljes térkép</option>']
+  const opts = [`<option value="all">${esc(ui('focus.all'))}</option>`]
   for (const g of groupDocs(docs)) {
     if (g.doc) { opts.push(`<option value="${g.doc.id}">${esc(g.doc.label)}</option>`); continue }
-    opts.push(`<optgroup label="${esc(g.component.topic)}"><option value="${g.component.id}">${esc(g.component.topic)}: egész</option>${g.docs.map((d) => `<option value="${d.id}">${esc(d.label)}</option>`).join('')}</optgroup>`)
+    opts.push(`<optgroup label="${esc(g.component.topic)}"><option value="${g.component.id}">${esc(ui('focus.whole', { topic: g.component.topic }))}</option>${g.docs.map((d) => `<option value="${d.id}">${esc(d.label)}</option>`).join('')}</optgroup>`)
   }
   focusSel.innerHTML = opts.join('')
   focusSel.value = currentFocus
@@ -678,7 +700,7 @@ function setView(v, { fit = true } = {}) {
   document.body.dataset.view = v
   for (const b of document.querySelectorAll('#views button')) b.classList.toggle('on', b.dataset.v === v)
   const toggle = document.getElementById('prd-toggle')
-  if (toggle) toggle.title = v === 'split' ? 'PRD becsukása' : 'PRD megnyitása'
+  if (toggle) toggle.title = v === 'split' ? ui('view.closePanel') : ui('view.openPanel')
   try { localStorage.setItem('groundwork-plan:view', v) } catch {}
   if (fit && mind && v !== 'prd') requestAnimationFrame(() => mind.scaleFit())
 }
@@ -696,7 +718,7 @@ const doc = document.querySelector('#prd .doc')
 let currentDoc = null // id of the document shown in the panel
 let glossary = ''
 let lastSnapshot = null // id -> rendered content, to flash what changed
-const esc = (t = '') => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+
 const md = (t) => marked.parse(t || '', { breaks: false })
 const newId = () => Math.random().toString(16).slice(2, 10)
 
@@ -731,10 +753,10 @@ function renderPrd() {
     const opts = groupDocs(docs).map((g) => g.doc
       ? `<option value="${g.doc.id}">${label(g.doc)}</option>`
       : `<optgroup label="${esc(g.component.topic)}">${g.docs.map((d) => `<option value="${d.id}">${label(d)}</option>`).join('')}</optgroup>`)
-    parts.push(`<div class="docpick"><span>Dokumentum</span><select class="picker" data-docpick>${opts.join('')}</select></div>`)
+    parts.push(`<div class="docpick"><span>${esc(ui('panel.document'))}</span><select class="picker" data-docpick>${opts.join('')}</select></div>`)
   }
   parts.push(`<h1>${esc(prd.title)}</h1>`)
-  parts.push(`<div class="sub"><span>${D.subtitle} · élő</span><span>${D.file} automatikusan frissül</span></div>`)
+  parts.push(`<div class="sub"><span>${D.subtitle} · ${esc(ui('panel.live'))}</span><span>${esc(ui('panel.autoUpdates', { file: D.file }))}</span></div>`)
   parts.push(`<div class="bar">${prd.sections.map((s) => `<span class="${s.progress}" data-jump="${s.id}" title="${esc(s.title)}: ${t.progress[s.progress]}"></span>`).join('')}</div>`)
   const implTotal = count.impl.done + count.impl.partial + count.impl.missing
   parts.push(`<div class="counts">${t.sectionCounts(count, ' · ')}` +
@@ -745,11 +767,11 @@ function renderPrd() {
   prd.sections.forEach((s, i) => {
     parts.push(`<section id="sec-${s.id}" data-section="${s.id}">`)
     parts.push(`<h2 data-id="${s.id}"><span class="num">${i + 1}.</span><span>${esc(s.title)}</span><span class="chip ${s.progress}">${t.progress[s.progress]}</span></h2>`)
-    if (s.prose) parts.push(`<div class="prose claude" data-key="${s.id}:claude"><button class="edit" data-edit="claude">Szerkesztés</button>${md(s.prose)}</div>`)
-    for (const h of s.human) parts.push(`<div class="prose human" data-key="${s.id}:${h.id}"><span class="who">Te írtad · Claude nem írja felül</span><button class="edit" data-edit="${h.id}">Szerkesztés</button>${md(h.text)}</div>`)
+    if (s.prose) parts.push(`<div class="prose claude" data-key="${s.id}:claude"><button class="edit" data-edit="claude">${esc(ui('panel.edit'))}</button>${md(s.prose)}</div>`)
+    for (const h of s.human) parts.push(`<div class="prose human" data-key="${s.id}:${h.id}"><span class="who">${esc(ui('panel.yours'))}</span><button class="edit" data-edit="${h.id}">${esc(ui('panel.edit'))}</button>${md(h.text)}</div>`)
     if (!s.prose && !s.human.length && !s.items.length) parts.push(`<p class="placeholder">${t.notDiscussed}</p>`)
     if (s.items.length) parts.push(`<ul class="items">${s.items.map((it) => itemHtml(it, t)).join('')}</ul>`)
-    parts.push(`<button class="add" data-add="${s.id}">+ Saját bekezdés</button>`)
+    parts.push(`<button class="add" data-add="${s.id}">${esc(ui('panel.add'))}</button>`)
     parts.push('</section>')
   })
 
@@ -826,8 +848,8 @@ function openEditor(sectionId, which, anchor) {
   const box = document.createElement('div')
   box.className = 'editor'
   box.innerHTML = `<textarea></textarea>
-    <div class="tip">${which === 'claude' ? 'Ha átírod, a bekezdés a tiéd lesz, és Claude nem írja felül.' : 'Markdown is használható. Ctrl+Enter: mentés, Esc: mégse.'}</div>
-    <div class="row"><button class="primary" data-a="save">Mentés</button><button data-a="cancel">Mégse</button>${which !== 'new' ? '<button class="danger" data-a="delete">Törlés</button>' : ''}</div>`
+    <div class="tip">${esc(which === 'claude' ? ui('editor.tipClaude') : ui('editor.tip'))}</div>
+    <div class="row"><button class="primary" data-a="save">${esc(ui('editor.save'))}</button><button data-a="cancel">${esc(ui('editor.cancel'))}</button>${which !== 'new' ? `<button class="danger" data-a="delete">${esc(ui('editor.delete'))}</button>` : ''}</div>`
   const ta = box.querySelector('textarea')
   ta.value = text || ''
   anchor.replaceWith(box)
@@ -953,7 +975,7 @@ async function save() {
   if (editing() || saving) { timer = setTimeout(save, 500); return }
   saving = true
   dirty = false
-  setSync('busy', 'mentés…')
+  setSync('busy', 'sync.saving')
   try {
     const r = await fetch('/api/plan/map', {
       method: 'PUT',
@@ -964,15 +986,15 @@ async function save() {
     if (j.stale) { // the server does not know the version this edit was made on (it restarted)
       version = j.v
       show(j.data)
-      setSync('err', 'a szerver újraindult: az utolsó szerkesztés nem mentődött, ismételd meg')
+      setSync('err', 'sync.stale')
       return
     }
     if (!r.ok) throw new Error(j.error)
     version = j.v
     if (j.changed && !dirty && !editing()) show(j.data)
-    setSync('', 'mentve ' + new Date().toLocaleTimeString())
+    setSync('', 'sync.saved', { time: new Date().toLocaleTimeString() })
   } catch (e) {
-    setSync('err', 'mentési hiba: ' + e.message)
+    setSync('err', 'sync.saveError', { error: e.message })
     dirty = true
   } finally {
     saving = false
@@ -988,10 +1010,10 @@ async function poll() {
     if (!j.same) {
       version = j.v
       show(j.data, { flashNew: true })
-      setSync('', 'frissítve ' + new Date().toLocaleTimeString())
+      setSync('', 'sync.updated', { time: new Date().toLocaleTimeString() })
     }
   } catch (e) {
-    setSync('err', 'nincs kapcsolat')
+    setSync('err', 'sync.offline')
   }
 }
 
@@ -1000,7 +1022,7 @@ async function start() {
   const j = await r.json()
   if (!r.ok) {
     document.getElementById('map').innerHTML =
-      `<div id="empty"><div>${j.error}</div><div>Indítsd: <code>node modules/plan/plan.mjs init "Téma"</code></div></div>`
+      `<div id="empty"><div>${esc(j.error)}</div><div>${esc(ui('empty.start'))} <code>node modules/plan/plan.mjs init "${esc(ui('empty.topic'))}"</code></div></div>`
     setTimeout(start, 2000)
     return
   }
@@ -1010,11 +1032,11 @@ async function start() {
     el: '#map',
     direction: MindElixir.RIGHT,
     editable: true,
-    contextMenu: true,
+    contextMenu: { locale: menuLocale },
     toolBar: true,
     keypress: true,
     allowUndo: true,
-    newTopicName: 'új ág',
+    newTopicName: ui('map.newTopic'),
     theme: THEME,
     generateSubBranch: subBranch,
   })
@@ -1036,9 +1058,43 @@ async function start() {
     highlightInPrd(mind.currentNode?.nodeObj?.id)
   }))
   loadGlossary().then(renderPrd)
-  setSync('', 'élő')
+  setSync('', 'sync.live')
   setInterval(poll, 1000)
 }
+
+// ---- UI language ----
+// Mind Elixir's context menu reads its labels from this object (clickTips when used, the rest
+// when built), so a switch updates it in place and relabels the built menu.
+const MENU = { addChild: 'cm-add_child', addParent: 'cm-add_parent', addSibling: 'cm-add_sibling', removeNode: 'cm-remove_child',
+  focus: 'cm-fucus', cancelFocus: 'cm-unfucus', moveUp: 'cm-up', moveDown: 'cm-down', link: 'cm-link',
+  linkBidirectional: 'cm-link-bidirectional', summary: 'cm-summary', clickTips: null }
+const menuLocale = {}
+function labelMenu() {
+  for (const [key, id] of Object.entries(MENU)) {
+    menuLocale[key] = ui(`menu.${key}`)
+    const label = id && document.getElementById(id)?.querySelector('span')
+    if (label) label.textContent = menuLocale[key]
+  }
+}
+labelMenu()
+
+// Says everything again in the language chosen (in the shell, or in another page of Groundwork).
+function relabel() {
+  i18n.apply(document)
+  setSync(syncState.cls, syncState.key, syncState.vars)
+  setMode(document.body.dataset.mode)
+  setView(document.body.dataset.view, { fit: false })
+  labelDock()
+  labelMenu()
+  if (!mind) return
+  mind.newTopicName = ui('map.newTopic')
+  fillFocusPicker(listDocs({ nodeData: fullTree() }).filter((d) => !d.legacy))
+  lastSnapshot = null // a new language is not a change of content
+  decorate()
+}
+i18n.apply(document)
+setSync('', 'sync.loading')
+i18n.onChange(relabel)
 
 start()
 </script>

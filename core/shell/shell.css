@@ -46,3 +46,15 @@ body.gw-shell {
 .gw-view { display: block; width: 100%; height: 100%; border: 0; }
 
 .gw-empty { padding: calc(var(--gw-space) * 3); color: var(--gw-muted); }
+
+.gw-lang {
+  margin-left: auto;
+  padding: 2px calc(var(--gw-space) / 2);
+  border: 1px solid var(--gw-line);
+  border-radius: var(--gw-radius);
+  background: var(--gw-surface);
+  color: var(--gw-fg-2);
+  font: var(--gw-text-small) var(--gw-font);
+}
+.gw-lang:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; }
+.gw-lang + .gw-brand { margin-left: 0; }
