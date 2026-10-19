@@ -1199,64 +1199,73 @@
                     "topic": "Számozott ötletek (I-1, I-2 …) szerzővel és forrással",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/store.mjs"
                   },
                   {
                     "id": "f-ideas-kanban",
                     "topic": "Kanban: Új · Mérlegelés · Kidolgozásra · Elvetve",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/view/board.mjs"
                   },
                   {
                     "id": "f-ideas-matrix",
                     "topic": "Hatás–ráfordítás mátrix nézet",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "note": "A közepes (medium) becslés a kedvezőtlen oldalra számít (alacsony hatás, magas ráfordítás), így csak a biztos gyors nyerés látszik annak. Ha az ember egy ötletet másik kvadránsba mozgat, a megváltozott tengelyen high vagy low értéket kap.",
+                    "hyperLink": "modules/ideas/matrix.mjs"
                   },
                   {
                     "id": "f-ideas-assist",
                     "topic": "Claude becslése és a hasonló ötletek jelzése",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/similar.mjs"
                   },
                   {
                     "id": "f-ideas-to-plan",
                     "topic": "Termékötlet kidolgozásra: todo csomópont a Plan térképén, oda-vissza hivatkozással",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/view/plan.mjs"
                   },
                   {
                     "id": "f-ideas-to-build",
                     "topic": "Mérnöki ötletből jegy, ami hivatkozik az ötletre",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/ticket.mjs"
                   },
                   {
                     "id": "f-ideas-reject",
                     "topic": "Elvetés indoklással; a PRD Nem cél részébe vihető",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/view/reject.mjs"
                   },
                   {
                     "id": "f-ideas-claude",
                     "topic": "groundwork ideas parancs és skill Claude-nak",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/ideas.mjs"
                   }
                 ]
               },
@@ -1509,16 +1518,18 @@
                     "topic": "Claude olvassa a vázlatot: alakzatok, szövegek, kapcsolatok",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/digest.mjs"
                   },
                   {
                     "id": "f-board-claude-draw",
                     "topic": "Claude rajzol: alakzatok, nyilak, szövegek, Mermaidből is",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/ops.mjs"
                   },
                   {
                     "id": "f-board-threads",
@@ -1526,24 +1537,27 @@
                     "metadata": {
                       "status": "decision",
                       "impl": "done"
-                    }
+                    },
+                    "hyperLink": "modules/sketch/threads.mjs"
                   },
                   {
                     "id": "f-board-live",
                     "topic": "Élő frissítés: Claude rajza és válasza azonnal megjelenik",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/view/follow.mjs"
                   },
                   {
                     "id": "f-board-links",
                     "topic": "Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
+                      "impl": "done"
                     },
-                    "note": "Jó, ha van, de nem feltétlenül szükséges."
+                    "note": "Jó, ha van, de nem feltétlenül szükséges.",
+                    "hyperLink": "modules/sketch/links-store.mjs"
                   },
                   {
                     "id": "f-board-shape-links",
@@ -1551,8 +1565,9 @@
                     "note": "Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges.",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/view/targets.mjs"
                   }
                 ]
               },
