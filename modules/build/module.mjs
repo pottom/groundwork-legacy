@@ -102,6 +102,8 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
   return {
     id: 'build',
     name: 'Build',
+    tagline: { en: 'Tickets, progress & branches', hu: 'Jegyek, haladás és ágak' },
+    icon: '<rect x="3.5" y="4" width="7" height="7" rx="1.6"/><rect x="13.5" y="4" width="7" height="7" rx="1.6"/><rect x="3.5" y="14" width="7" height="6" rx="1.6"/><path d="M14 17.5l2 2 4-4.5"/>',   // a board with a ticked card
     version: VERSION,
     view: { dir: HERE, files: ['index.html', 'i18n.js', 'ui-strings.js', 'ticket-reader.js'] },
     watch,

@@ -29,9 +29,10 @@ test('every module carries the version of the package', async () => {
 test('the shell shows the version in its header', async () => {
   await withGroundwork(async (url) => {
     const page = await (await fetch(url)).text()
-    const brand = /<span class="gw-brand"[^>]*>([^<]*)<\/span>/.exec(page)
-    assert.ok(brand, 'the header has the Groundwork brand')
-    assert.equal(brand[1], `Groundwork ${PKG.version}`)
+    assert.match(page, /<span class="gw-brand">Groundwork<\/span>/, 'the header has the Groundwork brand')
+    const version = /<span class="gw-version">([^<]*)<\/span>/.exec(page)
+    assert.ok(version, 'and the version next to it')
+    assert.equal(version[1], `v${PKG.version}`)
   })
 })
 

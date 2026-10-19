@@ -19,6 +19,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 export default {
   id: 'plan',
   name: 'Plan',
+  tagline: { en: 'Mind map & product docs', hu: 'Gondolattérkép és termékdokumentumok' },
+  icon: '<circle cx="12" cy="12" r="2.6"/><circle cx="4.5" cy="6" r="1.8"/><circle cx="19.5" cy="6" r="1.8"/><circle cx="4.5" cy="18" r="1.8"/><circle cx="19.5" cy="18" r="1.8"/><path d="M6 7l3.9 3.2M18 7l-3.9 3.2M6 17l3.9-3.2M18 17l-3.9-3.2"/>',   // a map: a centre and four branches
   version: VERSION,   // the package's: one version for Groundwork and its modules
   view: { dir: HERE, files: ['index.html', 'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs'] },
   // The folders Plan may write to: the map and its documents, and its local state.

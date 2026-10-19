@@ -33,8 +33,12 @@ async function withServer(fn) {
 // Two modules with views and one without, in a project folder with a name that needs escaping.
 async function withShell(fn) {
   const root = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gw-shell-')), 'my <project>')
-  const view = (id, name) => ({ id, name, version: '1', view: { dir: root, files: ['index.html'] } })
-  const modules = [view('one', 'First'), view('two', 'Second & more'), { id: 'headless', name: 'Headless', version: '1' }]
+  const view = (id, name, extra) => ({ id, name, version: '1', view: { dir: root, files: ['index.html'] }, ...extra })
+  const modules = [
+    view('one', 'First', { tagline: { en: 'The <first> one', hu: 'Az <első>' }, icon: '<circle cx="12" cy="12" r="4"/>' }),
+    view('two', 'Second & more'),
+    { id: 'headless', name: 'Headless', version: '1' },
+  ]
   const srv = await startServer({ root, modules, port: 0 })
   try { await fn(srv) } finally { await srv.close() }
 }
@@ -137,7 +141,7 @@ test('the start page is the shell: the project name in the header, the first mod
 
 // The shared style variables modules may use; theme.css documents each.
 const COLOURS = ['--gw-bg', '--gw-surface', '--gw-sunken', '--gw-fg', '--gw-fg-2', '--gw-muted', '--gw-line', '--gw-line-strong',
-  '--gw-accent', '--gw-accent-fg', '--gw-focus', '--gw-ok', '--gw-warn', '--gw-bad', '--gw-shadow']
+  '--gw-accent', '--gw-accent-2', '--gw-accent-fg', '--gw-focus', '--gw-ok', '--gw-warn', '--gw-bad', '--gw-shadow']
 const SHAPES = ['--gw-font', '--gw-font-serif', '--gw-font-mono', '--gw-text', '--gw-text-small', '--gw-radius', '--gw-space', '--gw-header-height']
 
 test('the shell serves its theme, and every page of it uses the theme', async () => {
@@ -177,7 +181,7 @@ test('the shell shows its text in English and marks every string for translation
     assert.match(page, /<nav class="gw-nav" aria-label="Modules" data-i18n-aria-label="nav"/)
     const empty = shellPage({ project: 'p', modules: [], active: null })
     assert.match(empty, /<p class="gw-empty" data-i18n="noView">No module has a view\.<\/p>/)
-    const keys = [...new Set([...i18nKeys(page), ...i18nKeys(empty)])]
+    const keys = [...new Set([...i18nKeys(page), ...i18nKeys(empty)])].filter((k) => !k.startsWith('module.'))  // taglines: the manifests'
     assert.ok(keys.length >= 3, keys.join())
     for (const k of keys) {
       assert.ok(SHELL_STRINGS.en[k], `en ${k}`)
@@ -208,7 +212,7 @@ test('a module may not take an id the core uses for its own paths', async () => 
 test('the navigation lists every module with a view, from the manifests, and opens each', async () => {
   await withShell(async ({ port }) => {
     const nav = /<nav[^>]*>([\s\S]*?)<\/nav>/.exec((await get(port, '/')).body)[1]
-    const links = [...nav.matchAll(/<a href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map((m) => [m[1], m[2]])
+    const links = [...nav.matchAll(/<a href="([^"]*)"[^>]*>[\s\S]*?<b class="gw-tab-name">([^<]*)<\/b>[\s\S]*?<\/a>/g)].map((m) => [m[1], m[2]])
     assert.deepEqual(links, [['/?module=one', 'First'], ['/?module=two', 'Second &amp; more']])
     const two = (await get(port, '/?module=two')).body
     assert.match(two, /<iframe[^>]*src="\/two\/"/)
@@ -216,6 +220,31 @@ test('the navigation lists every module with a view, from the manifests, and ope
     assert.doesNotMatch(two, /<a href="\/\?module=one" aria-current/)
     assert.match((await get(port, '/?module=nobody')).body, /<iframe[^>]*src="\/one\/"/)
   })
+})
+
+test('each tab shows the icon and the tagline its manifest gives, translated in the page', async () => {
+  await withShell(async ({ port }) => {
+    const page = (await get(port, '/')).body
+    const tab = (href) => new RegExp(`<a href="${href.replace(/[?]/g, '\\$&')}"[^>]*>([\\s\\S]*?)</a>`).exec(page)[1]
+    const one = tab('/?module=one')
+    assert.match(one, /<svg class="gw-icon"[^>]*><circle cx="12" cy="12" r="4"\/><\/svg>/)
+    assert.match(one, /<small class="gw-tab-tagline" data-i18n="module\.one\.tagline">The &lt;first&gt; one<\/small>/)
+    const two = tab('/?module=two')
+    assert.match(two, /<svg class="gw-icon"/, 'a module without an icon gets a plain one')
+    assert.doesNotMatch(two, /gw-tab-tagline/, 'no tagline, no line for it')
+    // the page translates the taglines with the shell's strings; in the script a "<" is
+    // written as \u003c, so no text can end the script early
+    assert.match(page, /"module\.one\.tagline":"The \\u003cfirst> one"/)
+    assert.match(page, /"module\.one\.tagline":"Az \\u003celső>"/)
+  })
+})
+
+test('the header shows the brand, the version and whether the page is live', async () => {
+  const page = shellPage({ project: 'p', version: '9.8.7', modules: [], active: null })
+  assert.match(page, /<header[^>]*>[\s\S]*Groundwork[\s\S]*v9\.8\.7[\s\S]*<\/header>/)
+  assert.match(page, /<span class="gw-live" data-state="connecting"[^>]*><i><\/i><span data-i18n="connecting">/)
+  assert.match(page, /new EventSource\('\/api\/events'\)/)
+  for (const k of ['live', 'offline', 'connecting']) assert.ok(SHELL_STRINGS.hu[k] && SHELL_STRINGS.en[k], k)
 })
 
 test('a deep link reaches the module: the shell hands the rest of its query to the frame', async () => {

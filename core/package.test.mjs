@@ -108,7 +108,7 @@ test('`npx -y @pottom/groundwork` serves another project: Plan and Build work', 
     assert.match(gw.output, new RegExp(`groundwork ${versionRe.source}`))
     const page = await (await fetch(gw.url)).text()
     assert.match(page, /other project/)
-    assert.match(page, new RegExp(`Groundwork ${versionRe.source}`))
+    assert.match(page, new RegExp(`<span class="gw-version">v${versionRe.source}</span>`))
     assert.equal((await fetch(gw.url + 'plan/')).status, 200)
     assert.equal((await fetch(gw.url + 'vendor/mind-elixir/MindElixir.js')).status, 200)
     assert.equal((await (await fetch(gw.url + 'api/plan/map')).json()).data.nodeData.topic, 'Other')
