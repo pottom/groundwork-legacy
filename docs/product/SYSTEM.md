@@ -49,3 +49,7 @@ Belső kockázat, hogy Claude és a felhasználó egyszerre szerkesztheti a tér
 - _A Claude Code skill- és hook-formátuma változhat_
 - _A mattpocock-konvenciók változhatnak_
 - _Egyidejű szerkesztésnél a sorrend elveszhet_
+
+## Későbbi szakaszok
+
+- groundwork export: statikus, csak olvasható pillanatkép a követőknek _(Közös ütemterv)_

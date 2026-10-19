@@ -142,6 +142,13 @@
                 "metadata": {
                   "status": "decision"
                 }
+              },
+              {
+                "id": "p-export",
+                "topic": "groundwork export: statikus, csak olvasható pillanatkép a követőknek",
+                "metadata": {
+                  "status": "parked"
+                }
               }
             ]
           },
@@ -331,6 +338,15 @@
                         "hyperLink": "core/files.mjs"
                       }
                     ]
+                  },
+                  {
+                    "id": "d-module-endpoints",
+                    "topic": "A modulok egymás kis, deklarált végpontjait olvassák",
+                    "note": "Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "partial"
+                    }
                   }
                 ]
               },
@@ -372,6 +388,33 @@
                     },
                     "note": "Kapcsoló nincs; a nézetek újratöltés nélkül is követik a váltást.",
                     "hyperLink": "core/shell/theme.css"
+                  },
+                  {
+                    "id": "d-shell-owns",
+                    "topic": "A keret birtokolja az élő kapcsolatot, a verziót, a nyelvet és a projekt nevét",
+                    "note": "Fülenként egy eseményfolyam; a modulok a /shell/live.mjs-en át kapják, és nem ismétlik a keret jelzéseit.",
+                    "hyperLink": "core/shell/live.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "d-keep-alive",
+                    "topic": "Fülváltáskor a modulok életben maradnak",
+                    "note": "A keret modulonként egy keretet tart meg, és csak elrejti; a térkép megtartja a nagyítást és kijelölést, a Build a görgetést és a szűrőket.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "d-toolbars",
+                    "topic": "A modulok eszköztára a modulban marad",
+                    "note": "A keret modulfüggetlen marad; harmadik modulnál újragondolható.",
+                    "metadata": {
+                      "status": "decision"
+                    }
                   }
                 ]
               },
@@ -528,6 +571,15 @@
                     "topic": "Chrome, Edge, Firefox, Safari",
                     "metadata": {
                       "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-perf",
+                    "topic": "Teljesítménycél: 300 ms első kirajzolás, 100 ms fülváltás, 50 ms kérésenként",
+                    "note": "Helyben, meleg indulásnál; a #19 mérése ehhez viszonyít.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "partial"
                     }
                   }
                 ]
@@ -708,6 +760,14 @@
                     "metadata": {
                       "status": "excluded"
                     }
+                  },
+                  {
+                    "id": "d-plan-first",
+                    "topic": "A térkép van elöl; üres térképnél indítókártya",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
                   }
                 ]
               },
@@ -770,6 +830,14 @@
                     "topic": "Függőségek CDN-ről",
                     "metadata": {
                       "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "p-one-md",
+                    "topic": "Egy közös Markdown-renderelő a két modulban",
+                    "note": "Előbb próba: elég-e a Build biztonságos renderelője a Plan dokumentumaihoz; ha igen, a marked (90 KB) kikerül.",
+                    "metadata": {
+                      "status": "parked"
                     }
                   }
                 ]
@@ -899,6 +967,14 @@
                     "topic": "Claude-skill a projekt állapotáról",
                     "metadata": {
                       "status": "parked"
+                    }
+                  },
+                  {
+                    "id": "d-build-tabs",
+                    "topic": "Hét egyenrangú nézet, elöl az áttekintés",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
                     }
                   }
                 ]
