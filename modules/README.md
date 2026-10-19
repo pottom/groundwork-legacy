@@ -29,11 +29,13 @@ export default {
   cli: path.join(HERE, 'plan.mjs'),                      // optional: run by `groundwork plan <args>`
   claude: {                                              // optional: what `groundwork init` installs
     skills: [path.join(HERE, 'skills', 'groundwork-prd-maker')],  // skill folders, copied to .claude/skills/<name>/
-    hooks: [{ event: 'UserPromptSubmit', command: 'npx groundwork plan hook' }],  // added to .claude/settings.json
+    hooks: [{ event: 'UserPromptSubmit', run: 'plan hook' }],  // added to .claude/settings.json as `<RUNNER> plan hook`
   },
   api: ({ root, files, events }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
 }
 ```
+
+`RUNNER` (`core/version.mjs`) is `npx -y --prefer-offline @pottom/groundwork@<version>`: our package (the unscoped npm `groundwork` is someone else's) at the version init came from, taken from the npx cache without a registry lookup once it is there, so a hook that runs on every prompt needs no network. A skill's Markdown files write it as `{{groundwork}}` (`{{groundwork}} plan apply`); init fills it in. Run again after an upgrade, init replaces a hook of an older version, or of another form, instead of adding a second one.
 
 Live updates: the core watches the project and tells the pages what changed through `GET /api/events` (Server-Sent Events, [`core/events.mjs`](../core/events.mjs)). A module names the topic of the files it cares about with `watch(path)` (path relative to the root, with `/`), and can push a topic itself with `events.publish(topic)` or `events.every(ms, fn)`. Its page listens with `new EventSource('/api/events')`, asks its endpoints again on a `change` event whose `topics` it cares about, and reads everything again on each `hello` (every reconnect). No page polls the server.
 

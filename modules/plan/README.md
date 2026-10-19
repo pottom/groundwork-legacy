@@ -74,7 +74,7 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 |---|---|
 | `module.mjs` | a modul a mag szerver számára: manifest, nézet, végpontok `/api/plan/` alatt |
 | `map-store.mjs` | a térkép olvasása, írása és összefésülése; a CLI, a hook és a szerver is ezt használja |
-| `plan.mjs` | CLI (`init`, `apply`, `show`, `kinds`, `hook`), futtatva: `npx groundwork plan <parancs>` (a manifest `cli` mezője) |
+| `plan.mjs` | CLI (`init`, `apply`, `show`, `kinds`, `hook`), futtatva: `npx @pottom/groundwork plan <parancs>` (a manifest `cli` mezője) |
 | `index.html` | a térkép és a dokumentum panel ([Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1, [marked](https://marked.js.org) 12.0.2; a csomagban, a mag szolgálja ki a `/vendor/` alól, hálózat nélkül is működik) |
 | `documents.mjs` | dokumentum-modell a térképből (összetevők, dokumentumok, fejezetek) + Markdown export (közös a szerverrel) |
 | `doc-strings.mjs` | a dokumentumok állandó szövegei nyelvenként (közös a szerverrel) |
@@ -85,20 +85,20 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
 | `docs/product/**/*.md` | a generált dokumentumok (a cél-projektben) |
 | `.groundwork/plan/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések, a generált fájlok listája (a cél-projektben; egy régi `.prd-maker/` mappát a mag ide költöztet) |
-| `skills/groundwork-prd-maker/SKILL.md` | a munkamenet Claude-nak; az `npx groundwork init` a projekt `.claude/skills/` mappájába másolja (a repó saját példánya is ennek a másolata) |
-| `.claude/settings.json` | `UserPromptSubmit` hook (`npx groundwork plan hook`, az `init` teszi be; a repóban `node modules/plan/plan.mjs hook`): továbbítja a kézi szerkesztéseket, és grill promptnál emlékeztet a skillre |
+| `skills/groundwork-prd-maker/SKILL.md` | a munkamenet Claude-nak; az `npx @pottom/groundwork init` a projekt `.claude/skills/` mappájába másolja (a `{{groundwork}}` helyére a csomag verziójára rögzített `npx -y --prefer-offline @pottom/groundwork@<verzió>` kerül; a repó saját példánya ugyanez `node core/groundwork.mjs`-sel) |
+| `.claude/settings.json` | `UserPromptSubmit` hook (`npx -y --prefer-offline @pottom/groundwork@<verzió> plan hook`, az `init` teszi be, a hálózatot csak az első futás éri el; a repóban `node modules/plan/plan.mjs hook`): továbbítja a kézi szerkesztéseket, és grill promptnál emlékeztet a skillre |
 | `.claude/launch.json` | `groundwork` preview szerver: a mag szerver (port 4477), a Plan a `/plan/` alatt |
 
 ## Kézi használat
 
 ```bash
-npx groundwork init                      # skill, hook, .gitignore (jóváhagyás után)
-npx groundwork plan init "Termék neve"
-npx groundwork                           # a mag szerver, a Plan a /plan/ alatt
-npx groundwork plan show
+npx @pottom/groundwork init                      # skill, hook, .gitignore (jóváhagyás után)
+npx @pottom/groundwork plan init "Termék neve"
+npx @pottom/groundwork                           # a mag szerver, a Plan a /plan/ alatt
+npx @pottom/groundwork plan show
 ```
 
-Más mappában lévő projekthez: `npx groundwork --root <mappa>`.
+Más mappában lévő projekthez: `npx @pottom/groundwork --root <mappa>`.
 
 ## Szinkron
 

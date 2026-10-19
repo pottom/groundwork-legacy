@@ -2,7 +2,7 @@
 // Plan module CLI: a live, human-editable mind map for grilling sessions that
 // writes a PRD (PRD.md) as the interview goes. Its Claude skill is groundwork-prd-maker.
 //
-// Run as `npx groundwork plan <command>` (core/commands.mjs), or `node modules/plan/plan.mjs <command>`:
+// Run as `npx @pottom/groundwork plan <command>` (core/commands.mjs), or `node modules/plan/plan.mjs <command>`:
 //
 //   init "<title>"   create mindmap.json in the current dir
 //   apply '<ops>'    apply a JSON op array (or pipe it on stdin)
@@ -10,7 +10,7 @@
 //   kinds            print the document kinds and their starting sections, in the map's document language
 //   hook             UserPromptSubmit hook (reads hook JSON on stdin); `groundwork init` installs it
 //
-// The editor is served by the core server: npx groundwork
+// The editor is served by the core server: npx @pottom/groundwork
 // Reading, writing and merging the map is in map-store.mjs; the ops are described there.
 
 import fs from 'node:fs'
@@ -150,7 +150,7 @@ switch (cmd) {
   case 'show': cmdShow(dir); break
   case 'kinds': cmdKinds(dir); break
   case 'hook': cmdHook(); break
-  case 'serve': die('plan serve is gone: the core server serves the editor now. Run: npx groundwork'); break
+  case 'serve': die('plan serve is gone: the core server serves the editor now. Run: npx @pottom/groundwork'); break
   default: die('usage: groundwork plan init "<title>" | apply \'<ops json>\' | show | kinds | hook\n' +
     `statuses: ${Object.keys(STATUSES).join(', ')}\ndocument kinds: ${Object.keys(KINDS).join(', ')}\ncomponent types: ${COMPONENT_TYPES.join(', ')}\n` +
     `document languages: ${Object.keys(DOC_STRINGS).join(', ')}`)

@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { startServer } from '../../core/server.mjs';
 import build, { buildModule } from './module.mjs';
-import { listen } from '../../core/sse-client.mjs';
+import { listen } from '../../core/sse-client.test-helper.mjs';
 
 const hasGit = (() => { try { execFileSync('git', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
 
