@@ -46,12 +46,12 @@ export const KINDS = {
   rollout: { file: 'ROLLOUT.md' },
 }
 
-// Component types, shown as a label on the map.
+// Component types, shown as a label on the map; the label is UI text (ui-strings.mjs, component.<key>).
 export const COMPONENT_TYPES = {
-  software: 'szoftver',
-  service: 'szolgáltatás',
-  infra: 'infrastruktúra',
-  shared: 'közös',
+  software: 'software',
+  service: 'service',
+  infra: 'infrastructure',
+  shared: 'shared',
 }
 
 const kindOf = (kind) => KINDS[kind] || { file: null }

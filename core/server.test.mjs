@@ -8,6 +8,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { startServer } from './server.mjs'
+import { shellPage } from './shell/shell.mjs'
+import { SHELL_STRINGS } from './shell/strings.mjs'
 
 function fakeModule(viewDir) {
   return {
@@ -162,6 +164,38 @@ test('the theme defines the shared variables, light by default and dark when the
     for (const v of [...COLOURS, ...SHAPES]) assert.match(light, new RegExp(`${v}:`), `light ${v}`)
     for (const v of COLOURS) assert.match(dark, new RegExp(`${v}:`), `dark ${v}`)
     assert.match(css, /@import url\('\/vendor\/fonts\.css'\)/)
+  })
+})
+
+// The data-i18n keys a page marks, with the attribute variants.
+const i18nKeys = (html) => [...html.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]+)"/g)].map((m) => m[1])
+
+test('the shell shows its text in English and marks every string for translation, with a Hungarian set', async () => {
+  await withShell(async ({ port }) => {
+    const page = (await get(port, '/')).body
+    assert.match(page, /<html lang="en">/)
+    assert.match(page, /<nav class="gw-nav" aria-label="Modules" data-i18n-aria-label="nav"/)
+    const empty = shellPage({ project: 'p', modules: [], active: null })
+    assert.match(empty, /<p class="gw-empty" data-i18n="noView">No module has a view\.<\/p>/)
+    const keys = [...new Set([...i18nKeys(page), ...i18nKeys(empty)])]
+    assert.ok(keys.length >= 3, keys.join())
+    for (const k of keys) {
+      assert.ok(SHELL_STRINGS.en[k], `en ${k}`)
+      assert.ok(SHELL_STRINGS.hu[k] && SHELL_STRINGS.hu[k] !== SHELL_STRINGS.en[k], `hu ${k}`)
+    }
+  })
+})
+
+test('the shell has a language picker and serves the translation module to its pages', async () => {
+  await withShell(async ({ port }) => {
+    const page = (await get(port, '/')).body
+    assert.match(page, /<select class="gw-lang"[^>]*>\s*<option value="en">English<\/option>\s*<option value="hu">Magyar<\/option>/)
+    assert.match(page, /import \{ createI18n \} from '\/shell\/i18n\.mjs'/)
+    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs']) {
+      const r = await get(port, js)
+      assert.equal(r.status, 200, js)
+      assert.match(r.headers['content-type'], /javascript/)
+    }
   })
 })
 
