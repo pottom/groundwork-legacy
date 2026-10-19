@@ -4,13 +4,14 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
-> Állapot: 4 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 0 kész, 0 részben, 1 hiányzik.
+> Állapot: 4 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 1 kész, 0 részben, 0 hiányzik.
 
 ## 1. Technológiai stack
 
-A rajzolást az Excalidraw adja, a csomagba téve, mint a Mind Elixir; a React csak az ő belső függősége, a saját kódunk továbbra is lit-html. Nyitott kérdés, hogyan csomagolható fordítási lépés nélkül: a 0.17-es UMD-build, vagy egy egyszer, a frissítéskor előkészített ESM-változat. Ezt az első jegy dönti el.
+A rajzolást az Excalidraw adja, a csomagba téve, mint a Mind Elixir; a React csak az ő belső függősége, a saját kódunk továbbra is sima ES-modul. Az első jegy eldöntötte a csomagolást: a 0.17-es UMD-build a React 18 UMD-buildjeivel, változatlanul, fordítási lépés nélkül; egy egyszer előkészített 0.18-as ESM-változat csak akkor jön szóba, ha egy csak ott meglévő funkció kell.
 
-- Excalidraw, a csomagba téve, React-tel együtt `hiányzik` — A React csak az Excalidraw belső függősége; a saját kód lit-html marad.
+- Excalidraw, a csomagba téve, React-tel együtt `kész` — A React csak az Excalidraw belső függősége; a saját kód lit-html marad. ([core/vendor/README.md](../../../core/vendor/README.md))
+- Csomagolás: az Excalidraw 0.17.6 UMD-buildje a React 18.3.1 UMD-buildjeivel, változatlanul a core/vendor/ alatt — Fordítás és telepítés nélkül fut sima <script>-ből. A 0.18 csak ES-modulként jön, kb. 25 csupasz importtal, ami bundlert kívánna, és a React 19-nek nincs UMD-buildje. Ára: régebbi verzió (nincs reconcileElements, az elemszintű fésülést magunk írjuk), egyetlen ismert külső URL a csomagban (a tweet-beágyazás sablonja; a beágyazás ki van kapcsolva), a magyar fordítást mi kapcsoljuk be (70%-os), és a LICENSE-t a repóból tettük mellé. ([core/vendor/README.md](../../../core/vendor/README.md))
 
 ## 2. Adatok és tárolás
 
@@ -35,7 +36,3 @@ A modul csak a docs/product/sketches/ alá írhat. A táblába illesztett képek
 ## Elvetett megoldások
 
 - tldraw — Kötöttebb licenc. _(Technológiai stack)_
-
-## Nyitott műszaki kérdések
-
-- Csomagolás build-lépés nélkül: 0.17-es UMD-build, vagy egyszer előkészített ESM — Az első jegy dönti el, és rögzíti a választást. _(Technológiai stack)_

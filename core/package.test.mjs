@@ -43,9 +43,12 @@ test('the package holds the core, the modules and their bundled libraries', asyn
     'core/groundwork.mjs', 'core/start.mjs', 'core/server.mjs', 'core/version.mjs', 'core/shell/theme.css',
     'core/vendor/mind-elixir/MindElixir.js', 'core/vendor/marked/marked.esm.js', 'core/vendor/fonts/inter/inter-latin-wght-normal.woff2',
     'modules/ideas/module.mjs', 'modules/ideas/index.html', 'modules/ideas/ideas.mjs', 'modules/ideas/view/main.mjs',
+    'modules/ideas/similar.mjs', 'modules/ideas/skills/groundwork-ideas/SKILL.md',
     'modules/plan/module.mjs', 'modules/plan/index.html', 'modules/plan/skills/groundwork-prd-maker/SKILL.md',
     'modules/build/module.mjs', 'modules/build/index.html', 'modules/build/ticket-reader.mjs',
     'modules/build/build.css', 'modules/build/page/main.mjs', 'modules/build/page/views/git.mjs', 'modules/build/ui-strings.mjs',
+    'core/vendor/excalidraw/excalidraw.production.min.js', 'core/vendor/excalidraw/excalidraw-assets/Virgil.woff2', 'core/vendor/react/react.production.min.js',
+    'modules/sketch/module.mjs', 'modules/sketch/index.html', 'modules/sketch/view/main.mjs',
   ]) assert.ok(files.includes(f), `${f} is in the package`)
 })
 
@@ -161,4 +164,17 @@ test('`npx -y @pottom/groundwork init` sets up another project: its hook and ski
   const show = await runCommand(`${tool} plan show`, [], { shell: true, cwd: projectDir, env, timeoutMs: NPM_TIMEOUT })
   assert.equal(show.code, 0, show.stderr)
   assert.match(show.stdout, /\[root\] Other/)
+
+  // The Ideas skill's commands, as Claude runs them from the installed skill: check, then file.
+  const ideasSkill = fs.readFileSync(path.join(projectDir, '.claude', 'skills', 'groundwork-ideas', 'SKILL.md'), 'utf8')
+  assert.equal(/`(npx [^`]+) ideas <command>`/.exec(ideasSkill)?.[1], tool, 'the Ideas skill runs the same command')
+  const ideas = (args) => runCommand(`${tool} ideas ${args}`, [], { shell: true, cwd: projectDir, env, timeoutMs: NPM_TIMEOUT })
+  r = await ideas('similar "switch tabs"')
+  assert.equal(r.code, 0, r.stderr)
+  assert.match(r.stdout, /No similar ideas/)
+  r = await ideas('add "Quick tab switching" --author claude --source "package test" --kind product --impact medium --effort low --rationale "One key handler."')
+  assert.equal(r.code, 0, r.stderr)
+  assert.match(r.stdout, /^I-1 docs\/product\/ideas\/items\/I-001-quick-tab-switching\.md/)
+  r = await ideas('similar "switch tabs"')
+  assert.match(r.stdout, /^I-1\s+\d\.\d\d\s+new\s+Quick tab switching/)
 })

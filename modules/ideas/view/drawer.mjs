@@ -4,7 +4,7 @@
 // Rejected needs a reason (f-ideas-reject). Number, author and date are facts, shown, not edited.
 //
 //   drawer(draft, act)   the dialog's content; null draft -> nothing
-//     draft  { idea: as listed, values: { title, body, source, kind, impact, effort, status, reason,
+//     draft  { idea: as listed, values: { title, body, source, kind, impact, effort, rationale, status, reason,
 //              links: 'a, b' }, saving, error }
 //     act    { edit(name, value), save(), close() }
 
@@ -18,7 +18,7 @@ const CLOSE = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 export const changesOf = (values) => ({ ...values, links: values.links.split(',').map((l) => l.trim()).filter(Boolean) })
 export const valuesOf = (idea) => ({
   title: idea.title ?? '', body: idea.body ?? '', source: idea.source ?? '', kind: idea.kind ?? '',
-  impact: idea.impact ?? '', effort: idea.effort ?? '', status: idea.status, reason: idea.reason ?? '',
+  impact: idea.impact ?? '', effort: idea.effort ?? '', rationale: idea.rationale ?? '', status: idea.status, reason: idea.reason ?? '',
   links: (idea.links ?? []).join(', '),
 })
 
@@ -57,6 +57,7 @@ export function drawer(draft, act) {
         ${field('impact', ui('field.impact'), html`<select class="gw-field" id="f-impact" name="impact" @change=${on(act, 'impact')}>${options(LEVELS, v.impact, 'level', ui('level.none'))}</select>`)}
         ${field('effort', ui('field.effort'), html`<select class="gw-field" id="f-effort" name="effort" @change=${on(act, 'effort')}>${options(LEVELS, v.effort, 'level', ui('level.none'))}</select>`)}
       </div>
+      ${field('rationale', ui('field.rationale'), html`<input class="gw-field" id="f-rationale" name="rationale" .value=${v.rationale} @input=${on(act, 'rationale')}>`)}
       ${field('source', ui('field.source'), html`<input class="gw-field" id="f-source" name="source" .value=${v.source} @input=${on(act, 'source')}>`)}
       ${field('links', ui('field.links'), html`<input class="gw-field" id="f-links" name="links" .value=${v.links} @input=${on(act, 'links')}>`, ui('field.links-hint'))}
       ${draft.error ? html`<div class="gw-callout gw-callout--bad" role="alert"><div class="gw-callout__body">${draft.error}</div></div>` : nothing}

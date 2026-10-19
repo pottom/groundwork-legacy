@@ -79,7 +79,7 @@ test('the view renders through lit-html templates, not hand-built HTML strings, 
 
 test('a card opens in a drawer where every field can be edited, saved through PUT /api/ideas/item/<id> on the version seen', () => {
   const drawer = read('view/drawer.mjs')
-  for (const field of ['title', 'body', 'source', 'kind', 'impact', 'effort', 'status', 'reason', 'links']) {
+  for (const field of ['title', 'body', 'source', 'kind', 'impact', 'effort', 'rationale', 'status', 'reason', 'links']) {
     assert.match(drawer, new RegExp(`name="${field}"`), field)
   }
   const src = viewSource()

@@ -3,11 +3,13 @@
 // It is in git, so the team sees it and decisions can be traced.
 //
 //   const store = openIdeas(root, files)   // files: the core's writer for this module (core/files.mjs)
-//   store.list()          [{ id: 'I-12', n: 12, file, version, title, body, author, source, kind,
-//                            impact, effort, status, reason, links: [], created }]
+//   store.list()          [{ id: 'I-12', n: 12, file, version, title, body, author, source, kind, status,
+//                            created, impact?, effort?, rationale?, reason?, links: ['I-3', '#42'] }]
 //                         in number order; [] without the folder
-//   store.add({ title, body?, author?, source?, kind? })   the new idea, as list() gives it
-//   store.update(id, { title?, body?, source?, kind?, impact?, effort?, status?, reason?, links? }, { base? })
+//   store.add({ title, body?, author?, source?, kind?, impact?, effort?, rationale?, links? })
+//                         the new idea, as list() gives it. impact and effort: low|medium|high, with a
+//                         one-line rationale; links: numbers of existing ideas it is similar to.
+//   store.update(id, { title?, body?, source?, kind?, impact?, effort?, rationale?, status?, reason?, links? }, { base? })
 //                         the changed idea; throws on an unknown value, on Rejected without a reason,
 //                         on an unknown id (code 'missing') and, when `base` is not the file's current
 //                         `version`, without writing (code 'stale'): someone else saved in between
@@ -23,9 +25,9 @@ import { STATUSES, AUTHORS, KINDS, LEVELS, ideaId, fileName } from './fields.mjs
 export const ITEMS = 'docs/product/ideas/items'
 const NUMBERED = /^I-(\d+)-.*\.md$/
 // The fields in the order they are written; the description is the body, not a field.
+const ORDER = ['title', 'author', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'reason', 'created']
 // What an edit may change: everything but the number, the author and the date.
-const EDITABLE = ['title', 'source', 'kind', 'impact', 'effort', 'status', 'reason', 'links']
-const ORDER = ['title', 'author', 'source', 'kind', 'impact', 'effort', 'status', 'reason', 'links', 'created']
+const EDITABLE = ['title', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'reason']
 
 // "Gyors tabváltás!" -> "gyors-tabvaltas": ASCII, short, safe in a file name.
 export function slugOf(title) {
@@ -36,15 +38,14 @@ export function slugOf(title) {
 
 // A value as one front-matter line: plain when it reads back the same, else a JSON string.
 const PLAIN = /^[^\s"'[\]{}#&*!|>%@`,-][^\n]*$/
-// A list (links) is one JSON array.
 function value(v) {
-  if (Array.isArray(v)) return JSON.stringify(v.map(String))
   const s = String(v)
   return PLAIN.test(s) && !/\s$/.test(s) && !/: |\s#/.test(s) ? s : JSON.stringify(s)
 }
 
 export function serialize(fields, body) {
-  const lines = ORDER.filter((k) => fields[k] != null && fields[k] !== '' && !(Array.isArray(fields[k]) && !fields[k].length)).map((k) => `${k}: ${value(fields[k])}`)
+  const text = (v) => (Array.isArray(v) ? v.join(', ') : v)
+  const lines = ORDER.filter((k) => fields[k] != null && text(fields[k]) !== '').map((k) => `${k}: ${value(text(fields[k]))}`)
   return `---\n${lines.join('\n')}\n---\n${body ? `\n${body.trim()}\n` : ''}`
 }
 
@@ -56,7 +57,7 @@ export function parse(text) {
     const kv = /^([A-Za-z][\w-]*):\s?(.*)$/.exec(line)
     if (!kv) continue
     let v = kv[2].trim()
-    if (v.startsWith('"') || v.startsWith('[')) { try { v = JSON.parse(v) } catch { /* kept as written */ } }
+    if (v.startsWith('"')) { try { v = JSON.parse(v) } catch { /* kept as written */ } }
     fields[kv[1]] = v
   }
   return { fields, body: m[2].trim() }
@@ -77,7 +78,7 @@ export function openIdeas(root, files) {
     const text = files.read(`${ITEMS}/${f}`)
     const { fields, body } = parse(text)
     const version = crypto.createHash('sha1').update(text).digest('hex').slice(0, 12)
-    const links = Array.isArray(fields.links) ? fields.links.map(String) : fields.links ? [String(fields.links)] : []
+    const links = String(fields.links ?? '').split(',').map((l) => l.trim()).filter(Boolean)
     return { ...fields, id: ideaId(n), n, file: `${ITEMS}/${f}`, version, title: fields.title || f, status: STATUSES.includes(fields.status) ? fields.status : 'new', links, body }
   }
 
@@ -98,13 +99,13 @@ export function openIdeas(root, files) {
     if (base != null && base !== version) throw Object.assign(new Error(`${id} changed since it was read`), { code: 'stale' })
     const next = { ...old }
     for (const k of EDITABLE) if (changes[k] !== undefined) next[k] = changes[k]
-    for (const k of ['title', 'source', 'reason', 'impact', 'effort']) next[k] = String(next[k] ?? '').replace(/\s+/g, ' ').trim()
+    for (const k of ['title', 'source', 'rationale', 'reason', 'impact', 'effort']) next[k] = String(next[k] ?? '').replace(/\s+/g, ' ').trim()
     if (!next.title) throw new Error('an idea needs a title')
     check('status', next.status, STATUSES)
     if (next.kind) check('kind', next.kind, KINDS)
     for (const k of ['impact', 'effort']) if (next[k]) check(k, next[k], LEVELS)
     if (!Array.isArray(next.links)) throw new Error('links must be a list')
-    next.links = next.links.map((l) => String(l).trim()).filter(Boolean)
+    next.links = next.links.map((l) => String(l).replace(/,/g, ' ').trim()).filter(Boolean)
     if (next.status === 'rejected' && !next.reason) throw new Error('rejecting an idea needs a reason')
     if (next.status !== 'rejected') delete next.reason
     const body = changes.body !== undefined ? String(changes.body) : oldBody
@@ -112,16 +113,21 @@ export function openIdeas(root, files) {
     return read(f)
   }
 
-  function add({ title, body = '', author = 'human', source = '', kind = 'product' } = {}) {
+  function add({ title, body = '', author = 'human', source = '', kind = 'product', impact, effort, rationale, links = [] } = {}) {
     title = String(title ?? '').replace(/\s+/g, ' ').trim()
     if (!title) throw new Error('an idea needs a title')
     check('author', author, AUTHORS)
     check('kind', kind, KINDS)
+    if (impact != null) check('impact', impact, LEVELS)
+    if (effort != null) check('effort', effort, LEVELS)
+    const known = new Set(list().map((i) => i.id))
+    for (const id of links) if (!known.has(id)) throw new Error(`no idea ${id} to link to`)
     const n = Math.max(0, ...names().map((f) => Number(NUMBERED.exec(f)[1]))) + 1
     const file = `${ITEMS}/${fileName(n, slugOf(title))}`
-    const fields = { title, author, source: String(source).replace(/\s+/g, ' ').trim(), kind, status: 'new', created: new Date().toISOString().slice(0, 10) }
+    const line = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
+    const fields = { title, author, source: line(source), kind, impact, effort, rationale: line(rationale), links: links.length ? [...links] : undefined, status: 'new', created: new Date().toISOString().slice(0, 10) }
     files.write(file, serialize(fields, String(body)))
-    return { ...fields, id: ideaId(n), n, file, body: String(body).trim() }
+    return read(path.posix.basename(file))
   }
 
   return { list, add, update }

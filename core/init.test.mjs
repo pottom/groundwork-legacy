@@ -64,6 +64,18 @@ test('answered yes, it installs the skill, the hook and the .gitignore line', as
   assert.match(read(dir, '.gitignore'), /^\.groundwork\/$/m)
 })
 
+test('it installs the Ideas skill from the Ideas manifest, its commands running this version', async () => {
+  const dir = project()
+  const r = await init(dir, ['--yes'])
+  assert.equal(r.code, 0, r.stdout + r.stderr)
+  const skill = read(dir, '.claude/skills/groundwork-ideas/SKILL.md')
+  const packaged = fs.readFileSync(new URL('../modules/ideas/skills/groundwork-ideas/SKILL.md', import.meta.url), 'utf8')
+  assert.equal(skill, packaged.replaceAll('{{groundwork}}', RUNNER))
+  assert.match(skill, /^name: groundwork-ideas$/m)
+  for (const cmd of ['ideas similar', 'ideas add', 'ideas list']) assert.ok(skill.includes(`${RUNNER} ${cmd}`), cmd)
+  assert.doesNotMatch(skill, /\{\{|npx groundwork/)
+})
+
 test('--yes applies without asking', async () => {
   const dir = project()
   const r = await init(dir, ['--yes'])

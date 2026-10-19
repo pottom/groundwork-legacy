@@ -42,6 +42,8 @@ export default {
   public: [],
   // `groundwork ideas <command>` runs ideas.mjs.
   cli: path.join(HERE, 'ideas.mjs'),
+  // `groundwork init` installs this skill: Claude files its side observations as ideas through the CLI.
+  claude: { skills: [path.join(HERE, 'skills', 'groundwork-ideas')] },
   watch: (p) => (p.startsWith(ITEMS + '/') && p.endsWith('.md') ? 'ideas.items' : null),
   api({ root, files }) {
     const store = openIdeas(root, files)

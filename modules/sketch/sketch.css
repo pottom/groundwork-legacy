@@ -1,0 +1,5 @@
+/* The Sketch page: Excalidraw fills the frame. Its own look is Excalidraw's, in light or dark as
+   the shell's; the page around it uses only the shell's theme (/shell/theme.css). */
+
+html, body { height: 100%; margin: 0; background: var(--gw-bg); }
+#board { position: fixed; inset: 0; }
