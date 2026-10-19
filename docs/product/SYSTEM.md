@@ -2,7 +2,7 @@
 
 # Groundwork — Áttekintés
 
-_Rendszer-áttekintés. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Mag: Műszaki terv](core/TECH.md), [Plan modul: Termék](plan/PRD.md), [Plan modul: Műszaki terv](plan/TECH.md), [Build modul: Termék](build/PRD.md), [Build modul: Műszaki terv](build/TECH.md), [Ötletek modul: Termék](ideas/PRD.md), [Ötletek modul: Műszaki terv](ideas/TECH.md), [Tábla modul: Termék](board/PRD.md), [Tábla modul: Műszaki terv](board/TECH.md)._
+_Rendszer-áttekintés. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Mag: Műszaki terv](core/TECH.md), [Plan modul: Termék](plan/PRD.md), [Plan modul: Műszaki terv](plan/TECH.md), [Build modul: Termék](build/PRD.md), [Build modul: Műszaki terv](build/TECH.md), [Ötletek modul: Termék](ideas/PRD.md), [Ötletek modul: Műszaki terv](ideas/TECH.md), [Sketch modul: Termék](sketch/PRD.md), [Sketch modul: Műszaki terv](sketch/TECH.md)._
 
 > Állapot: 4 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 1 kész, 0 részben, 0 hiányzik.
 
@@ -29,7 +29,7 @@ Az első két modul a **Plan** (tervezés: interjú, térkép, dokumentumok) és
 - Mag + két modul: Plan és Build
 - A Mag: közös szerver és keret, felhasználói funkció nélkül `kész` ([core/README.md](../../core/README.md))
 - Jegy ↔ PRD-elem kapcsolat stabil azonosítóval — A jegyben pl. **PRD:** d-npm sor.
-- Fejléc: Ötletek → Plan → Build | Tábla — Az első három a folyamat, a Tábla eszköz, elválasztva.
+- Fejléc: Ötletek → Plan → Build | Sketch — Az első három a folyamat, a Sketch eszköz, elválasztva.
 
 ## 3. Közös ütemterv
 
@@ -40,7 +40,7 @@ A Groundwork négy lépésben épül. Először a két meglévő prototípus vá
 - 3. Plan és Build összekötése
 - 4. npm-kiadás
 - 5. Közös keret és a felületek csiszolása
-- 6. Ötletláda és Tábla
+- 6. Ötletláda és Sketch
 
 ## 4. Kockázatok és függőségek
 
@@ -52,7 +52,7 @@ Belső kockázat, hogy Claude és a felhasználó egyszerre szerkesztheti a tér
 - _A Claude Code skill- és hook-formátuma változhat_
 - _A mattpocock-konvenciók változhatnak_
 - _Egyidejű szerkesztésnél a sorrend elveszhet_
-- _Az Excalidraw mérete és csomagolása build-lépés nélkül_ — A Tábla első jegye bizonyítja, hogy megoldható.
+- _Az Excalidraw mérete és csomagolása build-lépés nélkül_ — A Sketch első jegye bizonyítja, hogy megoldható.
 
 ## Későbbi szakaszok
 

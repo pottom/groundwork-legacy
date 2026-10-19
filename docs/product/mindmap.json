@@ -106,8 +106,8 @@
               },
               {
                 "id": "d-nav-order",
-                "topic": "Fejléc: Ötletek → Plan → Build | Tábla",
-                "note": "Az első három a folyamat, a Tábla eszköz, elválasztva.",
+                "topic": "Fejléc: Ötletek → Plan → Build | Sketch",
+                "note": "Az első három a folyamat, a Sketch eszköz, elválasztva.",
                 "metadata": {
                   "status": "decision"
                 }
@@ -167,7 +167,7 @@
               },
               {
                 "id": "r-6",
-                "topic": "6. Ötletláda és Tábla",
+                "topic": "6. Ötletláda és Sketch",
                 "metadata": {
                   "status": "decision"
                 }
@@ -214,7 +214,7 @@
               {
                 "id": "n-risk-excalidraw",
                 "topic": "Az Excalidraw mérete és csomagolása build-lépés nélkül",
-                "note": "A Tábla első jegye bizonyítja, hogy megoldható.",
+                "note": "A Sketch első jegye bizonyítja, hogy megoldható.",
                 "metadata": {
                   "status": "note"
                 }
@@ -1414,10 +1414,10 @@
       },
       {
         "id": "c-board",
-        "topic": "Tábla modul",
+        "topic": "Sketch modul",
         "metadata": {
           "component": "software",
-          "dir": "board"
+          "dir": "sketch"
         },
         "children": [
           {
@@ -1432,13 +1432,13 @@
                 "topic": "Probléma és cél",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Egy architektúrát, egy folyamatot vagy egy hibát szövegben lassú elmagyarázni, és a chatben leírt magyarázat utána elvész. A Tábla modul egy közös rajztábla: a fejlesztő és Claude ugyanarra a felületre rajzol, és az alakzatokhoz tűzött rövid szálakban válaszolnak egymásnak, így a magyarázat a rajzon marad.",
+                  "prose": "Egy architektúrát, egy folyamatot vagy egy hibát szövegben lassú elmagyarázni, és a chatben leírt magyarázat utána elvész. A Sketch modul egy közös vázlatfelület: a fejlesztő és Claude ugyanarra a felületre rajzol, és az alakzatokhoz tűzött rövid szálakban válaszolnak egymásnak, így a magyarázat a rajzon marad.",
                   "progress": "done"
                 },
                 "children": [
                   {
                     "id": "d-board-goal",
-                    "topic": "Közös rajztábla, ahol ember és Claude oda-vissza magyaráz",
+                    "topic": "Közös vázlatfelület, ahol ember és Claude oda-vissza magyaráz",
                     "metadata": {
                       "status": "decision"
                     }
@@ -1450,7 +1450,7 @@
                 "topic": "Felhasználók és használati esetek",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A fejlesztő felvázol valamit, és megkérdezi Claude-ot; Claude elolvassa a rajzot, a szálban válaszol, és ha kell, maga is rajzol: dobozokat, nyilakat, folyamatot. Fordítva is: Claude egy diagrammal magyaráz el egy javaslatot, a fejlesztő pedig a rajzon jelzi, mi nem stimmel. A követők a táblákat olvassák.",
+                  "prose": "A fejlesztő felvázol valamit, és megkérdezi Claude-ot; Claude elolvassa a rajzot, a szálban válaszol, és ha kell, maga is rajzol: dobozokat, nyilakat, folyamatot. Fordítva is: Claude egy diagrammal magyaráz el egy javaslatot, a fejlesztő pedig a rajzon jelzi, mi nem stimmel. A követők a vázlatokat olvassák.",
                   "progress": "done"
                 },
                 "children": [
@@ -1468,7 +1468,7 @@
                 "topic": "Hatókör és fő funkciók",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A modul névvel ellátott táblákat kezel; mindegyik egy Excalidraw-rajz a közös keretben. Claude parancssori eszközön és skillen át olvassa és rajzolja a táblát, Mermaid-leírásból is. A tábla lényege a szálak: egy alakzatra tűzött rövid beszélgetés, amelyben ember és Claude felváltva válaszol. Minden változás élőben jelenik meg. Egy tábla hivatkozhat ötletre, térképcsomópontra vagy jegyre, és azok is a táblára.",
+                  "prose": "A modul névvel ellátott vázlatokat kezel; mindegyik egy Excalidraw-rajz a közös keretben. Claude parancssori eszközön és skillen át olvassa és rajzolja a vázlatot, Mermaid-leírásból is. A vázlat lényege a szálak: egy alakzatra tűzött rövid beszélgetés, amelyben ember és Claude felváltva válaszol. Minden változás élőben jelenik meg. Egy vázlat hivatkozhat ötletre, térképcsomópontra vagy jegyre, és azok is a vázlatra.",
                   "progress": "done"
                 },
                 "children": [
@@ -1482,7 +1482,7 @@
                   },
                   {
                     "id": "f-board-list",
-                    "topic": "Tetszőleges számú tábla névvel: lista, létrehozás, átnevezés",
+                    "topic": "Tetszőleges számú vázlat névvel: lista, létrehozás, átnevezés",
                     "metadata": {
                       "status": "decision",
                       "impl": "missing"
@@ -1490,7 +1490,7 @@
                   },
                   {
                     "id": "f-board-claude-read",
-                    "topic": "Claude olvassa a táblát: alakzatok, szövegek, kapcsolatok",
+                    "topic": "Claude olvassa a vázlatot: alakzatok, szövegek, kapcsolatok",
                     "metadata": {
                       "status": "decision",
                       "impl": "missing"
@@ -1531,7 +1531,7 @@
                   },
                   {
                     "id": "f-board-shape-links",
-                    "topic": "Egy alakzat is hivatkozhat ötletre, térképcsomópontra, jegyre vagy másik táblára",
+                    "topic": "Egy alakzat is hivatkozhat ötletre, térképcsomópontra, jegyre vagy másik vázlatra",
                     "note": "Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges.",
                     "metadata": {
                       "status": "decision",
@@ -1545,7 +1545,7 @@
                 "topic": "Funkcionális követelmények",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Ha a fejlesztő és Claude egyszerre módosít, a változások elemenként fésülődnek össze, így egyikük sem írja felül a másikat. Egy szál egy alakzathoz tartozik, hozzászólásokból áll szerzővel és idővel, és lezárható, ha a kérdés megoldódott. A tábla szabványos .excalidraw fájl marad, amelyet bármely Excalidraw megnyit.",
+                  "prose": "Ha a fejlesztő és Claude egyszerre módosít, a változások elemenként fésülődnek össze, így egyikük sem írja felül a másikat. Egy szál egy alakzathoz tartozik, hozzászólásokból áll szerzővel és idővel, és lezárható, ha a kérdés megoldódott. A vázlat szabványos .excalidraw fájl marad, amelyet bármely Excalidraw megnyit.",
                   "progress": "done"
                 },
                 "children": [
@@ -1566,7 +1566,7 @@
                   },
                   {
                     "id": "d-board-std-file",
-                    "topic": "A tábla szabványos .excalidraw fájl, az excalidraw.com is megnyitja",
+                    "topic": "A vázlat szabványos .excalidraw fájl, az excalidraw.com is megnyitja",
                     "metadata": {
                       "status": "decision"
                     }
@@ -1578,7 +1578,7 @@
                 "topic": "Nem funkcionális követelmények",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Az Excalidraw nagy, ezért a Tábla csak akkor töltődik be, amikor először megnyitják; a Plan és a Build ettől nem lassul. A tábla világos vagy sötét módja és nyelve a keretét követi, és hálózat nélkül is működik.",
+                  "prose": "Az Excalidraw nagy, ezért a Sketch csak akkor töltődik be, amikor először megnyitják; a Plan és a Build ettől nem lassul. A vázlat világos vagy sötét módja és nyelve a keretét követi, és hálózat nélkül is működik.",
                   "progress": "done"
                 },
                 "children": [
@@ -1591,7 +1591,7 @@
                   },
                   {
                     "id": "d-board-theme",
-                    "topic": "A tábla követi a keret témáját és nyelvét",
+                    "topic": "A vázlat követi a keret témáját és nyelvét",
                     "metadata": {
                       "status": "decision"
                     }
@@ -1648,13 +1648,13 @@
                 "topic": "Adatok és tárolás",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Minden tábla egy .excalidraw fájl a docs/product/boards/ alatt, mellette a szálak egy <név>.threads.json fájlban, az alakzatok azonosítója szerint. Így a rajz szabványos marad, a beszélgetés pedig gitben, a rajz mellett él.",
+                  "prose": "Minden vázlat egy .excalidraw fájl a docs/product/sketches/ alatt, mellette a szálak egy <név>.threads.json fájlban, az alakzatok azonosítója szerint. Így a rajz szabványos marad, a beszélgetés pedig gitben, a rajz mellett él.",
                   "progress": "done"
                 },
                 "children": [
                   {
                     "id": "d-board-store",
-                    "topic": "docs/product/boards/<név>.excalidraw, gitben",
+                    "topic": "docs/product/sketches/<név>.excalidraw, gitben",
                     "metadata": {
                       "status": "decision"
                     }
@@ -1674,13 +1674,13 @@
                 "topic": "Integrációk és interfészek",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Claude a groundwork board parancson át dolgozik: a show szöveges kivonatot ad az alakzatokról, szövegekről és nyilakról, az apply műveletekkel rajzol, a comment a szálakba ír. Ha képre van szüksége, a böngészőpanelben nézi meg a táblát; a szerver nem renderel képet.",
+                  "prose": "Claude a groundwork sketch parancson át dolgozik: a show szöveges kivonatot ad az alakzatokról, szövegekről és nyilakról, az apply műveletekkel rajzol, a comment a szálakba ír. Ha képre van szüksége, a böngészőpanelben nézi meg a vázlatot; a szerver nem renderel képet.",
                   "progress": "done"
                 },
                 "children": [
                   {
                     "id": "d-board-cli",
-                    "topic": "groundwork board: list, show (szöveges kivonat), apply (műveletek), comment",
+                    "topic": "groundwork sketch: list, show (szöveges kivonat), apply (műveletek), comment",
                     "metadata": {
                       "status": "decision"
                     }
@@ -1699,13 +1699,13 @@
                 "topic": "Biztonság",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A modul csak a docs/product/boards/ alá írhat. A táblába illesztett képek mérete korlátozott, hogy a fájlok kezelhetők maradjanak gitben.",
+                  "prose": "A modul csak a docs/product/sketches/ alá írhat. A táblába illesztett képek mérete korlátozott, hogy a fájlok kezelhetők maradjanak gitben.",
                   "progress": "done"
                 },
                 "children": [
                   {
                     "id": "d-board-writes",
-                    "topic": "Csak a docs/product/boards/ alá írhat; beágyazott képek mérethatárral",
+                    "topic": "Csak a docs/product/sketches/ alá írhat; beágyazott képek mérethatárral",
                     "metadata": {
                       "status": "decision"
                     }
