@@ -4,6 +4,14 @@
   "description": "From idea to delivery: a live mind map that writes product docs, and a development dashboard, on one local server.",
   "type": "module",
   "license": "MIT",
+  "bin": { "groundwork": "core/groundwork.mjs" },
+  "files": [
+    "core/",
+    "modules/",
+    "!**/*.test.mjs",
+    "!core/cli-process.mjs",
+    "!core/sse-client.mjs"
+  ],
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node core/groundwork.mjs",

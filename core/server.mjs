@@ -30,6 +30,7 @@ import { send, TYPES } from './http.mjs'
 import { moduleFiles } from './files.mjs'
 import { shellPage } from './shell/shell.mjs'
 import { createEvents } from './events.mjs'
+import { VERSION } from './version.mjs'
 
 export const HOST = '127.0.0.1'
 const LOCAL_NAMES = new Set(['127.0.0.1', 'localhost'])
@@ -77,7 +78,7 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       const url = new URL(req.url, 'http://localhost')
       const parts = url.pathname.split('/') // ['', first, ...rest]
       if (url.pathname === '/') {
-        return send(res, 200, shellPage({ project, modules: mods, active: url.searchParams.get('module'), params: url.searchParams }), TYPES['.html'])
+        return send(res, 200, shellPage({ project, version: VERSION, modules: mods, active: url.searchParams.get('module'), params: url.searchParams }), TYPES['.html'])
       }
       if (url.pathname === '/api/modules') {
         return send(res, 200, mods.map(({ id, name, version }) => ({ id, name, version, path: `/${id}/` })))
