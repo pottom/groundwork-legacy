@@ -1,0 +1,15 @@
+/* The Agents page: the sessions as cards, their agents as rows. Built from the shell's tokens and
+   .gw-* components (/shell/theme.css); only the layout is its own. */
+
+body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-text) var(--gw-font); }
+#agents { max-width: 1100px; margin: 0 auto; padding: calc(var(--gw-space) * 3); display: grid; gap: calc(var(--gw-space) * 2); }
+.agents-session__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); }
+.agents-session__title { margin: 0; font: var(--gw-title) var(--gw-font); }
+.agents-cwd { max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agents-times { margin-left: auto; display: flex; gap: calc(var(--gw-space) * 2); color: var(--gw-fg-2); font: var(--gw-text-small) var(--gw-font); font-variant-numeric: tabular-nums; }
+.agents-agents { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gw-space); }
+.agents-agent { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); padding: var(--gw-space) 0; border-top: 1px solid var(--gw-line); }
+.agents-agent:first-child { border-top: 0; }
+.agents-name { font-weight: 550; }
+.agents-none { margin: 0; color: var(--gw-muted); font: var(--gw-text-small) var(--gw-font); }
+@media (max-width: 640px) { .agents-times { margin-left: 0; width: 100%; } }

@@ -15,6 +15,7 @@ import plan from './plan/module.mjs'
 import build, { buildModule } from './build/module.mjs'
 import ideas from './ideas/module.mjs'
 import sketch from './sketch/module.mjs'
+import agents from './agents/module.mjs'
 
 // A project with a map and a ticket that names an item.
 function project() {
@@ -87,6 +88,15 @@ test('with only Sketch, its page and endpoints work; the modules it links to are
     assert.equal((await get('/api/sketch/links')).status, 200)
     assert.equal((await get('/api/sketch/scene?name=main')).status, 200)
     for (const p of ['/api/ideas/list', '/api/plan/ids', '/api/build/prd']) assert.equal((await get(p)).status, 404, p)
+  })
+})
+
+test('with only Agents, its page and list work, and it needs no other module', async () => {
+  await withServer([agents], async (get) => {
+    assert.deepEqual(tabs(await (await get('/')).text()), ['agents'])
+    assert.match(await (await get('/agents/')).text(), /<html/i)
+    assert.deepEqual(await (await get('/api/agents/list')).json(), { sessions: [] })
+    for (const p of ['/api/ideas/list', '/api/plan/ids', '/api/build/prd', '/api/sketch/links']) assert.equal((await get(p)).status, 404, p)
   })
 })
 
