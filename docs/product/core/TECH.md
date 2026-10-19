@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 16 kész, 0 részben, 2 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 18 kész, 0 részben, 0 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -80,8 +80,8 @@ Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és ford
 A felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a csomagba tett sablonkönyvtár, a lit-html rajzolja deklaratívan és hatékonyan, a közös megjelenést pedig a keret theme.css-e adja kész komponensekkel. Hogy a kód áttekinthető maradjon, minden modul oldala kis fájlokra bomlik (nézetek, állapot, adatlekérés), nem egyetlen nagy index.html-re. Így megkapjuk egy keretrendszer előnyeit, a build-lépés és a függőségi lánc nélkül.
 
 - Sima JavaScript ES-modulok, build-lépés nélkül — Mindkét meglévő eszköz már így készült.
-- Modulonként több kisebb fájl, nem egy óriásfájl `hiányzik` — A Plan és a Build oldala még egy-egy nagy index.html (63 és 122 KB); szét kell bontani nézetekre, állapotra és adatlekérésre.
-- Deklaratív nézetek lit-html-lel, a csomagba téve `hiányzik` — Kb. 7 KB, fordítási lépés nélkül fut, offline is; a core/vendor/ alá kerül, mint a Mind Elixir.
+- Modulonként több kisebb fájl, nem egy óriásfájl `kész` — A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; a fájlból megnyitott Build egy generált, commitolt klasszikus szkriptet (page.bundle.js) tölt be.
+- Deklaratív nézetek lit-html-lel, a csomagba téve `kész` — lit-html 3.2.1, kb. 7 KB, a core/vendor/ alatt; fordítási lépés nélkül fut, offline is. ([core/vendor/lit-html/lit-html.js](../../../core/vendor/lit-html/lit-html.js))
 - Közös dizájnrendszer a theme.css-ben (.gw-* komponensek) `kész` ([core/shell/theme.css](../../../core/shell/theme.css))
 
 ## Elvetett megoldások

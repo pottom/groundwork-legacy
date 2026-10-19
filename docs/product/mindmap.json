@@ -555,9 +555,9 @@
                     "topic": "Modulonként több kisebb fájl, nem egy óriásfájl",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
+                      "impl": "done"
                     },
-                    "note": "A Plan és a Build oldala még egy-egy nagy index.html (63 és 122 KB); szét kell bontani nézetekre, állapotra és adatlekérésre."
+                    "note": "A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; a fájlból megnyitott Build egy generált, commitolt klasszikus szkriptet (page.bundle.js) tölt be."
                   },
                   {
                     "id": "x-framework",
@@ -576,11 +576,12 @@
                   {
                     "id": "d-lit-html",
                     "topic": "Deklaratív nézetek lit-html-lel, a csomagba téve",
-                    "note": "Kb. 7 KB, fordítási lépés nélkül fut, offline is; a core/vendor/ alá kerül, mint a Mind Elixir.",
+                    "note": "lit-html 3.2.1, kb. 7 KB, a core/vendor/ alatt; fordítási lépés nélkül fut, offline is.",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/vendor/lit-html/lit-html.js"
                   },
                   {
                     "id": "d-design-system",
