@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "groundwork-plan",
+      "name": "groundwork",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["modules/plan/plan.mjs", "serve", "--port", "4477"],
+      "runtimeArgs": ["core/groundwork.mjs", "--root", ".", "--port", "4477"],
       "port": 4477
     },
     {

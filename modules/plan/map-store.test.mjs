@@ -1,0 +1,131 @@
+// Tests of the map store through its interface: read, apply, saveFromBrowser, takeHumanEdits.
+// Run: node --test modules/
+
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { openMap } from './map-store.mjs'
+
+function fresh() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-'))
+  const store = openMap(dir)
+  store.init('Product')
+  store.apply([
+    { op: 'add', id: 'doc', parent: 'root', topic: 'Product', doc: 'prd' },
+    { op: 'add', id: 'goal', parent: 'doc', topic: 'Goal' },
+    { op: 'add', id: 'a', parent: 'goal', topic: 'First', status: 'decision' },
+  ])
+  return { dir, store }
+}
+
+const find = (data, id) => {
+  let hit = null
+  const rec = (n) => { if (n.id === id) hit = n; for (const c of n.children || []) rec(c) }
+  rec(data.nodeData)
+  return hit
+}
+
+test('apply adds nodes and writes the documents', () => {
+  const { dir, store } = fresh()
+  const { data } = store.read()
+  assert.equal(find(data, 'a').topic, 'First')
+  assert.ok(fs.readFileSync(path.join(dir, 'docs/product/PRD.md'), 'utf8').includes('First'))
+})
+
+test('apply reports errors and keeps going', () => {
+  const { store } = fresh()
+  const { errors, data } = store.apply([{ op: 'set', id: 'nope', topic: 'x' }, { op: 'set', id: 'a', topic: 'Renamed' }])
+  assert.equal(errors.length, 1)
+  assert.equal(find(data, 'a').topic, 'Renamed')
+})
+
+test('a browser save on the current version keeps the browser layout and logs the human edit', () => {
+  const { store } = fresh()
+  const { v, data } = store.read()
+  find(data, 'a').topic = 'Edited by human'
+  const res = store.saveFromBrowser(v, data)
+  assert.equal(res.changed, false)
+  assert.equal(find(store.read().data, 'a').topic, 'Edited by human')
+  const edits = store.takeHumanEdits()
+  assert.equal(edits.length, 1)
+  assert.equal(edits[0].op, 'set')
+  assert.equal(edits[0].topic, 'Edited by human')
+  assert.deepEqual(store.takeHumanEdits(), [], 'edits are taken only once')
+})
+
+test('a node the human adds becomes "todo" and is marked as theirs', () => {
+  const { store } = fresh()
+  const { v, data } = store.read()
+  find(data, 'goal').children.push({ id: 'h', topic: 'Human idea' })
+  const res = store.saveFromBrowser(v, data)
+  const node = find(res.data, 'h')
+  assert.equal(node.metadata.status, 'todo')
+  assert.equal(node.metadata.by, 'human')
+})
+
+test('Claude and the browser write at the same time: both changes survive', () => {
+  const { store } = fresh()
+  const { v, data: browser } = store.read() // the browser loads
+  store.apply([{ op: 'add', id: 'b', parent: 'goal', topic: 'Claude adds' }]) // Claude writes meanwhile
+  find(browser, 'a').topic = 'Human renames'
+  const res = store.saveFromBrowser(v, browser)
+  assert.equal(res.changed, true, 'the browser has to reload: the result differs from what it sent')
+  const now = store.read().data
+  assert.equal(find(now, 'b').topic, 'Claude adds')
+  assert.equal(find(now, 'a').topic, 'Human renames')
+})
+
+test('the browser saves on top of an old version: Claude\'s later edits are not undone', () => {
+  const { store } = fresh()
+  const { v: old, data: browser } = store.read()
+  store.apply([{ op: 'set', id: 'a', topic: 'Claude renamed' }])
+  store.apply([{ op: 'add', id: 'c', parent: 'goal', topic: 'Claude second' }])
+  find(browser, 'goal').children.push({ id: 'h', topic: 'Human add' })
+  store.saveFromBrowser(old, browser)
+  const now = store.read().data
+  assert.equal(find(now, 'a').topic, 'Claude renamed', 'the stale topic in the browser copy is not a human edit')
+  assert.ok(find(now, 'c'))
+  assert.equal(find(now, 'h').metadata.by, 'human')
+  assert.deepEqual(store.takeHumanEdits().map((o) => o.op), ['add'])
+})
+
+test('a human removal merges onto a newer file', () => {
+  const { store } = fresh()
+  const { v, data: browser } = store.read()
+  store.apply([{ op: 'add', id: 'b', parent: 'goal', topic: 'Claude adds' }])
+  find(browser, 'goal').children = []
+  store.saveFromBrowser(v, browser)
+  const now = store.read().data
+  assert.equal(find(now, 'a'), null)
+  assert.ok(find(now, 'b'))
+})
+
+test('human edits of the same node collapse into one', () => {
+  const { store } = fresh()
+  let { v, data } = store.read()
+  find(data, 'goal').children.push({ id: 'h', topic: 'one' })
+  ;({ v, data } = store.saveFromBrowser(v, data))
+  find(data, 'h').topic = 'two'
+  store.saveFromBrowser(v, data)
+  const edits = store.takeHumanEdits()
+  assert.equal(edits.length, 1)
+  assert.equal(edits[0].op, 'add')
+  assert.equal(edits[0].topic, 'two')
+})
+
+test('a store opened later (the CLI, the hook) sees the edits the server logged', () => {
+  const { dir, store } = fresh()
+  const { v, data } = store.read()
+  find(data, 'a').topic = 'Changed'
+  store.saveFromBrowser(v, data)
+  assert.equal(openMap(dir).takeHumanEdits().length, 1)
+})
+
+test('init refuses to overwrite an existing map unless forced', () => {
+  const { store } = fresh()
+  assert.throws(() => store.init('Again'), /already exists/)
+  store.init('Again', { force: true })
+  assert.equal(store.read().data.nodeData.topic, 'Again')
+})

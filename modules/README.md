@@ -17,4 +17,14 @@ From the plan ([`docs/product/core/TECH.md`](../docs/product/core/TECH.md), Modu
 4. optionally **skills and hooks** for Claude Code, which `groundwork init` installs into a project;
 5. the **folders it may write to**, which the core enforces.
 
-The two prototypes predate this contract and still run on their own; adopting it is roadmap step 1. In the first version all modules live inside the package. Modules published as separate npm packages may come later.
+In code, a module exports its manifest from `module.mjs`, and `core/modules.mjs` lists it:
+
+```js
+export default {
+  id: 'plan', name: 'Plan', version: '0.1.0',
+  view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
+  api: ({ root }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
+}
+```
+
+Plan follows this contract; Build still runs on its own server until it moves behind the core.

@@ -12,8 +12,8 @@ A Plan modul a prd-maker prototípusból születik. Egy grilling-interjú közbe
 
 Új képessége lesz, hogy döntésenként megmutatja, hány jegy született belőle, és azok közül mennyi kész. A jegyeket továbbra is a mattpocock `to-tickets` skillje készíti; utána Claude minden jegybe beírja, melyik PRD-elemből született.
 
-- Élő, közösen szerkeszthető gondolattérkép `kész` ([mindmap/index.html](../../../mindmap/index.html))
-- Dokumentumok generálása (PRD, TECH, …) `kész` ([mindmap/prd.mjs](../../../mindmap/prd.mjs))
+- Élő, közösen szerkeszthető gondolattérkép `kész` ([modules/plan/index.html](../../../modules/plan/index.html))
+- Dokumentumok generálása (PRD, TECH, …) `kész` ([modules/plan/documents.mjs](../../../modules/plan/documents.mjs))
 - Összetevők és dokumentumtípusok `kész`
 - Meglévő projekt feltöltése kódból `részben` — A skill leírja, nincs külön eszköz hozzá.
 - Nézet/szerkesztés mód, fókusz, összecsukás `kész`

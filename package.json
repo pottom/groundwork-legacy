@@ -1,0 +1,12 @@
+{
+  "name": "groundwork",
+  "version": "0.1.0",
+  "description": "From idea to delivery: a live mind map that writes product docs, and a development dashboard, on one local server.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node core/groundwork.mjs",
+    "test": "node --test \"core/**/*.test.mjs\" \"modules/**/*.test.mjs\""
+  }
+}

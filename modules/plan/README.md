@@ -65,7 +65,9 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 
 | Fájl | Szerep |
 |---|---|
-| `plan.mjs` | szerver + CLI (`init`, `apply`, `show`, `serve`, `hook`) |
+| `module.mjs` | a modul a mag szerver számára: manifest, nézet, végpontok `/api/plan/` alatt |
+| `map-store.mjs` | a térkép olvasása, írása és összefésülése; a CLI, a hook és a szerver is ezt használja |
+| `plan.mjs` | CLI (`init`, `apply`, `show`, `hook`) |
 | `index.html` | a térkép és a dokumentum panel ([Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1, [marked](https://marked.js.org)) |
 | `documents.mjs` | dokumentum-modell a térképből (összetevők, dokumentumok, fejezetek) + Markdown export (közös a szerverrel) |
 | `node-types.mjs` | csomópont-típusok: címke, [Lucide](https://lucide.dev) ikon |
@@ -74,7 +76,7 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 | `.prd-maker/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések, a generált fájlok listája |
 | `skills/groundwork-prd-maker/SKILL.md` | a munkamenet Claude-nak (a repó `.claude/skills/` alatti példánya ennek a másolata) |
 | `.claude/settings.json` | `UserPromptSubmit` hook: továbbítja a kézi szerkesztéseket, és grill promptnál emlékeztet a skillre |
-| `.claude/launch.json` | `groundwork-plan` preview szerver (port 4477) |
+| `.claude/launch.json` | `groundwork` preview szerver: a mag szerver (port 4477), a Plan a `/plan/` alatt |
 
 ## Kézi használat
 
@@ -84,7 +86,7 @@ node modules/plan/plan.mjs serve
 node modules/plan/plan.mjs show
 ```
 
-Más mappában lévő projekthez: `MINDMAP_DIR=<mappa> node modules/plan/plan.mjs serve`.
+Más mappában lévő projekthez: `node core/groundwork.mjs --root <mappa>`.
 
 ## Szinkron
 

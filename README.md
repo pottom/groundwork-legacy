@@ -18,7 +18,7 @@ Groundwork takes a project from idea to delivery, in one portable package that w
 
 ```
 groundwork/
-├── core/               the shared server and shell (to be built: roadmap step 1)
+├── core/               the shared local server that serves every module
 ├── modules/
 │   ├── plan/           Plan module: mind map editor, document generator, Claude skill (groundwork-prd-maker)
 │   └── build/          Build module: development dashboard over tickets and git (prototype)
@@ -33,11 +33,13 @@ Every folder has a README that says what is in it.
 Requirements: Node.js 20 or newer. Nothing else to install.
 
 ```bash
-node modules/plan/plan.mjs serve                                  # Plan: the mind map and documents, http://localhost:4477
-node modules/build/development-status.mjs --root .                # Build: the dashboard for this repo, http://localhost:8641 (or the next free port)
+node core/groundwork.mjs --root .                           # the core server: http://localhost:4477, Plan at /plan/
+node modules/build/development-status.mjs --root .           # Build, still on its own server for now: http://localhost:8641
 ```
 
-Both read and write only inside the project folder they are pointed at, and listen on `127.0.0.1` only.
+`--root` is the project to work on (default: the current folder). The core server listens on `127.0.0.1` only and refuses requests with a foreign `Host` header.
+
+Run the tests with `npm test` (Node's built-in test runner).
 
 ## License
 

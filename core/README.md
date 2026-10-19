@@ -1,11 +1,16 @@
 # core
 
-The shared core of Groundwork. **Not built yet**: this is roadmap step 1.
+The shared core of Groundwork. It holds what every module uses.
 
-It will hold what every module uses:
+| File | Role |
+|---|---|
+| `groundwork.mjs` | the command: `node core/groundwork.mjs [--root DIR] [--port N] [--open]` |
+| `server.mjs` | the local server: start page, `/api/modules`, each module's view under `/<id>/` and endpoints under `/api/<id>/` |
+| `modules.mjs` | the list of modules the server loads |
+| `http.mjs` | small helpers for the modules' endpoints (`send`, `readJson`) |
 
-- **One local server.** It serves every module under its own `/api/<module>/` path. It listens on `127.0.0.1` only and refuses requests with a foreign `Host` header. Each module may write only into the folders it declares.
-- **The shell.** It provides the header, the navigation between modules, and the theme, which follows the operating system's light or dark setting.
-- **Module loading.** It reads each module's descriptor (id, name, version) and mounts the module's endpoints and view.
+The server listens on `127.0.0.1` only and answers a request with a foreign `Host` header with 403. It uses only Node's built-in modules.
 
-Until then each module in [`../modules/`](../modules/) runs its own small server. The decisions behind the core are in [`docs/product/core/TECH.md`](../docs/product/core/TECH.md) (in Hungarian).
+A module plugs in with a manifest; see [`../modules/README.md`](../modules/README.md).
+
+Still to come: write access granted per module, and the shell (header, navigation, theme). The decisions behind the core are in [`docs/product/core/TECH.md`](../docs/product/core/TECH.md) (in Hungarian).

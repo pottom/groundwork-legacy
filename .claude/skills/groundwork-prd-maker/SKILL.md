@@ -99,7 +99,7 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
 
 ## Session flow
 
-1. **Start.** If `docs/product/mindmap.json` is missing, run `init`. Start the editor with `preview_start` (configuration `groundwork-plan`, from `.claude/launch.json`).
+1. **Start.** If `docs/product/mindmap.json` is missing, run `init`. Start the core server with `preview_start` (configuration `groundwork`, from `.claude/launch.json`; or `node core/groundwork.mjs`) and open `/plan/`.
 2. **Existing project?** If there is already code or documentation, read it before asking anything. Dispatch a sub-agent for a thorough analysis:
    - the product: README, specs, glossary, docs;
    - every ADR in `docs/adr/`, with its state;

@@ -211,7 +211,7 @@
                   {
                     "id": "n-node-builtin",
                     "topic": "Mindkettő Node, csak beépített modulokkal",
-                    "hyperLink": "mindmap/mm.mjs",
+                    "hyperLink": "core/server.mjs",
                     "metadata": {
                       "status": "decision",
                       "impl": "done"
@@ -547,7 +547,7 @@
                   {
                     "id": "f-plan-map",
                     "topic": "Élő, közösen szerkeszthető gondolattérkép",
-                    "hyperLink": "mindmap/index.html",
+                    "hyperLink": "modules/plan/index.html",
                     "metadata": {
                       "status": "decision",
                       "impl": "done"
@@ -556,7 +556,7 @@
                   {
                     "id": "f-plan-docs",
                     "topic": "Dokumentumok generálása (PRD, TECH, …)",
-                    "hyperLink": "mindmap/prd.mjs",
+                    "hyperLink": "modules/plan/documents.mjs",
                     "metadata": {
                       "status": "decision",
                       "impl": "done"

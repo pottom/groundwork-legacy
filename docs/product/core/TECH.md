@@ -12,7 +12,7 @@ Egyetlen helyi szerver szolgálja ki az összes modult, mindegyiket a saját API
 
 Az írási jog modulonként adható: a Plan a saját dokumentumait írja, a Build csak olvas.
 
-- Mindkettő Node, csak beépített modulokkal `kész` ([mindmap/mm.mjs](../../../mindmap/mm.mjs))
+- Mindkettő Node, csak beépített modulokkal `kész` ([core/server.mjs](../../../core/server.mjs))
 - Egy közös szerver, modulonkénti API-val — Az írási jogot modulonként adjuk.
 
 ## 2. Modulszerződés
