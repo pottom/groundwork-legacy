@@ -24,3 +24,7 @@ A Plan egyetlen igazságforrása a `docs/product/mindmap.json`; ebből generál�
 ## Elvetett megoldások
 
 - Függőségek CDN-ről _(Technológiai stack)_
+
+## Későbbre halasztva
+
+- Egy közös Markdown-renderelő a két modulban — Előbb próba: elég-e a Build biztonságos renderelője a Plan dokumentumaihoz; ha igen, a marked (90 KB) kikerül. _(Technológiai stack)_

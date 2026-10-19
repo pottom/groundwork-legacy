@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 18 kész, 0 részben, 0 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 19 kész, 2 részben, 1 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -31,6 +31,7 @@ Az első verzióban minden modul a csomagon belül él, de a szerződés úgy k�
   - Nézet a közös keretben `kész` — A nézetet a Mag szolgálja ki a /<module>/ alatt, a közös keretben (fejléc, navigáció). ([core/shell/shell.mjs](../../../core/shell/shell.mjs))
   - Opcionális skillek és hookok (az init telepíti)
   - Mappák, ahová írhat (a Mag ellenőrzi) `kész` ([core/files.mjs](../../../core/files.mjs))
+- A modulok egymás kis, deklarált végpontjait olvassák `részben` — Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót.
 
 ## 3. Közös keret (fejléc, navigáció, téma)
 
@@ -39,6 +40,9 @@ Minden modul egy közös kinézetet használ, amelyet a Mag ad; ez követi az op
 - Felület angolul, magyar fordítással `kész` — A keret, a Plan és a Build is; a nyelvet a fejlécben lehet váltani. ([core/shell/i18n.mjs](../../../core/shell/i18n.mjs))
 - Közös kinézet a Magból, minden modul ehhez igazodik `kész` — A közös változók a /shell/theme.css-ben; a Plan és a Build is ezeket használja. ([core/shell/theme.css](../../../core/shell/theme.css))
 - Világos vagy sötét az OS beállítása szerint `kész` — Kapcsoló nincs; a nézetek újratöltés nélkül is követik a váltást. ([core/shell/theme.css](../../../core/shell/theme.css))
+- A keret birtokolja az élő kapcsolatot, a verziót, a nyelvet és a projekt nevét `kész` — Fülenként egy eseményfolyam; a modulok a /shell/live.mjs-en át kapják, és nem ismétlik a keret jelzéseit. ([core/shell/live.mjs](../../../core/shell/live.mjs))
+- Fülváltáskor a modulok életben maradnak `hiányzik` — A keret modulonként egy keretet tart meg, és csak elrejti; a térkép megtartja a nagyítást és kijelölést, a Build a görgetést és a szűrőket.
+- A modulok eszköztára a modulban marad — A keret modulfüggetlen marad; harmadik modulnál újragondolható.
 
 ## 4. Csomagolás és terjesztés
 
@@ -72,6 +76,7 @@ A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval
 - Windows, macOS, Linux
 - Node 20 vagy újabb
 - Chrome, Edge, Firefox, Safari
+- Teljesítménycél: 300 ms első kirajzolás, 100 ms fülváltás, 50 ms kérésenként `részben` — Helyben, meleg indulásnál; a #19 mérése ehhez viszonyít.
 
 ## 7. Technológiai stack
 
