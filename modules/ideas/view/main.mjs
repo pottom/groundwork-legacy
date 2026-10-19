@@ -24,6 +24,7 @@
 
 import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
+import { createToasts } from '/shell/toasts.mjs'
 import { i18n, ui } from './strings.mjs'
 import { listIdeas, saveIdea, ideaTickets, sketchLinks } from './api.mjs'
 import { board } from './board.mjs'
@@ -46,7 +47,6 @@ const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: nu
   view: VIEWS.includes(recallView()) ? recallView() : 'kanban' }
 let draft = null    // the idea open in the drawer: { idea, values, saving, error }
 let ask = null      // the reason a move to Rejected asks for: { idea, reason, error }
-let toasts = []
 let known = null    // the ids seen so far; null before the first read
 let freshTimer
 let wanted = new URLSearchParams(location.search).get('idea')   // the idea a link asks to open, once
@@ -55,7 +55,6 @@ function draw() {
   render(page(), $('board'))
   render(drawer(draft, drawerActs), $('drawer'))
   render(rejectForm(ask, rejectActs), $('reject'))
-  render(toasts.map((t) => html`<div class="gw-toast gw-toast--${t.tone}" role=${t.tone === 'bad' ? 'alert' : 'status'}>${t.text}</div>`), $('toasts'))
 }
 
 // The board or the matrix, under the switch between them (shown once there are ideas to switch over).
@@ -74,12 +73,7 @@ function pick(view) {
   draw()
 }
 
-function toast(text, tone = 'ok') {
-  const t = { text, tone }
-  toasts = [...toasts, t]
-  draw()
-  setTimeout(() => { toasts = toasts.filter((x) => x !== t); draw() }, 3600)
-}
+const toast = createToasts($('toasts'), { ms: 3600 })
 
 // One idea, as the server now has it, in place on the board.
 function put(idea) {

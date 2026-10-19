@@ -12,7 +12,9 @@
 //       { status } when the server refuses (409 taken, 400 not a plain name)
 //
 // The page's API: GET /api/sketch/list, POST /api/sketch/create { name },
-// POST /api/sketch/rename { from, to } (see README.md).
+// POST /api/sketch/rename { from, to } (see README.md), through api.mjs.
+
+import { postJson } from './api.mjs'
 
 const NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 export const isSketchName = (name) => typeof name === 'string' && NAME.test(name)
@@ -27,10 +29,7 @@ export function chooseSketch({ asked, remembered, names, renamed = {} }) {
 }
 
 // A POST to the sketch API; a refusal rejects with the status, so the bar can say why.
-export async function postSketch(sub, body) {
-  const res = await fetch(`/api/sketch/${sub}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-  if (!res.ok) throw Object.assign(new Error(`${sub}: ${res.status}`), { status: res.status })
-}
+export const postSketch = (sub, body) => postJson(`/api/sketch/${sub}`, body)
 
 const el = (tag, props = {}, ...children) => {
   const e = Object.assign(document.createElement(tag), props)

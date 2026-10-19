@@ -19,9 +19,9 @@
 // The bar's right end lists the sketch's links and adds or removes one (links.mjs); they follow
 // the file live (topic "sketch.links"), and a shape's link opens in the shell (board.mjs).
 
-import { html, render } from '/vendor/lit-html/lit-html.js'
 import { createI18n } from '/shell/i18n.mjs'
 import { subscribe } from '/shell/live.mjs'
+import { createToasts } from '/shell/toasts.mjs'
 import { SKETCH_STRINGS } from '../ui-strings.mjs'
 import { mountBoard } from './board.mjs'
 import { createSaver } from './saver.mjs'
@@ -31,6 +31,7 @@ import { chooseSketch, mountSketchBar, postSketch } from './sketches.mjs'
 import { readThreads, commentOn, closeThread } from './pins.mjs'
 import { mountPins } from './thread-panel.mjs'
 import { mountLinks, readLinks, changeLink } from './links.mjs'
+import { getJson } from './api.mjs'
 
 const LAST_KEY = 'groundwork-sketch:last'
 const TOAST_MS = 4000
@@ -44,22 +45,11 @@ const api = () => `/api/sketch/scene?name=${encodeURIComponent(current)}`
 const i18n = createI18n(SKETCH_STRINGS)
 i18n.apply(document)
 
-let toasts = []
-function toast(key) {
-  const item = { key }
-  toasts = [...toasts, item]
-  showToasts()
-  setTimeout(() => { toasts = toasts.filter((t) => t !== item); showToasts() }, TOAST_MS)
-}
-function showToasts() {
-  render(toasts.map((t) => html`<div class="gw-toast gw-toast--bad" role="alert">${i18n.t(t.key)}</div>`), document.getElementById('toasts'))
-}
+// A failure, said in the language chosen (/shell/toasts.mjs).
+const showToast = createToasts(document.getElementById('toasts'), { ms: TOAST_MS })
+const toast = (key) => showToast(i18n.t(key), 'bad')
 
-async function readScene() {
-  const res = await fetch(api())
-  if (!res.ok) throw new Error(String(res.status))
-  return res.json()
-}
+const readScene = () => getJson(api())
 
 async function save(elements, appState, files) {
   const body = JSON.stringify({
@@ -86,9 +76,7 @@ function showInAddress(name) {
 
 async function names() {
   try {
-    const res = await fetch('/api/sketch/list', { cache: 'no-store' })
-    if (!res.ok) throw new Error(String(res.status))
-    return (await res.json()).sketches.map((s) => s.name)
+    return (await getJson('/api/sketch/list')).sketches.map((s) => s.name)
   } catch {
     toast('toast.listFailed')
     return []

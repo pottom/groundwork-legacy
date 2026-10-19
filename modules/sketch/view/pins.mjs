@@ -11,7 +11,9 @@
 //   commentOn(name, element, text)           POST /api/sketch/comment?name=<name>, as JSON (the server
 //                                            names the developer as its author)
 //   closeThread(name, element, closed)       POST /api/sketch/close?name=<name>; closed: false reopens
-//   both reject with { status } when the server refuses
+//   both reject with { status } when the server refuses (api.mjs)
+
+import { getJson, postJson } from './api.mjs'
 
 export function pinPlaces(threads, elements, appState) {
   const live = new Map(elements.filter((e) => !e.isDeleted).map((e) => [e.id, e]))
@@ -45,16 +47,7 @@ export function shapeLabel(elements, id) {
   return label || (e?.type === 'text' ? e.text : null) || id
 }
 
-export async function readThreads(name) {
-  const res = await fetch(`/api/sketch/threads?name=${encodeURIComponent(name)}`, { cache: 'no-store' })
-  if (!res.ok) throw new Error(String(res.status))
-  return (await res.json()).threads
-}
+export const readThreads = async (name) => (await getJson(`/api/sketch/threads?name=${encodeURIComponent(name)}`)).threads
 
-async function post(url, body) {
-  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-  if (!res.ok) throw Object.assign(new Error(`${url}: ${res.status}`), { status: res.status })
-}
-
-export const commentOn = (name, element, text) => post(`/api/sketch/comment?name=${encodeURIComponent(name)}`, { element, text })
-export const closeThread = (name, element, closed) => post(`/api/sketch/close?name=${encodeURIComponent(name)}`, { element, closed })
+export const commentOn = (name, element, text) => postJson(`/api/sketch/comment?name=${encodeURIComponent(name)}`, { element, text })
+export const closeThread = (name, element, closed) => postJson(`/api/sketch/close?name=${encodeURIComponent(name)}`, { element, closed })

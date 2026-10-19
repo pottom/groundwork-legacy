@@ -46,7 +46,7 @@ import { openLinks, LINKS_FILE } from './links-store.mjs'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 // The page's files, the only ones served under /sketch/.
-const VIEW_FILES = ['index.html', 'sketch.css', 'ui-strings.mjs', 'view/asset-path.js', 'view/main.mjs', 'view/board.mjs', 'view/saver.mjs', 'view/follow.mjs', 'view/theme.mjs', 'view/sketches.mjs', 'view/pins.mjs', 'view/thread-panel.mjs', 'view/targets.mjs', 'view/links.mjs', 'merge.mjs']
+const VIEW_FILES = ['index.html', 'sketch.css', 'ui-strings.mjs', 'view/asset-path.js', 'view/main.mjs', 'view/board.mjs', 'view/saver.mjs', 'view/follow.mjs', 'view/theme.mjs', 'view/sketches.mjs', 'view/pins.mjs', 'view/thread-panel.mjs', 'view/targets.mjs', 'view/links.mjs', 'view/api.mjs', 'merge.mjs']
 
 export default {
   id: 'sketch',

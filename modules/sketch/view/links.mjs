@@ -11,6 +11,7 @@
 // The page's API: GET /api/sketch/links, POST /api/sketch/link and POST /api/sketch/unlink { name, target }.
 
 import { KINDS, target, parseTarget, shellLink } from './targets.mjs'
+import { getJson, postJson } from './api.mjs'
 
 const el = (tag, props = {}, ...children) => {
   const e = Object.assign(document.createElement(tag), props)
@@ -18,18 +19,9 @@ const el = (tag, props = {}, ...children) => {
   return e
 }
 
-export async function readLinks() {
-  const res = await fetch('/api/sketch/links', { cache: 'no-store' })
-  if (!res.ok) throw new Error(String(res.status))
-  return res.json()
-}
+export const readLinks = () => getJson('/api/sketch/links')
 
-export async function changeLink(sub, name, link) {
-  const res = await fetch(`/api/sketch/${sub === 'add' ? 'link' : 'unlink'}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, target: link }),
-  })
-  if (!res.ok) throw Object.assign(new Error(`${sub}: ${res.status}`), { status: res.status })
-}
+export const changeLink = (sub, name, link) => postJson(`/api/sketch/${sub === 'add' ? 'link' : 'unlink'}`, { name, target: link })
 
 export function mountLinks(root, { name, i18n, onAdd, onRemove }) {
   let links = []

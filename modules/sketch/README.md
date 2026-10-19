@@ -31,6 +31,7 @@ Sketch is a tool, not a step of the workflow: its tab comes after Plan and Build
 | `links-store.mjs` | the sketches' links, `docs/product/sketches/links.json`: what each sketch links to, and the old names of renamed sketches |
 | `view/targets.mjs` | a link's one form, `groundwork://idea/I-12` (`node/<map id>`, `ticket/#34`, `sketch/<name>`), and the shell's address that opens it; shared with the server |
 | `view/links.mjs` | the links button at the right of the bar: lists the sketch's links (each opens in the shell), adds and removes one |
+| `view/api.mjs` | the page's two calls to the Sketch API, `getJson` and `postJson` (as JSON); a refusal rejects with its `status` |
 | `view/saver.mjs` | saves only when the drawing changed (an element's version, an image), once the changes rest for 0.7 s; a failed save is tried again with the next change |
 
 ## Endpoints
@@ -72,7 +73,6 @@ Links survive renaming a sketch: its own links move along, links to it from othe
 | `groundwork sketch list` | the sketches' names, one per line |
 | `groundwork sketch show <name>` | one line per element with its id: `rectangle api "API" at 0,0 size 120x60`, `arrow reads "reads": api "API" -> db "Database"`, `text note "Draft" at 0,200`; a label shows on its shape |
 | `groundwork sketch apply <name> '<ops>'` | a JSON array of ops (or on stdin): `add` (rectangle, ellipse, diamond, text, arrow, line), `move`, `update`, `delete`, `mermaid`; the fields are in the header of `ops.mjs` and in the skill. One wrong op: nothing is written, exit 1 |
-
 | `groundwork sketch threads <name>` | every thread: the shape (id and label), open or closed, orphaned when the shape was deleted, each comment with author and time |
 | `groundwork sketch comment <name> <id> "<text>"` | a comment on the shape's thread, starting it; the text may come on stdin; the author is `Claude` unless `--author` names another |
 | `groundwork sketch close \| reopen <name> <id>` | closes a resolved thread, or opens it again |
