@@ -2,5 +2,6 @@
 
 import plan from '../modules/plan/module.mjs'
 import build from '../modules/build/module.mjs'
+import sketch from '../modules/sketch/module.mjs'
 
-export const MODULES = [plan, build]
+export const MODULES = [plan, build, sketch]

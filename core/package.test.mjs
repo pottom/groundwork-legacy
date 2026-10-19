@@ -45,6 +45,8 @@ test('the package holds the core, the modules and their bundled libraries', asyn
     'modules/plan/module.mjs', 'modules/plan/index.html', 'modules/plan/skills/groundwork-prd-maker/SKILL.md',
     'modules/build/module.mjs', 'modules/build/index.html', 'modules/build/ticket-reader.mjs',
     'modules/build/build.css', 'modules/build/page/main.mjs', 'modules/build/page/views/git.mjs', 'modules/build/ui-strings.mjs',
+    'core/vendor/excalidraw/excalidraw.production.min.js', 'core/vendor/excalidraw/excalidraw-assets/Virgil.woff2', 'core/vendor/react/react.production.min.js',
+    'modules/sketch/module.mjs', 'modules/sketch/index.html', 'modules/sketch/view/main.mjs',
   ]) assert.ok(files.includes(f), `${f} is in the package`)
 })
 

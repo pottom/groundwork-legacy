@@ -67,12 +67,26 @@ test('the check finds resources from another host and lets plain links pass', ()
   ]) assert.deepEqual(farResources(ok), [], ok)
 })
 
+// The one known exception, exact and in one file: Excalidraw's template for an embedded tweet
+// (a srcdoc that would load Twitter's script). It runs only when a tweet is embedded, and the
+// Sketch page turns embeds off (modules/sketch/view/board.mjs), so it never runs.
+const KNOWN = {
+  [path.join('core', 'vendor', 'excalidraw', 'excalidraw.production.min.js')]:
+    '<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"><\\/script>',
+}
+
 test('no file served to the browser loads anything from another host', () => {
   const files = browserFiles()
   assert.ok(files.some((f) => f.endsWith(path.join('plan', 'index.html'))))
   assert.ok(files.some((f) => f.endsWith(path.join('build', 'index.html'))))
   for (const f of files) {
-    assert.deepEqual(farResources(fs.readFileSync(f, 'utf8')), [], path.relative(ROOT, f))
+    const rel = path.relative(ROOT, f)
+    let text = fs.readFileSync(f, 'utf8')
+    if (KNOWN[rel]) {
+      assert.equal(text.split(KNOWN[rel]).length, 2, `${rel} has its known exception exactly once`)
+      text = text.replace(KNOWN[rel], '')
+    }
+    assert.deepEqual(farResources(text), [], rel)
   }
 })
 
@@ -83,6 +97,9 @@ test('every bundled dependency is recorded with its version and license', () => 
     ['marked', 'marked', '12.0.2'],
     ['fonts/inter', '@fontsource-variable/inter', '5.3.0'],
     ['fonts/source-serif-4', '@fontsource-variable/source-serif-4', '5.3.1'],
+    ['excalidraw', '@excalidraw/excalidraw', '0.17.6'],
+    ['react', 'react', '18.3.1'],
+    ['react-dom', 'react-dom', '18.3.1'],
   ]) {
     assert.match(readme, new RegExp(`\\|\\s*\`${name.replace(/[/@-]/g, '\\$&')}\`\\s*\\|\\s*${version.replace(/\./g, '\\.')}\\s*\\|`), name)
     assert.ok(fs.readdirSync(path.join(VENDOR_DIR, dir)).some((f) => /^LICENSE/.test(f)), `${dir} has its LICENSE`)

@@ -61,7 +61,10 @@ export function shellPage({ project, version, modules, active, params }) {
     const text = m.tagline?.[DEFAULT_LANG]
     return text ? `<small class="gw-tab-tagline" data-i18n="module.${esc(m.id)}.tagline">${esc(text)}</small>` : ''
   }
-  const tabs = views.map((m) => `<a href="/?module=${esc(encodeURIComponent(m.id))}"${m === current ? ' aria-current="page"' : ''}>${icon(m)}<span class="gw-tab-text"><b class="gw-tab-name">${esc(m.name)}</b>${tagline(m)}</span></a>`)
+  // A tool (manifest `tool: true`, like Sketch) comes after the workflow's modules, behind one separator.
+  const firstTool = views.findIndex((m) => m.tool)
+  const sep = (i) => (i > 0 && i === firstTool ? '<span class="gw-nav-sep" aria-hidden="true"></span>' : '')
+  const tabs = views.map((m, i) => `${sep(i)}<a href="/?module=${esc(encodeURIComponent(m.id))}"${m === current ? ' aria-current="page"' : ''}>${icon(m)}<span class="gw-tab-text"><b class="gw-tab-name">${esc(m.name)}</b>${tagline(m)}</span></a>`)
   const rest = new URLSearchParams(current && current.id === active ? params : undefined)
   rest.delete('module')
   const query = rest.size ? '?' + rest : ''

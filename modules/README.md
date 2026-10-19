@@ -6,6 +6,7 @@ Each folder here is one Groundwork module.
 |---|---|---|
 | [`plan/`](plan/) | Turns a grilling interview with Claude Code into a live mind map and product documents under `docs/product/` | working prototype (Claude skill: groundwork-prd-maker) |
 | [`build/`](build/) | Shows a project's Markdown tickets, specs, ADRs and git branches as a live dashboard | working prototype |
+| [`sketch/`](sketch/) | A drawing board (Excalidraw) whose sketches are standard `.excalidraw` files under `docs/product/sketches/` | first version: one sketch |
 
 ## What a module is
 
@@ -24,6 +25,7 @@ export default {
   id: 'plan', name: 'Plan', version: VERSION,           // the package's (core/version.mjs): one version for all
   tagline: { en: 'Mind map & product docs', hu: '…' },  // optional: the line under its name in the shell's tab
   icon: '<circle cx="12" cy="12" r="3"/>',          // optional: SVG markup on a 24×24 grid, drawn with currentColor strokes (trusted: inserted as is)
+  tool: false,                                           // optional: true for a tool (Sketch), whose tab comes after the workflow's, behind a separator
   view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
   writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
   public: ['GET /api/plan/ids'],                         // the endpoints other modules may read (see below)
