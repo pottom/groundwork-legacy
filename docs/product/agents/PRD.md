@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
-> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 0 kész, 0 részben, 7 hiányzik.
+> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 1 kész, 1 részben, 5 hiányzik.
 
 ## 1. Probléma és cél
 
@@ -26,13 +26,13 @@ A modul listázza a futó és a befejezett agenteket a jegyükkel, a branchükke
 
 Külön nézet mutatja a worktree-ket és brancheket: mennyivel járnak előrébb vagy maradtak le az integrációs ághoz képest, össze vannak-e már fésülve, és eltakaríthatók-e. A figyelmet kérő agentek (engedélyre vár, elakadt, hibával állt le) kiemelve jelennek meg.
 
-- Futó és befejezett agentek: jegy, branch, állapot, időtartam `hiányzik`
+- Futó és befejezett agentek: jegy, branch, állapot, időtartam `részben` — Megvan: munkamenetek és subagentjeik állapottal (fut, kész, hibával állt le), indulással és időtartammal. Hiányzik: jegy és branch. ([modules/agents/view/list.mjs](../../../modules/agents/view/list.mjs))
 - Idővonal agentenként: fájlok, tesztek, commitok, fő lépések `hiányzik`
 - A záró jelentés megjelenítése `hiányzik`
 - Agent ↔ jegy ↔ branch; a Build jegyein látszik a dolgozó agent `hiányzik`
 - Worktree-k és branchek: előnyben, lemaradva, összefésülve, takarítható `hiányzik`
 - Figyelmet kérő agent kiemelése: engedélyre vár, elakadt, hibázott `hiányzik`
-- Élő frissítés `hiányzik`
+- Élő frissítés `kész` ([modules/agents/view/main.mjs](../../../modules/agents/view/main.mjs))
 
 ## 4. Funkcionális követelmények
 

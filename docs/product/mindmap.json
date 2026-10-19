@@ -1814,8 +1814,10 @@
                     "topic": "Futó és befejezett agentek: jegy, branch, állapot, időtartam",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "partial"
+                    },
+                    "note": "Megvan: munkamenetek és subagentjeik állapottal (fut, kész, hibával állt le), indulással és időtartammal. Hiányzik: jegy és branch.",
+                    "hyperLink": "modules/agents/view/list.mjs"
                   },
                   {
                     "id": "f-agents-timeline",
@@ -1862,8 +1864,9 @@
                     "topic": "Élő frissítés",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/agents/view/main.mjs"
                   }
                 ]
               },
@@ -1960,19 +1963,21 @@
                   },
                   {
                     "id": "q-agents-hook-fields",
-                    "topic": "Milyen mezőkkel azonosítják a hookok a subagenteket?",
-                    "note": "Az első jegy dönti el a Claude Code dokumentációja és kipróbálás alapján.",
+                    "topic": "A subagentet az agent_id és az agent_type mező azonosítja",
+                    "note": "Dokumentáció (code.claude.com/docs/en/hooks) és egy valódi futás (Claude Code 2.1.302) alapján: minden hook kap session_id-t; a SubagentStart, a SubagentStop és a subagenten belül futó minden eszközhívás (PreToolUse/PostToolUse) agent_id-t és agent_type-ot is kap, a fő munkameneté nem. A subagentet indító eszköz neve Agent (régebben Task): a PreToolUse a tool_use_id-t és a description-t adja (ez az agent címkéje), a PostToolUse tool_response.agentId-ja köti a hívást az agent_id-hoz. A SubagentStop last_assistant_message mezője a záró jelentés; a naplóba ma nem kerül.",
                     "metadata": {
-                      "status": "todo"
-                    }
+                      "status": "decision"
+                    },
+                    "hyperLink": "modules/agents/hook.mjs"
                   },
                   {
                     "id": "q-agents-hook-speed",
-                    "topic": "Gyors hook: közvetlen node-útvonal vagy a futó szervernek küldött esemény az npx helyett",
-                    "note": "Az npx-es hívás kb. 0,7 s lenne eszközhívásonként.",
+                    "topic": "Gyors hook: a groundwork init a projektbe másolja, és közvetlenül node futtatja",
+                    "note": "A hook egyetlen, csak Node-ot igénylő fájl; az init .claude/hooks/groundwork-agents-hook.mjs néven a projektbe másolja, és node \"$CLAUDE_PROJECT_DIR/.claude/hooks/groundwork-agents-hook.mjs\" parancsként telepíti. Mérve kb. 57 ms hívásonként (Windows, Node 24), az npx kb. 0,3–0,7 s. A PreToolUse csak az Agent eszközre fut (matcher), így egy közönséges eszközhívás egyszer futtatja a hookot. A futó szervernek küldött esemény elvetve: szerver nélkül elveszne.",
                     "metadata": {
-                      "status": "todo"
-                    }
+                      "status": "decision"
+                    },
+                    "hyperLink": "core/init.mjs"
                   },
                   {
                     "id": "x-agents-claude-logs",
@@ -2003,10 +2008,11 @@
                   {
                     "id": "d-agents-store",
                     "topic": "Helyi eseménynapló: .groundwork/agents/events.jsonl, gitignore-ban",
-                    "note": "Csak hozzáírás; régi futások forgatással kerülnek ki.",
+                    "note": "Csak hozzáírás; 2 MB fölött a napló events.1.jsonl-be kerül (a régebbit felülírva), a szerver mindkettőt olvassa.",
                     "metadata": {
                       "status": "decision"
-                    }
+                    },
+                    "hyperLink": "modules/agents/hook.mjs"
                   }
                 ]
               },
@@ -2050,7 +2056,8 @@
                     "topic": "A napló csak összefoglalót tárol: eszköz, fájlút, parancs neve; tartalmat és titkot nem",
                     "metadata": {
                       "status": "decision"
-                    }
+                    },
+                    "hyperLink": "modules/agents/hook.test.mjs"
                   },
                   {
                     "id": "d-agents-writes",
