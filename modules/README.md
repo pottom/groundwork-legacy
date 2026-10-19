@@ -27,4 +27,4 @@ export default {
 }
 ```
 
-Plan follows this contract; Build still runs on its own server until it moves behind the core.
+Plan and Build both follow this contract.

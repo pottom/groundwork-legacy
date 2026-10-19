@@ -6,17 +6,17 @@
 <title>Fejlesztési állapot</title>
 <link rel="icon" href="data:,">
 <!--
-  development-status.html: a self-contained status page for a project whose
-  tickets, specs and decisions live in markdown files.
+  The Build module's dashboard (index.html): a self-contained status page for
+  a project whose tickets, specs and decisions live in markdown files.
 
   No build, no dependencies. Two ways to open it:
-    - run the launcher next to it (node development-status.mjs): a small
-      local read-only server hands the page the markdown files, so it goes
-      live at once, in every browser;
+    - from the Groundwork core server (node core/groundwork.mjs, at /build/):
+      the Build module's read-only endpoints (/api/build/, module.mjs) hand
+      the page the markdown files, so it goes live at once, in every browser;
     - or open this file by double click: it asks once for the project folder
       (read only), which needs a Chromium browser to stay live.
   Either way it re-reads the markdown files every few seconds. Nothing about
-  any particular project is baked in: copy the file (and the launcher) into
+  any particular project is baked in: copy the file into
   another project that keeps the same conventions and it works there.
 
   Conventions it reads (all relative to the chosen folder):
@@ -42,16 +42,18 @@
 
   The Ágak (branches) view draws the git history: every branch and tag, the
   commits in date order, and where each branch was merged. Git is asked by the
-  launcher (read only), so this view needs it; opened by double click, the
+  server (read only), so this view needs it; opened by double click, the
   page cannot run git.
 
-  Version: VERSION below; the launcher has the same constant. Bump both
-  together and add a line here (semver: a new view or field is a minor step,
-  a fix a patch, a change that breaks the launcher pairing a major one).
+  Version: VERSION below; modules/build/module.mjs has the same constant. Bump
+  both together and add a line here (semver: a new view or field is a minor
+  step, a fix a patch, a change that breaks the server pairing a major one).
     1.0.0  2026-10-18  the first numbered version: tickets, areas, dependencies,
                        activity, inconsistencies, documents, and the git branch
                        graph (Ágak); the version is shown in the header, and a
                        page and launcher of different versions say so
+    2.0.0  2026-10-19  served by the Groundwork core server: the endpoints moved
+                       to /api/build/, development-status.mjs is gone
 -->
 <style>
 /* Colours carry the ticket states:
@@ -493,17 +495,17 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; }
 
 // ───────────────────────── Constants ─────────────────────────
 
-// The launcher's server, when the page is loaded from it. The same two values
-// are SERVER_ID and API in development-status.mjs.
+// The Build module's endpoints on the core server, when the page is loaded
+// from it. The same values are in modules/build/module.mjs.
 const SERVER_ID = 'development-status';
-const SERVER_API = '/development-status-api';
+const SERVER_API = '/api/build';
 const SERVER_TIMEOUT_MS = 8000;
-const VERSION = '1.0.0';   // the same in development-status.mjs; the header comment lists the versions
+const VERSION = '2.0.0';   // the same in module.mjs; the header comment lists the versions
 
 const DEFAULT_TRACKER_DIR = '.scratch';
 const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
 // Never descended into while looking for the tracker, nor below an area.
-// The launcher (development-status.mjs) keeps the same two sets out of
+// The server (project-reader.mjs) keeps the same two sets out of
 // its file list: change them together.
 const SKIP_DIRS = new Set(['node_modules', '.git', '.hg', '.svn', 'target', 'dist', 'build', 'out', 'vendor', 'worktrees', '.cache', '.next', '.venv', '__pycache__']);
 const ALWAYS_SKIP = new Set(['node_modules', '.git', '.hg', '.svn']);
@@ -1523,7 +1525,7 @@ function renderVersion() {
   $('ver').textContent = other ? `v${VERSION} · indító ${other}` : `v${VERSION}`;
   $('ver').className = 'ver' + (other ? ' warn' : '');
   $('ver').title = other
-    ? `Az oldal ${VERSION}, az indító (development-status.mjs) ${other}: a két fájl más verzióból való. Másold őket együtt.`
+    ? `Az oldal ${VERSION}, a Build modul szervere (module.mjs) ${other}: a két fájl más verzióból való.`
     : `development-status ${VERSION}`;
 }
 
@@ -1811,10 +1813,10 @@ function branchState(r, g) {
 
 function renderGitView() {
   if (!source || !source.server) {
-    return `<p class="lead">Az ággráfot az indító adja: <code>node development-status.mjs</code>. Mappaválasztással megnyitva a böngésző nem tud gitet futtatni.</p>`;
+    return `<p class="lead">Az ággráfot a Groundwork szervere adja: <code>node core/groundwork.mjs</code>, utána <code>/build/</code>. Mappaválasztással megnyitva a böngésző nem tud gitet futtatni.</p>`;
   }
   if (!source.git) {
-    return `<div class="notice">Az indító (development-status.mjs${source.version ? ' ' + esc(source.version) : ''}) régebbi, mint az oldal (${VERSION}), és nem ad git adatot. Másold mellé az oldallal egyező verziót, és indítsd újra.</div>`;
+    return `<div class="notice">A Build modul szervere${source.version ? ' (' + esc(source.version) + ')' : ''} régebbi, mint az oldal (${VERSION}), és nem ad git adatot. Frissítsd, és indítsd újra.</div>`;
   }
   const g = gitState.data;
   if (!g) {
