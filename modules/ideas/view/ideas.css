@@ -25,10 +25,11 @@ h2, h3, p { margin: 0; }
 .idea { transition: background-color .6s; }
 .idea.is-fresh { background: var(--gw-accent-soft); }
 
-/* moving: a card is picked up by drag and drop; the column under it shows the gradient outline */
+/* moving: a card is picked up by drag and drop; the column or quadrant under it shows the brand's
+   "current" marker, the 1.5 px gradient outline (theme.css; drawn like a .gw-btn that is on) */
 .idea[draggable="true"] { cursor: grab; }
-.column { outline: 1.5px solid transparent; outline-offset: -1.5px; transition: outline-color .15s; }
-.column.is-over { outline-color: var(--gw-accent); }
+.column, .quadrant { border: 1.5px solid transparent; }
+:is(.column, .quadrant).is-over { background: linear-gradient(var(--gw-sunken), var(--gw-sunken)) padding-box, var(--gw-gradient) border-box; }
 .idea { position: relative; }
 .idea__spacer { flex: 1; }
 .idea__move { margin: -4px -6px -4px 0; }
@@ -60,11 +61,19 @@ h2, h3, p { margin: 0; }
 .matrix__axis--impact { grid-column: 1; grid-row: 2; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; }
 .matrix__grid { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--gw-space) * 2); }
 .quadrant, .unestimated { display: flex; flex-direction: column; gap: var(--gw-space); min-width: 0; padding: var(--gw-space); background: var(--gw-sunken); border-radius: var(--gw-radius-lg); }
-.quadrant { min-height: 160px; outline: 1.5px solid transparent; outline-offset: -1.5px; transition: outline-color .15s; }
-.quadrant.is-over { outline-color: var(--gw-accent); }
+.quadrant { min-height: 160px; }
 .quadrant .gw-section-head, .unestimated .gw-section-head { padding: 2px 4px; }
 .quadrant__hint { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); padding: 0 4px; }
-.quadrant--quick-wins { background: var(--gw-accent-soft); box-shadow: inset 0 0 0 1.5px var(--gw-accent); }
+/* the quick wins: tinted, with the gradient outline (the tint over the page, inside the outline) */
+.quadrant--quick-wins {
+  background: linear-gradient(var(--gw-accent-soft), var(--gw-accent-soft)) padding-box,
+    linear-gradient(var(--gw-bg), var(--gw-bg)) padding-box, var(--gw-gradient) border-box;
+}
+.quadrant--quick-wins.is-over {   /* a card over it: the tint twice */
+  background: linear-gradient(var(--gw-accent-soft), var(--gw-accent-soft)) padding-box,
+    linear-gradient(var(--gw-accent-soft), var(--gw-accent-soft)) padding-box,
+    linear-gradient(var(--gw-bg), var(--gw-bg)) padding-box, var(--gw-gradient) border-box;
+}
 .unestimated { grid-column: 2; grid-row: 3; }
 .unestimated .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 

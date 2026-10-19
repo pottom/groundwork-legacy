@@ -172,7 +172,7 @@ function sketchBadges(tpc, names = []) {
   for (const a of have) a.remove()
   for (const name of names) {
     const a = document.createElement('a')
-    a.className = 'mm-sketch'
+    a.className = 'mm-sketch gw-pill'   // the shared pill (feedback.css)
     a.target = '_top'
     a.dataset.sketch = name
     a.href = '/?module=sketch&sketch=' + encodeURIComponent(name)

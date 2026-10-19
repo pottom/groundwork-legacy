@@ -137,12 +137,9 @@ body[data-mode="edit"] .mind-elixir-toolbar.rb { bottom: 70px !important; }
 .map-container me-tpc a.mm-tickets { --ic: var(--gw-accent); --ic-text: var(--gw-accent-text); cursor: pointer; font-family: var(--gw-font-mono); font-weight: 500; }
 .map-container me-tpc a.mm-tickets[data-complete] { --ic: var(--decision); --ic-text: var(--decision-text); }
 .map-container me-tpc a.mm-tickets:hover { background: color-mix(in srgb, var(--ic) 26%, transparent); }
-.map-container me-tpc a.mm-sketch {
-  display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; vertical-align: 1px;
-  font: 500 11px/1.45 var(--gw-font); text-decoration: none; cursor: pointer;
-  color: var(--gw-violet-text); background: color-mix(in srgb, var(--gw-violet) 14%, transparent);
-}
-.map-container me-tpc a.mm-sketch:hover { background: color-mix(in srgb, var(--gw-violet) 26%, transparent); }
+/* the sketches that link to the item: a .gw-pill each (feedback.css), in the node's line */
+.map-container me-tpc a.mm-sketch { margin-left: var(--gw-space); height: auto; padding: 1px var(--gw-space); vertical-align: 1px; text-decoration: none; cursor: pointer; }
+.map-container me-tpc a.mm-sketch:hover { background: color-mix(in srgb, var(--gw-accent) 20%, transparent); }
 .map-container me-root me-tpc a.mm-sketch { color: var(--gw-accent-fg); background: color-mix(in srgb, var(--gw-accent-fg) 20%, transparent); }
 /* components: a type badge after the name */
 .map-container me-tpc[data-component] { font-weight: 700; }
