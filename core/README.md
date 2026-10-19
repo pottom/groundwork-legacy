@@ -8,4 +8,4 @@ It will hold what every module uses:
 - **The shell.** It provides the header, the navigation between modules, and the theme, which follows the operating system's light or dark setting.
 - **Module loading.** It reads each module's descriptor (id, name, version) and mounts the module's endpoints and view.
 
-Until then each module in [`../modules/`](../modules/) runs its own small server. The decisions behind the core are in [`docs/product/mag/TECH.md`](../docs/product/mag/TECH.md) (in Hungarian).
+Until then each module in [`../modules/`](../modules/) runs its own small server. The decisions behind the core are in [`docs/product/core/TECH.md`](../docs/product/core/TECH.md) (in Hungarian).

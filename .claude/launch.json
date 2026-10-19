@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "prd-maker",
+      "name": "groundwork-plan",
       "runtimeExecutable": "node",
       "runtimeArgs": ["modules/plan/plan.mjs", "serve", "--port", "4477"],
       "port": 4477

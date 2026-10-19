@@ -188,7 +188,8 @@
         "id": "c-core",
         "topic": "Mag",
         "metadata": {
-          "component": "software"
+          "component": "software",
+          "dir": "core"
         },
         "children": [
           {
@@ -238,7 +239,7 @@
                 "topic": "Modulszerződés",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Egy modul egy mappa a csomagon belül. Leírja magát (azonosító, név, verzió), a saját `/api/<modul>/` útvonala alatt adja a szerver-végpontjait, és egy nézetet ad a közös keretbe. Hozhat skilleket és hookokat is, ezeket az `init` telepíti. Megnevezi a mappákat, ahová írhat; a Mag csak ezeket engedi.\n\nAz első verzióban minden modul a csomagon belül él, de a szerződés úgy készül, hogy később külső npm-csomag is beépülhessen modulként.",
+                  "prose": "Egy modul egy mappa a csomagon belül. Leírja magát (azonosító, név, verzió), a saját `/api/<module>/` útvonala alatt adja a szerver-végpontjait, és egy nézetet ad a közös keretbe. Hozhat skilleket és hookokat is, ezeket az `init` telepíti. Megnevezi a mappákat, ahová írhat; a Mag csak ezeket engedi.\n\nAz első verzióban minden modul a csomagon belül él, de a szerződés úgy készül, hogy később külső npm-csomag is beépülhessen modulként.",
                   "progress": "done"
                 },
                 "children": [
@@ -273,7 +274,7 @@
                       },
                       {
                         "id": "d-mod-api",
-                        "topic": "Szerver-végpontok a /api/<modul>/ alatt",
+                        "topic": "Szerver-végpontok a /api/<module>/ alatt",
                         "metadata": {
                           "status": "decision"
                         }
@@ -523,7 +524,8 @@
         "topic": "Plan modul",
         "note": "A prd-maker prototípus.",
         "metadata": {
-          "component": "software"
+          "component": "software",
+          "dir": "plan"
         },
         "children": [
           {
@@ -587,9 +589,9 @@
                   },
                   {
                     "id": "f-plan-skill",
-                    "topic": "prd-maker skill + hook",
+                    "topic": "groundwork-prd-maker skill + hook",
                     "note": "A hook élesben még nem futott.",
-                    "hyperLink": ".claude/skills/prd-maker/SKILL.md",
+                    "hyperLink": ".claude/skills/groundwork-prd-maker/SKILL.md",
                     "metadata": {
                       "status": "decision",
                       "impl": "partial"
@@ -716,7 +718,7 @@
                   },
                   {
                     "id": "d-state-dir",
-                    "topic": "Helyi állapot: .groundwork/<modul>/, .gitignore-ban",
+                    "topic": "Helyi állapot: .groundwork/<module>/, .gitignore-ban",
                     "note": "Ma .prd-maker/; az init teszi a .gitignore-ba.",
                     "metadata": {
                       "status": "decision",
@@ -734,7 +736,8 @@
         "topic": "Build modul",
         "note": "Egy korábban kipróbált fejlesztési dashboard-prototípus.",
         "metadata": {
-          "component": "software"
+          "component": "software",
+          "dir": "build"
         },
         "children": [
           {
@@ -874,10 +877,10 @@
               },
               {
                 "id": "t-build-conv",
-                "topic": "Integrációk: mattpocock-konvenciók",
+                "topic": "Integrációk: jegykezelők",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A Build a mattpocock-skillek konvencióit olvassa: a `.scratch/<terület>/issues/` alatti jegyeket, a területek `spec.md` fájljait, a `docs/adr/` döntéseit és a fogalomtárat. Az első verzió csak ezeket a helyi Markdown-jegyeket kezeli; a GitHub- és GitLab-issue-k később jöhetnek.",
+                  "prose": "A Build a mattpocock-skillek konvencióit olvassa: a `.scratch/<terület>/issues/` alatti helyi jegyeket, a területek `spec.md` fájljait, a `docs/adr/` döntéseit és a fogalomtárat. Az első verzió a GitHub-issue-kat is jegyként olvassa, az állapotukkal, a milestone-jukkal és a „Blocked by” kapcsolataikkal együtt, mert a Groundwork saját jegyei is a GitHubon vannak. A GitHub elérése a szerveren át megy, token nem kerül az oldalba. A GitLab-issue-k később jöhetnek.",
                   "progress": "done"
                 },
                 "children": [
@@ -891,14 +894,15 @@
                   },
                   {
                     "id": "d-local-tickets",
-                    "topic": "v1: csak helyi Markdown-jegyek (.scratch/)",
+                    "topic": "v1: helyi Markdown-jegyek (.scratch/) és GitHub-issue-k",
                     "metadata": {
                       "status": "decision"
-                    }
+                    },
+                    "note": "A Groundwork saját jegyei a GitHubon vannak (pottom/groundwork)."
                   },
                   {
                     "id": "p-gh-issues",
-                    "topic": "GitHub és GitLab issue-k",
+                    "topic": "GitLab-issue-k",
                     "metadata": {
                       "status": "parked"
                     }

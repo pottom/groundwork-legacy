@@ -1,4 +1,4 @@
-# Plan modul (prototípus: prd-maker)
+# Plan modul (Claude skill: groundwork-prd-maker)
 
 Egy grilling-interjúból termékdokumentációt készít, élőben. Szoftvertermékhez PRD-t és műszaki tervet ír. Rendszerhez vagy szolgáltatáshoz (vagy a kettő keverékéhez) áttekintést, szolgáltatásleírást, folyamatokat, üzemeltetési és bevezetési tervet is.
 
@@ -46,7 +46,7 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 - **Kézzel írt fájlt nem ír felül.**
 - **Nem ütközik a mattpocock skillekkel:**
   - a `GLOSSARY*.md`, a `docs/adr/`, a `docs/agents/`, a `.scratch/` és a `.out-of-scope/` az ő helyük;
-  - a prd-maker ezeket csak olvassa és linkeli.
+  - a Plan modul ezeket csak olvassa és linkeli.
 - **A te szerkesztéseid elsőbbséget élveznek.** Ha egy bekezdést átírsz, az a tiéd lesz, és Claude nem írja felül.
 
 ## Kezelés
@@ -72,9 +72,9 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
 | `docs/product/**/*.md` | a generált dokumentumok (a cél-projektben) |
 | `.prd-maker/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések, a generált fájlok listája |
-| `skills/prd-maker/SKILL.md` | a munkamenet Claude-nak (a repó `.claude/skills/` alatti példánya ennek a másolata) |
+| `skills/groundwork-prd-maker/SKILL.md` | a munkamenet Claude-nak (a repó `.claude/skills/` alatti példánya ennek a másolata) |
 | `.claude/settings.json` | `UserPromptSubmit` hook: továbbítja a kézi szerkesztéseket, és grill promptnál emlékeztet a skillre |
-| `.claude/launch.json` | `prd-maker` preview szerver (port 4477) |
+| `.claude/launch.json` | `groundwork-plan` preview szerver (port 4477) |
 
 ## Kézi használat
 

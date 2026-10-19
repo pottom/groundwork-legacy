@@ -4,12 +4,12 @@ Each folder here is one Groundwork module.
 
 | Module | What it does | State |
 |---|---|---|
-| [`plan/`](plan/) | Turns a grilling interview with Claude Code into a live mind map and product documents under `docs/product/` | working prototype (prd-maker) |
+| [`plan/`](plan/) | Turns a grilling interview with Claude Code into a live mind map and product documents under `docs/product/` | working prototype (Claude skill: groundwork-prd-maker) |
 | [`build/`](build/) | Shows a project's Markdown tickets, specs, ADRs and git branches as a live dashboard | working prototype |
 
 ## What a module is
 
-From the plan ([`docs/product/mag/TECH.md`](../docs/product/mag/TECH.md), Modulszerződés), a module is one folder with:
+From the plan ([`docs/product/core/TECH.md`](../docs/product/core/TECH.md), Modulszerződés), a module is one folder with:
 
 1. a **descriptor**: id, name, version;
 2. **server endpoints** under its own `/api/<module>/` path;

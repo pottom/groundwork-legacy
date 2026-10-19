@@ -20,7 +20,7 @@ Groundwork takes a project from idea to delivery, in one portable package that w
 groundwork/
 ├── core/               the shared server and shell (to be built: roadmap step 1)
 ├── modules/
-│   ├── plan/           Plan module: mind map editor, document generator, Claude skill (prototype: prd-maker)
+│   ├── plan/           Plan module: mind map editor, document generator, Claude skill (groundwork-prd-maker)
 │   └── build/          Build module: development dashboard over tickets and git (prototype)
 ├── docs/product/       Groundwork's own plan, written with the Plan module
 └── .claude/            Claude Code setup for working on this repo: the installed skill, the hook, preview servers

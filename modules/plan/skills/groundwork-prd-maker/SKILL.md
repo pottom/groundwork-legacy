@@ -1,5 +1,5 @@
 ---
-name: prd-maker
+name: groundwork-prd-maker
 description: Turns a grilling interview into product documentation: a PRD, a technical design, and for systems and services also overview, service, process, operations and rollout documents. While you talk, it draws a live mind map and writes the documents under docs/product/, all visible and editable in the browser pane. Works for new and for half-finished projects. Load it alongside grilling, grill-me or grill-with-docs, and whenever the user wants a PRD, a spec of a system or service, or mentions the mind map.
 ---
 
@@ -18,8 +18,8 @@ root                          the system or product
 
 - **A plain software product** needs no components: two documents under the root, `prd` and `tech`.
 - **A system or service, or a mix**, gets an overview document (`system`) and one component per part, each with the documents its type needs.
-- **Files.** Each document is written to `docs/product/<component>/<FILE>.md`, or to `docs/product/<FILE>.md` when it belongs to the whole. The files are regenerated on every change. Never edit them by hand, and never overwrite a file prd-maker did not generate.
-- **Other skills' places.** These folders belong to other skills: `GLOSSARY.md`, `GLOSSARY-MAP.md`, `docs/adr/`, `docs/agents/`, `.scratch/` and `.out-of-scope/`. prd-maker never writes into them. It reads them and links to them.
+- **Files.** Each document is written to `docs/product/<component>/<FILE>.md`, or to `docs/product/<FILE>.md` when it belongs to the whole. The component folder is the component's `dir`; give every component a short English `dir` (`core`, `plan`, `billing`) so the folders match the code whatever language the map is in. Without `dir` the folder comes from the component's name. The files are regenerated on every change. Never edit them by hand, and never overwrite a file groundwork-prd-maker did not generate.
+- **Other skills' places.** These folders belong to other skills: `GLOSSARY.md`, `GLOSSARY-MAP.md`, `docs/adr/`, `docs/agents/`, `.scratch/` and `.out-of-scope/`. groundwork-prd-maker never writes into them. It reads them and links to them.
 
 ### Document kinds and their starting sections
 
@@ -69,7 +69,7 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
 
   ```bash
   node modules/plan/plan.mjs apply <<'EOF'
-  [{"op":"add","id":"c-app","parent":"root","topic":"Mobilapp","component":"software"},
+  [{"op":"add","id":"c-app","parent":"root","topic":"Mobilapp","component":"software","dir":"app"},
    {"op":"add","id":"doc-app-prd","parent":"c-app","topic":"Termék","doc":"prd"},
    {"op":"add","id":"t-app-users","parent":"doc-app-prd","topic":"Felhasználók","status":"topic"},
    {"op":"set","id":"t-app-users","prose":"…the section text, in Markdown…"}]
@@ -77,7 +77,7 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
   ```
 
   Ops:
-  - `{"op":"add","id":"…","parent":"…","topic":"…","status":"…","note":"…","link":"…","impl":"…","component":"…","doc":"…","file":"…"}`
+  - `{"op":"add","id":"…","parent":"…","topic":"…","status":"…","note":"…","link":"…","impl":"…","component":"…","dir":"…","doc":"…","file":"…"}`
   - `{"op":"set","id":"…", …the same fields…, "prose":"…","progress":"done"}`
     - `prose` and `progress` are for sections only.
     - Set a field to `""` to clear it.
@@ -99,7 +99,7 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
 
 ## Session flow
 
-1. **Start.** If `docs/product/mindmap.json` is missing, run `init`. Start the editor with `preview_start` (configuration `prd-maker`, from `.claude/launch.json`).
+1. **Start.** If `docs/product/mindmap.json` is missing, run `init`. Start the editor with `preview_start` (configuration `groundwork-plan`, from `.claude/launch.json`).
 2. **Existing project?** If there is already code or documentation, read it before asking anything. Dispatch a sub-agent for a thorough analysis:
    - the product: README, specs, glossary, docs;
    - every ADR in `docs/adr/`, with its state;
@@ -116,7 +116,7 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
    1. Update the map items.
    2. Rewrite the `prose` of every section the answers touched. Write it as the section reads **now**: complete, polished text, not a log of the conversation. The prose gives the context, the reasoning and the scenarios. The list under it holds the atomic decisions, so do not repeat them one by one. Use Markdown, in the language of the conversation, typically one to three short paragraphs.
    3. Set `progress: "done"` on a section once your design tree has nothing left open in it.
-6. **ADRs and glossary (grill-with-docs).** domain-modeling writes ADRs to `docs/adr/` and terms to `GLOSSARY.md`. prd-maker does not write them itself. When an ADR appears, add it to the Döntésnapló and set `link` on the matching decision. The glossary is shown automatically in the PRD and the overview.
+6. **ADRs and glossary (grill-with-docs).** domain-modeling writes ADRs to `docs/adr/` and terms to `GLOSSARY.md`. groundwork-prd-maker does not write them itself. When an ADR appears, add it to the Döntésnapló and set `link` on the matching decision. The glossary is shown automatically in the PRD and the overview.
 7. **Finish.** When the frontier is empty, make a final pass:
    - Reread every section's prose so each document reads as one coherent whole, and the documents agree with each other.
    - Mark every section `done`.

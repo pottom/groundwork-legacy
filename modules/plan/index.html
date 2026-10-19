@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>prd-maker</title>
+<title>Groundwork Plan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
@@ -394,7 +394,7 @@
 </head>
 <body>
 <div id="map"></div>
-<div id="title" class="glass"><span id="name">prd-maker</span><span id="sync"><i></i><b>betöltés…</b></span>
+<div id="title" class="glass"><span id="name">Plan</span><span id="sync"><i></i><b>betöltés…</b></span>
   <select id="focus" class="picker" title="Mit mutasson a térkép"></select>
   <span id="views"><button data-v="map">Térkép</button><button data-v="split">Mindkettő</button><button data-v="prd">Dokumentum</button></span>
   <button id="mode" type="button"></button></div>
@@ -604,7 +604,7 @@ function setMode(m) {
   document.body.dataset.mode = m
   modeBtn.innerHTML = m === 'edit' ? `${PEN}Szerkesztés` : `${LOCK}Nézet`
   modeBtn.title = m === 'edit' ? 'Szerkesztés: kattints a zároláshoz' : 'Csak nézet: kattints a szerkesztéshez'
-  try { localStorage.setItem('prd-maker:mode', m) } catch {}
+  try { localStorage.setItem('groundwork-plan:mode', m) } catch {}
   if (mind) {
     if (m === 'edit') mind.enableEdit(); else { mind.disableEdit(); document.getElementById('input-box')?.blur() }
   }
@@ -613,14 +613,14 @@ modeBtn.onclick = () => setMode(document.body.dataset.mode === 'edit' ? 'view' :
 const isEditMode = () => document.body.dataset.mode === 'edit'
 {
   let saved = null
-  try { saved = localStorage.getItem('prd-maker:mode') } catch {}
+  try { saved = localStorage.getItem('groundwork-plan:mode') } catch {}
   setMode(saved || 'view')
 }
 
 // ---- focus: the whole map, one component, or one document ----
 // Uses Mind Elixir's focus mode, in step with the document panel.
 let currentFocus = 'all'
-try { currentFocus = localStorage.getItem('prd-maker:focus') || 'all' } catch {}
+try { currentFocus = localStorage.getItem('groundwork-plan:focus') || 'all' } catch {}
 const focusSel = document.getElementById('focus')
 
 const findNode = (id) => { const f = (n) => n.id === id ? n : (n.children || []).map(f).find(Boolean); return f(fullTree()) }
@@ -662,7 +662,7 @@ function applyFocus({ keepView = true } = {}) {
 // focusing a document shows it in the panel; focusing a component shows its first document
 function setFocus(id) {
   currentFocus = id
-  try { localStorage.setItem('prd-maker:focus', id) } catch {}
+  try { localStorage.setItem('groundwork-plan:focus', id) } catch {}
   const data = { nodeData: fullTree() }
   const docs = listDocs(data)
   const asDoc = docs.find((d) => d.id === id)
@@ -693,7 +693,7 @@ function setView(v, { fit = true } = {}) {
   for (const b of document.querySelectorAll('#views button')) b.classList.toggle('on', b.dataset.v === v)
   const toggle = document.getElementById('prd-toggle')
   if (toggle) toggle.title = v === 'split' ? 'PRD becsukása' : 'PRD megnyitása'
-  try { localStorage.setItem('prd-maker:view', v) } catch {}
+  try { localStorage.setItem('groundwork-plan:view', v) } catch {}
   if (fit && mind && v !== 'prd') requestAnimationFrame(() => mind.scaleFit())
 }
 for (const b of document.querySelectorAll('#views button')) b.onclick = () => setView(b.dataset.v)
@@ -701,7 +701,7 @@ const prdToggle = document.getElementById('prd-toggle')
 prdToggle.onclick = () => setView(document.body.dataset.view === 'split' ? 'map' : 'split')
 {
   let saved = null
-  try { saved = localStorage.getItem('prd-maker:view') } catch {}
+  try { saved = localStorage.getItem('groundwork-plan:view') } catch {}
   setView(saved || (innerWidth >= 1100 ? 'split' : 'map'), { fit: false })
 }
 
