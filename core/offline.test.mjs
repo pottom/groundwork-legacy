@@ -9,7 +9,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MODULES } from './modules.mjs'
-import { VENDOR_DIR } from './server.mjs'
+import { SHELL_DIR, VENDOR_DIR } from './server.mjs'
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url))
 
@@ -38,6 +38,7 @@ function browserFiles() {
   for (const m of MODULES) for (const f of m.view?.files ?? []) files.add(path.join(m.view.dir, f))
   for (const f of filesIn(path.join(ROOT, 'modules'), ['.html'])) files.add(f)
   for (const f of filesIn(VENDOR_DIR, ['.css', '.js', '.mjs', '.html'])) files.add(f)
+  for (const f of filesIn(SHELL_DIR, ['.css', '.mjs'])) files.add(f)
   return [...files]
 }
 
