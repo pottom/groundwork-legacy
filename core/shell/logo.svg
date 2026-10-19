@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1248 1248" role="img" aria-label="Groundwork – blue 3D G logo with code editor">
+  <defs>
+    <radialGradient id="back" cx="0.43" cy="0.37" r="0.87">
+      <stop offset="0" stop-color="#09243a"/>
+      <stop offset="0.46" stop-color="#0b1b2b"/>
+      <stop offset="0.77" stop-color="#0a1421"/>
+      <stop offset="1" stop-color="#060b14"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="50%" cy="48%" r="50%">
+      <stop stop-color="#0c5e95" stop-opacity=".48"/>
+      <stop offset=".65" stop-color="#0c3252" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#091626" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="top" x1=".06" y1=".88" x2=".99" y2=".13" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#10b8fb"/>
+      <stop offset=".28" stop-color="#1bcdf8"/>
+      <stop offset=".56" stop-color="#2bedeb"/>
+      <stop offset=".82" stop-color="#35f8de"/>
+      <stop offset="1" stop-color="#51ffcf"/>
+    </linearGradient>
+    <linearGradient id="leftWall" x1=".13" y1="0" x2=".91" y2="1">
+      <stop offset="0" stop-color="#159df5"/>
+      <stop offset=".52" stop-color="#1389f5"/>
+      <stop offset="1" stop-color="#0565f4"/>
+    </linearGradient>
+    <linearGradient id="bottomFace" x1=".13" y1=".02" x2=".79" y2=".98">
+      <stop stop-color="#0b89fb"/>
+      <stop offset=".52" stop-color="#076afa"/>
+      <stop offset=".88" stop-color="#1750f4"/>
+      <stop offset="1" stop-color="#1760f4"/>
+    </linearGradient>
+    <linearGradient id="rightWall" x1=".79" y1="0" x2=".19" y2="1">
+      <stop stop-color="#0bd7c1"/>
+      <stop offset=".34" stop-color="#00b9d5"/>
+      <stop offset=".78" stop-color="#008ee7"/>
+      <stop offset="1" stop-color="#0967d8"/>
+    </linearGradient>
+    <linearGradient id="barTop" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#2bc8fc"/>
+      <stop offset=".47" stop-color="#40e8ec"/>
+      <stop offset="1" stop-color="#50ffdf"/>
+    </linearGradient>
+    <linearGradient id="barSide" x1="0" y1=".8" x2="1" y2="0">
+      <stop stop-color="#078df6"/>
+      <stop offset="1" stop-color="#22ceee"/>
+    </linearGradient>
+    <linearGradient id="topEdge" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#08d0e8"/>
+      <stop offset="1" stop-color="#03e8b8"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#14bffc"/>
+      <stop offset="1" stop-color="#2be0ee"/>
+    </linearGradient>
+    <linearGradient id="codeBody" x1="0" y1="0" x2="1" y2=".8">
+      <stop stop-color="#0f263c"/>
+      <stop offset="1" stop-color="#0a1524"/>
+    </linearGradient>
+    <linearGradient id="codeHeader" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#203a56"/>
+      <stop offset="1" stop-color="#101f31"/>
+    </linearGradient>
+    <linearGradient id="blueCode" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#159afa"/>
+      <stop offset="1" stop-color="#078af8"/>
+    </linearGradient>
+    <linearGradient id="greenCode" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#0cf1cc"/>
+      <stop offset="1" stop-color="#15dcb5"/>
+    </linearGradient>
+    <linearGradient id="purpleCode" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#6953f8"/>
+      <stop offset="1" stop-color="#9848fe"/>
+    </linearGradient>
+    <linearGradient id="mutedCode" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#344f6d"/>
+      <stop offset="1" stop-color="#29415f"/>
+    </linearGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="190%">
+      <feGaussianBlur stdDeviation="30"/>
+    </filter>
+    <filter id="editorShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="17"/>
+    </filter>
+    <clipPath id="squareClip"><rect x="18" y="18" width="1212" height="1212" rx="228"/></clipPath>
+    <clipPath id="editorClip"><path d="M398 446 Q398 417 421 414 L812 380 Q836 377 842 395 L842 706 Q839 729 813 736 L436 810 Q398 817 398 781 Z"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#squareClip)">
+    <rect x="18" y="18" width="1212" height="1212" fill="url(#back)"/>
+    <ellipse cx="630" cy="594" rx="550" ry="510" fill="url(#halo)"/>
+    <!-- soft grounded shadow -->
+    <path d="M220 362 L600 144 L1020 354 L1065 914 L726 1121 L204 833 Z" fill="#020916" opacity=".67" filter="url(#shadow)" transform="translate(0 25)"/>
+
+    <!-- small right extrusion below the overhanging top edge -->
+    <path d="M899 469 L996 356 Q1008 348 1008 361 L1008 409 Q1008 423 994 433 L917 479 Q904 487 899 479 Z" fill="url(#topEdge)"/>
+
+    <!-- inset code editor, visible through the opening of the G -->
+    <path d="M397 446 Q397 417 423 414 L813 380 Q840 376 841 403 L842 708 Q842 735 813 742 L433 806 Q398 812 397 783 Z" fill="#020810" opacity=".66" filter="url(#editorShadow)" transform="translate(0 9)"/>
+    <path d="M398 446 Q398 417 421 414 L812 380 Q836 377 842 395 L842 706 Q839 729 813 736 L436 810 Q398 817 398 781 Z" fill="url(#codeBody)"/>
+    <g clip-path="url(#editorClip)">
+      <path d="M394 426 L847 373 L846 456 L400 506 Z" fill="url(#codeHeader)"/>
+      <path d="M420 491 L848 447 L848 770 L413 831 L413 518 Q414 497 420 491 Z" fill="#081524" opacity=".65"/>
+      <circle cx="449" cy="448" r="13.6" fill="#ff665d"/>
+      <circle cx="493" cy="443" r="13.4" fill="#ffda59"/>
+      <circle cx="536" cy="437" r="13.6" fill="#11deb0"/>
+      <!-- syntax-colored code strokes -->
+      <path d="M451 530 L615 506" fill="none" stroke="url(#blueCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M451 583 L523 572" fill="none" stroke="url(#greenCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M567 565 L754 538" fill="none" stroke="url(#mutedCode)" stroke-width="27" stroke-linecap="round"/>
+      <path d="M451 635 L599 613" fill="none" stroke="url(#mutedCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M451 677 L552 662" fill="none" stroke="url(#mutedCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M451 728 L541 714" fill="none" stroke="url(#purpleCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M455 779 L483 773" fill="none" stroke="#223b57" stroke-width="26" stroke-linecap="round" opacity=".57"/>
+      <path d="M524 768 L614 752" fill="none" stroke="#213b58" stroke-width="26" stroke-linecap="round" opacity=".50"/>
+    </g>
+
+    <!-- main top upper-facing surface of geometric G -->
+    <path d="M251 325 L601 143 Q621 132 637 141 L993 331 Q1020 346 997 368 L918 475 Q905 488 885 476 L596 313 Q584 305 574 311 L381 416 Q367 424 367 442 L235 356 Q227 341 251 325 Z" fill="url(#top)"/>
+
+    <!-- left vertical face -->
+    <path d="M235 352 L367 419 L368 731 Q369 738 380 745 L236 827 Q231 817 231 805 L231 363 Q231 357 235 352 Z" fill="url(#leftWall)"/>
+
+    <!-- bottom left/front face, forms the folded-down base of the G -->
+    <path d="M234 812 L368 733 L687 927 Q708 939 708 957 L708 1075 Q709 1114 675 1109 Q665 1108 650 1098 L247 837 Q232 826 234 812 Z" fill="url(#bottomFace)"/>
+    <path d="M368 732 L693 928 Q703 933 708 944 L708 953 Q704 941 690 933 L368 739 Z" fill="#26c6ff" opacity=".84"/>
+
+    <!-- inner rising bevel on the right, below terminal arm -->
+    <path d="M702 930 L888 826 Q899 819 899 805 L900 763 L900 835 Q900 841 888 849 L707 951 Z" fill="url(#rim)"/>
+
+    <!-- right main outer vertical face -->
+    <path d="M722 673 L1041 623 Q1056 624 1056 643 L1056 889 Q1057 910 1037 923 L724 1099 Q709 1110 707 1081 L707 956 Q707 942 723 930 L886 837 Q899 829 899 814 L899 764 L736 792 Q722 795 716 787 Z" fill="url(#rightWall)"/>
+
+    <!-- cap of the inward protruding bar -->
+    <path d="M641 616 L946 571 Q956 568 969 575 L1041 617 Q1050 623 1054 627 L730 677 Q724 678 717 675 L637 634 Q623 625 641 616 Z" fill="url(#barTop)"/>
+    <!-- front/left extruded face of the inward bar -->
+    <path d="M632 624 L724 676 L724 782 Q725 795 711 794 Q704 792 697 788 L642 754 Q629 746 629 733 L629 640 Q629 630 632 624 Z" fill="url(#barSide)"/>
+    <!-- subtle bright ridge where bar meets right face -->
+    <path d="M723 677 L1053 626 Q1055 628 1056 637 L724 689 Z" fill="#59fbef" opacity=".18"/>
+  </g>
+</svg>

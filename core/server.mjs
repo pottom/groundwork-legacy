@@ -4,7 +4,7 @@
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
 //   GET  /api/events           live updates: what changed, as Server-Sent Events (events.mjs)
 //   *    /api/<module>/...     the module's endpoints
-//   GET  /shell/...            the shared look (theme.css with controls.css and feedback.css, shell.css, the light/dark switch theme.js), the UI translation (i18n.mjs, strings.mjs), the live relay (live.mjs) and the kept module frames (frames.mjs)
+//   GET  /shell/...            the shared look (theme.css with controls.css and feedback.css, shell.css, the light/dark switch theme.js), the logo and favicon (logo.svg), the UI translation (i18n.mjs, strings.mjs), the live relay (live.mjs) and the kept module frames (frames.mjs)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
 //   GET  /<module>/...         the module's view (only the files its manifest lists)
 //
@@ -57,7 +57,7 @@ export function isLocalHost(header) {
 export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
 export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
 // The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
-const SHELL_BROWSER_FILES = new Set(['theme.css', 'theme.js', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs', 'frames.mjs'])
+const SHELL_BROWSER_FILES = new Set(['theme.css', 'theme.js', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs', 'frames.mjs', 'logo.svg'])
 
 // The file under `dir` that the URL path `rest` (still percent-encoded) names, or null when it
 // leaves the folder, names a dot file, or has a type the server does not serve (README, LICENSE).
