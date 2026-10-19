@@ -364,3 +364,11 @@ test('Plan\'s counts read the same ticket files as the Build page: a ticket the 
     assert.deepEqual(items['d-trace'].tickets.map((t) => t.path).sort(), ['.scratch/core/issues/01-first.md', '.scratch/web/ui/issues/01-nested.md']);
   } finally { await srv.close(); }
 });
+
+test('the view follows the shell\'s one stream (subscribe from /shell/live.mjs) and asks Plan only for the map ids', () => {
+  assert.doesNotMatch(PAGE, /new EventSource/);
+  assert.match(PAGE, /import\('\/shell\/live\.mjs'\)/);
+  assert.match(PAGE, /subscribe\(\{/);
+  assert.match(PAGE, /'\/api\/plan\/ids'/);
+  assert.doesNotMatch(PAGE, /'\/api\/plan\/map/);
+});

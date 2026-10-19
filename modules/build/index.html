@@ -5,98 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-i18n="page.title">Development status</title>
 <link rel="icon" href="data:,">
-<!--
-  The Build module's dashboard (index.html): a self-contained status page for
-  a project whose tickets, specs and decisions live in markdown files.
-
-  No build, no dependencies. Two ways to open it:
-    - from the Groundwork core server (npx @pottom/groundwork, at /build/):
-      the Build module's read-only endpoints (/api/build/, module.mjs) hand
-      the page the markdown files, so it goes live at once, in every browser;
-    - or open this file by double click: it asks once for the project folder
-      (read only), which needs a Chromium browser to stay live.
-  Either way it re-reads the markdown files every few seconds. Nothing about
-  any particular project is baked in: copy the file into
-  another project that keeps the same conventions and it works there.
-
-  Conventions it reads (all relative to the chosen folder):
-    <tracker>/<area>/issues/<number>-<slug>.md   one ticket per file
-    <tracker>/<area>/spec.md                     the area's spec
-    <tracker>/<area>/**/*.md                     other documents
-    docs/adr/*.md                                decision records
-    README.md                                    the project's name (first heading)
-    GLOSSARY.md (or the older CONTEXT.md), GLOSSARY-MAP.md
-                                                 the domain glossary, listed under Documents
-  <tracker> is ".scratch" by default (DEFAULT_TRACKER_DIR in ticket-reader.js); without it,
-  the first folder whose subfolders hold "issues/" folders.
-
-  A ticket's fields are read near the top of the file, in any of these forms:
-    **Status:** ready-for-agent        Status: ready-for-agent      - **Status:** …
-  (the local format of Matt Pocock's /to-tickets skill puts **Blocked by:**
-  before **Status:**; the order does not matter). "Blocked by" may also be a
-  "## Blocked by" heading with a list under it (the issue template's form),
-  and it may name tickets by number ("01", "#12", "area 3"), by file name
-  ("01-some-slug") or by title; "None (can start immediately)" means none.
-  Comments go under "## Comments"; a heading with a date (### 2026-10-14 …)
-  is one comment.
-
-  Reading the tickets is ticket-reader.js beside this page (a classic script:
-  GroundworkTickets.readTickets(source) → the model every view draws). On the
-  core server the page also gets the project's GitHub issues (/api/build/issues;
-  the server asks GitHub, no token reaches the page): each is a ticket with its
-  state, labels, milestone (its area) and "Blocked by" links.
-
-  The Branches view draws the git history: every branch and tag, the
-  commits in date order, and where each branch was merged. Git is asked by the
-  server (read only), so this view needs it; opened by double click, the
-  page cannot run git.
-
-  Version: since the npm package, Build has no version of its own: it ships
-  with Groundwork and carries the package's (package.json, core/version.mjs),
-  which the page shows from /api/build/hello. The history before that:
-    1.0.0  2026-10-18  the first numbered version: tickets, areas, dependencies,
-                       activity, inconsistencies, documents, and the git branch
-                       graph; the version is shown in the header, and a
-                       page and launcher of different versions say so
-    2.0.0  2026-10-19  served by the Groundwork core server: the endpoints moved
-                       to /api/build/, development-status.mjs is gone
-    2.1.0  2026-10-19  the shared look: colours and fonts from the shell's theme
-                       (/shell/theme.css, with a fallback when opened alone);
-                       light or dark follows the system, the switch is gone;
-                       inside the shell the bar drops the project name
-    2.2.0  2026-10-19  English UI with a Hungarian translation (the shell's
-                       i18n.mjs, inline below, kept equal by ui-strings.test.mjs);
-                       it follows the shell's language, and alone it has its own
-                       language picker
-    2.3.0  2026-10-19  GitHub issues as tickets (/api/build/issues); reading the
-                       tickets moved into ticket-reader.js
-    2.4.0  2026-10-19  a ticket's "**PRD:**" line shows as links that open Plan on
-                       those map nodes (Plan's deep link /?module=plan&node=<id>)
-    2.5.0  2026-10-19  checks: a ticket without a PRD line, or naming an id that is
-                       not on Plan's map (docs/product/mindmap.json)
-    2.6.0  2026-10-19  from the server the page follows the core's live updates
-                       (Server-Sent Events, /api/events) instead of polling;
-                       ?prd=<id> shows only the tickets of that PRD item (Plan
-                       links here); /api/build/prd counts them for Plan
-    (Groundwork 0.1.0, 2026-10-19: the last own version, 2.6.0, is followed by
-    the package's; the header shows it, and the page/launcher check is gone)
--->
+<!-- The Build module's dashboard: where the work stands, read from the project's Markdown tickets,
+     specs and ADRs, its GitHub issues and its git history. What it reads, how it opens without the
+     server and its history: README.md beside this file. -->
 <link rel="stylesheet" href="/shell/theme.css">
-<script>try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }</script>
+<script>
+// Inside the shell (an iframe of /) the shell's header shows the project, the live state and the
+// version. Opened by double click (file://) there is no /shell/: the theme comes from the package's
+// own copy beside this folder, and the :where(:root) values below stand in for its tokens.
+try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }
+if (location.protocol === 'file:') document.write('<link rel="stylesheet" href="../../core/shell/theme.css">');
+</script>
 <style>
-/* Colours carry the ticket states:
-   ready-for-agent = blue, waiting for a human = orange,
-   needs-…-test = purple, done = green. */
-/* The shared look comes from the shell's theme (/shell/theme.css, linked above): every
-   colour, font and radius the shell and the other modules share is a --gw-* variable.
-   Light or dark follows the operating system.
+/* The look is the shell's design system (/shell/theme.css): the --gw-* tokens and the .gw-*
+   components (badge, tag, dot, buttons, field, card, section header, tabs, progress, empty state,
+   callout, toast). This sheet only lays out Build's own views with them.
 
-   Opened by double click there is no server, so no theme: the :where(:root) blocks
-   below repeat the theme's values as a fallback. :where() has no specificity, so
-   when theme.css is there its :root wins. Keep them equal to core/shell/theme.css
-   (module.test.mjs checks it). */
+   Opened by double click there may be no theme at all: the :where(:root) blocks repeat its tokens
+   as a fallback. :where() has no specificity, so when theme.css is there its :root wins. Keep them
+   equal to core/shell/theme.css (module.test.mjs checks it). */
 :where(:root) {
   color-scheme: light dark;
+
   --gw-bg: #fbfaf7;
   --gw-surface: #ffffff;
   --gw-sunken: #f3f1ec;
@@ -106,15 +36,50 @@
   --gw-line: #e4e0d7;
   --gw-line-strong: #cfcac0;
   --gw-accent: #2f5bd3;
+  --gw-accent-2: #8b5cf6;
   --gw-accent-fg: #ffffff;
   --gw-focus: #2f5bd3;
   --gw-ok: #1f8a4c;
+  --gw-warn: #b45309;
   --gw-bad: #c0392b;
+  --gw-info: #0284c7;
+  --gw-violet: #8b5cf6;
   --gw-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
+  --gw-shadow-lg: 0 2px 6px rgb(0 0 0 / .06), 0 12px 32px rgb(0 0 0 / .10);
+
+  --gw-ok-text: #17703d;
+  --gw-warn-text: #9a4a08;
+  --gw-bad-text: #a93226;
+  --gw-info-text: #075a8c;
+  --gw-violet-text: #6d3fd8;
+  --gw-accent-text: #2a52c4;
+
+  --gw-ok-soft: color-mix(in srgb, var(--gw-ok) 12%, transparent);
+  --gw-warn-soft: color-mix(in srgb, var(--gw-warn) 12%, transparent);
+  --gw-bad-soft: color-mix(in srgb, var(--gw-bad) 12%, transparent);
+  --gw-info-soft: color-mix(in srgb, var(--gw-info) 12%, transparent);
+  --gw-violet-soft: color-mix(in srgb, var(--gw-violet) 12%, transparent);
+  --gw-accent-soft: color-mix(in srgb, var(--gw-accent) 12%, transparent);
+
+  --gw-gradient: linear-gradient(90deg, var(--gw-accent), var(--gw-accent-2));
+  --gw-gradient-fill: linear-gradient(135deg, #2f5bd3, #7547e6);
+
   --gw-font: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --gw-font-serif: 'Source Serif 4', Georgia, serif;
   --gw-font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --gw-text-xs: 11.5px/1.4;
+  --gw-text: 15px/1.5;
+  --gw-text-small: 13px/1.4;
+  --gw-title: 650 19px/1.3;
+  --gw-display: 680 28px/1.1;
+  --gw-radius-sm: 6px;
   --gw-radius: 10px;
+  --gw-radius-lg: 14px;
+  --gw-radius-pill: 999px;
+  --gw-space: 8px;
+  --gw-header-height: 48px;
 }
+
 @media (prefers-color-scheme: dark) {
   :where(:root) {
     --gw-bg: #15161a;
@@ -126,325 +91,294 @@
     --gw-line: #2f3238;
     --gw-line-strong: #464a52;
     --gw-accent: #7d9cf0;
+    --gw-accent-2: #b48cf8;
     --gw-accent-fg: #15161a;
     --gw-focus: #7d9cf0;
     --gw-ok: #5cc58a;
+    --gw-warn: #f0b45d;
     --gw-bad: #ee7a6c;
+    --gw-info: #5ab8e8;
+    --gw-violet: #b48cf8;
     --gw-shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
+    --gw-shadow-lg: 0 2px 8px rgb(0 0 0 / .35), 0 16px 40px rgb(0 0 0 / .4);
+    --gw-ok-text: #6fd49b;
+    --gw-warn-text: #f5c27a;
+    --gw-bad-text: #f48f82;
+    --gw-info-text: #7cc8f0;
+    --gw-violet-text: #c4a3fa;
+    --gw-accent-text: #97b0f5;
+    --gw-gradient-fill: linear-gradient(135deg, var(--gw-accent), var(--gw-accent-2));
   }
 }
 
-/* Build's own colours: the ticket kinds (--c-*), the branch lanes (--g*), and two
-   surfaces the shell has no name for. Done and missing are the shell's ok and bad. */
-:root {
-  --raised: #ffffff;
-  --c-agent: #2f5bd3; --c-human: #c2410c; --c-test: #7c3aed; --c-claimed: #0b7269;
-  --c-done: var(--gw-ok); --c-dropped: #7a776f; --c-neutral: #55524a; --c-bad: var(--gw-bad);
-  --shadow-lg: 0 10px 40px rgb(0 0 0 / .16);
-  --g0: #2f5bd3; --g1: #c2410c; --g2: #1f8a4c; --g3: #7c3aed; --g4: #0b7269; --g5: #b4235a; --g6: #8a6d00; --g7: #4a6fa5;
-}
+/* Build's own colours: the lanes of the branch graph. */
+:root { --g0: #2f5bd3; --g1: #c2410c; --g2: #1f8a4c; --g3: #7c3aed; --g4: #0b7269; --g5: #b4235a; --g6: #8a6d00; --g7: #4a6fa5; }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --raised: #22242a;
-    --c-agent: #7d9cf0; --c-human: #f08a5d; --c-test: #b294f5; --c-claimed: #5cc7bb;
-    --c-dropped: #8f8c85; --c-neutral: #b4b1a8;
-    --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd;
-    --shadow-lg: 0 10px 40px rgb(0 0 0 / .5);
-  }
+  :root { --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd; }
 }
 
-/* Inside the shell (an iframe of /), the shell's header already names the project:
-   Build's bar keeps only the live state and the version. */
-.in-shell .bar h1 { display: none; }
-.in-shell .bar { justify-content: flex-end; padding-top: 6px; padding-bottom: 6px; }
-.in-shell #start { margin-top: 4vh; }
-/* Alone, the page picks its own UI language; inside the shell the shell's picker does it. */
-.in-shell #lang { display: none; }
-#lang { padding: 2px 6px; border: 1px solid var(--gw-line-strong); border-radius: 7px; background: var(--gw-surface); font-size: 12.5px; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: 14px/1.5 var(--gw-font); overflow-x: hidden; }
-a { color: var(--gw-accent); text-decoration: none; text-underline-offset: 2px; }
+body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-text-small) var(--gw-font); overflow-x: hidden; }
+a { color: var(--gw-accent-text); text-decoration: none; text-underline-offset: 2px; }
 a:hover { text-decoration: underline; }
+a.gw-tag:hover, a.gw-btn:hover { text-decoration: none; }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; border-radius: 4px; }
 button, select, input { font: inherit; color: inherit; }
-button, .btn {
-  display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--gw-line-strong);
-  background: var(--gw-surface); border-radius: 7px; cursor: pointer; white-space: nowrap; line-height: 1.4;
-  transition: border-color .12s, background-color .12s;
-}
-button:hover, .btn:hover { border-color: var(--gw-fg-2); text-decoration: none; }
-button.primary { background: var(--gw-accent); border-color: var(--gw-accent); color: var(--gw-accent-fg); font-weight: 600; padding: 9px 18px; }
-button.primary:hover { background: color-mix(in srgb, var(--gw-accent) 88%, var(--gw-fg)); }
-button.quiet { border-color: transparent; background: none; color: var(--gw-accent); padding: 2px 4px; }
-button.quiet:hover { text-decoration: underline; }
-button.icon { padding: 5px 8px; color: var(--gw-fg-2); }
-.skip { position: absolute; left: -9999px; }
-.skip:focus { left: 8px; top: 8px; z-index: 50; background: var(--gw-surface); padding: 6px 10px; border-radius: 6px; box-shadow: var(--gw-shadow); }
-.num, .mono { font-family: var(--gw-font-mono); font-variant-numeric: tabular-nums; }
-.muted { color: var(--gw-muted); }
+h1, h2, h3 { margin: 0; }
 [hidden] { display: none !important; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 8px; top: 8px; z-index: 50; background: var(--gw-surface); padding: 6px 10px; border-radius: var(--gw-radius-sm); box-shadow: var(--gw-shadow); }
+.mono { font-family: var(--gw-font-mono); }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--gw-muted); }
 code { font-family: var(--gw-font-mono); font-size: .9em; background: var(--gw-sunken); padding: 1px 5px; border-radius: 4px; }
+svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-/* Top bar */
+/* inside the shared components the icon takes their size */
+.gw-empty__icon svg.i { width: 28px; height: 28px; stroke-width: 1.6; }
+.gw-btn--icon svg.i { width: 18px; height: 18px; }
+dl.meta .gw-progress { background: var(--gw-line); }
+
+/* ---- The page's own bar: only when opened alone (the shell has its header) ---- */
 #top {
-  position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--gw-line);
-  background: color-mix(in srgb, var(--gw-bg) 90%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--gw-surface) 86%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
+  border-bottom: 1px solid var(--gw-line);
 }
-.bar { max-width: 1440px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.bar h1 { font-size: 16px; margin: 0 auto 0 0; font-weight: 680; letter-spacing: -.005em; display: flex; align-items: center; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
-.bar h1::before {
-  content: ""; flex: none; width: 14px; height: 14px; border-radius: 4px;
-  background: linear-gradient(135deg, var(--c-agent) 0 50%, var(--c-done) 50% 100%);
-}
-.bar h1 small { font-weight: 450; color: var(--gw-muted); font-size: 13px; }
-.live { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--gw-muted); font-size: 12.5px; }
-.live .state { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px; background: var(--gw-sunken); min-width: 0; }
-.live button { font-size: 12.5px; padding: 3px 10px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-dropped); flex: none; }
-.dot.on { background: var(--c-done); }
-.dot.warn { background: var(--c-human); }
-@media (prefers-reduced-motion: no-preference) { .dot.on.tick { animation: tick .9s ease-out; } }
-@keyframes tick { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-done) 60%, transparent); } to { box-shadow: 0 0 0 7px transparent; } }
-.wrap { max-width: 1440px; margin: 0 auto; padding: 0 24px 96px; }
+.in-shell #top { display: none; }
+.bar { max-width: 1280px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: var(--gw-header-height); }
+.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; font: 650 15px/1.25 var(--gw-font); letter-spacing: -.01em; }
+.brand::before { content: ''; flex: none; width: 22px; height: 22px; border-radius: 7px; background: var(--gw-gradient-fill); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .15); }
+.brand span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand small { font: 450 13px var(--gw-font); color: var(--gw-muted); white-space: nowrap; }
+.live-state { display: inline-flex; align-items: center; gap: 8px; color: var(--gw-fg-2); white-space: nowrap; }
+.live-state .when { color: var(--gw-muted); }
+#lang { width: auto; }
 
-/* Start screen */
-#start { max-width: 660px; margin: 8vh auto 40px; padding: 0 20px; }
-#start .card { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: 14px; padding: 28px 30px; box-shadow: var(--gw-shadow); }
-#start h2 { font-size: 26px; margin: 0 0 8px; letter-spacing: -.015em; line-height: 1.2; }
-#start p { margin: 8px 0; color: var(--gw-fg-2); }
-#start p.muted { color: var(--gw-muted); }
+/* ---- Layout ---- */
+.wrap { max-width: 1280px; margin: 0 auto; padding: 20px 24px 96px; }
+.stack-y > * + * { margin-top: 12px; }
+
+/* ---- Start screen (no server: choose a folder) ---- */
+#start { max-width: 640px; margin: 8vh auto 40px; padding: 0 16px; }
+.in-shell #start { margin-top: 4vh; }
+#start .gw-card__body { padding: 28px 30px; }
+#start h2 { font: var(--gw-display) var(--gw-font); letter-spacing: -.02em; margin: 0 0 10px; }
+#start p { margin: 8px 0; color: var(--gw-fg-2); font: var(--gw-text) var(--gw-font); }
+#start p.muted { color: var(--gw-muted); font: var(--gw-text-small) var(--gw-font); }
 .choices { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 10px; }
-.drop { border: 1.5px dashed var(--gw-line-strong); border-radius: 10px; padding: 20px; color: var(--gw-muted); margin-top: 16px; text-align: center; transition: background-color .12s, border-color .12s; }
-body.dragging .drop, body.dragging #top { border-color: var(--gw-accent); }
-body.dragging .drop { background: color-mix(in srgb, var(--gw-accent) 8%, transparent); color: var(--gw-fg); }
-.notice { border-left: 3px solid var(--c-human); background: color-mix(in srgb, var(--c-human) 9%, transparent); padding: 9px 13px; border-radius: 0 8px 8px 0; margin: 12px 0; }
-.notice.bad { border-color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 9%, transparent); }
-.rules { color: var(--gw-muted); font-size: 13px; margin-top: 24px; border-top: 1px solid var(--gw-line); padding-top: 14px; }
-.rules code { font-size: 12px; }
+.drop { border: 1.5px dashed var(--gw-line-strong); border-radius: var(--gw-radius); padding: 20px; color: var(--gw-muted); margin-top: 16px; text-align: center; transition: background-color .15s, border-color .15s; }
+body.dragging .drop { border-color: var(--gw-accent); background: var(--gw-accent-soft); color: var(--gw-fg); }
+.rules { color: var(--gw-muted); margin-top: 24px; border-top: 1px solid var(--gw-line); padding-top: 14px; }
+.rules p { font: var(--gw-text-small) var(--gw-font) !important; color: var(--gw-muted) !important; }
 
-/* Overview: big numbers and the segmented progress bar */
-.overview { padding: 20px 0 6px; display: grid; gap: 14px; }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.kpi {
-  --c: var(--gw-fg-2); position: relative; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius);
-  padding: 12px 14px 11px; display: grid; gap: 2px; box-shadow: var(--gw-shadow); overflow: hidden; min-width: 0;
-}
-.kpi::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--c); }
-.kpi .v { font: 680 30px/1.05 var(--gw-font); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.kpi .v small { font-size: 15px; font-weight: 600; color: var(--gw-muted); margin-left: 2px; }
-.kpi .k { font-size: 12.5px; color: var(--gw-fg-2); font-weight: 560; }
-.kpi .s { font-size: 12px; color: var(--gw-muted); }
-.kpi.zero .v { color: var(--gw-muted); }
-.kpi.zero::before { background: var(--gw-line-strong); }
-.progress { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); padding: 12px 14px; display: grid; gap: 10px; box-shadow: var(--gw-shadow); }
-.progress .head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: 13px; color: var(--gw-muted); }
-.progress .head b { color: var(--gw-fg); font-weight: 650; }
-.stack { display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden; background: var(--gw-sunken); }
-.stack span { display: block; min-width: 4px; background: var(--c); border-radius: 2px; }
-.stack span.closed { background: repeating-linear-gradient(135deg, var(--c) 0 5px, color-mix(in srgb, var(--c) 72%, var(--gw-surface)) 5px 8px); }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.chips .sep { width: 1px; height: 18px; background: var(--gw-line-strong); margin: 0 4px; }
-.chip {
-  --c: var(--c-neutral); display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px 1px 8px; border-radius: 999px; white-space: nowrap;
-  font: 500 12px/1.65 var(--gw-font-mono); color: color-mix(in srgb, var(--c) 82%, var(--gw-fg)); background: color-mix(in srgb, var(--c) 11%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
-}
-.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
-.chip.closed { background: transparent; }
-.chip.closed::before { background: none; border: 1.5px solid var(--c); width: 6px; height: 6px; }
-button.chip { cursor: pointer; padding-top: 2px; padding-bottom: 2px; }
-button.chip:hover, button.chip[aria-pressed="true"] { border-color: var(--c); }
-button.chip[aria-pressed="true"] { background: color-mix(in srgb, var(--c) 24%, transparent); font-weight: 650; box-shadow: inset 0 0 0 1px var(--c); }
-.chip b { font-weight: 700; color: var(--gw-fg); }
-.t-agent { --c: var(--c-agent); } .t-human { --c: var(--c-human); } .t-test { --c: var(--c-test); }
-.t-claimed { --c: var(--c-claimed); } .t-done { --c: var(--c-done); } .t-dropped { --c: var(--c-dropped); }
-.t-neutral { --c: var(--c-neutral); } .t-bad { --c: var(--c-bad); }
-.changes { font-size: 13px; color: var(--gw-muted); padding: 0 2px; }
-.changes summary { cursor: pointer; border-radius: 4px; }
-.changes ul { margin: 6px 0 0; padding-left: 18px; }
+/* ---- Overview: one strip of four numbers, progress along its bottom edge ---- */
+.summary { overflow: hidden; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tile { display: grid; align-content: start; gap: 2px; padding: 14px 18px 14px; min-width: 0; border-left: 1px solid var(--gw-line); }
+.tile:first-child { border-left: 0; }
+.tile__label { display: flex; align-items: center; gap: 8px; color: var(--gw-fg-2); font: 500 var(--gw-text-small) var(--gw-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile__value { font: var(--gw-display) var(--gw-font); font-variant-numeric: tabular-nums; letter-spacing: -.02em; margin-top: 4px; }
+.tile__sub { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); min-height: 16px; }
+.tile.is-zero .tile__value { color: var(--gw-muted); }
+.tile.is-good .tile__sub { color: var(--gw-ok-text); font-weight: 600; }
+a.tile { color: inherit; transition: background .15s; }
+a.tile:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-sunken) 55%, transparent); }
+.summary__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 10px 10px 18px; border-top: 1px solid var(--gw-line); background: color-mix(in srgb, var(--gw-sunken) 45%, transparent); }
+.summary__foot .gw-progress { flex: 1 1 200px; height: 8px; }
+.summary__pct { font: 650 var(--gw-text-small) var(--gw-font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.summary__pct span { color: var(--gw-muted); font-weight: 450; margin-left: 6px; }
+.changes { color: var(--gw-fg-2); padding: 0 4px; }
+.changes summary { cursor: pointer; display: flex; align-items: center; gap: 8px; list-style: none; border-radius: var(--gw-radius-sm); }
+.changes summary::-webkit-details-marker { display: none; }
+.changes summary .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.changes ul { margin: 6px 0 0; padding-left: 26px; color: var(--gw-fg-2); }
+.changes .older { margin: 8px 0 0 16px; color: var(--gw-muted); }
 .changes li b { color: var(--gw-fg); font-weight: 600; }
 
-/* Navigation and filters */
-nav.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--gw-line); overflow-x: auto; margin-top: 8px; scrollbar-width: thin; }
-nav.tabs a { display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px 10px; color: var(--gw-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-weight: 520; border-radius: 6px 6px 0 0; }
-nav.tabs a:hover { color: var(--gw-fg); text-decoration: none; background: color-mix(in srgb, var(--gw-fg) 4%, transparent); }
-nav.tabs a[aria-current="page"] { color: var(--gw-fg); border-color: var(--gw-accent); font-weight: 650; }
-nav.tabs .badge { font: 600 11px/1.6 var(--gw-font-mono); background: var(--gw-sunken); color: var(--gw-fg-2); border-radius: 999px; padding: 0 7px; }
-nav.tabs .badge.warn { background: color-mix(in srgb, var(--c-human) 18%, transparent); color: var(--c-human); }
-.filters { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 14px 0 6px; }
-.filters input[type="search"], .filters select { padding: 6px 10px; border: 1px solid var(--gw-line-strong); border-radius: 8px; background: var(--gw-surface); min-width: 0; }
-.filters input[type="search"] { flex: 1 1 240px; max-width: 380px; }
-.filters select { max-width: 230px; }
-.filters label.check { display: inline-flex; gap: 7px; align-items: center; cursor: pointer; color: var(--gw-fg-2); }
-.filters label.check input { accent-color: var(--gw-accent); width: 15px; height: 15px; margin: 0; }
-.filters .summary { margin-left: auto; color: var(--gw-muted); font-size: 13px; }
+/* ---- Tabs and filters: they stay in sight while the view scrolls ---- */
+.nav { position: sticky; top: var(--top-h, 0px); z-index: 6; background: var(--gw-bg); margin-top: 16px; }
+.nav .gw-tabs { margin: 0 -4px; padding: 0 4px; }
+.nav .gw-tabs > a:hover { text-decoration: none; }
+.filters { padding: 12px 0 10px; }
+.search { position: relative; flex: 1 1 260px; max-width: 380px; display: flex; }
+.search .gw-field { width: 100%; padding-left: 32px; }
+.search svg { position: absolute; left: 10px; top: 8px; color: var(--gw-muted); pointer-events: none; }
+.filter-more { display: contents; }
+.filters select.gw-field { max-width: 220px; }
+label.check { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; color: var(--gw-fg-2); white-space: nowrap; height: 32px; padding: 0 4px; }
+label.check input { accent-color: var(--gw-accent); width: 15px; height: 15px; margin: 0; }
+.f-summary { color: var(--gw-muted); white-space: nowrap; }
+.f-summary button { padding: 0 2px; border: 0; background: none; color: var(--gw-accent-text); cursor: pointer; }
+.f-summary button:hover { text-decoration: underline; }
+#f-toggle { display: none; }
+.active { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -2px 0 10px; color: var(--gw-muted); }
+.pill { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 4px 0 10px; border-radius: var(--gw-radius-pill); background: var(--gw-accent-soft); color: var(--gw-accent-text); font: 500 var(--gw-text-xs) var(--gw-font); white-space: nowrap; }
+.pill b { font-weight: 650; }
+.pill button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.pill button:hover { background: color-mix(in srgb, var(--gw-accent) 18%, transparent); }
+.pill button svg { width: 12px; height: 12px; }
+.active > button.link { border: 0; background: none; padding: 0 4px; color: var(--gw-accent-text); cursor: pointer; font: inherit; }
+.active > button.link:hover { text-decoration: underline; }
 
-/* Groups and tables */
-.group { margin: 0 0 26px; }
-.group > h2, .view > h2 { font-size: 15px; margin: 18px 0 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; letter-spacing: -.005em; }
-.group > h2 .count { font: 650 12px/1.7 var(--gw-font-mono); background: var(--gw-sunken); padding: 0 8px; border-radius: 999px; color: var(--gw-fg-2); }
-.group > h2 .hint, .lead { font-weight: 400; color: var(--gw-muted); font-size: 13px; }
-.group.info > h2 { color: var(--gw-fg-2); }
-.lead { margin: 12px 0 14px; max-width: 86ch; }
-.tablewrap { overflow-x: auto; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); box-shadow: var(--gw-shadow); }
+/* ---- Sections, tables ---- */
+.view { padding-top: 6px; }
+.lead { margin: 4px 0 18px; max-width: 86ch; color: var(--gw-muted); }
+.group { margin: 0 0 28px; scroll-margin-top: calc(var(--top-h, 0px) + 112px); }
+.group .gw-section-head { margin-bottom: 10px; }
+.group.is-empty { margin-bottom: 14px; padding: 12px 16px; border: 1px dashed var(--gw-line); border-radius: var(--gw-radius-lg); }
+.group.is-empty .gw-section-head { margin: 0; }
+.group.is-empty .gw-section-head__title { font-size: 15px; color: var(--gw-fg-2); }
+.none-yet { display: inline-flex; align-items: center; gap: 6px; color: var(--gw-ok-text); font: 500 var(--gw-text-small) var(--gw-font); }
+.group.info .gw-section-head__title { color: var(--gw-fg-2); }
+.tablewrap { overflow-x: auto; }
 table.grid { width: 100%; border-collapse: collapse; }
-table.grid th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--gw-muted); font-weight: 650; padding: 8px 12px; border-bottom: 1px solid var(--gw-line); white-space: nowrap; background: color-mix(in srgb, var(--gw-sunken) 55%, var(--gw-surface)); }
-table.grid td { padding: 9px 12px; border-bottom: 1px solid var(--gw-line); vertical-align: top; }
+table.grid th { text-align: left; font: 600 var(--gw-text-xs) var(--gw-font); color: var(--gw-muted); padding: 9px 14px; border-bottom: 1px solid var(--gw-line); white-space: nowrap; background: color-mix(in srgb, var(--gw-sunken) 50%, var(--gw-surface)); }
+table.grid td { padding: 11px 14px; border-bottom: 1px solid var(--gw-line); vertical-align: top; }
 table.grid tr:last-child td { border-bottom: 0; }
-table.grid tbody tr[data-doc] { cursor: pointer; }
+table.grid tbody tr[data-doc] { cursor: pointer; transition: background .12s; }
 table.grid tbody tr[data-doc]:hover { background: color-mix(in srgb, var(--gw-accent) 5%, transparent); }
-table.grid tbody tr.is-blocked td.c-title a.open { color: var(--gw-fg-2); }
-td.c-num { white-space: nowrap; font-family: var(--gw-font-mono); font-variant-numeric: tabular-nums; color: var(--gw-muted); width: 1%; font-size: 12.5px; padding-top: 10px; }
-td.c-title { overflow-wrap: anywhere; min-width: 220px; }
-td.c-title a.open { color: var(--gw-fg); font-weight: 580; }
-td.c-title .note { color: var(--gw-muted); font-size: 12.5px; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-td.c-title .prd { color: var(--gw-muted); font-size: 12px; margin-top: 3px; line-height: 1.7; }
-td.c-title .sub { display: none; color: var(--gw-muted); font-size: 12px; margin-top: 3px; }
-td.c-title .sub-st { display: none; }
+table.grid tbody tr.is-blocked .c-title a.open { color: var(--gw-fg-2); }
+td.c-num { white-space: nowrap; font-family: var(--gw-font-mono); font-variant-numeric: tabular-nums; color: var(--gw-muted); width: 1%; font-size: 12.5px; padding-top: 12px; }
+td.c-title { overflow-wrap: anywhere; min-width: 240px; }
+td.c-title a.open { color: var(--gw-fg); font: 560 14px/1.45 var(--gw-font); }
+td.c-title .gw-badge { margin-left: 4px; vertical-align: 1px; }
+td.c-title .note { color: var(--gw-muted); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.refs-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); }
+.refs-line .gw-tag { font-size: 11.5px; }
+td.c-title .sub { display: none; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--gw-muted); margin-top: 6px; }
 td.c-area, td.c-last, td.c-st, td.c-chk { white-space: nowrap; }
-th.c-area { width: 150px; } th.c-st { width: 160px; } th.c-chk { width: 100px; } th.c-last { width: 140px; } th.c-blk { width: 15%; }
+th.c-area { width: 160px; } th.c-st { width: 170px; } th.c-chk { width: 110px; } th.c-last { width: 110px; } th.c-blk { width: 14%; }
 td.c-area { color: var(--gw-fg-2); }
-td.c-blk { font-size: 13px; }
-td.c-last { font-family: var(--gw-font-mono); font-size: 12.5px; color: var(--gw-muted); }
-.tref { font-family: var(--gw-font-mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--gw-accent) 8%, transparent); }
-.tref:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-accent) 16%, transparent); }
-.tref.is-closed { color: var(--gw-muted); background: var(--gw-sunken); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--gw-muted) 60%, transparent); }
-.prd-ref { font-family: var(--gw-font-mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; color: var(--gw-fg-2); border: 1px solid var(--gw-line); }
-a.prd-ref { color: var(--gw-accent); }
-a.prd-ref:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-accent) 10%, transparent); }
-.tref.is-missing { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 9%, transparent); }
-.flag { display: inline-block; font: 650 10.5px/1.6 var(--gw-font-mono); padding: 0 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; vertical-align: 1px; text-transform: lowercase; }
-.flag.blocked { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 8%, transparent); }
-.flag.fresh { color: var(--c-claimed); background: color-mix(in srgb, var(--c-claimed) 8%, transparent); }
-.flag.free { color: var(--c-done); background: color-mix(in srgb, var(--c-done) 9%, transparent); }
-.meter { display: inline-flex; align-items: center; gap: 7px; font-family: var(--gw-font-mono); font-size: 12px; color: var(--gw-fg-2); }
-.meter i { display: block; width: 48px; height: 6px; border-radius: 3px; background: var(--gw-line); overflow: hidden; }
-.meter i::before { content: ""; display: block; height: 100%; width: var(--p); background: var(--c-done); border-radius: 3px; }
-.empty { color: var(--gw-muted); padding: 12px 14px; background: var(--gw-surface); border: 1px dashed var(--gw-line-strong); border-radius: var(--gw-radius); }
+td.c-last { color: var(--gw-muted); font-variant-numeric: tabular-nums; }
+.tref.is-closed { color: var(--gw-muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--gw-muted) 60%, transparent); }
+.tref.is-missing { color: var(--gw-bad-text); background: var(--gw-bad-soft); }
+.meter { display: inline-flex; align-items: center; gap: 8px; color: var(--gw-fg-2); font-variant-numeric: tabular-nums; }
+.meter .gw-progress { width: 44px; height: 5px; }
+.dash { color: var(--gw-muted); }
 
-/* Areas */
-details.area { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); margin-bottom: 8px; box-shadow: var(--gw-shadow); }
-details.area > summary { display: grid; grid-template-columns: 18px minmax(150px, 1.1fr) minmax(0, 2.2fr) 160px 170px; gap: 12px; align-items: center; padding: 10px 14px; cursor: pointer; list-style: none; border-radius: var(--gw-radius); }
+/* ---- Areas ---- */
+details.area { margin-bottom: 8px; }
+details.area > summary { display: grid; grid-template-columns: 16px minmax(150px, 1.2fr) minmax(0, 2fr) minmax(120px, 1fr) 150px; gap: 14px; align-items: center; padding: 12px 16px; cursor: pointer; list-style: none; border-radius: var(--gw-radius-lg); }
+details.area.no-specs > summary { grid-template-columns: 16px minmax(150px, 2fr) minmax(120px, 1.4fr) 150px; }
 details.area > summary::-webkit-details-marker { display: none; }
-details.area > summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--gw-muted); border-bottom: 1.5px solid var(--gw-muted); transform: rotate(-45deg); justify-self: center; transition: transform .15s; }
+details.area > summary::before { content: ''; width: 7px; height: 7px; border-right: 1.5px solid var(--gw-muted); border-bottom: 1.5px solid var(--gw-muted); transform: rotate(-45deg); justify-self: center; transition: transform .15s; }
 details.area[open] > summary::before { transform: rotate(45deg); }
-details.area > summary:hover { background: color-mix(in srgb, var(--gw-fg) 3%, transparent); }
-details.area > summary .name { font-weight: 650; overflow-wrap: anywhere; }
-details.area > summary .spec { color: var(--gw-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-details.area > summary .cnt { font: 12.5px var(--gw-font-mono); text-align: right; white-space: nowrap; color: var(--gw-muted); }
-details.area > summary .cnt b { color: var(--gw-fg); }
-.bar2 { display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--c-agent) 22%, var(--gw-sunken)); overflow: hidden; }
-.bar2.none { background: var(--gw-sunken); }
-.bar2 i { display: block; height: 100%; width: var(--p); background: var(--c-done); border-radius: 4px; }
-details.area .inner { padding: 6px 14px 14px; border-top: 1px solid var(--gw-line); }
-.doclist { margin: 8px 0 12px; padding: 0; list-style: none; display: grid; gap: 4px; }
-.doclist li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; }
-.doclist .path { color: var(--gw-muted); font: 12px var(--gw-font-mono); margin-left: 8px; overflow-wrap: anywhere; }
-.kind { font: 600 10.5px/1.6 var(--gw-font-mono); color: var(--gw-fg-2); background: var(--gw-sunken); border-radius: 4px; padding: 0 6px; margin-right: 7px; text-transform: lowercase; }
+details.area > summary:hover { background: color-mix(in srgb, var(--gw-sunken) 50%, transparent); }
+details.area[open] > summary { border-radius: var(--gw-radius-lg) var(--gw-radius-lg) 0 0; }
+.area__name { font: 600 14px/1.4 var(--gw-font); overflow-wrap: anywhere; }
+.area__spec { color: var(--gw-fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.area__spec .gw-badge { margin-right: 6px; }
+.area__cnt { text-align: right; white-space: nowrap; color: var(--gw-muted); font-variant-numeric: tabular-nums; }
+.area__cnt b { color: var(--gw-fg); font-weight: 650; }
+details.area .inner { padding: 4px 16px 16px; border-top: 1px solid var(--gw-line); }
+details.area .inner .gw-card { box-shadow: none; }
+.doclist { margin: 10px 0 14px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.doclist li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.doclist .path { color: var(--gw-muted); font: 12px var(--gw-font-mono); overflow-wrap: anywhere; }
 
-/* Dependency tree */
+/* ---- Dependency tree ---- */
 ul.tree, ul.tree ul { list-style: none; margin: 0; padding: 0; }
-ul.tree > li { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--gw-shadow); }
+ul.tree > li { padding: 12px 16px; margin-bottom: 10px; }
 ul.tree ul { margin: 2px 0 0 14px; padding-left: 22px; }
-ul.tree ul > li { position: relative; padding: 5px 0 0; }
-ul.tree ul > li::before {
-  content: ""; position: absolute; left: -22px; top: 0; width: 16px; height: 22px;
-  border-left: 1.5px solid var(--gw-line-strong); border-bottom: 1.5px solid var(--gw-line-strong); border-bottom-left-radius: 7px;
-}
-ul.tree ul > li::after { content: ""; position: absolute; left: -22px; top: 22px; bottom: 0; border-left: 1.5px solid var(--gw-line-strong); }
+ul.tree ul > li { position: relative; padding: 6px 0 0; }
+ul.tree ul > li::before { content: ''; position: absolute; left: -22px; top: 0; width: 16px; height: 23px; border-left: 1.5px solid var(--gw-line-strong); border-bottom: 1.5px solid var(--gw-line-strong); border-bottom-left-radius: 8px; }
+ul.tree ul > li::after { content: ''; position: absolute; left: -22px; top: 23px; bottom: 0; border-left: 1.5px solid var(--gw-line-strong); }
 ul.tree ul > li:last-child::after { display: none; }
 .node { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-height: 30px; }
-ul.tree ul .node { display: inline-flex; max-width: 100%; background: var(--raised); border: 1px solid var(--gw-line); border-radius: 8px; padding: 4px 10px; }
-.node .ttl { overflow-wrap: anywhere; font-weight: 550; min-width: 0; }
-.node.ctx { opacity: .72; }
+ul.tree ul .node { display: inline-flex; max-width: 100%; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); padding: 4px 10px; }
+.node .ttl { overflow-wrap: anywhere; font-weight: 560; min-width: 0; color: var(--gw-fg); }
+.node.ctx { opacity: .68; }
 .node.ctx .ttl { font-weight: 450; }
-.rel { color: var(--gw-muted); font-size: 12px; }
-.unlocks { display: block; margin: 6px 0 0 1px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--gw-muted); font-weight: 600; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--gw-muted); font-size: 12.5px; margin: -4px 0 14px; align-items: center; }
+.rel { color: var(--gw-muted); }
+.unlocks { display: block; margin: 8px 0 0 2px; color: var(--gw-muted); font: 500 var(--gw-text-xs) var(--gw-font); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--gw-muted); margin: -6px 0 16px; align-items: center; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
 
-/* Activity */
+/* ---- Activity ---- */
 .day { margin: 0 0 18px; }
-.day > h3 { font: 650 13px var(--gw-font-mono); margin: 0 0 6px; position: sticky; top: var(--top-h, 52px); z-index: 2; background: var(--gw-bg); padding: 6px 0; }
-.day ul { margin: 0; padding: 0; list-style: none; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); box-shadow: var(--gw-shadow); }
-.day li { padding: 9px 14px; border-bottom: 1px solid var(--gw-line); }
+.day__head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px; }
+.day__head h3 { font: 600 14px/1.3 var(--gw-font); }
+.day__head span { color: var(--gw-muted); }
+.day ul { margin: 0; padding: 0; list-style: none; }
+.day li { padding: 11px 16px; border-bottom: 1px solid var(--gw-line); }
 .day li:last-child { border-bottom: 0; }
-.day .notes { margin: 3px 0 0; color: var(--gw-muted); font-size: 13px; }
-.day .notes div { padding-left: 14px; position: relative; }
-.day .notes div::before { content: "–"; position: absolute; left: 0; }
-.view > button { margin-top: 4px; }
+.day .notes { margin: 4px 0 0; color: var(--gw-fg-2); display: grid; gap: 2px; }
+.day .notes div { padding-left: 16px; position: relative; }
+.day .notes div::before { content: ''; position: absolute; left: 3px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--gw-line-strong); }
+.day .notes div.event { color: var(--gw-muted); }
+.view-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -6px 0 16px; }
 
-/* Git branches */
-.ver { font: 500 11.5px/1.6 var(--gw-font-mono); color: var(--gw-muted); padding: 0 7px; border-radius: 999px; border: 1px solid var(--gw-line); white-space: nowrap; }
-.ref { --c: var(--c-neutral); display: inline-flex; align-items: center; gap: 4px; font: 600 11px/1.55 var(--gw-font-mono); padding: 0 6px; border-radius: 5px; white-space: nowrap;
-  color: color-mix(in srgb, var(--c) 80%, var(--gw-fg)); background: color-mix(in srgb, var(--c) 13%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
-.ref.remote { background: transparent; border-style: dashed; font-weight: 500; }
-.ref.tag { color: var(--gw-fg-2); background: var(--gw-sunken); border-color: var(--gw-line-strong); font-weight: 500; }
-.ref.tag::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: var(--gw-muted); }
-.ref.head { box-shadow: inset 0 0 0 1px var(--c); }
-.ref.head::before { content: "HEAD"; font-size: 9.5px; letter-spacing: .04em; color: var(--gw-muted); }
-/* after .ref: a lane's colour wins over the neutral default */
+/* ---- Git branches ---- */
+.ref { --c: var(--gw-muted); display: inline-flex; align-items: center; gap: 6px; padding: 0 7px; border: 1px solid transparent; border-radius: var(--gw-radius-sm); background: var(--gw-sunken); color: var(--gw-fg-2); font: 500 12px/1.6 var(--gw-font-mono); white-space: nowrap; }
+.ref::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.ref.remote { background: transparent; border: 1px dashed var(--gw-line-strong); }
+.ref.tag::before { border-radius: 1px; transform: rotate(45deg); width: 6px; height: 6px; background: var(--gw-muted); }
+.ref.head { border: 1.5px solid transparent; background: linear-gradient(var(--gw-surface), var(--gw-surface)) padding-box, var(--gw-gradient) border-box; color: var(--gw-fg); font-weight: 600; }
 .lane0 { --c: var(--g0); } .lane1 { --c: var(--g1); } .lane2 { --c: var(--g2); } .lane3 { --c: var(--g3); }
 .lane4 { --c: var(--g4); } .lane5 { --c: var(--g5); } .lane6 { --c: var(--g6); } .lane7 { --c: var(--g7); }
 button.ref { cursor: pointer; }
-button.ref:hover { border-color: var(--c); }
+button.ref:hover { color: var(--gw-fg); border-color: var(--c); }
 td.c-branch { white-space: nowrap; }
-td.c-branch .ref { font-size: 12px; }
-.graph { position: relative; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); box-shadow: var(--gw-shadow); overflow-x: auto; }
+td.c-branch .muted { margin-left: 6px; }
+.graph { position: relative; overflow-x: auto; padding: 4px 0; }
 .graph svg { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .graph svg path { fill: none; stroke-width: 2; stroke-linecap: round; }
 .graph svg circle { stroke-width: 2; }
 .graph .rows { position: relative; min-width: 560px; }
-.graph .row { height: var(--row-h); display: flex; align-items: center; gap: 8px; padding-right: 12px; cursor: pointer; white-space: nowrap; border-radius: 6px; }
+.graph .row { height: var(--row-h); display: flex; align-items: center; gap: 8px; padding-right: 14px; cursor: pointer; white-space: nowrap; border-radius: var(--gw-radius-sm); }
 .graph .row:hover { background: color-mix(in srgb, var(--gw-fg) 4%, transparent); }
-.graph .row.hit { background: color-mix(in srgb, var(--gw-accent) 12%, transparent); }
+.graph .row.hit { background: var(--gw-accent-soft); }
 .graph .row .h { font: 12px var(--gw-font-mono); color: var(--gw-muted); flex: none; }
-.graph .row .s { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
+.graph .row .s { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; color: var(--gw-fg); }
 .graph .row.merge .s { color: var(--gw-fg-2); }
-.graph .row .who { color: var(--gw-muted); font-size: 12.5px; flex: none; }
-.graph .row .when { font: 12px var(--gw-font-mono); color: var(--gw-muted); flex: none; width: 78px; text-align: right; }
+.graph .row .who { color: var(--gw-muted); flex: none; }
+.graph .row .when { color: var(--gw-muted); flex: none; width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
 .graph .refs { display: inline-flex; gap: 4px; flex: none; }
-.graph .more { position: absolute; left: 0; right: 0; }
-.graph .detail { padding: 8px 12px 10px; margin: 0 8px 6px 0; background: var(--gw-sunken); border-radius: 8px; font-size: 13px; white-space: normal; display: grid; gap: 2px; }
+.graph .refs .ref { font-size: 11.5px; }
+.graph .detail { padding: 10px 12px; margin: 0 10px 6px 0; background: var(--gw-sunken); border-radius: var(--gw-radius); white-space: normal; display: grid; gap: 2px; }
 .graph .detail .mono { overflow-wrap: anywhere; }
-.graph-foot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 10px; color: var(--gw-muted); font-size: 13px; }
-@media (max-width: 860px) {
-  .graph .row .who { display: none; }
-  .graph .rows { min-width: 0; }
-}
-@media (max-width: 520px) {
-  .graph .row .h, .graph .row .when { display: none; }
-}
+.graph-foot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 12px; color: var(--gw-muted); }
+.graph-foot .legend-refs { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
-/* Drawer */
-#shade { position: fixed; inset: 0; background: rgb(10 10 12 / .42); z-index: 20; }
+/* ---- Drawer: a panel inside the module, under the shell's header ---- */
+#shade { position: fixed; inset: 0; z-index: 20; background: color-mix(in srgb, var(--gw-bg) 40%, rgb(10 10 14 / .35)); }
+#drawer {
+  position: fixed; top: 12px; right: 12px; bottom: 12px; z-index: 21; width: min(860px, calc(100% - 24px));
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius-lg); box-shadow: var(--gw-shadow-lg);
+}
 @media (prefers-reduced-motion: no-preference) {
   #shade:not([hidden]) { animation: fade .15s ease-out; }
-  #drawer:not([hidden]) { animation: slide .18s ease-out; }
+  #drawer:not([hidden]) { animation: slide .2s cubic-bezier(.2, .8, .2, 1); }
 }
 @keyframes fade { from { opacity: 0; } }
-@keyframes slide { from { transform: translateX(24px); } }
-#drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(900px, 100%); z-index: 21; background: var(--gw-surface); border-left: 1px solid var(--gw-line-strong); display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
-#drawer header { display: flex; gap: 12px; align-items: flex-start; padding: 14px 22px; border-bottom: 1px solid var(--gw-line); }
-#drawer header h2 { margin: 0; font-size: 18px; line-height: 1.35; flex: 1; overflow-wrap: anywhere; letter-spacing: -.01em; min-width: 0; }
-#drawer header h2 .num { color: var(--gw-muted); font-weight: 500; margin-right: 8px; font-size: 15px; }
+@keyframes slide { from { transform: translateX(28px); opacity: .4; } }
+#drawer > header { display: flex; gap: 12px; align-items: flex-start; padding: 16px 14px 14px 22px; border-bottom: 1px solid var(--gw-line); }
+#drawer > header > div { flex: 1; min-width: 0; }
+.kicker { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
+#drawer-title { font: var(--gw-title) var(--gw-font); letter-spacing: -.01em; overflow-wrap: anywhere; }
 #drawer .scroll { overflow: auto; padding: 0 22px 64px; flex: 1; overscroll-behavior: contain; }
-dl.meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 16px 0; padding: 12px 14px; background: var(--gw-sunken); border-radius: var(--gw-radius); font-size: 13px; align-items: baseline; }
+dl.meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 18px; margin: 16px 0 6px; padding: 14px 16px; background: var(--gw-sunken); border-radius: var(--gw-radius); align-items: center; }
 dl.meta dt { color: var(--gw-muted); }
-dl.meta dd { margin: 0; overflow-wrap: anywhere; }
-.md { max-width: 78ch; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.6; }
-.md h1 { font-size: 21px; letter-spacing: -.01em; } .md h2 { font-size: 16.5px; border-bottom: 1px solid var(--gw-line); padding-bottom: 4px; margin-top: 28px; }
-.md h3 { font-size: 14.5px; margin-top: 22px; } .md h4, .md h5, .md h6 { font-size: 13.5px; }
+dl.meta dd { margin: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.md { max-width: 76ch; overflow-wrap: anywhere; font: 14.5px/1.65 var(--gw-font); color: var(--gw-fg); }
+.md h1 { font: var(--gw-title) var(--gw-font); margin: 24px 0 8px; }
+.md h2 { font: 650 16.5px/1.35 var(--gw-font); border-bottom: 1px solid var(--gw-line); padding-bottom: 5px; margin: 28px 0 8px; }
+.md h3 { font: 650 14.5px/1.4 var(--gw-font); margin: 22px 0 6px; }
+.md h4, .md h5, .md h6 { font: 650 13.5px/1.4 var(--gw-font); margin: 18px 0 6px; }
 .md p, .md ul, .md ol, .md pre, .md table, .md blockquote { margin: 9px 0; }
 .md ul, .md ol { padding-left: 22px; }
 .md li { margin: 3px 0; }
 .md li.task { list-style: none; margin-left: -20px; }
-.md li.task input { margin: 0 7px 0 0; vertical-align: -1px; accent-color: var(--c-done); }
+.md li.task input { margin: 0 8px 0 0; vertical-align: -1px; accent-color: var(--gw-ok); }
 .md li.task.done > span.t { color: var(--gw-muted); }
-.md pre { background: var(--gw-sunken); padding: 11px 13px; border-radius: 8px; overflow: auto; font: 12.5px/1.55 var(--gw-font-mono); border: 1px solid var(--gw-line); }
+.md pre { background: var(--gw-sunken); padding: 11px 13px; border-radius: var(--gw-radius); overflow: auto; font: 12.5px/1.55 var(--gw-font-mono); }
 .md pre code { background: none; padding: 0; font-size: inherit; }
-.md blockquote { border-left: 3px solid var(--gw-accent); background: color-mix(in srgb, var(--gw-accent) 6%, transparent); padding: 4px 14px; color: var(--gw-fg-2); margin-left: 0; border-radius: 0 8px 8px 0; }
+.md blockquote { box-shadow: inset 3px 0 0 var(--gw-accent); background: var(--gw-accent-soft); padding: 4px 14px; color: var(--gw-fg-2); margin-left: 0; border-radius: 0 var(--gw-radius-sm) var(--gw-radius-sm) 0; }
 .md .tw { overflow-x: auto; }
 .md table { border-collapse: collapse; font-size: 13px; }
 .md th, .md td { border: 1px solid var(--gw-line); padding: 5px 9px; vertical-align: top; text-align: left; }
@@ -453,93 +387,114 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; }
 .md .dead { border-bottom: 1px dotted var(--gw-muted); }
 .md del { color: var(--gw-muted); }
 
+/* ---- Narrow: its own layout, not a shrunk desktop ---- */
 @media (max-width: 860px) {
-  .bar, .wrap { padding-left: 16px; padding-right: 16px; }
-  #top { position: static; }
-  .bar h1 { flex: 1 1 0; flex-wrap: wrap; row-gap: 0; }
-  .bar h1 small { flex-basis: 100%; padding-left: 24px; }
-  .live { order: 2; margin-left: 0; width: 100%; }
-  .live .state { flex: 1 1 100%; border-radius: 8px; }
+  .bar { padding-left: 16px; padding-right: 16px; }
+  .wrap { padding: 14px 16px 80px; }
   table.grid th.c-area, table.grid td.c-area, table.grid th.c-blk, table.grid td.c-blk, table.grid th.c-last, table.grid td.c-last { display: none; }
-  td.c-title .sub { display: block; }
+  td.c-title .sub { display: flex; }
   td.c-title { min-width: 0; }
-  table.grid td, table.grid th { padding: 8px 9px; }
-  details.area > summary { grid-template-columns: 14px 1fr auto; gap: 6px 10px; padding: 10px 12px; }
-  details.area > summary .spec { grid-column: 2 / -1; order: 3; }
-  details.area > summary .bar2 { grid-column: 2 / -1; order: 4; }
-  details.area .inner { padding: 6px 10px 12px; }
-  .filters .summary { margin-left: 0; width: 100%; }
-  .filters input[type="search"] { flex-basis: 100%; max-width: none; }
-  .filters select { max-width: none; flex: 1 1 40%; }
-  #drawer .scroll, #drawer header { padding-left: 16px; padding-right: 16px; }
-  #start .card { padding: 22px 20px; }
+  table.grid td, table.grid th { padding: 10px 12px; }
+  details.area > summary, details.area.no-specs > summary { grid-template-columns: 14px 1fr auto; gap: 6px 10px; padding: 12px 14px; }
+  details.area > summary .area__spec { grid-column: 2 / -1; order: 3; }
+  details.area > summary .gw-progress { grid-column: 2 / -1; order: 4; }
+  details.area .inner { padding: 4px 12px 12px; }
+  #drawer { top: 8px; right: 8px; bottom: 8px; width: calc(100% - 16px); }
+  #drawer .scroll { padding-left: 16px; padding-right: 16px; }
+  #drawer > header { padding-left: 16px; }
+  #start .gw-card__body { padding: 22px 20px; }
+  .graph .row .who { display: none; }
+  .graph .rows { min-width: 0; }
+}
+@media (max-width: 760px) {
+  .nav { position: static; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile { padding: 12px 14px; }
+  .tile:nth-child(3) { border-left: 0; }
+  .tile:nth-child(n+3) { border-top: 1px solid var(--gw-line); }
+  .tile__value { font-size: 24px; margin-top: 2px; }
+  .summary__foot { padding-left: 14px; }
+  .filters { gap: 8px; }
+  .search { max-width: none; flex: 1 1 0; }
+  #f-toggle { display: inline-flex; }
+  .filter-more { display: none; }
+  .filters.is-open .filter-more { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; order: 3; }
+  .filters.is-open .filter-more select.gw-field { flex: 1 1 40%; max-width: none; }
+  .filters .gw-toolbar__spacer { display: none; }
+  .f-summary { order: 4; width: 100%; white-space: normal; }
 }
 @media (max-width: 520px) {
-  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .kpi.main { grid-column: 1 / -1; }
-  .kpi .v { font-size: 26px; }
-  table.grid th.c-st, table.grid td.c-st { display: none; }
-  td.c-title .sub-st { display: block; margin: 2px 0; }
-  td.c-title .sub .chip { font-size: 11px; }
-  .meter i { display: none; }
-  ul.tree > li { padding: 10px; }
+  table.grid th.c-st, table.grid td.c-st, table.grid th.c-chk, table.grid td.c-chk { display: none; }
+  td.c-num { padding-right: 0; }
+  ul.tree > li { padding: 10px 12px; }
   ul.tree ul { margin-left: 6px; padding-left: 16px; }
   ul.tree ul > li::before { left: -16px; width: 12px; }
   ul.tree ul > li::after { left: -16px; }
-  dl.meta { grid-template-columns: 1fr; gap: 0; }
-  dl.meta dd { margin-bottom: 6px; }
+  dl.meta { grid-template-columns: 1fr; gap: 2px; }
+  dl.meta dd { margin-bottom: 8px; }
+  .graph .row .h, .graph .row .when { display: none; }
+  .brand small { display: none; }
+  td.c-branch { white-space: normal; }
+  td.c-branch .ref { white-space: normal; overflow-wrap: anywhere; }
+  td.c-branch .muted { display: block; margin: 4px 0 0; }
 }
 </style>
 </head>
 <body>
 <a class="skip" href="#main" data-i18n="page.skip">Skip to content</a>
 
+<!-- Opened alone only: inside the shell its header shows the project, the live state and the version. -->
 <header id="top">
   <div class="bar">
-    <h1 id="project">Development status</h1>
-    <div class="live" id="live" hidden>
-      <span class="state"><span class="dot" id="dot"></span>
-      <span id="live-text" aria-live="polite"></span></span>
-      <button type="button" id="refresh" data-i18n="live.refresh">Refresh now</button>
-      <button type="button" id="change" data-i18n="live.change">Another folder</button>
-    </div>
-    <span class="ver" id="ver"></span>
-    <select id="lang" class="gw-lang" data-i18n-aria-label="page.lang"></select>
+    <h1 class="brand" id="project"><span data-i18n="page.title">Development status</span></h1>
+    <span class="live-state" id="live" hidden><span class="gw-dot" id="dot"></span><span id="live-text" aria-live="polite"></span></span>
+    <button type="button" class="gw-btn gw-btn--sm" id="change" data-i18n="live.change" hidden>Another folder</button>
+    <span class="gw-tag" id="ver" hidden></span>
+    <select id="lang" class="gw-lang gw-field" data-i18n-aria-label="page.lang"></select>
   </div>
 </header>
 
 <main id="main">
-  <section id="start"><div class="card">
+  <section id="start"><div class="gw-card"><div class="gw-card__body">
     <h2 data-i18n="page.title">Development status</h2>
     <p data-i18n="start.intro"></p>
     <div id="resume" hidden>
       <div class="choices">
-        <button type="button" class="primary" id="resume-btn"></button>
+        <button type="button" class="gw-btn gw-btn--primary" id="resume-btn"></button>
       </div>
       <p class="muted" data-i18n="start.resume-note"></p>
     </div>
     <div class="choices">
-      <button type="button" class="primary" id="pick" hidden></button>
-      <button type="button" id="snapshot" data-i18n="start.snapshot"></button>
+      <button type="button" class="gw-btn gw-btn--primary" id="pick" hidden></button>
+      <button type="button" class="gw-btn" id="snapshot" data-i18n="start.snapshot"></button>
       <input type="file" id="dir-input" webkitdirectory multiple hidden>
     </div>
     <p id="mode-note" class="muted"></p>
-    <div id="start-error" class="notice bad" hidden></div>
+    <div id="start-error" class="gw-callout gw-callout--bad" hidden></div>
     <div class="drop" data-i18n="start.drop"></div>
-    <div class="rules">
-      <p id="rules"></p>
-    </div>
-  </div></section>
+    <div class="rules"><p id="rules"></p></div>
+  </div></div></section>
 
   <section id="app" class="wrap" hidden>
-    <div class="overview" id="overview"></div>
-    <nav class="tabs" id="tabs" data-i18n-aria-label="page.views"></nav>
-    <div class="filters" id="filters" role="search">
-      <input type="search" id="q" data-i18n-placeholder="filter.search" data-i18n-aria-label="filter.search-label">
-      <select id="f-status" data-i18n-aria-label="filter.status"></select>
-      <select id="f-area" data-i18n-aria-label="filter.area"></select>
-      <label class="check"><input type="checkbox" id="f-closed"> <span data-i18n="filter.closed"></span></label>
-      <span class="summary" id="f-summary" aria-live="polite"></span>
+    <div id="notices" class="stack-y"></div>
+    <div id="overview" class="stack-y"></div>
+    <div class="nav" id="nav">
+      <nav class="gw-tabs" id="tabs" data-i18n-aria-label="page.views"></nav>
+      <div class="filters gw-toolbar" id="filters" role="search">
+        <div class="search" data-f="q">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+          <input type="search" class="gw-field" id="q" data-i18n-placeholder="filter.search" data-i18n-aria-label="filter.search-label">
+        </div>
+        <button type="button" class="gw-btn" id="f-toggle" aria-expanded="false" aria-controls="f-more"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span data-i18n="filter.toggle">Filters</span><span class="gw-badge gw-badge--accent" id="f-count" hidden></span></button>
+        <div class="filter-more" id="f-more">
+          <select class="gw-field" id="f-status" data-f="status" data-i18n-aria-label="filter.status"></select>
+          <select class="gw-field" id="f-area" data-f="area" data-i18n-aria-label="filter.area"></select>
+          <label class="check" data-f="closed"><input type="checkbox" id="f-closed"> <span data-i18n="filter.closed"></span></label>
+        </div>
+        <span class="gw-toolbar__spacer"></span>
+        <span class="f-summary" id="f-summary" aria-live="polite"></span>
+      </div>
+      <div class="active" id="f-active" hidden></div>
     </div>
     <div class="view" id="view"></div>
   </section>
@@ -548,11 +503,13 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; }
 <div id="shade" hidden></div>
 <aside id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
   <header>
-    <h2 id="drawer-title"></h2>
-    <button type="button" id="drawer-close" data-i18n="drawer.close" data-i18n-aria-label="drawer.close-label"></button>
+    <div><div class="kicker" id="drawer-kicker"></div><h2 id="drawer-title"></h2></div>
+    <button type="button" class="gw-btn gw-btn--icon" id="drawer-close" data-i18n-title="drawer.close-label" data-i18n-aria-label="drawer.close-label"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </header>
   <div class="scroll" id="drawer-body" tabindex="-1"></div>
 </aside>
+
+<div class="gw-toasts" id="toasts" aria-live="polite"></div>
 
 <!-- The UI translation (i18n.js, a copy of core/shell/i18n.mjs without "export") and Build's
      strings (ui-strings.js, BUILD_STRINGS). Classic scripts, not modules: opened by double click
@@ -568,6 +525,7 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; }
 // The UI language: English by default, Hungarian too; the choice is shared with the shell.
 const i18n = createI18n(BUILD_STRINGS);
 const ui = i18n.t;
+const IN_SHELL = document.documentElement.classList.contains('in-shell');
 
 // ───────────────────────── Constants ─────────────────────────
 
@@ -579,26 +537,32 @@ const SERVER_TIMEOUT_MS = 8000;
 
 const POLL_MS = 3000;
 const FRESH_MS = 90000;
+const TOAST_MS = 3500;
 
 // What a ticket is and how it is read (the model every view draws), where the tracker is and
 // which folders are walked, the states and the links to Plan: ticket-reader.js, beside the page.
 // The server reads the tickets for Plan's counts by the same rules (project-tickets.mjs).
 const {
   readTickets, locateProject, keepsFolder, planLink, prdFilter, CLOSED, DONE, DROPPED, UNPARSED, README_FILE, GLOSSARY_FILE,
-  DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH, fold, isClosed,
+  DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH, fold, plainInline, isClosed,
 } = GroundworkTickets;
+const HUMAN = new Set(['ready-for-human', 'needs-info', 'needs-triage']);
+const TEST = /^needs-(.*)-test$/;
 const GROUPS = [
   { id: 'agent', title: 'group.agent', hint: 'group.agent.hint', has: (s) => s === 'ready-for-agent' },
-  { id: 'human', title: 'group.human', hint: 'group.human.hint', has: (s) => s === 'ready-for-human' || s === 'needs-info' || s === 'needs-triage' },
-  { id: 'test', title: 'group.test', hint: 'group.test.hint', has: (s) => /^needs-.*test$/.test(s) },
+  { id: 'human', title: 'group.human', hint: 'group.human.hint', has: (s) => HUMAN.has(s) },
+  { id: 'test', title: 'group.test', hint: 'group.test.hint', has: (s) => TEST.test(s) },
   { id: 'claimed', title: 'group.claimed', hint: 'group.claimed.hint', has: (s) => s === 'claimed' },
 ];
 const VIEWS = [
   ['waiting', 'view.waiting'], ['areas', 'view.areas'], ['deps', 'view.deps'],
   ['activity', 'view.activity'], ['checks', 'view.checks'], ['docs', 'view.docs'], ['git', 'view.git'],
 ];
+// The filters each view applies; only these show above it.
+const TICKET_FILTERS = ['q', 'status', 'area', 'closed'];
+const FILTERS = { waiting: TICKET_FILTERS, areas: TICKET_FILTERS, deps: TICKET_FILTERS, activity: ['q', 'area'], checks: ['q', 'area'], docs: ['q', 'area'], git: [] };
 const GIT_PAGE = 400;     // commits asked for at once; "Earlier commits" asks for this many more
-const GIT_ROW_H = 28;     // px, one commit
+const GIT_ROW_H = 30;     // px, one commit
 const GIT_LANE_W = 16;    // px, one lane of the graph
 const GIT_COLORS = 8;     // --g0 … --g7
 const NO_REPO = 'no-repo'; // gitState.error when the folder is not the top of a git repository
@@ -606,25 +570,59 @@ const NO_REPO = 'no-repo'; // gitState.error when the folder is not the top of a
 // ───────────────────────── Small helpers ─────────────────────────
 
 const $ = (id) => document.getElementById(id);
+// The one escaper of the page: every text from a file, an issue or git goes through it.
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const joinPath = (a, b) => (a ? a + '/' + b : b);
-const clock = (d) => d.toLocaleTimeString(i18n.lang, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const clock = (d) => d.toLocaleTimeString(i18n.lang, { hour: '2-digit', minute: '2-digit' });
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+const ICONS = {
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/>',
+  x: '<path d="M7 7l10 10M17 7L7 17"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  doc: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
+  inbox: '<path d="M4 13l2.5-7h11L20 13v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/>',
+  branch: '<circle cx="7" cy="6" r="2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="8" r="2"/><path d="M7 8v8M17 10c0 4-10 2-10 6"/>',
+};
+const icon = (name) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 
+// A status in the UI: its translated name; the label itself stays in the title.
 function statusTone(status) {
   if (status === UNPARSED) return 'bad';
-  if (status === 'ready-for-agent') return 'agent';
-  if (status === 'ready-for-human' || status === 'needs-info' || status === 'needs-triage') return 'human';
-  if (/^needs-.*test$/.test(status)) return 'test';
-  if (status === 'claimed') return 'claimed';
-  if (DONE.has(status)) return 'done';
-  if (DROPPED.has(status)) return 'dropped';
+  if (status === 'ready-for-agent') return 'accent';
+  if (HUMAN.has(status)) return 'warn';
+  if (TEST.test(status)) return 'violet';
+  if (status === 'claimed') return 'info';
+  if (DONE.has(status)) return 'ok';
   return 'neutral';
 }
-const statusName = (status) => (status === UNPARSED ? ui('status.unparsed') : status);
+const STATUS_NAMES = {
+  'ready-for-agent': 'status.ready-for-agent', 'ready-for-human': 'status.ready-for-human', 'needs-info': 'status.needs-info',
+  'needs-triage': 'status.needs-triage', claimed: 'status.claimed', done: 'status.done', resolved: 'status.resolved',
+  closed: 'status.closed', wontfix: 'status.wontfix', legacy: 'status.legacy', open: 'status.open',
+};
+function statusName(status) {
+  if (status === UNPARSED) return ui('status.unparsed');
+  const test = TEST.exec(status);
+  if (test) return ui('status.needs-test', { what: test[1].replace(/-/g, ' ') });
+  return Object.prototype.hasOwnProperty.call(STATUS_NAMES, status) ? ui(STATUS_NAMES[status]) : status;
+}
+const statusTitle = (status) => (status === UNPARSED ? '' : ui('status.label', { label: status }));
+const chip = (status) => `<span class="gw-badge gw-badge--dot gw-badge--${statusTone(status)}" title="${esc(statusTitle(status))}">${esc(statusName(status))}</span>`;
+const badge = (tone, text, title) => `<span class="gw-badge gw-badge--${tone}"${title ? ` title="${esc(title)}"` : ''}>${text}</span>`;
+const count = (n) => `<span class="gw-badge gw-badge--count">${n}</span>`;
+const sectionHead = (title, extra, hint) => `<div class="gw-section-head"><h2 class="gw-section-head__title">${title}</h2>${extra || ''}${hint ? `<span class="gw-section-head__hint">${hint}</span>` : ''}</div>`;
+const empty = (iconName, title, text) => `<div class="gw-empty"><span class="gw-empty__icon">${icon(iconName)}</span><p class="gw-empty__title">${title}</p>${text ? `<p class="gw-empty__text">${text}</p>` : ''}</div>`;
 // A dated entry of a ticket: a heading of its own, or a GitHub issue's opening or closing.
 const commentTitle = (c) => (c.event ? ui(c.event === 'closed' ? 'activity.closed' : 'activity.opened') : c.title || ui('activity.untitled'));
-const chip = (status, extra = '') => `<span class="chip t-${statusTone(status)}${CLOSED.has(status) ? ' closed' : ''}">${esc(statusName(status))}${extra}</span>`;
+
+// A transient message (re-read, up to date): a toast that goes away by itself.
+function toast(text, tone = 'info') {
+  const el = document.createElement('div');
+  el.className = 'gw-toast gw-toast--' + tone;
+  el.textContent = text;
+  $('toasts').append(el);
+  setTimeout(() => el.remove(), TOAST_MS);
+}
 
 // ───────────────────────── Reading the folder ─────────────────────────
 // Four ways to get at a folder share one small adapter: list a directory's
@@ -1036,8 +1034,10 @@ function renderInline(src, ctx, noLinks) {
 
 const STORE_KEY = 'development-status:' + location.pathname;
 // prd: only the tickets naming this PRD item (Plan's link "/?module=build&prd=<id>"), closed ones too.
-const state = { view: 'waiting', doc: null, q: '', status: '', area: '', prd: '', showClosed: false, activityDays: 14 };
+// The filters are not kept across reloads: a forgotten filter would contradict the overview.
+const state = { view: 'waiting', doc: null, q: '', status: '', area: '', prd: '', showClosed: false, activityDays: 14, githubEvents: null };
 try { state.prd = prdFilter(location.search); } catch (e) { /* no query */ }
+try { localStorage.removeItem(STORE_KEY); } catch (e) { /* storage is optional */ }
 const openDetails = new Set();
 let source = null;       // { adapter, root, name, live, roots }; from the launcher's server also { server, launcher, reload }
 let cache = new Map();   // path → { size, mtime, text }
@@ -1045,10 +1045,14 @@ let model = null;
 let changeLog = [];      // newest first: { at, items: [{ path, label, text }] }
 let recent = new Map();  // path → time of the last change seen in this session
 let lastChecked = null;
+let listing = null;      // the last scan of the files
 let busy = false;
+let pending = new Set(); // the parts asked for while a refresh ran
+let announce = false;    // a refresh the user asked for: say when nothing changed
 let timer = null;
-let events = null;       // the server's live updates (EventSource on /api/events)
-let again = false;       // a refresh was asked for while one ran
+let liveStop = null;     // stops the live updates (subscribe from /shell/live.mjs)
+let liveToken = 0;
+let liveState = '';      // the stream's state when the page runs without the shell
 let lostAccess = false;
 let serverDown = false;
 let lastOpener = null;
@@ -1057,12 +1061,6 @@ let gitState = { data: null, error: '', limit: GIT_PAGE, open: new Set(), hit: '
 // The GitHub issues the server sent: the source of the GitHub tickets.
 const NO_ISSUES = () => ({ fingerprint: '', repo: null, issues: [], byNumber: new Map() });
 let issueState = NO_ISSUES();
-
-try {
-  const saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
-  for (const k of ['status', 'area', 'showClosed']) if (k in saved) state[k] = saved[k];
-} catch (e) { /* storage is optional */ }
-const saveState = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify({ status: state.status, area: state.area, showClosed: state.showClosed })); } catch (e) { /* optional */ } };
 
 // The folder handle survives a reload in IndexedDB (the permission does not).
 function idb(mode, run) {
@@ -1086,7 +1084,7 @@ const rememberHandle = (h) => idb('readwrite', (s) => s.put(h, STORE_KEY));
 const forgetHandle = () => idb('readwrite', (s) => s.delete(STORE_KEY));
 const recallHandle = () => idb('readonly', (s) => s.get(STORE_KEY));
 
-// ───────────────────────── Refresh loop ─────────────────────────
+// ───────────────────────── Refresh ─────────────────────────
 
 function describeChange(path, before, after) {
   if (after && after.kind === 'ticket') {
@@ -1096,7 +1094,7 @@ function describeChange(path, before, after) {
     if (before.checks.done !== after.checks.done || before.checks.total !== after.checks.total) parts.push(() => ui('change.checks', { from: `${before.checks.done}/${before.checks.total}`, to: `${after.checks.done}/${after.checks.total}` }));
     if (after.comments.length > before.comments.length) { const c = after.comments[after.comments.length - 1]; parts.push(() => ui('change.comment', { title: commentTitle(c) })); }
     if (before.title !== after.title) parts.push(() => ui('change.title', { title: after.title }));
-    if (before.fields['blocked by'] !== after.fields['blocked by']) parts.push(() => 'Blocked by: ' + (after.fields['blocked by'] || ui('change.none')));
+    if (before.fields['blocked by'] !== after.fields['blocked by']) parts.push(() => ui('change.blocked-by', { list: after.fields['blocked by'] || ui('change.none') }));
     return { label: after.label, text: () => parts.map((f) => f()).join('; ') || ui('change.text') };
   }
   const name = path.split('/').slice(-2).join('/');
@@ -1104,26 +1102,68 @@ function describeChange(path, before, after) {
   return { label: name, text: () => ui(before ? 'change.modified' : 'change.new-file') };
 }
 
-async function refresh() {
+// What a refresh reads: the Markdown files, the GitHub issues, Plan's map ids, the git history.
+// A live update names what changed, and only that is asked again; every (re)connect reads all.
+const ALL_PARTS = ['files', 'issues', 'map', 'git'];
+const TOPIC_PART = { 'build.files': 'files', 'build.issues': 'issues', 'build.git': 'git', 'plan.map': 'map' };
+function partsOf(topics) {
+  const parts = new Set();
+  for (const t of topics) {
+    if (TOPIC_PART[t]) parts.add(TOPIC_PART[t]);
+    else if (t.startsWith('build.')) ALL_PARTS.forEach((p) => parts.add(p));
+  }
+  return [...parts];
+}
+
+async function refresh(parts = ALL_PARTS) {
   if (!source) return;
-  if (busy) { again = true; return; }
+  for (const p of parts) pending.add(p);
+  if (busy) return;
   busy = true;
   try {
-    const listing = await scan(source);
-    const seen = new Set();
-    const touched = [];
-    for (const e of listing.entries) {
-      seen.add(e.path);
-      const old = cache.get(e.path);
-      if (old && old.size === e.size && old.mtime === e.mtime) continue;
-      // A file caught mid-write is read again in the next round.
-      try { cache.set(e.path, { size: e.size, mtime: e.mtime, text: await e.file.text() }); touched.push(e.path); } catch (err) { if (err.name === 'NotAllowedError' || err.name === 'ServerDownError') throw err; }
+    while (pending.size && source) {
+      const want = pending;
+      pending = new Set();
+      await refreshOnce(want);
     }
-    for (const path of [...cache.keys()]) if (!seen.has(path)) { cache.delete(path); touched.push(path); }
-    touched.push(...await refreshIssues());
-    await refreshMap();
+  } finally {
+    busy = false;
+    renderLive();
+  }
+}
+
+// The files of the folder that changed since the last round (read again), and the gone ones.
+async function readFiles() {
+  const next = await scan(source);
+  const seen = new Set();
+  const touched = [];
+  await Promise.all(next.entries.map(async (e) => {
+    seen.add(e.path);
+    const old = cache.get(e.path);
+    if (old && old.size === e.size && old.mtime === e.mtime) return;
+    // A file caught mid-write is read again in the next round.
+    try { cache.set(e.path, { size: e.size, mtime: e.mtime, text: await e.file.text() }); touched.push(e.path); } catch (err) { if (err.name === 'NotAllowedError' || err.name === 'ServerDownError') throw err; }
+  }));
+  for (const path of [...cache.keys()]) if (!seen.has(path)) { cache.delete(path); touched.push(path); }
+  listing = next;
+  return touched;
+}
+
+async function refreshOnce(want) {
+  const src = source;
+  const wasDown = serverDown;
+  try {
+    const [files, issues, , gitChanged] = await Promise.all([
+      want.has('files') || !listing ? readFiles() : [],
+      want.has('issues') ? refreshIssues() : [],
+      want.has('map') ? refreshMap() : null,
+      want.has('git') ? refreshGit() : false,
+    ]);
+    if (src !== source) return;
+    const touched = [...files, ...issues];
     const shape = listing.trackerPath + '|' + listing.adrPath + '|' + listing.others.length + '|' + (mapState.ids ? mapState.key : '-');
     const first = !model;
+    let changed = 0;
     if (first || touched.length || shape !== source.shape) {
       source.shape = shape;
       const next = readTickets({
@@ -1138,15 +1178,18 @@ async function refresh() {
         changeLog.unshift({ at: new Date(), items });
         changeLog = changeLog.slice(0, 40);
         for (const path of touched) recent.set(path, now);
+        changed = items.length;
         setTimeout(() => { if (model) renderView(); }, FRESH_MS + 500);
       }
       model = next;
       renderAll();
-    }
+    } else if (gitChanged && model) { renderTabs(); if (state.view === 'git') renderView(); }
     lastChecked = new Date();
     lostAccess = false;
     serverDown = false;
-    if (await refreshGit() && model) { renderTabs(); if (state.view === 'git') renderView(); }
+    if (wasDown) renderNotices();
+    if (changed) toast(ui('toast.changed', { n: changed, time: clock(lastChecked) }), 'ok');
+    else if (announce) toast(ui('toast.same', { time: clock(lastChecked) }), 'info');
   } catch (err) {
     // The server stopped: keep what was read, keep asking; it may come back.
     if (err && err.name === 'ServerDownError') serverDown = true;
@@ -1154,10 +1197,9 @@ async function refresh() {
     else if (err && err.name === 'NotFoundError') source.roots = null;
     else console.error(err);
     if (!model) showStart(ui('error.read', { error: err && err.message ? err.message : err }));
+    else renderNotices();
   } finally {
-    busy = false;
-    renderLive(true);
-    if (again) { again = false; refresh(); }
+    announce = false;
   }
 }
 
@@ -1182,9 +1224,9 @@ async function refreshIssues() {
 }
 
 // The ids of Plan's map (docs/product/mindmap.json), which the reader checks the tickets'
-// PRD lines against. On the server Plan sends it (GET /api/plan/map, "same" while unchanged);
-// from a picked folder the file is read when its size or time changed. No map (none in the
-// project, Plan not running, an unreadable file): ids null, and no PRD id counts as unknown.
+// PRD lines against. On the server Plan sends only the ids (GET /api/plan/ids, "same" while
+// unchanged); from a picked folder the file is read when its size or time changed. No map (none
+// in the project, Plan not running, an unreadable file): ids null, and no PRD id counts as unknown.
 const MAP_PATH = 'docs/product/mindmap.json';
 let mapState = { key: '', ids: null };
 
@@ -1193,10 +1235,10 @@ async function refreshMap() {
   try {
     if (source.server) {
       const known = mapState.key ? '?v=' + encodeURIComponent(mapState.key) : '';
-      const res = await fetch('/api/plan/map' + known, { cache: 'no-store' });
+      const res = await fetch('/api/plan/ids' + known, { cache: 'no-store' });
       const data = res.ok ? await res.json() : null;
       if (data && data.same) return;
-      const ids = GroundworkTickets.mapIds(data && data.data);   // { v, data: the map }
+      const ids = data && Array.isArray(data.ids) ? data.ids.map(String) : null;
       mapState = { key: ids && data.v ? String(data.v) : '', ids };
       return;
     }
@@ -1234,37 +1276,44 @@ async function refreshGit() {
   return true;
 }
 
-// How the page follows the project. From the core server: its live updates (Server-Sent
-// Events on /api/events) say when a markdown file, a git ref or the GitHub issues changed, and
-// the page reads again; EventSource reconnects by itself, and every (re)connect reads again,
-// so nothing missed meanwhile is lost. A folder chosen in the browser (file://) is read again
-// every POLL_MS instead.
+// How the page follows the project. From the core server: its live updates (subscribe from
+// /shell/live.mjs: the shell's one stream inside the shell, the page's own when opened alone) say
+// what changed, and the page reads that again; every (re)connect reads everything, so nothing
+// missed meanwhile is lost. A folder chosen in the browser (file://) is read every POLL_MS instead.
 function startLive() {
   stopLive();
   if (!source || !source.live) return;
-  if (source.server && typeof EventSource === 'function') {
-    events = new EventSource('/api/events');
-    events.addEventListener('hello', () => refresh());
-    events.addEventListener('change', (e) => {
-      let topics = [];
-      try { topics = JSON.parse(e.data).topics || []; } catch (err) { /* not ours */ }
-      if (topics.some((t) => t.startsWith('build.') || t === 'plan.map')) refresh();   // plan.map: the ids the PRD lines are checked against
-    });
-    events.addEventListener('error', () => { if (!serverDown) { serverDown = true; renderLive(false); } });
+  if (source.server) {
+    const token = liveToken;
+    import('/shell/live.mjs').then(({ subscribe }) => {
+      if (token !== liveToken) return;
+      liveStop = subscribe({
+        onHello: () => refresh(),
+        onChange: (topics) => { const parts = partsOf(topics); if (parts.length) refresh(parts); },
+        onState: (s) => {
+          liveState = s;
+          if (s === 'off' && !serverDown) { serverDown = true; renderNotices(); }
+          renderLive();
+        },
+      });
+    }).catch((err) => console.error(err));
     return;
   }
   timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
 }
 
 function stopLive() {
+  liveToken++;
   clearInterval(timer);
-  if (events) { events.close(); events = null; }
+  timer = null;
+  if (liveStop) { liveStop(); liveStop = null; }
 }
 
 async function start(src) {
   stopLive();
   source = src;
   cache = new Map();
+  listing = null;
   model = null;
   changeLog = [];
   recent = new Map();
@@ -1285,7 +1334,7 @@ function showStart(error) {
   $('app').hidden = true;
   $('live').hidden = true;
   $('start').hidden = false;
-  $('project').textContent = ui('page.title');
+  renderBrand();
   document.title = ui('page.title');
   closeDrawerNow();
   if (error) { $('start-error').textContent = error; $('start-error').hidden = false; }
@@ -1293,10 +1342,13 @@ function showStart(error) {
 
 // ───────────────────────── Filtering ─────────────────────────
 
+// Is filter f (q, status, area, closed) in force on the current view?
+const applies = (f) => (FILTERS[state.view] || []).includes(f);
+
 function matches(t, ignoreClosed) {
   if (state.prd && !t.prd.includes(state.prd)) return false;
   if (state.area && t.area !== state.area) return false;
-  if (state.status && t.status !== state.status) return false;
+  if (state.status && applies('status') && t.status !== state.status) return false;
   if (state.q && !t.hay.includes(fold(state.q.trim()))) return false;
   if (!ignoreClosed && !state.showClosed && !state.status && !state.prd && isClosed(t)) return false;
   return true;
@@ -1307,133 +1359,135 @@ const visibleTickets = () => model.tickets.filter((t) => matches(t, false));
 
 const docHref = (path) => '#/' + state.view + '/' + encodeURIComponent(path);
 function ticketLink(t, text) {
-  return `<a class="tref${isClosed(t) ? ' is-closed' : ''}" href="${docHref(t.path)}" data-doc="${esc(t.path)}" title="${esc(t.title + ' (' + statusName(t.status) + ')')}">${esc(text || t.label)}</a>`;
+  return `<a class="gw-tag tref${isClosed(t) ? ' is-closed' : ''}" href="${docHref(t.path)}" data-doc="${esc(t.path)}" title="${esc(t.title + ' · ' + statusName(t.status))}">${esc(text || t.label)}</a>`;
 }
-const blockerLinks = (t) => t.blockers.map((b) => (b.ticket ? ticketLink(b.ticket) : `<span class="tref is-missing" title="${esc(ui('table.no-such-ticket'))}">${esc(b.raw)}?</span>`)).join(' ');
+const blockerLinks = (t) => t.blockers.map((b) => (b.ticket ? ticketLink(b.ticket) : `<span class="gw-tag tref is-missing" title="${esc(ui('table.no-such-ticket'))}">${esc(b.raw)}?</span>`)).join(' ');
 // The PRD items a ticket came from (its "**PRD:**" line): each opens Plan focused on that map
 // node (Plan's deep link, planLink in ticket-reader.js, in the whole window). Opened as a file
 // (file://) there is no Plan to open: the ids show as text.
-const prdLinks = (t) => t.prd.map((id) => (source && source.live
-  ? `<a class="prd-ref" href="${esc(planLink(id))}" target="_top" title="${esc(ui('prd.open', { id }))}">${esc(id)}</a>`
-  : `<span class="prd-ref" title="${esc(ui('prd.no-plan'))}">${esc(id)}</span>`)).join(' ');
-const meter = (c) => (c.total ? `<span class="meter" title="${esc(ui('table.meter', { done: c.done, total: c.total }))}"><i style="--p:${pct(c.done, c.total)}%"></i>${c.done}/${c.total}</span>` : '<span class="muted">–</span>');
+const prdLinks = (t) => t.prd.map((id) => (source && source.server
+  ? `<a class="gw-tag" href="${esc(planLink(id))}" target="_top" title="${esc(ui('prd.open', { id }))}">${esc(id)}</a>`
+  : `<span class="gw-tag" title="${esc(ui('prd.no-plan'))}">${esc(id)}</span>`)).join(' ');
+const meter = (c) => (c.total ? `<span class="meter" title="${esc(ui('table.meter', { done: c.done, total: c.total }))}"><span class="gw-progress" style="--value:${pct(c.done, c.total)}%"></span>${c.done}/${c.total}</span>` : '<span class="dash">–</span>');
+const dateText = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return isNaN(d) ? iso : d.toLocaleDateString(i18n.lang, { month: 'short', day: 'numeric' });
+};
 
 // Blocked by an open ticket, or freed: every blocker it names is closed.
 const isFree = (t) => !isClosed(t) && !t.blocked && t.blockers.length > 0 && t.blockers.every((b) => b.ticket);
-const flags = (t) => (t.blocked ? ` <span class="flag blocked">${ui('flag.blocked')}</span>` : isFree(t) ? ` <span class="flag free" title="${esc(ui('flag.free-title'))}">${ui('flag.free')}</span>` : '');
+const flags = (t) => (t.blocked ? ' ' + badge('bad', ui('flag.blocked')) : isFree(t) ? ' ' + badge('ok', ui('flag.free'), ui('flag.free-title')) : '');
 
 function ticketRow(t) {
   const fresh = recent.has(t.path) && Date.now() - recent.get(t.path) < FRESH_MS;
   const blockers = blockerLinks(t);
-  const sub = [esc(t.area), t.blockers.length ? ui('table.blocked-by-sub', { list: blockers }) : '', t.lastComment ? `<span class="mono" style="white-space:nowrap">${t.lastComment}</span>` : ''].filter(Boolean).join(' · ');
+  const sub = [chip(t.status), t.area ? `<span>${esc(t.area)}</span>` : '', t.blockers.length ? `<span>${ui('table.blocked-by-sub', { list: blockers })}</span>` : ''].filter(Boolean).join('');
   return `<tr data-doc="${esc(t.path)}"${t.blocked ? ' class="is-blocked"' : ''}>
 <td class="c-num">${esc(t.label)}</td>
-<td class="c-title"><a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a>${flags(t)}${fresh ? ` <span class="flag fresh">${ui('flag.fresh')}</span>` : ''}
-${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusNote)}</div>` : ''}${t.prd.length ? `<div class="prd">${ui('table.prd-sub', { list: prdLinks(t) })}</div>` : ''}<div class="sub"><span class="sub-st">${chip(t.status)}</span>${sub}</div></td>
-<td class="c-area">${esc(t.area)}</td>
+<td class="c-title"><a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a>${flags(t)}${fresh ? ' ' + badge('info', ui('flag.fresh')) : ''}
+${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusNote)}</div>` : ''}${t.prd.length ? `<div class="refs-line"><span>${ui('table.prd-sub')}</span>${prdLinks(t)}</div>` : ''}<div class="sub">${sub}</div></td>
+<td class="c-area">${t.area ? esc(t.area) : '<span class="dash">–</span>'}</td>
 <td class="c-st">${chip(t.status)}</td>
 <td class="c-chk">${meter(t.checks)}</td>
-<td class="c-blk">${blockers || '<span class="muted">–</span>'}</td>
-<td class="c-last">${t.lastComment || '–'}</td>
+<td class="c-blk">${blockers || '<span class="dash">–</span>'}</td>
+<td class="c-last">${t.lastComment ? esc(dateText(t.lastComment)) : '<span class="dash">–</span>'}</td>
 </tr>`;
 }
 
 function ticketTable(list) {
-  if (!list.length) return `<div class="empty">${ui('table.empty')}</div>`;
-  return `<div class="tablewrap"><table class="grid"><thead><tr><th class="c-num">${ui('table.num')}</th><th>${ui('table.ticket')}</th><th class="c-area">${ui('table.area')}</th><th class="c-st">${ui('table.status')}</th><th class="c-chk">${ui('table.checks')}</th><th class="c-blk">${ui('table.blocked-by')}</th><th class="c-last">${ui('table.last-comment')}</th></tr></thead><tbody>${list.map(ticketRow).join('')}</tbody></table></div>`;
+  if (!list.length) return empty('inbox', ui('table.empty'), '');
+  return `<div class="gw-card tablewrap"><table class="grid"><thead><tr><th class="c-num">${ui('table.num')}</th><th>${ui('table.ticket')}</th><th class="c-area">${ui('table.area')}</th><th class="c-st">${ui('table.status')}</th><th class="c-chk">${ui('table.checks')}</th><th class="c-blk">${ui('table.blocked-by')}</th><th class="c-last">${ui('table.last-comment')}</th></tr></thead><tbody>${list.map(ticketRow).join('')}</tbody></table></div>`;
 }
 
-function renderLive(ticked) {
-  if (!source) return;
+function renderBrand() {
+  const name = model ? model.projectName || ui('page.project') : '';
+  $('project').innerHTML = name ? `<span>${esc(name)}</span><small>${ui('page.subtitle')}</small>` : `<span>${esc(ui('page.title'))}</span>`;
+}
+
+// The page's own bar, only when it runs without the shell: whether it is live, and the version.
+function renderLive() {
+  if (!source || IN_SHELL) return;
   $('live').hidden = false;
-  const dot = $('dot');
-  let text;
   $('change').hidden = !!source.server;
-  if (serverDown) {
-    dot.className = 'dot warn';
-    text = ui('live.down', { at: lastChecked ? ' (' + clock(lastChecked) + ')' : '', launcher: source.launcher ? ' (' + source.launcher + ')' : '' });
-    $('refresh').textContent = ui('live.retry');
-  } else if (lostAccess) {
-    dot.className = 'dot warn';
-    text = ui('live.lost');
-    $('refresh').textContent = ui('live.renew');
-  } else if (source.live) {
-    dot.className = 'dot on';
-    if (ticked) { dot.classList.remove('tick'); void dot.offsetWidth; dot.classList.add('tick'); }
-    text = source.server && typeof EventSource === 'function'
-      ? ui('live.push', { server: ui('live.server', { host: source.server }), at: lastChecked ? clock(lastChecked) : '–' })
-      : ui('live.on', { server: source.server ? ui('live.server', { host: source.server }) : '', sec: POLL_MS / 1000, at: lastChecked ? clock(lastChecked) : '–' });
-    $('refresh').textContent = ui('live.refresh');
-  } else {
-    dot.className = 'dot';
-    text = ui('live.snapshot', { at: lastChecked ? clock(lastChecked) : '–' });
-    $('refresh').textContent = ui('live.reread');
-  }
-  $('live-text').textContent = text;
-  renderVersion();
-}
-
-function renderVersion() {
-  // Groundwork's version, from the server; opened by double click there is none to show.
-  const version = source && source.server ? source.version : '';
+  const at = lastChecked ? clock(lastChecked) : '–';
+  let tone, text;
+  if (serverDown || (source.server && liveState === 'off')) { tone = 'warn'; text = ui('live.down-short'); }
+  else if (lostAccess) { tone = 'warn'; text = ui('live.lost-short'); }
+  else if (source.server) { tone = liveState === 'on' ? 'ok' : 'neutral'; text = ui(liveState === 'on' ? 'live.on' : 'live.connecting'); }
+  else if (source.live) { tone = 'ok'; text = ui('live.polling', { sec: POLL_MS / 1000 }); }
+  else { tone = 'neutral'; text = ui('live.snapshot'); }
+  $('dot').className = 'gw-dot gw-dot--' + tone + (tone === 'ok' ? ' gw-dot--pulse' : '');
+  $('live-text').innerHTML = `${esc(text)} <span class="when">· ${esc(ui('live.read', { at }))}</span>`;
+  const version = source.server ? source.version : '';
   $('ver').textContent = version ? `v${version}` : '';
   $('ver').hidden = !version;
   $('ver').title = version ? `Groundwork ${version}` : '';
 }
 
+// Notices above the overview: what the page cannot do right now, and why.
+function renderNotices() {
+  if (!model) return;
+  const callout = (tone, body, action) => `<div class="gw-callout gw-callout--${tone}" role="status"><div class="gw-callout__body">${body}</div>${action || ''}</div>`;
+  const out = [];
+  const at = lastChecked ? clock(lastChecked) : '–';
+  if (serverDown && !IN_SHELL) out.push(callout('warn', ui('live.down', { at, launcher: source && source.launcher ? ' (' + esc(source.launcher) + ')' : '' })));
+  if (lostAccess) out.push(callout('warn', ui('live.lost'), `<button type="button" class="gw-btn gw-btn--sm" data-act="renew">${ui('live.renew')}</button>`));
+  if (model.trackerPath == null && !model.repo) out.push(callout('info', ui('overview.no-tracker', { dir: esc(DEFAULT_TRACKER_DIR) }) + (source && source.live ? '' : ' ' + ui('overview.no-tracker-snapshot', { dir: esc(DEFAULT_TRACKER_DIR) }))));
+  $('notices').innerHTML = out.join('');
+  $('notices').hidden = !out.length;
+}
+
+// The overview: four numbers and the progress under them, on the "Waiting on" view; the change
+// log only once something changed.
 function renderOverview() {
   const m = model;
-  const total = m.tickets.length, open = m.open.length;
-  const statuses = [...m.statusCounts.entries()].sort((a, b) => CLOSED.has(a[0]) - CLOSED.has(b[0]) || b[1] - a[1]);
-  const statusButton = ([s, n]) => `<button type="button" class="chip t-${statusTone(s)}${CLOSED.has(s) ? ' closed' : ''}" data-status="${esc(s)}" aria-pressed="${state.status === s}" title="${esc(ui('overview.filter-status'))}">${esc(statusName(s))} <b>${n}</b></button>`;
-  const openChips = statuses.filter(([s]) => !CLOSED.has(s)).map(statusButton).join('');
-  const closedChips = statuses.filter(([s]) => CLOSED.has(s)).map(statusButton).join('');
-  // The bar reads as progress: the closed part first, then the open states.
-  const barOrder = [...statuses.filter(([s]) => CLOSED.has(s)), ...statuses.filter(([s]) => !CLOSED.has(s))];
-  const stack = barOrder.map(([s, n]) => `<span class="t-${statusTone(s)}${CLOSED.has(s) ? ' closed' : ''}" style="flex:${n}" title="${esc(statusName(s))}: ${n}"></span>`).join('');
-  const blocked = m.open.filter((t) => t.blocked).length;
+  const box = $('overview');
+  if (state.view !== 'waiting') { box.innerHTML = ''; box.hidden = true; return; }
+  box.hidden = false;
+  const total = m.tickets.length, open = m.open.length, done = total - open;
   const inGroup = (id) => m.open.filter((t) => GROUPS.find((g) => g.id === id).has(t.status));
   const agentAll = inGroup('agent');
   const agentFree = agentAll.filter((t) => !t.blocked).length;
   const human = inGroup('human').length;
-  const done = total - open;
-  const kpi = (tone, value, key, sub, extra = '') => `<div class="kpi${tone ? ' t-' + tone : ''}${value === 0 || value === '0' ? ' zero' : ''}${extra}"><span class="v">${value}</span><span class="k">${key}</span>${sub ? `<span class="s">${sub}</span>` : ''}</div>`;
+  const blocked = m.open.filter((t) => t.blocked).length;
+  const tile = (tone, value, label, sub, good, href) => {
+    const tag = href ? 'a' : 'div';
+    return `<${tag} class="tile${value === 0 ? ' is-zero' : ''}${good ? ' is-good' : ''}"${href ? ` href="#/waiting" data-jump="${href}"` : ''}><span class="tile__label"><span class="gw-dot gw-dot--${tone}"></span>${label}</span><span class="tile__value">${value}</span><span class="tile__sub">${sub}</span></${tag}>`;
+  };
+  const none = `${ui('kpi.none')}`;
+  const tiles = [
+    tile('neutral', open, ui('kpi.open'), ui('kpi.open-sub', { total })),
+    tile('accent', agentFree, ui('kpi.agent'), agentAll.length > agentFree ? ui('kpi.agent-sub-blocked', { n: agentAll.length - agentFree }) : agentFree ? ui('kpi.agent-sub') : '', false, agentFree ? 'group-agent' : ''),
+    tile('warn', human, ui('kpi.human'), human ? ui('kpi.human-sub') : none, !human, human ? 'group-human' : ''),
+    tile('bad', blocked, ui('kpi.blocked'), blocked ? ui('kpi.blocked-sub') : none, !blocked),
+  ].join('');
+  const p = pct(done, total);
+  const foot = `<div class="summary__foot"><span class="gw-progress" style="--value:${p}%" role="img" aria-label="${esc(ui('overview.bar-label', { open, done }))}"></span><span class="summary__pct">${total ? ui('overview.done', { p }) : '–'}<span>${ui('overview.closed', { done, total })}</span></span><button type="button" class="gw-btn gw-btn--icon gw-btn--sm" data-act="refresh" title="${esc(ui(refreshKey()))}" aria-label="${esc(ui(refreshKey()))}">${icon('refresh')}</button></div>`;
 
-  let changes;
-  if (!changeLog.length) {
-    changes = ui(source.live ? 'overview.no-changes' : 'overview.no-changes-snapshot');
-    changes = `<div class="changes">${changes}</div>`;
-  } else {
+  let changes = '';
+  if (changeLog.length) {
     const item = (it) => `<li>${m.byPath.has(it.path) ? `<a href="${docHref(it.path)}" data-doc="${esc(it.path)}"><b>${esc(it.label)}</b></a>` : `<b>${esc(it.label)}</b>`}: ${esc(it.text())}</li>`;
     const [latest, ...older] = changeLog;
-    changes = `<details class="changes" data-key="changes"${openDetails.has('changes') ? ' open' : ''}><summary>${ui('overview.latest-change', { time: clock(latest.at) })} ${latest.items.slice(0, 3).map((it) => `<b>${esc(it.label)}</b> ${esc(it.text())}`).join('; ')}${latest.items.length > 3 ? ui('overview.and-more', { n: latest.items.length - 3 }) : ''}</summary>
-<ul>${latest.items.map(item).join('')}</ul>${older.map((b) => `<div style="margin-top:6px">${clock(b.at)}</div><ul>${b.items.map(item).join('')}</ul>`).join('')}</details>`;
+    changes = `<details class="changes" data-key="changes"${openDetails.has('changes') ? ' open' : ''}><summary><span class="gw-dot gw-dot--info"></span><span class="txt">${ui('overview.latest-change', { time: clock(latest.at) })} ${latest.items.slice(0, 3).map((it) => `<b>${esc(it.label)}</b> ${esc(it.text())}`).join('; ')}${latest.items.length > 3 ? ui('overview.and-more', { n: latest.items.length - 3 }) : ''}</span></summary>
+<ul>${latest.items.map(item).join('')}</ul>${older.map((b) => `<div class="older">${clock(b.at)}</div><ul>${b.items.map(item).join('')}</ul>`).join('')}</details>`;
   }
-
-  $('overview').innerHTML = `
-<div class="kpis">
-${kpi('', open, ui('kpi.open'), ui('kpi.open-sub', { total, areas: m.areaList.length, adrs: m.adrs.length }), ' main')}
-${kpi('agent', agentFree, ui('kpi.agent'), agentAll.length > agentFree ? ui('kpi.agent-sub-blocked', { n: agentAll.length - agentFree }) : ui('kpi.agent-sub'))}
-${kpi('human', human, ui('kpi.human'), 'ready-for-human, needs-info, needs-triage')}
-${kpi('bad', blocked, ui('kpi.blocked'), ui('kpi.blocked-sub'))}
-${kpi('done', total ? pct(done, total) + '<small>%</small>' : '–', ui('kpi.done'), ui('kpi.done-sub', { n: done }))}
-</div>
-${total ? `<div class="progress"><div class="head"><span><b>${ui('overview.progress')}</b></span><span>${ui('overview.closed', { done, total })}${blocked ? ui('overview.blocked', { n: blocked }) : ''}</span></div>
-<div class="stack" role="img" aria-label="${esc(ui('overview.bar-label', { open, done }))}">${stack}</div>
-<div class="chips">${closedChips}${openChips && closedChips ? '<span class="sep"></span>' : ''}${openChips}</div></div>` : ''}
-${m.trackerPath == null && !m.repo ? `<div class="notice">${ui('overview.no-tracker', { dir: esc(DEFAULT_TRACKER_DIR) })}${source.live ? '' : ' ' + ui('overview.no-tracker-snapshot', { dir: esc(DEFAULT_TRACKER_DIR) })}</div>` : ''}
-${changes}`;
+  box.innerHTML = `<section class="gw-card summary" aria-label="${esc(ui('overview.label'))}"><div class="tiles">${tiles}</div>${total ? foot : ''}</section>${changes}`;
 }
+// The refresh button's words: from the server or a live folder it reads again; a snapshot
+// asks for the folder again.
+const refreshKey = () => (source && !source.live ? 'live.reread' : lostAccess ? 'live.renew' : 'live.refresh');
 
 function renderTabs() {
+  const real = model.problems.filter((p) => !INFO_KINDS.has(p.kind)).length;
+  const branches = gitState.data ? gitState.data.refs.filter((r) => r.kind !== 'tag').length : 0;
   $('tabs').innerHTML = VIEWS.map(([id, label]) => {
-    let badge = '';
-    if (id === 'waiting') badge = `<span class="badge">${model.open.length}</span>`;
-    const real = model.problems.filter((p) => !INFO_KINDS.has(p.kind)).length;
-    if (id === 'git' && gitState.data) badge = `<span class="badge">${gitState.data.refs.filter((r) => r.kind === 'branch').length}</span>`;
-    if (id === 'checks' && real) badge = `<span class="badge warn">${real}</span>`;
-    else if (id === 'checks' && model.problems.length) badge = `<span class="badge">${model.problems.length}</span>`;
-    return `<a href="#/${id}"${state.view === id ? ' aria-current="page"' : ''}>${ui(label)}${badge}</a>`;
+    let b = '';
+    if (id === 'waiting') b = count(model.open.length);
+    if (id === 'git' && gitState.data) b = count(branches);
+    if (id === 'checks' && real) b = `<span class="gw-badge gw-badge--warn" title="${esc(ui('checks.real', { n: real }))}">${real}</span>`;
+    else if (id === 'checks' && model.problems.length) b = count(model.problems.length);
+    return `<a href="#/${id}"${state.view === id ? ' aria-current="page"' : ''}>${ui(label)}${b}</a>`;
   }).join('');
   // On a narrow screen the tabs scroll sideways: keep the current one in sight.
   const nav = $('tabs'), cur = nav.querySelector('[aria-current]');
@@ -1444,58 +1498,80 @@ function renderFilters() {
   const m = model;
   if (state.status && !m.statusCounts.has(state.status)) state.status = '';
   if (state.area && !m.areas.has(state.area)) state.area = '';
-  const statuses = [...m.statusCounts.keys()].sort((a, b) => CLOSED.has(a) - CLOSED.has(b) || a.localeCompare(b));
+  const statuses = [...m.statusCounts.keys()].sort((a, b) => CLOSED.has(a) - CLOSED.has(b) || statusName(a).localeCompare(statusName(b), i18n.lang));
   $('f-status').innerHTML = `<option value="">${ui('filter.all-statuses')}</option>` + statuses.map((s) => `<option value="${esc(s)}"${s === state.status ? ' selected' : ''}>${esc(statusName(s))} (${m.statusCounts.get(s)})</option>`).join('');
   const areas = [...m.areas.values()].filter((a) => a.name).sort((a, b) => a.name.localeCompare(b.name));
   $('f-area').innerHTML = `<option value="">${ui('filter.all-areas')}</option>` + areas.map((a) => `<option value="${esc(a.name)}"${a.name === state.area ? ' selected' : ''}>${esc(a.name)} (${a.open}/${a.tickets.length})</option>`).join('');
+  $('f-area').hidden = !areas.length;
   $('f-closed').checked = state.showClosed;
   if ($('q').value !== state.q) $('q').value = state.q;
+  const fs = FILTERS[state.view] || [];
+  $('filters').hidden = !fs.length;
+  for (const el of $('filters').querySelectorAll('[data-f]')) el.hidden = !fs.includes(el.dataset.f) || (el.dataset.f === 'area' && !areas.length);
+  $('f-toggle').hidden = !fs.some((f) => f !== 'q');
 }
 
+// Under the filters: the ones in force, each with its ✕, and how many tickets they hide.
 function renderSummary() {
+  const pills = [];
+  const pill = (label, value, act) => `<span class="pill">${label} <b>${value}</b><button type="button" data-act="${act}" title="${esc(ui('filter.remove'))}" aria-label="${esc(ui('filter.remove-label', { what: label }))}">${icon('x')}</button></span>`;
+  if (state.prd) pills.push(pill(ui('filter.prd'), esc(state.prd), 'clear-prd'));
+  if (state.q.trim() && applies('q')) pills.push(pill(ui('filter.search-pill'), '“' + esc(state.q.trim()) + '”', 'clear-q'));
+  if (state.status && applies('status')) pills.push(pill(ui('filter.status'), esc(statusName(state.status)), 'clear-status'));
+  if (state.area && applies('area')) pills.push(pill(ui('filter.area'), esc(state.area), 'clear-area'));
+  if (state.showClosed && applies('closed')) pills.push(pill(ui('filter.closed-pill'), ui('filter.shown-yes'), 'clear-closed'));
+  $('f-active').innerHTML = pills.length ? `<span>${ui('filter.active')}</span>${pills.join('')}${pills.length > 1 ? `<button type="button" class="link" data-act="clear">${ui('filter.clear')}</button>` : ''}` : '';
+  $('f-active').hidden = !pills.length;
+  const n = pills.length - (state.prd ? 1 : 0) - (state.q.trim() && applies('q') ? 1 : 0);
+  $('f-count').textContent = n;
+  $('f-count').hidden = !n;
+  if (!applies('closed')) { $('f-summary').innerHTML = ''; return; }
   const shown = visibleTickets().length;
   const hidden = model.tickets.filter((t) => matches(t, true)).length - shown;
-  const prd = state.prd ? `<span class="prd-filter">${ui('filter.prd', { id: `<span class="prd-ref">${esc(state.prd)}</span>` })} <button type="button" class="quiet" data-act="clear-prd" title="${esc(ui('filter.prd-clear'))}" aria-label="${esc(ui('filter.prd-clear'))}">×</button></span> · ` : '';
-  $('f-summary').innerHTML = prd + ui('filter.shown', { n: shown }) + (hidden ? ` · ${ui('filter.hidden', { n: hidden })} <button type="button" class="quiet" data-act="show-closed">${ui('filter.show')}</button>` : '') + (state.q || state.status || state.area || state.prd ? ` <button type="button" class="quiet" data-act="clear">${ui('filter.clear')}</button>` : '');
+  $('f-summary').innerHTML = ui('filter.shown', { n: shown }) + (hidden ? ` · ${ui('filter.hidden', { n: hidden })} <button type="button" data-act="show-closed">${ui('filter.show')}</button>` : '');
 }
 
 const VIEW_RENDERERS = {
   waiting() {
     const list = visibleTickets();
     const used = new Set();
-    const section = (title, hint, items, always) => {
+    // A group with nothing in it is one quiet line; with a status filter on, only what it lets through shows.
+    const section = (id, title, hint, items, always) => {
       items.forEach((t) => used.add(t));
-      if (!items.length && !always) return '';
+      if (!items.length && !(always && !state.status && !state.q.trim())) return '';
+      if (!items.length) return `<section class="group is-empty" id="group-${id}">${sectionHead(esc(title), count(0), `<span class="none-yet">${icon('check')}${ui('group.none')}</span>`)}</section>`;
       items = [...items].sort((a, b) => a.blocked - b.blocked);
       const blocked = items.filter((t) => t.blocked).length;
-      return `<section class="group"><h2>${esc(title)} <span class="count">${items.length}</span>${blocked ? `<span class="flag blocked">${ui('flag.blocked-n', { n: blocked })}</span>` : ''}<span class="hint">${esc(hint)}</span></h2>${ticketTable(items)}</section>`;
+      return `<section class="group" id="group-${id}">${sectionHead(esc(title), count(items.length) + (blocked ? badge('bad', ui('flag.blocked-n', { n: blocked })) : ''), esc(hint))}${ticketTable(items)}</section>`;
     };
-    let html = GROUPS.map((g) => section(ui(g.title), ui(g.hint), list.filter((t) => g.has(t.status)), g.id === 'agent' || g.id === 'human')).join('');
+    let html = GROUPS.map((g) => section(g.id, ui(g.title), ui(g.hint), list.filter((t) => g.has(t.status)), g.id === 'agent' || g.id === 'human')).join('');
     const rest = list.filter((t) => !used.has(t) && !isClosed(t) && t.status !== UNPARSED);
-    for (const s of [...new Set(rest.map((t) => t.status))].sort()) html += section(s, ui('group.unknown.hint'), rest.filter((t) => t.status === s));
-    html += section(ui('group.unparsed'), ui('group.unparsed.hint'), list.filter((t) => t.status === UNPARSED));
-    html += section(ui('group.closed'), [...CLOSED].join(', '), list.filter(isClosed));
-    return html;
+    for (const s of [...new Set(rest.map((t) => t.status))].sort()) html += section('s-' + s, statusName(s), ui('group.unknown.hint'), rest.filter((t) => t.status === s));
+    html += section('unparsed', ui('group.unparsed'), ui('group.unparsed.hint'), list.filter((t) => t.status === UNPARSED));
+    html += section('closed', ui('group.closed'), ui('group.closed.hint'), list.filter(isClosed));
+    return html || empty('inbox', ui('table.empty'), ui('filter.nothing'));
   },
 
   areas() {
     const q = fold(state.q.trim());
+    const anySpec = model.areaList.some((a) => a.spec);
     const rows = model.areaList.filter((a) => (!state.area || a.name === state.area)).map((a) => {
       const tickets = a.tickets.filter((t) => matches(t, false));
       if ((q || state.status) && !tickets.length && !(q && !state.status && fold(a.name + ' ' + (a.spec ? a.spec.title : '')).includes(q))) return '';
       const key = 'area:' + a.name;
-      const docs = a.docs.map((d) => `<li><span class="kind">${esc(d.rel.split('/').length > 1 ? d.rel.split('/')[0] : 'md')}</span><a href="${docHref(d.path)}" data-doc="${esc(d.path)}">${esc(d.title)}</a><span class="path">${esc(d.rel)}</span></li>`).join('');
-      return `<details class="area" data-key="${esc(key)}"${openDetails.has(key) ? ' open' : ''}>
-<summary><span class="name">${esc(a.name || ui('area.root'))}</span>
-<span class="spec">${a.spec ? '<span class="kind">spec</span>' + esc(a.spec.title) : `<i>${ui('area.no-spec')}</i>`}</span>
-<span class="bar2${a.tickets.length ? '' : ' none'}" title="${esc(ui('area.bar-title', { closed: a.closed, total: a.tickets.length }))}"><i style="--p:${pct(a.closed, a.tickets.length)}%"></i></span>
-<span class="cnt">${a.tickets.length ? ui('area.count', { open: `<b>${a.open}</b>`, closed: a.closed }) : ui('area.no-tickets')}</span></summary>
-<div class="inner"><ul class="doclist">
-${a.spec ? `<li><span class="kind">spec</span><a href="${docHref(a.spec.path)}" data-doc="${esc(a.spec.path)}">${esc(a.spec.title)}</a><span class="path">${esc(a.spec.rel)}</span></li>` : ''}
-${docs}${a.extras ? `<li class="muted"><span class="kind">${ui('area.other')}</span>${ui('area.extras', { n: a.extras })}</li>` : ''}</ul>
+      const specBadge = badge('neutral', ui('area.spec'));
+      const docs = a.docs.map((d) => `<li>${badge('neutral', esc(d.rel.split('/').length > 1 ? d.rel.split('/')[0] : ui('area.doc')))}<a href="${docHref(d.path)}" data-doc="${esc(d.path)}">${esc(d.title)}</a><span class="path">${esc(d.rel)}</span></li>`).join('');
+      return `<details class="area gw-card${anySpec ? '' : ' no-specs'}" data-key="${esc(key)}"${openDetails.has(key) ? ' open' : ''}>
+<summary><span class="area__name">${esc(a.name || ui('area.root'))}</span>
+${anySpec ? `<span class="area__spec">${a.spec ? specBadge + esc(a.spec.title) : `<span class="muted">${ui('area.no-spec')}</span>`}</span>` : ''}
+<span class="gw-progress" style="--value:${pct(a.closed, a.tickets.length)}%" title="${esc(ui('area.bar-title', { closed: a.closed, total: a.tickets.length }))}"></span>
+<span class="area__cnt">${a.tickets.length ? ui('area.count', { open: `<b>${a.open}</b>`, closed: a.closed }) : ui('area.no-tickets')}</span></summary>
+<div class="inner">${a.spec || docs || a.extras ? `<ul class="doclist">
+${a.spec ? `<li>${specBadge}<a href="${docHref(a.spec.path)}" data-doc="${esc(a.spec.path)}">${esc(a.spec.title)}</a><span class="path">${esc(a.spec.rel)}</span></li>` : ''}
+${docs}${a.extras ? `<li class="muted">${badge('neutral', ui('area.other'))}${ui('area.extras', { n: a.extras })}</li>` : ''}</ul>` : '<div style="height:12px"></div>'}
 ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.length ? `<p class="muted">${ui('area.hidden', { n: a.tickets.length - tickets.length })}</p>` : ''}</div></details>`;
     }).join('');
-    return `<p class="lead">${ui('area.lead')}</p>${rows || `<div class="empty">${ui('area.empty')}</div>`}`;
+    return `<p class="lead">${ui('area.lead')}</p>${rows || empty('inbox', ui('area.empty'), '')}`;
   },
 
   deps() {
@@ -1508,35 +1584,50 @@ ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.leng
     const parents = (t) => t.blockers.map((b) => b.ticket).filter((b) => b && nodes.has(b));
     const linked = [...nodes].filter((t) => children(t).length || parents(t).length);
     const placed = new Set();
-    const node = (t, path) => {
+    const node = (t, path, top) => {
       placed.add(t);
       const loop = path.includes(t);
       const kids = loop ? [] : children(t);
       const others = parents(t).filter((p) => p !== path[path.length - 1]);
       const ctx = !visible.has(t);
-      return `<li><div class="node${ctx ? ' ctx' : ''}">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)}${flags(t)}${loop ? ` <span class="flag blocked">${ui('deps.loop')}</span>` : ''}${path.length && others.length ? `<span class="rel">${ui('deps.also-waits', { list: others.map((p) => ticketLink(p)).join(' ') })}</span>` : ''}</div>${kids.length ? `<span class="unlocks">${ui('deps.unlocks')}</span><ul>${kids.map((k) => node(k, [...path, t])).join('')}</ul>` : ''}</li>`;
+      return `<li${top ? ' class="gw-card"' : ''}><div class="node${ctx ? ' ctx' : ''}">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a> ${chip(t.status)}${flags(t)}${loop ? ' ' + badge('bad', ui('deps.loop')) : ''}${path.length && others.length ? `<span class="rel">${ui('deps.also-waits', { list: others.map((p) => ticketLink(p)).join(' ') })}</span>` : ''}</div>${kids.length ? `<span class="unlocks">${ui('deps.unlocks')}</span><ul>${kids.map((k) => node(k, [...path, t])).join('')}</ul>` : ''}</li>`;
     };
     let html = '';
-    for (const t of linked) if (!parents(t).length) html += node(t, []);
-    for (const t of linked) if (!placed.has(t)) html += node(t, []);
+    for (const t of linked) if (!parents(t).length) html += node(t, [], true);
+    for (const t of linked) if (!placed.has(t)) html += node(t, [], true);
     const waiting = linked.filter((t) => visible.has(t) && t.blocked).length;
     const free = linked.filter((t) => visible.has(t) && isFree(t)).length;
-    const legend = html ? `<div class="legend"><span><span class="flag blocked">${ui('flag.blocked')}</span> ${ui('deps.legend-blocked')}</span><span><span class="flag free">${ui('flag.free')}</span> ${ui('deps.legend-free')}</span><span class="muted">${ui('deps.legend-dim')}</span></div>` : '';
-    return `<p class="lead">${ui('deps.lead')} ${state.showClosed || state.status ? '' : ui('deps.lead-closed') + ' '}${waiting ? ui('deps.waiting', { n: waiting }) : ui('deps.none-waiting')}${free ? ' ' + ui('deps.free', { n: free }) : ''}</p>${legend}${html ? `<ul class="tree">${html}</ul>` : `<div class="empty">${ui('deps.empty')}</div>`}`;
+    const legend = html ? `<div class="legend"><span>${badge('bad', ui('flag.blocked'))} ${ui('deps.legend-blocked')}</span><span>${badge('ok', ui('flag.free'))} ${ui('deps.legend-free')}</span><span>${ui('deps.legend-dim')}</span></div>` : '';
+    return `<p class="lead">${ui('deps.lead')} ${state.showClosed || state.status ? '' : ui('deps.lead-closed') + ' '}${waiting ? ui('deps.waiting', { n: waiting }) : ui('deps.none-waiting')}${free ? ' ' + ui('deps.free', { n: free }) : ''}</p>${legend}${html ? `<ul class="tree">${html}</ul>` : empty('branch', ui('deps.empty'), '')}`;
   },
 
+  // The dated comments, by day. A GitHub issue's opening and closing are not comments: hidden
+  // unless asked for, and then one line per ticket and day ("Opened and closed on GitHub").
   activity() {
+    const q = fold(state.q.trim());
+    const ok = (t) => (!state.area || t.area === state.area) && (!q || t.hay.includes(q)) && (!state.prd || t.prd.includes(state.prd));
     const days = new Map();
-    for (const c of model.comments) {
-      if (!matches(c.ticket, true)) continue;
+    const mine = model.comments.filter((c) => ok(c.ticket));
+    const events = mine.filter((c) => c.event).length;
+    // Until asked, the events show only where there is nothing else to show.
+    const showEvents = state.githubEvents == null ? events === mine.length : state.githubEvents;
+    for (const c of mine) {
+      if (c.event && !showEvents) continue;
       if (!days.has(c.date)) days.set(c.date, new Map());
       const byTicket = days.get(c.date);
       if (!byTicket.has(c.ticket)) byTicket.set(c.ticket, []);
       byTicket.get(c.ticket).push(c);
     }
+    const notes = (list) => {
+      const real = list.filter((c) => !c.event);
+      const ev = list.filter((c) => c.event).map((c) => c.event);
+      const evLine = ev.length ? `<div class="event">${ui(ev.includes('opened') && ev.includes('closed') ? 'activity.opened-closed' : ev.includes('closed') ? 'activity.closed' : 'activity.opened')}</div>` : '';
+      return real.map((c) => `<div>${esc(commentTitle(c))}</div>`).join('') + evLine;
+    };
     const all = [...days.entries()];
-    const html = all.slice(0, state.activityDays).map(([date, byTicket]) => `<section class="day"><h3>${date} <span class="muted">· ${ui('activity.tickets', { n: byTicket.size })}</span></h3><ul>${[...byTicket.entries()].map(([t, list]) => `<li><div class="node">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)} <span class="rel">${esc(t.area)}</span></div><div class="notes">${list.map((c) => `<div>${esc(commentTitle(c))}</div>`).join('')}</div></li>`).join('')}</ul></section>`).join('');
-    return `<p class="lead">${ui('activity.lead')}</p>${html || `<div class="empty">${ui('activity.empty')}</div>`}${all.length > state.activityDays ? `<button type="button" data-act="more-days">${ui('activity.more', { n: all.length - state.activityDays })}</button>` : ''}`;
+    const html = all.slice(0, state.activityDays).map(([date, byTicket]) => `<section class="day"><div class="day__head"><h3>${esc(dateText(date))}</h3><span>${ui('activity.tickets', { n: byTicket.size })}</span></div><ul class="gw-card">${[...byTicket.entries()].map(([t, list]) => `<li><div class="node">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a> ${chip(t.status)}${t.area ? ` <span class="rel">${esc(t.area)}</span>` : ''}</div><div class="notes">${notes(list)}</div></li>`).join('')}</ul></section>`).join('');
+    const toggle = events ? `<div class="view-actions"><button type="button" class="gw-btn gw-btn--sm" data-act="github-events" aria-pressed="${showEvents}">${ui('activity.github-events', { n: events })}</button></div>` : '';
+    return `<p class="lead">${ui('activity.lead')}</p>${toggle}${html || empty('inbox', ui('activity.empty'), events && !showEvents ? ui('activity.empty-events', { n: events }) : '')}${all.length > state.activityDays ? `<button type="button" class="gw-btn" data-act="more-days">${ui('activity.more', { n: all.length - state.activityDays })}</button>` : ''}`;
   },
 
   checks() {
@@ -1546,27 +1637,32 @@ ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.leng
       const items = list.filter((p) => p.kind === kind);
       if (!items.length) return '';
       const openOnes = items.filter((p) => p.tickets.some((t) => !isClosed(t))).length;
-      return `<section class="group${info ? ' info' : ''}"><h2>${ui(title)} <span class="count">${items.length}</span><span class="hint">${info ? ui('checks.info') + ' · ' : ''}${ui('checks.affects', { n: openOnes })}</span></h2><div class="tablewrap"><table class="grid"><thead><tr><th>${ui('table.ticket')}</th><th class="c-st">${ui('table.status')}</th><th>${ui('checks.problem')}</th></tr></thead><tbody>${items.map((p) => `<tr><td class="c-title">${p.tickets.map((t) => `${ticketLink(t)} <a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a><div class="note">${esc(t.path)}</div>`).join('')}</td><td class="c-st">${p.tickets.map((t) => chip(t.status)).join('<br>')}</td><td>${esc(ui(p.key, p.params))}</td></tr>`).join('')}</tbody></table></div></section>`;
+      return `<section class="group${info ? ' info' : ''}">${sectionHead(ui(title), count(items.length) + (info ? badge('info', ui('checks.info')) : ''), ui('checks.affects', { n: openOnes }))}<div class="gw-card tablewrap"><table class="grid"><thead><tr><th>${ui('table.ticket')}</th><th class="c-st">${ui('table.status')}</th><th>${ui('checks.problem')}</th></tr></thead><tbody>${items.map((p) => `<tr><td class="c-title">${p.tickets.map((t) => `${ticketLink(t)} <a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a><div class="note">${esc(t.path)}</div>`).join('')}</td><td class="c-st">${p.tickets.map((t) => chip(t.status)).join('<br>')}</td><td>${esc(ui(p.key, p.params))}</td></tr>`).join('')}</tbody></table></div></section>`;
     }).join('');
-    return `<p class="lead">${ui('checks.lead')}</p>${html || `<div class="empty">${ui('checks.empty')}</div>`}`;
+    return `<p class="lead">${ui('checks.lead')}</p>${html || empty('check', ui('checks.empty'), '')}`;
   },
 
   git: renderGitView,
 
+  // Only the kinds of document the project has; one line at the end names the missing ones.
   docs() {
     const q = fold(state.q.trim());
     const ok = (d) => (!state.area || d.area === state.area) && (!q || d.hay.includes(q));
     const link = (d) => `<a class="open" href="${docHref(d.path)}" data-doc="${esc(d.path)}">${esc(d.title)}</a>`;
-    const table = (head, rows) => (rows.length ? `<div class="tablewrap"><table class="grid"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>` : `<div class="empty">${ui('docs.empty')}</div>`);
+    const table = (head, rows) => `<div class="gw-card tablewrap"><table class="grid"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
     const specs = model.docs.filter((d) => d.kind === 'spec' && ok(d));
     const other = model.docs.filter((d) => d.kind === 'doc' && ok(d));
     const adrs = state.area ? [] : model.adrs.filter((d) => !q || d.hay.includes(q));
-    const row = (d) => `<tr data-doc="${esc(d.path)}"><td class="c-area">${esc(d.area || '–')}</td><td class="c-title">${link(d)}<div class="note">${esc(d.path)}</div></td></tr>`;
+    const row = (d) => `<tr data-doc="${esc(d.path)}"><td class="c-area">${esc(d.area || '–')}</td><td class="c-title">${link(d)}<div class="note mono">${esc(d.path)}</div></td></tr>`;
     const own = state.area ? [] : [model.readme, ...model.glossaries].filter((d) => d && (!q || d.hay.includes(q)));
-    return `${own.length ? `<section class="group"><h2>${ui('docs.own')}<span class="hint">${ui('docs.own.hint')}</span></h2>${table([ui('docs.file'), ui('docs.title')], own.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-area"><span class="kind">${ui(d.kind === 'readme' ? 'docs.readme' : 'docs.glossary')}</span>${esc(d.path)}</td><td class="c-title">${link(d)}</td></tr>`))}</section>` : ''}
-<section class="group"><h2>${ui('docs.other')} <span class="count">${other.length}</span><span class="hint">${ui('docs.other.hint')}</span></h2>${table([ui('table.area'), ui('docs.document')], other.map(row))}</section>
-<section class="group"><h2>${ui('docs.specs')} <span class="count">${specs.length}</span></h2>${table([ui('table.area'), ui('docs.spec')], specs.map(row))}</section>
-${state.area ? '' : `<section class="group"><h2>${ui('docs.adrs')} <span class="count">${adrs.length}</span><span class="hint">${model.adrPath ? esc(model.adrPath) + '/' : ui('docs.no-adr-dir')}</span></h2>${table([ui('table.num'), ui('docs.decision'), ui('docs.adr-status')], adrs.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-num">${esc(d.num || '–')}</td><td class="c-title">${link(d)}</td><td>${d.status ? esc(d.status) : '<span class="muted">–</span>'}</td></tr>`))}</section>`}`;
+    const parts = [];
+    if (own.length) parts.push(`<section class="group">${sectionHead(ui('docs.own'), count(own.length), ui('docs.own.hint'))}${table([ui('docs.title'), ui('docs.file')], own.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-title">${link(d)}</td><td>${badge('neutral', ui(d.kind === 'readme' ? 'docs.readme' : 'docs.glossary'))} <span class="mono muted">${esc(d.path)}</span></td></tr>`))}</section>`);
+    if (specs.length) parts.push(`<section class="group">${sectionHead(ui('docs.specs'), count(specs.length), '')}${table([ui('table.area'), ui('docs.spec')], specs.map(row))}</section>`);
+    if (adrs.length) parts.push(`<section class="group">${sectionHead(ui('docs.adrs'), count(adrs.length), model.adrPath ? `<span class="mono">${esc(model.adrPath)}/</span>` : '')}${table([ui('table.num'), ui('docs.decision'), ui('docs.adr-status')], adrs.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-num">${esc(d.num || '–')}</td><td class="c-title">${link(d)}</td><td>${d.status ? esc(d.status) : '<span class="dash">–</span>'}</td></tr>`))}</section>`);
+    if (other.length) parts.push(`<section class="group">${sectionHead(ui('docs.other'), count(other.length), ui('docs.other.hint'))}${table([ui('table.area'), ui('docs.document')], other.map(row))}</section>`);
+    if (q || state.area) return parts.join('') || empty('doc', ui('docs.empty'), '');
+    const missing = [!specs.length && ui('docs.missing-specs'), !adrs.length && ui('docs.missing-adrs')].filter(Boolean);
+    return parts.join('') + (missing.length ? empty('doc', ui(missing.length === 2 ? 'docs.none-both' : 'docs.none-one', { what: missing[0] }), ui('docs.none-text')) : '');
   },
 };
 
@@ -1652,30 +1748,26 @@ function refPill(r, color, asButton) {
 }
 
 function branchState(r, g) {
-  if (r.kind === 'branch' && r.name === g.base) return `<span class="flag free">${ui('git.base')}</span>`;
-  if (r.ahead == null) return '<span class="muted">–</span>';
+  if (r.kind === 'branch' && r.name === g.base) return badge('accent', ui('git.base'));
+  if (r.ahead == null) return '<span class="dash">–</span>';
   // The base's own remote: not merged into it, only behind or ahead of it.
   const baseRef = g.refs.find((b) => b.kind === 'branch' && b.name === g.base);
   if (r.kind === 'remote' && baseRef && baseRef.upstream === r.name) {
-    if (!r.ahead && !r.behind) return `<span class="flag free">${ui('git.same', { base: esc(g.base) })}</span>`;
-    return [r.behind ? `<span class="flag fresh">${ui('git.not-pushed', { n: r.behind })}</span>` : '', r.ahead ? `<span class="flag fresh">${ui('git.not-pulled', { n: r.ahead })}</span>` : ''].filter(Boolean).join(' ');
+    if (!r.ahead && !r.behind) return badge('ok', ui('git.same', { base: esc(g.base) }));
+    return [r.behind ? badge('info', ui('git.not-pushed', { n: r.behind })) : '', r.ahead ? badge('info', ui('git.not-pulled', { n: r.ahead })) : ''].filter(Boolean).join(' ');
   }
-  if (r.ahead === 0) return `<span class="flag free">${ui('git.merged', { base: esc(g.base) })}</span>${r.behind ? ` <span class="muted">${ui('git.behind-merged', { n: r.behind, base: esc(g.base) })}</span>` : ''}`;
-  return `<span class="flag fresh">${ui('git.ahead', { n: r.ahead, base: esc(g.base) })}</span>${r.behind ? ` <span class="muted">${ui('git.behind', { n: r.behind })}</span>` : ''}`;
+  if (r.ahead === 0) return `${badge('ok', ui('git.merged', { base: esc(g.base) }))}${r.behind ? ` <span class="muted">${ui('git.behind-merged', { n: r.behind, base: esc(g.base) })}</span>` : ''}`;
+  return `${badge('info', ui('git.ahead', { n: r.ahead, base: esc(g.base) }))}${r.behind ? ` <span class="muted">${ui('git.behind', { n: r.behind })}</span>` : ''}`;
 }
 
 function renderGitView() {
-  if (!source || !source.server) {
-    return `<p class="lead">${ui('git.no-server')}</p>`;
-  }
-  if (!source.git) {
-    return `<div class="notice">${ui('git.old-server')}</div>`;
-  }
+  if (!source || !source.server) return empty('branch', ui('git.no-server-title'), ui('git.no-server'));
+  if (!source.git) return `<div class="gw-callout gw-callout--warn"><div class="gw-callout__body">${ui('git.old-server')}</div></div>`;
   const g = gitState.data;
   if (!g) {
     return gitState.error
-      ? `<div class="empty">${gitState.error === NO_REPO ? ui('git.no-repo') : ui('git.error', { error: esc(gitState.error) })}</div>`
-      : `<div class="empty">${ui('git.loading')}</div>`;
+      ? empty('branch', gitState.error === NO_REPO ? ui('git.no-repo') : ui('git.error', { error: esc(gitState.error) }), '')
+      : empty('branch', ui('git.loading'), '');
   }
   const layout = layoutGit(g);
   const color = new Map(layout.rows.map((r) => [r.c.hash, r.color]));
@@ -1684,12 +1776,13 @@ function renderGitView() {
   const order = { branch: 0, remote: 1, tag: 2 };
   for (const list of refsAt.values()) list.sort((a, b) => b.head - a.head || order[a.kind] - order[b.kind] || a.name.localeCompare(b.name));
 
-  // The branches, the newest first; the base on top.
+  // The branches, local and remote, the newest first; the base on top. The tab counts the same.
   const branches = g.refs.filter((r) => r.kind !== 'tag').sort((a, b) => (b.name === g.base && b.kind === 'branch') - (a.name === g.base && a.kind === 'branch') || b.date - a.date);
+  const local = branches.filter((r) => r.kind === 'branch').length;
   const baseUp = (g.refs.find((r) => r.kind === 'branch' && r.name === g.base) || {}).upstream;
   const merged = branches.filter((r) => r.ahead === 0 && !(r.kind === 'remote' && r.name === baseUp)).length;
   const merges = g.commits.filter((c) => c.parents.length > 1).length;
-  const table = `<div class="tablewrap"><table class="grid"><thead><tr><th>${ui('git.branch')}</th><th>${ui('git.relation', { base: g.base ? esc(g.base) : ui('git.base-branch') })}</th><th class="c-last">${ui('git.last-commit')}</th></tr></thead><tbody>${branches.map((r) => `<tr><td class="c-branch">${refPill(r, color.get(r.hash) ?? 7, true)}${r.worktree && !r.head ? ` <span class="flag fresh" title="${esc(ui('git.worktree-title'))}">worktree</span>` : ''}${r.upstream ? ` <span class="muted">→ ${esc(r.upstream)}</span>` : ''}</td><td>${branchState(r, g)}</td><td class="c-last" title="${esc(fullTime(r.date))}">${esc(relTime(r.date))}</td></tr>`).join('')}</tbody></table></div>`;
+  const table = `<div class="gw-card tablewrap"><table class="grid"><thead><tr><th>${ui('git.branch')}</th><th>${ui('git.relation', { base: g.base ? esc(g.base) : ui('git.base-branch') })}</th><th class="c-last">${ui('git.last-commit')}</th></tr></thead><tbody>${branches.map((r) => `<tr><td class="c-branch">${refPill(r, color.get(r.hash) ?? 7, true)}${r.worktree && !r.head ? ' ' + badge('violet', ui('git.worktree'), ui('git.worktree-title')) : ''}${r.upstream ? `<span class="muted">→ ${esc(r.upstream)}</span>` : ''}</td><td>${branchState(r, g)}</td><td class="c-last" title="${esc(fullTime(r.date))}">${esc(relTime(r.date))}</td></tr>`).join('')}</tbody></table></div>`;
 
   const w = 10 + layout.width * GIT_LANE_W + 2;   // as gitSvg draws it
   const rows = layout.rows.map((r) => {
@@ -1716,20 +1809,30 @@ function renderGitView() {
   });
   flush();
   const shown = g.commits.length;
+  const tags = g.refs.filter((r) => r.kind === 'tag').length;
+  const legend = `<span class="legend-refs">${ui('git.legend')} ${refPill({ kind: 'branch', name: ui('git.local'), hash: '' }, 0, false)} ${refPill({ kind: 'remote', name: ui('git.remote'), hash: '' }, 0, false)} ${refPill({ kind: 'tag', name: ui('git.tag'), hash: '' }, 0, false)} ${refPill({ kind: 'branch', name: ui('git.checked-out-branch'), hash: '', head: true }, 0, false)}</span>`;
   return `<p class="lead">${ui('git.lead')}</p>
-<section class="group"><h2>${ui('git.branches')} <span class="count">${branches.length}</span><span class="hint">${ui('git.branches-hint', { merged, base: esc(g.base), tags: g.refs.filter((r) => r.kind === 'tag').length })} · ${g.headBranch ? ui('git.checked-out', { name: esc(g.headBranch) }) : ui('git.detached')}</span></h2>${table}</section>
-<section class="group"><h2>${ui('git.graph')} <span class="count">${shown}</span><span class="hint">${shown < g.total ? ui('git.newest', { shown, total: g.total }) : ui('git.all')} · ${ui('git.merges', { n: merges })}</span></h2>
-<div class="graph" style="--row-h:${GIT_ROW_H}px"><div class="rows">${html}</div></div>
-<div class="graph-foot">${shown < g.total ? `<button type="button" data-act="more-commits">${ui('git.more', { n: Math.min(GIT_PAGE, g.total - shown) })}</button>` : ''}<span>${ui('git.legend')} ${refPill({ kind: 'branch', name: ui('git.local'), hash: '' }, 0, false)} ${refPill({ kind: 'remote', name: ui('git.remote'), hash: '' }, 0, false)} ${refPill({ kind: 'tag', name: ui('git.tag'), hash: '' }, 0, false)} ${refPill({ kind: 'branch', name: ui('git.checked-out-branch'), hash: '', head: true }, 0, false)}</span></div></section>`;
+<section class="group">${sectionHead(ui('git.branches'), count(branches.length), [ui('git.local-remote', { local, remote: branches.length - local }), ui('git.merged-n', { merged, base: esc(g.base) }), tags ? ui('git.tags', { n: tags }) : '', g.headBranch ? ui('git.checked-out', { name: esc(g.headBranch) }) : ui('git.detached')].filter(Boolean).join(' · '))}${table}</section>
+<section class="group">${sectionHead(ui('git.graph'), count(shown), (shown < g.total ? ui('git.newest', { shown, total: g.total }) : ui('git.all')) + ' · ' + ui('git.merges', { n: merges }))}
+<div class="gw-card graph" style="--row-h:${GIT_ROW_H}px"><div class="rows">${html}</div></div>
+<div class="graph-foot">${shown < g.total ? `<button type="button" class="gw-btn" data-act="more-commits">${ui('git.more', { n: Math.min(GIT_PAGE, g.total - shown) })}</button>` : ''}${legend}</div></section>`;
 }
 
 function renderView() {
   if (!model) return;
   const y = window.scrollY;
-  $('filters').hidden = state.view === 'git';
   $('view').innerHTML = (VIEW_RENDERERS[state.view] || VIEW_RENDERERS.waiting)();
   renderSummary();
   window.scrollTo(0, y);
+}
+
+// The text without its first heading when that only repeats the title shown above it.
+function withoutTitle(text, title) {
+  const lines = text.split(/\r?\n/);
+  const at = lines.findIndex((l) => /^#\s+/.test(l));
+  if (at < 0 || lines.slice(0, at).some((l) => l.trim())) return text;
+  const h1 = plainInline(lines[at].replace(/^#\s+/, ''));
+  return fold(h1).includes(fold(title)) ? lines.slice(at + 1).join('\n') : text;
 }
 
 function renderDrawer() {
@@ -1747,22 +1850,24 @@ function renderDrawer() {
     const area = model.areas.get(t.area);
     const row = (k, v) => (v ? `<dt>${k}</dt><dd>${v}</dd>` : '');
     meta = `<dl class="meta">
-${row(ui('table.status'), chip(t.status) + flags(t) + (t.statusNote ? ' ' + esc(t.statusNote) : ''))}
-${row(ui('table.area'), esc(t.area) + (area && area.spec ? ` · <a href="${docHref(area.spec.path)}" data-doc="${esc(area.spec.path)}"><span class="kind">spec</span>${esc(area.spec.title)}</a>` : ''))}
-${row(ui('drawer.prd'), prdLinks(t))}
+${row(ui('table.area'), esc(t.area) + (area && area.spec ? ` · ${badge('neutral', ui('area.spec'))} <a href="${docHref(area.spec.path)}" data-doc="${esc(area.spec.path)}">${esc(area.spec.title)}</a>` : ''))}
+${t.statusNote ? row(ui('drawer.note'), esc(t.statusNote)) : ''}
+${row(ui('drawer.prd'), t.prd.length ? prdLinks(t) : t.prdNone ? `<span class="muted">${ui('drawer.prd-none')}</span>` : '')}
 ${row(ui('table.checks'), t.checks.total ? meter(t.checks) : '')}
 ${row(ui('table.blocked-by'), blockerLinks(t) + (t.notes.length ? ' <span class="muted">' + esc(t.notes.join('; ')) + '</span>' : ''))}
 ${row(ui('drawer.unlocks'), t.dependents.map((d) => ticketLink(d)).join(' '))}
 ${row(ui('drawer.earlier'), esc(t.earlier))}${row(ui('drawer.type'), esc(t.type))}
-${row(ui('table.last-comment'), t.lastComment ? `<span class="mono">${t.lastComment}</span> · ${ui('drawer.comments', { n: t.comments.length })}` : '')}
-${row(ui('drawer.labels'), (t.labels || []).map((l) => `<span class="kind">${esc(l)}</span>`).join(' '))}
-${t.source === 'github' ? row(ui('drawer.github'), `<a href="${esc(t.url)}" target="_blank" rel="noopener noreferrer" class="mono">${esc(t.path)}</a>`) : row(ui('docs.file'), `<span class="mono">${esc(t.path)}</span>`)}</dl>`;
-    $('drawer-title').innerHTML = `<span class="num">${esc(t.label)}</span>${esc(t.title)}`;
+${row(ui('table.last-comment'), t.lastComment ? `${esc(dateText(t.lastComment))} · ${ui('drawer.comments', { n: t.comments.filter((c) => !c.event).length })}` : '')}
+${row(ui('drawer.labels'), (t.labels || []).map((l) => `<span class="gw-tag">${esc(l)}</span>`).join(' '))}
+${t.source === 'github' ? row(ui('drawer.github'), `<a href="${esc(t.url)}" target="_blank" rel="noopener noreferrer" class="gw-tag">${esc(t.path)} ↗</a>`) : row(ui('docs.file'), `<span class="gw-tag">${esc(t.path)}</span>`)}</dl>`;
+    $('drawer-kicker').innerHTML = `<span class="gw-tag">${esc(t.label)}</span>${chip(t.status)}${flags(t)}`;
   } else {
-    meta = `<dl class="meta"><dt>${ui('docs.file')}</dt><dd><span class="mono">${esc(doc.path)}</span></dd>${doc.kind === 'adr' && doc.status ? `<dt>${ui('docs.adr-status')}</dt><dd>${esc(doc.status)}</dd>` : ''}</dl>`;
-    $('drawer-title').textContent = doc.title;
+    meta = `<dl class="meta"><dt>${ui('docs.file')}</dt><dd><span class="gw-tag">${esc(doc.path)}</span></dd>${doc.kind === 'adr' && doc.status ? `<dt>${ui('docs.adr-status')}</dt><dd>${esc(doc.status)}</dd>` : ''}</dl>`;
+    const kind = { adr: 'docs.adr', spec: 'area.spec', readme: 'docs.readme', glossary: 'docs.glossary' }[doc.kind] || 'area.doc';
+    $('drawer-kicker').innerHTML = badge('neutral', ui(kind)) + (doc.area ? `<span class="muted">${esc(doc.area)}</span>` : '');
   }
-  body.innerHTML = meta + '<div class="md">' + renderMarkdown(doc.text, { path: doc.path, model }) + '</div>';
+  $('drawer-title').textContent = doc.title;
+  body.innerHTML = meta + '<div class="md">' + renderMarkdown(withoutTitle(doc.text, doc.title), { path: doc.path, model }) + '</div>';
   const wasHidden = drawer.hidden;
   drawer.hidden = false;
   $('shade').hidden = false;
@@ -1795,15 +1900,15 @@ function closeDrawer() {
 function renderAll() {
   $('start').hidden = true;
   $('app').hidden = false;
-  const name = model.projectName || ui('page.project');
-  $('project').innerHTML = `${esc(name)}<small>${ui('page.subtitle')}</small>`;
-  document.title = ui('page.title-open', { n: model.open.length, name });
+  renderBrand();
+  document.title = ui('page.title-open', { n: model.open.length, name: model.projectName || ui('page.project') });
+  renderNotices();
   renderOverview();
   renderTabs();
   renderFilters();
   renderView();
   renderDrawer();
-  renderLive(false);
+  renderLive();
 }
 
 // ───────────────────────── Routing and events ─────────────────────────
@@ -1817,7 +1922,7 @@ function readHash() {
   state.view = view;
   state.doc = doc;
   if (!model) return;
-  if (viewChanged) { renderTabs(); renderOverview(); renderView(); window.scrollTo(0, 0); }
+  if (viewChanged) { renderTabs(); renderOverview(); renderFilters(); renderView(); window.scrollTo(0, 0); }
   renderDrawer();
 }
 window.addEventListener('hashchange', readHash);
@@ -1833,8 +1938,6 @@ function clearPrd() {
 }
 
 function filtersChanged() {
-  saveState();
-  renderOverview();
   renderFilters();
   renderView();
 }
@@ -1848,16 +1951,46 @@ $('q').addEventListener('input', () => {
 $('f-status').addEventListener('change', (e) => { state.status = e.target.value; filtersChanged(); });
 $('f-area').addEventListener('change', (e) => { state.area = e.target.value; filtersChanged(); });
 $('f-closed').addEventListener('change', (e) => { state.showClosed = e.target.checked; filtersChanged(); });
+$('f-toggle').addEventListener('click', () => {
+  const open = !$('filters').classList.contains('is-open');
+  $('filters').classList.toggle('is-open', open);
+  $('f-toggle').setAttribute('aria-expanded', String(open));
+});
+
+// Read again now: from the server or a live folder; a snapshot asks for the folder again; a
+// folder the browser stopped letting the page read asks for the permission first.
+async function readAgain() {
+  if (!source) return;
+  if (!source.live) { $('dir-input').click(); return; }
+  if (lostAccess) {
+    try { if (await source.root.requestPermission({ mode: 'read' }) !== 'granted') return; } catch (e) { return; }
+  }
+  announce = true;
+  refresh();
+}
 
 document.addEventListener('click', (e) => {
   const act = e.target.closest('[data-act]');
   if (act) {
-    if (act.dataset.act === 'show-closed') state.showClosed = true;
-    if (act.dataset.act === 'clear') { state.q = ''; state.status = ''; state.area = ''; clearPrd(); }
-    if (act.dataset.act === 'clear-prd') clearPrd();
-    if (act.dataset.act === 'more-days') { state.activityDays += 30; renderView(); return; }
-    if (act.dataset.act === 'more-commits') { gitState.limit += GIT_PAGE; act.disabled = true; refreshGit().then(() => renderView()); return; }
+    const what = act.dataset.act;
+    if (what === 'refresh' || what === 'renew') { readAgain(); return; }
+    if (what === 'more-days') { state.activityDays += 30; renderView(); return; }
+    if (what === 'github-events') { state.githubEvents = act.getAttribute('aria-pressed') !== 'true'; renderView(); return; }
+    if (what === 'more-commits') { gitState.limit += GIT_PAGE; act.disabled = true; refreshGit().then(() => { renderTabs(); renderView(); }); return; }
+    if (what === 'show-closed') state.showClosed = true;
+    if (what === 'clear') { state.q = ''; state.status = ''; state.area = ''; state.showClosed = false; clearPrd(); }
+    if (what === 'clear-prd') clearPrd();
+    if (what === 'clear-q') state.q = '';
+    if (what === 'clear-status') state.status = '';
+    if (what === 'clear-area') state.area = '';
+    if (what === 'clear-closed') state.showClosed = false;
     filtersChanged();
+    return;
+  }
+  const jumpTo = e.target.closest('[data-jump]');
+  if (jumpTo) {
+    const el = $(jumpTo.dataset.jump);
+    if (el) { e.preventDefault(); el.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
     return;
   }
   const jump = e.target.closest('[data-git-jump]');
@@ -1876,13 +2009,6 @@ document.addEventListener('click', (e) => {
     renderView();
     return;
   }
-  const statusChip = e.target.closest('button[data-status]');
-  if (statusChip) {
-    state.status = state.status === statusChip.dataset.status ? '' : statusChip.dataset.status;
-    if (state.view !== 'waiting' && state.view !== 'areas') location.hash = '#/waiting';
-    filtersChanged();
-    return;
-  }
   const link = e.target.closest('a[data-doc]');
   if (link) { if (!$('drawer').contains(link)) lastOpener = link.dataset.doc; return; }
   const row = e.target.closest('tr[data-doc]');
@@ -1897,7 +2023,7 @@ document.addEventListener('toggle', (e) => {
 }, true);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !$('drawer').hidden) { e.preventDefault(); closeDrawer(); return; }
-  if (e.key === '/' && !$('app').hidden && $('drawer').hidden && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $('q').focus(); }
+  if (e.key === '/' && !$('app').hidden && $('drawer').hidden && applies('q') && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $('q').focus(); }
 });
 $('drawer-close').addEventListener('click', closeDrawer);
 $('shade').addEventListener('click', closeDrawer);
@@ -1935,15 +2061,9 @@ $('change').addEventListener('click', async () => {
   showStart();
   if (canPick) pickFolder();
 });
-$('refresh').addEventListener('click', async () => {
-  if (!source) return;
-  if (!source.live) { $('dir-input').click(); return; }
-  if (lostAccess) {
-    try { if (await source.root.requestPermission({ mode: 'read' }) !== 'granted') return; } catch (e) { return; }
-  }
-  refresh();
-});
-document.addEventListener('visibilitychange', () => { if (!document.hidden && source && source.live) refresh(); });
+// From the server the live updates say what changed; a folder read in the browser is read again
+// when the page comes back into sight.
+document.addEventListener('visibilitychange', () => { if (!document.hidden && source && source.live && !source.server) refresh(); });
 
 // A dropped folder: live where the browser hands out a handle, a snapshot elsewhere.
 let dragDepth = 0;
@@ -1972,17 +2092,15 @@ document.addEventListener('drop', async (e) => {
 // ───────────────────────── Layout ─────────────────────────
 // Light or dark follows the operating system (the shell's theme); there is no switch here.
 
-// The sticky day headings sit right under the top bar, whatever its height.
-const topHeight = () => document.documentElement.style.setProperty('--top-h', (getComputedStyle($('top')).position === 'sticky' ? $('top').offsetHeight : 0) + 'px');
+// The tabs stick right under the page's own bar (none inside the shell), whatever its height.
+const topHeight = () => document.documentElement.style.setProperty('--top-h', (getComputedStyle($('top')).display !== 'none' ? $('top').offsetHeight : 0) + 'px');
 if (typeof ResizeObserver === 'function') new ResizeObserver(topHeight).observe($('top'));
 window.addEventListener('resize', topHeight);
 topHeight();
 
-// ───────────────────────── Boot ─────────────────────────
-
 // ───────────────────────── Language ─────────────────────────
 // Inside the shell the shell's picker sets the language and this page follows it (i18n listens);
-// alone, the page shows its own picker (hidden in the shell by CSS).
+// alone, the page shows its own picker (in its own bar, which the shell hides).
 
 let resumeName = '';   // the remembered folder, offered on the start screen
 
@@ -1996,9 +2114,8 @@ function relabelStart() {
 function relabel() {
   i18n.apply(document);
   relabelStart();
-  renderVersion();
   if (model) renderAll();
-  else { $('project').textContent = ui('page.title'); document.title = ui('page.title'); renderLive(false); }
+  else { renderBrand(); document.title = ui('page.title'); renderLive(); }
 }
 
 const langPicker = $('lang');
@@ -2007,6 +2124,8 @@ langPicker.addEventListener('change', () => i18n.set(langPicker.value));
 i18n.onChange(() => { langPicker.value = i18n.lang; relabel(); });
 langPicker.value = i18n.lang;
 relabel();
+
+// ───────────────────────── Boot ─────────────────────────
 
 async function boot() {
   $('pick').hidden = !canPick;
@@ -2022,7 +2141,7 @@ async function boot() {
   $('resume').hidden = false;
   resumeName = saved.name;
   relabelStart();
-  $('pick').classList.remove('primary');
+  $('pick').classList.remove('gw-btn--primary');
   $('resume-btn').onclick = async () => {
     try {
       if (await saved.requestPermission({ mode: 'read' }) === 'granted') await start({ adapter: handleAdapter, root: saved, name: saved.name, live: true });
