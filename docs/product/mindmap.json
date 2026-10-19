@@ -1848,8 +1848,10 @@
                     "topic": "Worktree-k és branchek: előnyben, lemaradva, összefésülve, takarítható",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "note": "Minden worktree és helyi branch: előnyben/lemaradva az integrációs ághoz képest, összefésülve, nem commitolt változások, zárolt (futó agent), és ha ismert, a benne dolgozó agent és a jegy. Az eltakarítható (összefésült, tiszta, nem zárolt) worktree-hez és branchhez a git worktree remove / git branch -d parancs másolható; a modul semmit nem futtat. Élő: a refek változása az agents.git téma.",
+                    "hyperLink": "modules/agents/view/worktrees.mjs"
                   },
                   {
                     "id": "f-agents-attention",
@@ -1992,7 +1994,9 @@
                     "topic": "A worktree-k és branchek állapotát a git adja",
                     "metadata": {
                       "status": "decision"
-                    }
+                    },
+                    "note": "A szerver csak olvas (GIT_OPTIONAL_LOCKS=0). Az integrációs ágat a gráfból becsüli: a linkelt worktree-ben ki nem vett, máshová még nem beolvadt branchek közül az, amelyhez képest a legkevesebb saját commitja van; döntetlennél az alapértelmezett ág, aztán a legkevésbé lemaradt. Egy beolvasztott branch nem alapja annak, amibe beolvadt (first-parent ellenőrzés). Egy-egy hívás branchenként a for-each-ref %(ahead-behind)-del (git 2.41+), régebbin rev-list.",
+                    "hyperLink": "modules/agents/git-worktrees.mjs"
                   }
                 ]
               },
