@@ -404,7 +404,7 @@
 <script type="module">
 import MindElixir from '/vendor/mind-elixir/MindElixir.js'
 import { STATUSES, IMPL, iconUrl } from './node-types.mjs'
-import { buildPrd, progressSummary, PROGRESS_LABEL, IMPL_LABEL, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from './documents.mjs'
+import { buildPrd, progressSummary, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from './documents.mjs'
 import { marked } from '/vendor/marked/marked.esm.js'
 
 for (const key of Object.keys(STATUSES)) document.documentElement.style.setProperty(`--i-${key}`, iconUrl(key))
@@ -716,13 +716,14 @@ async function loadGlossary() {
   try { glossary = (await (await fetch('/api/plan/glossary')).json()).text || '' } catch { glossary = '' }
 }
 
-function itemHtml(it, { showSection = false } = {}) {
+// t: the document strings of the map's language (doc-strings.mjs)
+function itemHtml(it, t, { showSection = false } = {}) {
   const link = it.link ? ` <a href="#" data-link="${esc(it.link)}" title="${esc(it.link)}">↗ ${esc(it.link)}</a>` : ''
   const note = it.note ? `<span class="n">— ${esc(it.note)}</span>` : ''
-  const sec = showSection ? `<span class="s">${esc(it.untouched ? 'érintetlen fejezet' : it.section)}</span>` : ''
+  const sec = showSection ? `<span class="s">${esc(it.untouched ? t.untouchedSection : it.section)}</span>` : ''
   const st = it.status ? ` data-status="${it.status}"` : ''
-  const impl = it.impl ? ` <span class="impl ${it.impl}">${IMPL_LABEL[it.impl]}</span>` : ''
-  const inf = it.status === 'inferred' ? ' <span class="inf">kódból · megerősítésre vár</span>' : ''
+  const impl = it.impl ? ` <span class="impl ${it.impl}">${t.impl[it.impl]}</span>` : ''
+  const inf = it.status === 'inferred' ? ` <span class="inf">${t.inferred}</span>` : ''
   return `<li data-id="${it.id}"${st} style="--d:${showSection ? 0 : it.depth}"><i></i><span class="c"><span class="t">${esc(it.topic)}</span>${impl}${inf} ${note}${link}</span>${sec}</li>`
 }
 
@@ -734,6 +735,7 @@ function renderPrd() {
   if (!docs.some((d) => d.id === currentDoc)) currentDoc = docs[0].id
   const prd = buildPrd(data, currentDoc)
   const D = { subtitle: prd.subtitle, cross: prd.cross, file: `${BASE_DIR}/${prd.doc.file}` }
+  const t = prd.text
   const count = progressSummary(prd)
   const parts = []
   if (docs.length > 1) {
@@ -745,20 +747,20 @@ function renderPrd() {
   }
   parts.push(`<h1>${esc(prd.title)}</h1>`)
   parts.push(`<div class="sub"><span>${D.subtitle} · élő</span><span>${D.file} automatikusan frissül</span></div>`)
-  parts.push(`<div class="bar">${prd.sections.map((s) => `<span class="${s.progress}" data-jump="${s.id}" title="${esc(s.title)}: ${PROGRESS_LABEL[s.progress]}"></span>`).join('')}</div>`)
+  parts.push(`<div class="bar">${prd.sections.map((s) => `<span class="${s.progress}" data-jump="${s.id}" title="${esc(s.title)}: ${t.progress[s.progress]}"></span>`).join('')}</div>`)
   const implTotal = count.impl.done + count.impl.partial + count.impl.missing
-  parts.push(`<div class="counts">${count.done} kész · ${count.active} folyamatban · ${count.untouched} érintetlen fejezet` +
-    (count.inferred ? ` · <b style="color:var(--inferred)">${count.inferred} kódból, megerősítésre vár</b>` : '') +
-    (implTotal ? `<br>Megvalósítás: <b style="color:var(--decision)">${count.impl.done} kész</b> · <b style="color:var(--parked)">${count.impl.partial} részben</b> · <b style="color:var(--missing)">${count.impl.missing} hiányzik</b>` : '') +
+  parts.push(`<div class="counts">${t.sectionCounts(count, ' · ')}` +
+    (count.inferred ? ` · <b style="color:var(--inferred)">${count.inferred} ${t.inferred}</b>` : '') +
+    (implTotal ? `<br>${t.implementation}: <b style="color:var(--decision)">${count.impl.done} ${t.impl.done}</b> · <b style="color:var(--parked)">${count.impl.partial} ${t.impl.partial}</b> · <b style="color:var(--missing)">${count.impl.missing} ${t.impl.missing}</b>` : '') +
     '</div>')
 
   prd.sections.forEach((s, i) => {
     parts.push(`<section id="sec-${s.id}" data-section="${s.id}">`)
-    parts.push(`<h2 data-id="${s.id}"><span class="num">${i + 1}.</span><span>${esc(s.title)}</span><span class="chip ${s.progress}">${PROGRESS_LABEL[s.progress]}</span></h2>`)
+    parts.push(`<h2 data-id="${s.id}"><span class="num">${i + 1}.</span><span>${esc(s.title)}</span><span class="chip ${s.progress}">${t.progress[s.progress]}</span></h2>`)
     if (s.prose) parts.push(`<div class="prose claude" data-key="${s.id}:claude"><button class="edit" data-edit="claude">Szerkesztés</button>${md(s.prose)}</div>`)
     for (const h of s.human) parts.push(`<div class="prose human" data-key="${s.id}:${h.id}"><span class="who">Te írtad · Claude nem írja felül</span><button class="edit" data-edit="${h.id}">Szerkesztés</button>${md(h.text)}</div>`)
-    if (!s.prose && !s.human.length && !s.items.length) parts.push('<p class="placeholder">Még nem beszéltük át.</p>')
-    if (s.items.length) parts.push(`<ul class="items">${s.items.map((it) => itemHtml(it)).join('')}</ul>`)
+    if (!s.prose && !s.human.length && !s.items.length) parts.push(`<p class="placeholder">${t.notDiscussed}</p>`)
+    if (s.items.length) parts.push(`<ul class="items">${s.items.map((it) => itemHtml(it, t)).join('')}</ul>`)
     parts.push(`<button class="add" data-add="${s.id}">+ Saját bekezdés</button>`)
     parts.push('</section>')
   })
@@ -766,9 +768,9 @@ function renderPrd() {
   const cross = [[D.cross.nonGoals, prd.nonGoals], [D.cross.later, prd.later], [D.cross.open, prd.open]]
   for (const [title, list] of cross) {
     if (!list.length) continue
-    parts.push(`<section class="cross"><h2>${title}</h2><ul class="items">${list.map((it) => itemHtml(it, { showSection: true })).join('')}</ul></section>`)
+    parts.push(`<section class="cross"><h2>${title}</h2><ul class="items">${list.map((it) => itemHtml(it, t, { showSection: true })).join('')}</ul></section>`)
   }
-  if ((prd.kind === 'prd' || prd.kind === 'system') && glossary.trim()) parts.push(`<section class="cross"><h2>Fogalmak</h2><div class="glossary">${md(glossary)}</div></section>`)
+  if ((prd.kind === 'prd' || prd.kind === 'system') && glossary.trim()) parts.push(`<section class="cross"><h2>${t.glossary}</h2><div class="glossary">${md(glossary)}</div></section>`)
 
   doc.innerHTML = parts.join('')
   const pick = doc.querySelector('[data-docpick]')
