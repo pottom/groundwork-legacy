@@ -7,6 +7,10 @@
 // (reject.mjs). Each save is made on the version the page saw; when the file changed meanwhile the
 // page says so and shows the newer one. Saving and errors are short toasts. The language follows the
 // shell (strings.mjs).
+//
+// A product idea moved to To develop goes to Plan's map as a todo node, and a rejected one, when the
+// human asks, as a non-goal (plan.mjs); without Plan a toast says the map is unavailable. An address
+// with ?idea=I-12 (the link on the idea's node) opens that idea in the drawer.
 
 import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
@@ -15,6 +19,7 @@ import { listIdeas, saveIdea } from './api.mjs'
 import { board } from './board.mjs'
 import { drawer, valuesOf, changesOf } from './drawer.mjs'
 import { rejectForm } from './reject.mjs'
+import { toMap } from './plan.mjs'
 
 const $ = (id) => document.getElementById(id)
 const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null }
@@ -23,6 +28,7 @@ let ask = null      // the reason a move to Rejected asks for: { idea, reason, e
 let toasts = []
 let known = null    // the ids seen so far; null before the first read
 let freshTimer
+let linked = new URLSearchParams(location.search).get('idea')   // the idea the address names, until opened
 
 function draw() {
   render(board(state, boardActs), $('board'))
@@ -56,6 +62,9 @@ async function read() {
   }
   document.body.dataset.state = 'ready'
   draw()
+  // An address naming an idea (/?module=ideas&idea=I-12, e.g. from its node on Plan's map) opens it once.
+  const wanted = linked && state.ideas?.find((i) => i.id === linked)
+  if (wanted) { linked = null; boardActs.open(wanted) }
 }
 
 // A save's answer: the idea as saved, or the newer one when someone else saved first.
@@ -67,15 +76,27 @@ function answered(r, done) {
   return r
 }
 
+// The idea on Plan's map (plan.mjs): a todo node, or a non-goal with its reason; the idea then links
+// to the node. Without Plan the page says the map is unavailable, and the idea stays as it is.
+async function sendToMap(idea, status, reason) {
+  const r = await toMap(idea, { status, reason }, saveIdea)
+  if (r.unavailable) toast(ui('toast.no-map', { id: idea.id }), 'info')
+  else if (r.error) toast(ui('toast.map-error', { id: idea.id, error: r.error }), 'bad')
+  else { put(r.idea); toast(ui('toast.on-map', { id: idea.id })) }
+  draw()
+}
+
 async function move(idea, status) {
   if (status === 'rejected') {
-    ask = { idea, reason: '', error: null }
+    ask = { idea, reason: '', toMap: false, error: null }
     draw()
     $('reject').showModal()
     return
   }
-  answered(await saveIdea(idea, { status }), () => {})
+  const r = answered(await saveIdea(idea, { status }), () => {})
   document.querySelector(`[data-idea="${idea.id}"] .idea__move`)?.focus()
+  // A product idea to develop becomes a todo on the map (f-ideas-to-plan); an engineering one a ticket.
+  if (r.ok && status === 'to-develop' && (r.idea.kind ?? 'product') === 'product') await sendToMap(r.idea, 'todo')
 }
 
 const boardActs = {
@@ -114,11 +135,15 @@ const drawerActs = {
 
 const rejectActs = {
   edit(reason) { ask.reason = reason; draw() },
+  toMap(on) { ask.toMap = on; draw() },
   async confirm() {
+    const { toMap: wanted } = ask
     const r = await saveIdea(ask.idea, { status: 'rejected', reason: ask.reason })
     if (r.error) ask = { ...ask, error: r.error }
     answered(r, () => {})
-    if (!r.error) $('reject').close()
+    if (r.error) return
+    $('reject').close()
+    if (r.ok && wanted) await sendToMap(r.idea, 'excluded', r.idea.reason)
   },
   cancel() { $('reject').close() },
 }

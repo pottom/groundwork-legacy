@@ -6,6 +6,10 @@
 //   GET /api/plan/ids[?v=<version>]  { v, ids }: the ids of the map's nodes, or { v, same: true } as above;
 //                                    what Build checks the tickets' PRD lines against, without the map
 //   GET /api/plan/glossary           { text } of the project's GLOSSARY.md
+//   POST /api/plan/todo              { idea: 'I-12', title, status?: 'todo'|'excluded', reason? } -> { id, added }:
+//                                    an idea from the Ideas module as a node linked to it (todo.mjs);
+//                                    400 a wrong body, 404 no map, 415 not sent as application/json
+//                                    (so no other web site can post one)
 //
 // Live updates (core/events.mjs): the map file changing is the topic "plan.map", the glossary
 // "plan.glossary"; the page then asks /api/plan/map again (the documents follow the map).
@@ -14,6 +18,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { send, readJson } from '../../core/http.mjs'
 import { openMap, nodeIds } from './map-store.mjs'
+import { addIdea } from './todo.mjs'
 import { VERSION } from '../../core/version.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -44,8 +49,9 @@ export default {
   ] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],
-  // What another module may read (modules/README.md): the map's ids, for Build's PRD checks.
-  public: ['GET /api/plan/ids'],
+  // What another module may use (modules/README.md): the map's ids, for Build's PRD checks; and the
+  // one write another module may ask for, an idea as a node, for Ideas.
+  public: ['GET /api/plan/ids', 'POST /api/plan/todo'],
   // Local state from before the move to .groundwork/plan/ (the prd-maker prototype).
   moves: { '.prd-maker': '.groundwork/plan' },
   // `groundwork plan <command>` runs plan.mjs: the skill's tool and the hook.
@@ -61,6 +67,18 @@ export default {
     return async (req, res, sub, url) => {
       if (sub === '/glossary' && req.method === 'GET') return send(res, 200, { text: store.glossary() }), true
       if (sub === '/ids' && req.method === 'GET') return sendFromMap(store, root, res, url, ({ v, data }) => ({ v, ids: nodeIds(data) })), true
+      if (sub === '/todo') {
+        if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' }), true
+        // Only a JSON request: another web site cannot send one here without the browser asking first.
+        if (!/^application\/json\b/i.test(req.headers['content-type'] ?? '')) return send(res, 415, { error: 'send JSON' }), true
+        if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` }), true
+        try {
+          send(res, 200, addIdea(store, await readJson(req)))
+        } catch (e) {
+          send(res, e.code === 'bad' || e instanceof SyntaxError ? 400 : 500, { error: e.message })
+        }
+        return true
+      }
       if (sub !== '/map') return false
       if (req.method === 'GET') return sendFromMap(store, root, res, url, (map) => map), true
       if (req.method === 'PUT') {

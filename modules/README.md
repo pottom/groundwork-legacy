@@ -29,7 +29,7 @@ export default {
   tool: false,                                           // optional: true for a tool (Sketch), whose tab comes after the workflow's, behind a separator
   view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
   writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
-  public: ['GET /api/plan/ids'],                         // the endpoints other modules may read (see below)
+  public: ['GET /api/plan/ids', 'POST /api/plan/todo'],  // the endpoints other modules may use (see below)
   moves: { '.prd-maker': '.groundwork/plan' },           // optional: old state the core moves over once
   watch: (path) => (path === 'docs/product/mindmap.json' ? 'plan.map' : null),  // optional: live-update topic of a changed file
   cli: path.join(HERE, 'plan.mjs'),                      // optional: run by `groundwork plan <args>`
@@ -49,7 +49,7 @@ Endpoints answer with `send` from [`core/http.mjs`](../core/http.mjs): never cac
 
 Modules read each other's data only through small, declared public endpoints, never through the other's files or its full data:
 
-- A module lists in `public` the endpoints another module may read, and its README lists them under "Public endpoints". Each answers exactly what the reader needs and nothing more: today Plan's `GET /api/plan/ids` (the map's ids, not the map) and Build's `GET /api/build/prd` (the ticket counts per map item, not the tickets).
+- A module lists in `public` the endpoints another module may read, and its README lists them under "Public endpoints". Each answers exactly what the reader needs and nothing more: today Plan's `GET /api/plan/ids` (the map's ids, not the map) and Build's `GET /api/build/prd` (the ticket counts per map item, not the tickets). A public endpoint is a `GET`, except a small write the owner takes on another module's behalf: Plan's `POST /api/plan/todo` (an idea from Ideas as a map node; the map is still written by Plan alone). Such a write takes only `content-type: application/json` (`415` otherwise), so no other web site can send it.
 - A module calls no other endpoint of another module, and does not open the files another module owns (Build never reads `mindmap.json`; Plan never reads tickets). A module that needs more asks for a new small endpoint in the other module's `public`, not for its full data.
 - Every module works when the other is missing. The core then answers the missing module's endpoints with `404`, and the reader takes any answer that is not `ok`, or no answer, as "nothing to show": no counts, no map, no links into the missing module, and no error on the page.
 

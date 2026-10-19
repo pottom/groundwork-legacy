@@ -96,6 +96,7 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `markdown.mjs` | a dokumentumpanel Markdownja (marked): a nyers HTML szövegként látszik, link és kép csak http(s), mailto vagy relatív címre mutathat |
 | `map-theme.mjs` | a térkép világos és sötét témája a shell színeiből, és az operációs rendszer váltásának követése |
 | `deep-link.mjs` | a közvetlen link (`?node=<azonosító>`): `planLink(id)` elkészíti, `linkTarget(search, map)` megkeresi a csomópontot; `buildLink(id)` a Buildbe visz, az elem jegyeire szűrve |
+| `todo.mjs` | az Ötletek modul ötlete csomópontként (`POST /api/plan/todo`): `todo` vagy `excluded`, az ötletre mutató linkkel, a PRD „Ötletek” fejezetében |
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
 | `docs/product/**/*.md` | a generált dokumentumok (a cél-projektben) |
 | `.groundwork/plan/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések, a generált fájlok listája (a cél-projektben; egy régi `.prd-maker/` mappát a mag ide költöztet) |
@@ -111,14 +112,16 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `PUT /api/plan/map` | `{ base, data }`: a böngésző mentése, összefésülve; ismeretlen `base` esetén `409` a mostani térképpel |
 | `GET /api/plan/ids[?v=<verzió>]` | `{ v, ids }`: a térkép csomópontjainak azonosítói, a térkép nélkül |
 | `GET /api/plan/glossary` | `{ text }`: a projekt `GLOSSARY.md`-je |
+| `POST /api/plan/todo` | `{ idea: 'I-12', title, status?: 'todo'\|'excluded', reason? }` → `{ id, added }`: egy ötlet csomópontként (`todo.mjs`); `400` hibás kérés, `404` nincs térkép, `415` nem `application/json` |
 
 ### Nyilvános végpontok
 
-Más modul csak ezeket olvashatja (a manifest `public` mezője, lásd [`modules/README.md`](../README.md#reading-another-module)):
+Más modul csak ezeket használhatja (a manifest `public` mezője, lásd [`modules/README.md`](../README.md#reading-another-module)):
 
-| Végpont | Ki olvassa |
+| Végpont | Ki használja |
 |---|---|
 | `GET /api/plan/ids` | a Build, a jegyek `**PRD:**` sorainak ellenőrzéséhez |
+| `POST /api/plan/todo` | az Ötletek: a kidolgozásra szánt termékötletből `todo` csomópont, az elvetettből kérésre `excluded` (nem cél) az indoklással. A csomópont az első PRD „Ötletek” fejezetébe kerül (első használatkor jön létre, a dokumentum nyelvén), az ötletre mutat (`/?module=ideas&idea=I-12`), szerzője `ideas`. Ugyanaz az ötlet ugyanazt a csomópontot kapja; elvetéskor az nem céllá válik. A térképet továbbra is csak a Plan írja; csak JSON kérést fogad, így más webhely nem küldheti |
 
 A Plan maga csak a Build `GET /api/build/prd` végpontját olvassa. Build nélkül a térképen nincsenek jegyszámok, hibaüzenet sincs: a Plan minden mással ugyanúgy működik.
 

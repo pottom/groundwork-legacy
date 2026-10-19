@@ -1,5 +1,6 @@
 // The kanban: one column per status (New · Considering · To develop · Rejected), a card per idea
-// with its number, title, author, source, estimate and, when rejected, the reason. The human
+// with its number, title, author, source, estimate, its nodes on Plan's map (links that open Plan
+// there) and, when rejected, the reason. The human
 // decides here: a card opens in the drawer (its title is a button), moves by drag and drop onto
 // another column, or by its move menu from the keyboard. Renders with lit-html on the shared .gw-*
 // components (/shell/theme.css).
@@ -13,6 +14,7 @@ import { html, nothing } from '/vendor/lit-html/lit-html.js'
 import { repeat } from '/vendor/lit-html/directives/repeat.js'
 import { STATUSES } from '../fields.mjs'
 import { ui } from './strings.mjs'
+import { mapLinks } from './plan.mjs'
 
 const BULB = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>`
 const MOVE = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`
@@ -61,6 +63,8 @@ const card = (idea, state, act) => html`
     ${idea.impact || idea.effort ? html`<p class="idea__estimate">
       ${idea.impact ? html`<span class="gw-badge">${ui('card.impact', { level: ui(`level.${idea.impact}`) })}</span>` : nothing}
       ${idea.effort ? html`<span class="gw-badge">${ui('card.effort', { level: ui(`level.${idea.effort}`) })}</span>` : nothing}</p>` : nothing}
+    ${mapLinks(idea).length ? html`<p class="idea__map">${mapLinks(idea).map((l) => html`<a class="gw-tag" href=${l.href} target="_top"
+      title=${ui('card.on-map', { node: l.id })} aria-label=${ui('card.on-map', { node: l.id })}>${l.id}</a>`)}</p>` : nothing}
     ${idea.status === 'rejected' && idea.reason ? html`<p class="idea__reason"><span class="idea__reason-label">${ui('card.reason')}</span> ${idea.reason}</p>` : nothing}
   </li>`
 

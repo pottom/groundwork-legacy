@@ -12,6 +12,7 @@
 //   sectionCounts(c, sep)  how many sections are done, in progress and untouched
 //   status(c)        the status line under the header
 //   inferredCount(n) how many items read from the code wait for confirmation
+//   ideasSection     the section of the PRD that holds the ideas the Ideas module sends (todo.mjs)
 
 const huCounts = (c, sep) => `${c.done} kész${sep}${c.active} folyamatban${sep}${c.untouched} érintetlen fejezet`
 const enCounts = (c, sep) => `Sections: ${c.done} done${sep}${c.active} in progress${sep}${c.untouched} untouched`
@@ -49,6 +50,7 @@ export const DOC_STRINGS = {
     notDiscussedItem: 'még nem beszéltük át',
     glossary: 'Fogalmak',
     see: 'Lásd',
+    ideasSection: 'Ötletek',
   },
   en: {
     name: 'English',
@@ -82,6 +84,7 @@ export const DOC_STRINGS = {
     notDiscussedItem: 'not discussed yet',
     glossary: 'Glossary',
     see: 'See',
+    ideasSection: 'Ideas',
   },
 }
 

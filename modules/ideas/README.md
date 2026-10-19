@@ -32,9 +32,12 @@ Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-li
 | `view/drawer.mjs` | the drawer: one idea, every field editable |
 | `view/reject.mjs` | the reason a move to Rejected asks for |
 | `view/api.mjs` | the page's calls: list the ideas, save one |
+| `view/plan.mjs` | the way to Plan's map: an idea as a node through Plan's `POST /api/plan/todo`, then the node among the idea's links; which links are map nodes |
 | `view/strings.mjs`, `ui-strings.mjs` | the UI text, English and Hungarian |
 | `view/ideas.css` | the layout of the board, the menu and the dialogs |
 
+To Plan (f-ideas-to-plan, d-ideas-plan-endpoint): a product idea moved to To develop goes to Plan's map as a `todo` node. Ideas never writes the map; the page asks Plan through its public `POST /api/plan/todo`, Plan adds the node to an "Ideas" section of the first PRD with a link back to the idea (`/?module=ideas&idea=I-12`, which opens the idea in the drawer), and the page adds the node's id to the idea's `links`. The card then links to the node on the map (a link that is not an idea, a ticket or an address is a map node). The rejection dialog can also send the idea as an `excluded` item with its reason, so the PRD lists it among its non-goals. Without Plan, or without a map, a toast says the map is unavailable and the idea stays as it is. An engineering idea goes to a ticket instead (#29).
+
 ## Public endpoints
 
-None yet.
+None yet. Ideas itself uses only Plan's `POST /api/plan/todo`.
