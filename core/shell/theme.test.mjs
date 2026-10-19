@@ -11,25 +11,29 @@ const CSS = fs.readFileSync(new URL('./theme.css', import.meta.url), 'utf8')
 const HEADER = CSS.slice(0, CSS.indexOf('*/'))
 const RULES = CSS.slice(CSS.indexOf('*/'))
 
-// The --gw-* declarations of the block `opener` starts, as { name: value }.
+// The --gw-* declarations of every block `opener` starts (the file may add tokens in later blocks), as { name: value }.
 function declarations(opener) {
-  const m = RULES.match(opener)
-  assert.ok(m, String(opener))
-  const body = RULES.slice(m.index + m[0].length)
   const out = {}
-  for (const d of body.slice(0, body.indexOf('}')).matchAll(/(--gw-[\w-]+)\s*:\s*([^;]+);/g)) out[d[1]] = d[2].trim()
+  const found = [...RULES.matchAll(opener)]
+  assert.ok(found.length, String(opener))
+  for (const m of found) {
+    const body = RULES.slice(m.index + m[0].length)
+    for (const d of body.slice(0, body.indexOf('}')).matchAll(/(--gw-[\w-]+)\s*:\s*([^;]+);/g)) out[d[1]] = d[2].trim()
+  }
   return out
 }
-const LIGHT = declarations(/^:root\s*\{/m)
-const DARK = declarations(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{/)
+const LIGHT = declarations(/^:root\s*\{/gm)
+const DARK = declarations(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{/g)
 
 const TONES = ['ok', 'warn', 'bad', 'info', 'violet', 'accent']
+// Hues with an AA text colour and a soft tint, but no badge or callout tone of their own.
+const TEXT_TONES = [...TONES, 'pink']
 
 test('every token is defined, and every token is documented in the header', () => {
   const tokens = [
     '--gw-gradient', '--gw-gradient-fill',
-    '--gw-info', '--gw-violet',
-    ...TONES.flatMap((t) => [`--gw-${t}-text`, `--gw-${t}-soft`]),
+    '--gw-info', '--gw-violet', '--gw-pink',
+    ...TEXT_TONES.flatMap((t) => [`--gw-${t}-text`, `--gw-${t}-soft`]),
     '--gw-radius-sm', '--gw-radius', '--gw-radius-lg', '--gw-radius-pill',
     '--gw-text-xs', '--gw-text-small', '--gw-text', '--gw-title', '--gw-display',
     '--gw-shadow-lg',
@@ -47,7 +51,7 @@ test('colours that change between light and dark are set in both', () => {
 test('every component class in the file is documented in the header', () => {
   const classes = new Set([...RULES.matchAll(/\.(gw-[\w-]+)/g)].map((m) => m[1]))
   for (const c of ['gw-badge', 'gw-badge--count', 'gw-tag', 'gw-seg', 'gw-btn', 'gw-btn--primary', 'gw-btn--secondary', 'gw-btn--ghost', 'gw-btn--icon',
-    'gw-card', 'gw-card--glass', 'gw-empty', 'gw-callout', 'gw-section-head', 'gw-toolbar', 'gw-toast', 'gw-tabs', 'gw-dot', 'gw-progress', 'gw-field']) {
+    'gw-card', 'gw-card--glass', 'gw-popover', 'gw-popover__title', 'gw-popover__list', 'gw-popover__item', 'gw-empty', 'gw-callout', 'gw-section-head', 'gw-toolbar', 'gw-toast', 'gw-tabs', 'gw-dot', 'gw-progress', 'gw-field']) {
     assert.ok(classes.has(c), `defined: .${c}`)
   }
   for (const tone of [...TONES, 'neutral']) assert.ok(classes.has(`gw-badge--${tone}`), `badge tone ${tone}`)
@@ -73,7 +77,7 @@ test('status text is AA on every background, also on its own soft tint', () => {
     const hue = (t) => rgb(set[`--gw-${t}`])
     for (const bgName of ['--gw-bg', '--gw-surface', '--gw-sunken']) {
       const bg = rgb(set[bgName])
-      for (const t of TONES) {
+      for (const t of TEXT_TONES) {
         const text = rgb(set[`--gw-${t}-text`])
         assert.ok(contrast(text, bg) >= 4.5, `${mode} ${t}-text on ${bgName}: ${contrast(text, bg).toFixed(2)}`)
         const tint = over(hue(t), bg, alpha)

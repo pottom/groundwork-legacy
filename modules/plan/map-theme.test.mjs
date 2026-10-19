@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { mapTheme, followColorScheme } from './map-theme.mjs'
 import plan from './module.mjs'
+import { viewSource } from './view-source.test-helper.mjs'
 
 // A stand-in for matchMedia('(prefers-color-scheme: dark)').
 function fakeScheme(matches) {
@@ -42,7 +43,7 @@ test('the theme is applied at once and again whenever the OS switches between li
 
 test('the Plan view uses the followed theme, and serves the file', () => {
   assert.ok(plan.view.files.includes('map-theme.mjs'))
-  const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8')
+  const html = viewSource()
   assert.match(html, /followColorScheme\(matchMedia\('\(prefers-color-scheme: dark\)'\)/)
   assert.doesNotMatch(html, /matchMedia\('\(prefers-color-scheme: dark\)'\)\.matches/)
 })

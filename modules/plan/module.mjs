@@ -35,7 +35,14 @@ export default {
   tagline: { en: 'Mind map & product docs', hu: 'Gondolattérkép és termékdokumentumok' },
   icon: '<circle cx="12" cy="12" r="2.6"/><circle cx="4.5" cy="6" r="1.8"/><circle cx="19.5" cy="6" r="1.8"/><circle cx="4.5" cy="18" r="1.8"/><circle cx="19.5" cy="18" r="1.8"/><path d="M6 7l3.9 3.2M18 7l-3.9 3.2M6 17l3.9-3.2M18 17l-3.9-3.2"/>',   // a map: a centre and four branches
   version: VERSION,   // the package's: one version for Groundwork and its modules
-  view: { dir: HERE, files: ['index.html', 'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs', 'view-rules.mjs'] },
+  // The page: a thin index.html, its own modules under view/ (lit-html templates; view/main.mjs is the
+  // entry), and the modules it shares with the server and the tests.
+  view: { dir: HERE, files: [
+    'index.html', 'view/plan.css', 'view/map.css',
+    'view/main.mjs', 'view/state.mjs', 'view/strings.mjs', 'view/icons.mjs', 'view/data.mjs', 'view/map.mjs', 'view/focus.mjs',
+    'view/chrome.mjs', 'view/toolbar.mjs', 'view/legend.mjs', 'view/dock.mjs', 'view/document.mjs', 'view/editor.mjs',
+    'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs', 'view-rules.mjs',
+  ] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],
   // Local state from before the move to .groundwork/plan/ (the prd-maker prototype).

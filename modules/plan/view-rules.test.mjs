@@ -75,8 +75,8 @@ test('many calls in one frame run the work once, in the next frame', () => {
 
 test('the view is served with these rules and hears live updates through the shell, with no stream or live label of its own', async () => {
   const { default: plan } = await import('./module.mjs')
-  const fs = await import('node:fs')
-  const html = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8')
+  const { viewSource } = await import('./view-source.test-helper.mjs')
+  const html = viewSource()
   assert.ok(plan.view.files.includes('view-rules.mjs'))
   assert.match(html, /import \{ subscribe \} from '\/shell\/live\.mjs'/)
   assert.doesNotMatch(html, /new EventSource/)

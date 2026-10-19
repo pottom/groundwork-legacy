@@ -46,6 +46,7 @@
      --gw-bad           error, missing             --gw-bad-text     --gw-bad-soft
      --gw-info          information, in progress   --gw-info-text    --gw-info-soft
      --gw-violet        a fifth category (topics)  --gw-violet-text  --gw-violet-soft
+     --gw-pink          a sixth: ask about it      --gw-pink-text    --gw-pink-soft    (a hue only: no badge, dot or callout tone)
      (--gw-accent)      the brand as a status      --gw-accent-text  --gw-accent-soft
 
    Typography: font sizes in the `font` shorthand form, use as `font: var(--gw-text) var(--gw-font)`
@@ -92,6 +93,14 @@
      .gw-card__head   its header row (holds a .gw-section-head or a title and actions)
      .gw-card__body   its padded content
      .gw-card--glass  floating chrome over a canvas (map toolbars, docks, tooltips): translucent, blurred
+   .gw-popover        a floating panel a button opens (a legend, a menu): glass, scrolls when tall; the page
+                      places it (position, top/left, width) and hides it with [hidden]; give its button
+                      aria-expanded and aria-controls, close it on Escape and on a click outside
+                      <div class="gw-popover" role="dialog"><h3 class="gw-popover__title">Status</h3>
+                      <ul class="gw-popover__list"><li class="gw-popover__item"><i></i>Decision</li></ul></div>
+     .gw-popover__title  a group heading, small and muted
+     .gw-popover__list   its rows; style="--gw-popover-cols: 2" for two columns
+     .gw-popover__item   a row: an icon slot and a label; a <button> or <a> row is a menu item (hover, focus ring)
    .gw-section-head   a section header: <div class="gw-section-head"><h2 class="gw-section-head__title">
                       Branches</h2><span class="gw-badge gw-badge--count">17</span>
                       <span class="gw-section-head__hint">10 local</span></div>
@@ -619,3 +628,43 @@ select.gw-field {
   .gw-dot--pulse, .gw-toast { animation: none; }
   .gw-progress::before { transition: none; }
 }
+
+/* ---- added for Plan (#20) ---- */
+
+/* a sixth hue: "ask about it" (Plan's to-do items); text in it uses --gw-pink-text (AA) */
+:root {
+  --gw-pink: #d6336c;
+  --gw-pink-text: #b02659;
+  --gw-pink-soft: color-mix(in srgb, var(--gw-pink) 12%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gw-pink: #f472b6;
+    --gw-pink-text: #f68fc6;
+  }
+}
+
+/* popover / menu: a floating glass panel that a button opens (a legend, a menu); the page places it */
+.gw-popover {
+  z-index: 40;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  padding: 6px 14px 12px;
+  color: var(--gw-fg);
+  background: color-mix(in srgb, var(--gw-surface) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gw-line) 75%, transparent);
+  border-radius: var(--gw-radius-lg);
+  box-shadow: var(--gw-shadow-lg);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+.gw-popover[hidden] { display: none; }
+.gw-popover__title { margin: 10px 0 4px; color: var(--gw-muted); font: 600 var(--gw-text-xs) var(--gw-font); }
+.gw-popover__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--gw-popover-cols, 1), minmax(0, 1fr)); gap: 2px 12px; }
+.gw-popover__item {
+  display: flex; align-items: center; gap: 8px; min-height: 26px; width: 100%;
+  padding: 0; border: 0; background: none; color: var(--gw-fg); font: inherit; text-align: left;
+}
+button.gw-popover__item, a.gw-popover__item { margin: 0 -8px; width: calc(100% + 16px); padding: 0 8px; border-radius: var(--gw-radius-sm); cursor: pointer; text-decoration: none; }
+:is(button, a).gw-popover__item:hover { background: var(--gw-accent-soft); }
+:is(button, a).gw-popover__item:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 1px; }

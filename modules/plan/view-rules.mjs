@@ -1,4 +1,4 @@
-// The rules of Plan's screen that need no browser (index.html uses them):
+// The rules of Plan's screen that need no browser (the page, view/, uses them):
 //   resolveView(wanted, width)    the view a window of that width shows: 'map' | 'split' | 'prd'
 //   fitScale(content, box, {min}) the zoom that fits the map in its box, never below a readable minimum
 //   summaryBadges(count, t)       the document header's badges, in the UI language
