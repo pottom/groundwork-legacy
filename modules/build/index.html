@@ -70,6 +70,8 @@
                        language picker
     2.3.0  2026-10-19  GitHub issues as tickets (/api/build/issues); reading the
                        tickets moved into ticket-reader.js
+    2.4.0  2026-10-19  a ticket's "**PRD:**" line shows as links that open Plan on
+                       those map nodes (Plan's deep link /?module=plan&node=<id>)
 -->
 <link rel="stylesheet" href="/shell/theme.css">
 <script>try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }</script>
@@ -290,6 +292,7 @@ td.c-num { white-space: nowrap; font-family: var(--gw-font-mono); font-variant-n
 td.c-title { overflow-wrap: anywhere; min-width: 220px; }
 td.c-title a.open { color: var(--gw-fg); font-weight: 580; }
 td.c-title .note { color: var(--gw-muted); font-size: 12.5px; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+td.c-title .prd { color: var(--gw-muted); font-size: 12px; margin-top: 3px; line-height: 1.7; }
 td.c-title .sub { display: none; color: var(--gw-muted); font-size: 12px; margin-top: 3px; }
 td.c-title .sub-st { display: none; }
 td.c-area, td.c-last, td.c-st, td.c-chk { white-space: nowrap; }
@@ -300,6 +303,9 @@ td.c-last { font-family: var(--gw-font-mono); font-size: 12.5px; color: var(--gw
 .tref { font-family: var(--gw-font-mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--gw-accent) 8%, transparent); }
 .tref:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-accent) 16%, transparent); }
 .tref.is-closed { color: var(--gw-muted); background: var(--gw-sunken); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--gw-muted) 60%, transparent); }
+.prd-ref { font-family: var(--gw-font-mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; color: var(--gw-fg-2); border: 1px solid var(--gw-line); }
+a.prd-ref { color: var(--gw-accent); }
+a.prd-ref:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-accent) 10%, transparent); }
 .tref.is-missing { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 9%, transparent); }
 .flag { display: inline-block; font: 650 10.5px/1.6 var(--gw-font-mono); padding: 0 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; vertical-align: 1px; text-transform: lowercase; }
 .flag.blocked { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 8%, transparent); }
@@ -563,7 +569,7 @@ const ui = i18n.t;
 const SERVER_ID = 'development-status';
 const SERVER_API = '/api/build';
 const SERVER_TIMEOUT_MS = 8000;
-const VERSION = '2.3.0';   // the same in module.mjs; the header comment lists the versions
+const VERSION = '2.4.0';   // the same in module.mjs; the header comment lists the versions
 
 const DEFAULT_TRACKER_DIR = '.scratch';
 const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
@@ -1247,6 +1253,12 @@ function ticketLink(t, text) {
   return `<a class="tref${isClosed(t) ? ' is-closed' : ''}" href="${docHref(t.path)}" data-doc="${esc(t.path)}" title="${esc(t.title + ' (' + statusName(t.status) + ')')}">${esc(text || t.label)}</a>`;
 }
 const blockerLinks = (t) => t.blockers.map((b) => (b.ticket ? ticketLink(b.ticket) : `<span class="tref is-missing" title="${esc(ui('table.no-such-ticket'))}">${esc(b.raw)}?</span>`)).join(' ');
+// The PRD items a ticket came from (its "**PRD:**" line): each opens Plan focused on that map
+// node (Plan's deep link /?module=plan&node=<id>, in the whole window). Opened as a file
+// (file://) there is no Plan to open: the ids show as text.
+const prdLinks = (t) => t.prd.map((id) => (source && source.live
+  ? `<a class="prd-ref" href="/?module=plan&amp;node=${esc(encodeURIComponent(id))}" target="_top" title="${esc(ui('prd.open', { id }))}">${esc(id)}</a>`
+  : `<span class="prd-ref" title="${esc(ui('prd.no-plan'))}">${esc(id)}</span>`)).join(' ');
 const meter = (c) => (c.total ? `<span class="meter" title="${esc(ui('table.meter', { done: c.done, total: c.total }))}"><i style="--p:${pct(c.done, c.total)}%"></i>${c.done}/${c.total}</span>` : '<span class="muted">–</span>');
 
 // Blocked by an open ticket, or freed: every blocker it names is closed.
@@ -1260,7 +1272,7 @@ function ticketRow(t) {
   return `<tr data-doc="${esc(t.path)}"${t.blocked ? ' class="is-blocked"' : ''}>
 <td class="c-num">${esc(t.label)}</td>
 <td class="c-title"><a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a>${flags(t)}${fresh ? ` <span class="flag fresh">${ui('flag.fresh')}</span>` : ''}
-${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusNote)}</div>` : ''}<div class="sub"><span class="sub-st">${chip(t.status)}</span>${sub}</div></td>
+${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusNote)}</div>` : ''}${t.prd.length ? `<div class="prd">${ui('table.prd-sub', { list: prdLinks(t) })}</div>` : ''}<div class="sub"><span class="sub-st">${chip(t.status)}</span>${sub}</div></td>
 <td class="c-area">${esc(t.area)}</td>
 <td class="c-st">${chip(t.status)}</td>
 <td class="c-chk">${meter(t.checks)}</td>
@@ -1678,6 +1690,7 @@ function renderDrawer() {
     meta = `<dl class="meta">
 ${row(ui('table.status'), chip(t.status) + flags(t) + (t.statusNote ? ' ' + esc(t.statusNote) : ''))}
 ${row(ui('table.area'), esc(t.area) + (area && area.spec ? ` · <a href="${docHref(area.spec.path)}" data-doc="${esc(area.spec.path)}"><span class="kind">spec</span>${esc(area.spec.title)}</a>` : ''))}
+${row(ui('drawer.prd'), prdLinks(t))}
 ${row(ui('table.checks'), t.checks.total ? meter(t.checks) : '')}
 ${row(ui('table.blocked-by'), blockerLinks(t) + (t.notes.length ? ' <span class="muted">' + esc(t.notes.join('; ')) + '</span>' : ''))}
 ${row(ui('drawer.unlocks'), t.dependents.map((d) => ticketLink(d)).join(' '))}

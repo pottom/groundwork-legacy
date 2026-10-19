@@ -117,3 +117,26 @@ test('both sources at once: local tickets and issues name each other', () => {
   assert.equal(m.byPath.get('acme/app#2').label, '#2');
   assert.equal(m.resolveIssue(2).source, 'github');
 });
+
+test('the PRD line names the PRD items a ticket came from, in both sources', () => {
+  const m = readTickets({
+    ...local({
+      '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**PRD:** f-build-trace, d-trace\n',
+      '.scratch/core/issues/02-two.md': '# Two\n\nStatus: ready-for-agent\n- PRD: `x-own-tickets`\n',
+      '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n',
+    }),
+    github: { repo: 'acme/app', issues: [
+      issue(4, { body: '**PRD:** f-build-trace\n\n## What to build\n\nIt.\n' }),
+      issue(5, { body: 'PRD: d-trace; d-trace-how, and f-plan-trace\n' }),
+      issue(6, { body: '## What to build\n\nSee the **PRD:** nothing here.\n' }),
+    ] },
+  });
+  assert.deepEqual(byLabel(m, 'core 01').prd, ['f-build-trace', 'd-trace']);
+  assert.deepEqual(byLabel(m, 'core 02').prd, ['x-own-tickets']);
+  assert.deepEqual(byLabel(m, 'core 03').prd, []);
+  assert.deepEqual(byLabel(m, '#4').prd, ['f-build-trace']);
+  assert.deepEqual(byLabel(m, '#5').prd, ['d-trace', 'd-trace-how', 'f-plan-trace']);
+  assert.deepEqual(byLabel(m, '#6').prd, [], 'only a PRD line of its own counts');
+  assert.deepEqual(m.byPrd.get('f-build-trace').map((t) => t.label), ['core 01', '#4']);
+  assert.deepEqual(m.byPrd.get('d-trace').map((t) => t.label), ['core 01', '#5']);
+});

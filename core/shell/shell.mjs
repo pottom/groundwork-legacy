@@ -3,6 +3,8 @@
 //
 //   /                 the shell with the first module that has a view
 //   /?module=<id>     the shell with that module
+//   /?module=<id>&…   a deep link: the rest of the query goes to the module's frame
+//                     (/?module=plan&node=d-trace shows /plan/?node=d-trace)
 //
 // The look (colours, typography, light or dark) comes from theme.css next to this file,
 // served at /shell/theme.css; modules link the same file to share it (see README.md here).
@@ -17,13 +19,17 @@ import { LANGS, DEFAULT_LANG } from './i18n.mjs'
 const T = SHELL_STRINGS[DEFAULT_LANG]
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 
-// project: the project's name; modules: the manifests; active: the id of the module to show.
-export function shellPage({ project, modules, active }) {
+// project: the project's name; modules: the manifests; active: the id of the module to show;
+// params: the rest of the shell's query (URLSearchParams), handed on to that module's frame.
+export function shellPage({ project, modules, active, params }) {
   const views = modules.filter((m) => m.view)
   const current = views.find((m) => m.id === active) ?? views[0]
   const nav = views.map((m) => `<a href="/?module=${esc(encodeURIComponent(m.id))}"${m === current ? ' aria-current="page"' : ''}>${esc(m.name)}</a>`)
+  const rest = new URLSearchParams(current && current.id === active ? params : undefined)
+  rest.delete('module')
+  const query = rest.size ? '?' + rest : ''
   const main = current
-    ? `<iframe class="gw-view" title="${esc(current.name)}" src="/${esc(encodeURIComponent(current.id))}/"></iframe>`
+    ? `<iframe class="gw-view" title="${esc(current.name)}" src="/${esc(encodeURIComponent(current.id))}/${esc(query)}"></iframe>`
     : `<p class="gw-empty" data-i18n="noView">${esc(T.noView)}</p>`
   const langs = Object.entries(LANGS).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`)
   return `<!doctype html>

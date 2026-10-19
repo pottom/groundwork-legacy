@@ -218,6 +218,16 @@ test('the navigation lists every module with a view, from the manifests, and ope
   })
 })
 
+test('a deep link reaches the module: the shell hands the rest of its query to the frame', async () => {
+  await withShell(async ({ port }) => {
+    const page = (await get(port, '/?module=two&node=d-trace&x=a%20%26%22b')).body
+    assert.match(page, /<iframe[^>]*src="\/two\/\?node=d-trace&amp;x=a\+%26%22b"/)
+    assert.match(page, /<a href="\/\?module=two" aria-current="page">/, 'the navigation stays plain')
+    assert.match((await get(port, '/?node=d-trace')).body, /<iframe[^>]*src="\/one\/"/, 'no module named: nothing to hand on')
+    assert.match((await get(port, '/?module=nobody&node=x')).body, /<iframe[^>]*src="\/one\/"/, 'not for a module that is not shown')
+  })
+})
+
 test('each module gets a writer for the folders its manifest names, and only those', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-root-'))
   let files

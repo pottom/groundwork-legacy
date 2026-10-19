@@ -201,6 +201,16 @@
   /* selection + new-node flash */
   .map-container me-tpc.selected { outline: 2px solid var(--accent, var(--gw-accent)) !important; outline-offset: 3px; }
   me-tpc.mm-new { animation: mm-flash 2.5s ease-out; }
+  me-tpc.mm-linked { animation: mm-flash 1.2s ease-out 3; } /* reached by a deep link (?node=) */
+
+  /* deep link to an id the map does not have */
+  #notice {
+    position: fixed; z-index: 25; top: 64px; left: 64px; max-width: min(440px, calc(100vw - 80px));
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 14px; border-radius: 10px;
+    font-size: 13.5px; color: var(--gw-fg); border-left: 3px solid var(--gw-bad);
+  }
+  #notice[hidden] { display: none; }
+  #notice button { font: 500 16px/1 var(--gw-font); color: var(--gw-muted); background: none; border: 0; cursor: pointer; padding: 2px 6px; }
   @keyframes mm-flash { 0%, 25% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent, var(--gw-accent)) 45%, transparent); transform: scale(1.04); } 100% { box-shadow: var(--gw-shadow); transform: none; } }
 
   /* note tooltip */
@@ -388,12 +398,14 @@
 <button id="prd-toggle" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg><span>PRD</span></button>
 <div id="dock" class="glass"><span class="hint"></span></div>
 <div id="tip" class="glass"></div>
+<div id="notice" class="glass" role="alert" hidden><span></span><button type="button" title="Close" data-i18n-title="notice.close" aria-label="Close" data-i18n-aria-label="notice.close">×</button></div>
 
 <script type="module">
 import MindElixir from '/vendor/mind-elixir/MindElixir.js'
 import { STATUSES, IMPL, iconUrl } from './node-types.mjs'
 import { mapTheme, followColorScheme } from './map-theme.mjs'
 import { buildPrd, progressSummary, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from './documents.mjs'
+import { linkTarget } from './deep-link.mjs'
 import { marked } from '/vendor/marked/marked.esm.js'
 import { createI18n } from '/shell/i18n.mjs'
 import { UI_STRINGS } from './ui-strings.mjs'
@@ -791,6 +803,35 @@ function reveal(id) {
   for (const n of path) if (n.expanded === false) { const el = ele(n.id); if (el) mind.expandNode(el, true) }
 }
 
+// ---- deep link: ?node=<id> focuses that node (see deep-link.mjs) ----
+// The node is brought into the map's focus layer, selected, flashed and shown in the
+// document; an id the map does not have is said so in a notice.
+let linkNotice = null
+function showNotice(key, vars) {
+  linkNotice = key ? { key, vars } : null
+  const box = document.getElementById('notice')
+  box.hidden = !key
+  if (key) box.querySelector('span').textContent = ui(key, vars)
+}
+document.querySelector('#notice button').onclick = () => showNotice(null)
+
+function focusLinked() {
+  const target = linkTarget(location.search, { nodeData: fullTree() })
+  if (!target) return
+  if (!target.found) { showNotice('link.unknown', { id: target.id }); return }
+  showNotice(null)
+  const layer = currentFocus !== 'all' ? findNode(currentFocus) : null
+  const inLayer = (n) => n.id === target.id || (n.children || []).some(inLayer)
+  if (layer && !inLayer(layer)) setFocus(target.doc || 'all')
+  selectOnMap(target.id)
+  const el = ele(target.id)
+  if (el) {
+    el.classList.remove('mm-linked'); void el.offsetWidth; el.classList.add('mm-linked')
+    requestAnimationFrame(() => requestAnimationFrame(() => mind.scrollIntoView(el, true))) // after setFocus's fit: centre it
+  }
+  highlightInPrd(target.id)
+}
+
 function selectOnMap(id) {
   reveal(id)
   const el = ele(id)
@@ -1031,7 +1072,7 @@ async function start() {
     refreshDock()
     highlightInPrd(mind.currentNode?.nodeObj?.id)
   }))
-  loadGlossary().then(renderPrd)
+  loadGlossary().then(() => { renderPrd(); focusLinked() }) // the document is drawn: the linked node can be shown in it
   setSync('', 'sync.live')
   setInterval(poll, 1000)
 }
@@ -1060,6 +1101,7 @@ function relabel() {
   setView(document.body.dataset.view, { fit: false })
   labelDock()
   labelMenu()
+  if (linkNotice) showNotice(linkNotice.key, linkNotice.vars)
   if (!mind) return
   mind.newTopicName = ui('map.newTopic')
   fillFocusPicker(listDocs({ nodeData: fullTree() }).filter((d) => !d.legacy))

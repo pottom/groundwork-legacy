@@ -50,6 +50,9 @@ export const UI_STRINGS = {
     'empty.start': 'Start one:',
     'empty.topic': 'Topic',
 
+    'link.unknown': 'There is no item with the id “{id}” on the map. It may have been renamed or deleted.',
+    'notice.close': 'Close',
+
     'map.newTopic': 'new branch',
     'menu.addChild': 'Add child',
     'menu.addParent': 'Add parent',
@@ -125,6 +128,9 @@ export const UI_STRINGS = {
 
     'empty.start': 'Indítsd:',
     'empty.topic': 'Téma',
+
+    'link.unknown': 'Nincs „{id}” azonosítójú elem a térképen. Lehet, hogy átnevezték vagy törölték.',
+    'notice.close': 'Bezárás',
 
     'map.newTopic': 'új ág',
     'menu.addChild': 'Új gyerek',

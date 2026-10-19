@@ -71,7 +71,7 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       const url = new URL(req.url, 'http://localhost')
       const parts = url.pathname.split('/') // ['', first, ...rest]
       if (url.pathname === '/') {
-        return send(res, 200, shellPage({ project, modules: mods, active: url.searchParams.get('module') }), TYPES['.html'])
+        return send(res, 200, shellPage({ project, modules: mods, active: url.searchParams.get('module'), params: url.searchParams }), TYPES['.html'])
       }
       if (url.pathname === '/api/modules') {
         return send(res, 200, mods.map(({ id, name, version }) => ({ id, name, version, path: `/${id}/` })))
