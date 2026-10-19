@@ -6,7 +6,7 @@ The shared core of Groundwork. It holds what every module uses.
 |---|---|
 | `groundwork.mjs` | the command: `node core/groundwork.mjs [--root DIR] [--port N] [--open]` |
 | `server.mjs` | the local server: start page, `/api/modules`, each module's view under `/<id>/` and endpoints under `/api/<id>/` |
-| `modules.mjs` | the list of modules the server loads |
+| `modules.mjs` | the list of modules the server loads: Plan (`/plan/`) and Build (`/build/`) |
 | `files.mjs` | the writer each module gets: reads inside the project, writes only under the folders its manifest names (`docs/product/` and `.groundwork/` at most) |
 | `http.mjs` | small helpers for the modules' endpoints (`send`, `readJson`) |
 | `vendor/` | the browser-side dependencies (Mind Elixir, marked, the Inter and Source Serif 4 fonts), served at `/vendor/...`; versions and licenses in [`vendor/README.md`](vendor/README.md) |

@@ -31,4 +31,4 @@ export default {
 
 A module has no general file system access: it reads and writes the project through `files`, the writer the core hands it ([`core/files.mjs`](../core/files.mjs)). `files.write`, `append` and `remove` work only under the folders in `writes`, and those must lie under `docs/product/` or `.groundwork/`; a path that is absolute, climbs out with `..` or leads outside through a symlink or junction fails before anything is written. A module's local state goes in `.groundwork/<id>/`, which is gitignored.
 
-Plan follows this contract; Build still runs on its own server until it moves behind the core.
+Plan and Build both follow this contract. Build lists no `writes`, so it cannot write anything.

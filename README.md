@@ -7,7 +7,7 @@ Groundwork takes a project from idea to delivery, in one portable package that w
 - **Traceability**: every ticket points back to the PRD decision it came from, and every decision shows how many tickets it produced and how many are done.
 - **Modules**: Plan and Build sit on a small shared core (one local server, one shell). More modules can be added later.
 
-> **Status: early.** Both modules exist as working prototypes, each with its own small server. Bringing them together is the first step of the roadmap.
+> **Status: early.** Both modules exist as working prototypes, served by the one core server.
 > The full plan is in [`docs/product/`](docs/product/SYSTEM.md); it is written in Hungarian. The roadmap has four steps:
 > 1. one shared server for both modules;
 > 2. a shared look with an English UI;
@@ -33,8 +33,7 @@ Every folder has a README that says what is in it.
 Requirements: Node.js 20 or newer. Nothing else to install.
 
 ```bash
-node core/groundwork.mjs --root .                           # the core server: http://localhost:4477, Plan at /plan/
-node modules/build/development-status.mjs --root .           # Build, still on its own server for now: http://localhost:8641
+node core/groundwork.mjs --root .                           # the core server: http://localhost:4477, Plan at /plan/, Build at /build/
 ```
 
 `--root` is the project to work on (default: the current folder). The core server listens on `127.0.0.1` only and refuses requests with a foreign `Host` header.

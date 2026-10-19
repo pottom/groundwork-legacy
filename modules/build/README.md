@@ -23,21 +23,23 @@ The page re-reads the files every few seconds.
 
 | File | Role |
 |---|---|
-| `development-status.html` | the dashboard page; works on its own too (open it, pick the project folder; live only in Chromium browsers) |
-| `development-status.mjs` | the launcher: a small read-only server for the project folder (Node.js 20+, built-in modules only) |
+| `index.html` | the dashboard page; works on its own too (open it, pick the project folder; live only in Chromium browsers, and without the git view) |
+| `module.mjs` | the manifest and the read-only endpoints under `/api/build/` |
+| `project-reader.mjs` | reads the project: the Markdown files inside the root, and the git history |
 
 ## Run
 
 ```bash
-node modules/build/development-status.mjs --root .
+node core/groundwork.mjs --root .       # then open http://localhost:4477/build/
 ```
 
-| Option | Effect |
+| Endpoint | Answer |
 |---|---|
-| `--root DIR` | the project to show; without it, the launcher shows its own folder |
-| `--port N` | the first port to try (default 8641) |
-| `--no-open` | do not open the browser |
+| `GET /api/build/hello` | the handshake the page checks |
+| `GET /api/build/list` | every Markdown file (path, size, time) and each folder's count of other files |
+| `GET /api/build/file?path=P` | the text of a listed file |
+| `GET /api/build/git?limit=N&known=F` | branches, tags and commits, when the root is the top of a git repository |
 
-It never writes. It serves only the page, the project's Markdown files and, in a git repository, the branch history.
+It never writes. It serves only the page, the project's Markdown files inside the root and, in a git repository, the branch history; git is only asked to read.
 
-The header comments of both files describe the formats in detail. The UI is in Hungarian for now; an English UI comes with the shared shell (roadmap step 2).
+The header comments of the files describe the formats in detail. The UI is in Hungarian for now; an English UI comes with the shared shell (roadmap step 2).

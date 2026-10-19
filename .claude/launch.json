@@ -6,12 +6,6 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["core/groundwork.mjs", "--root", ".", "--port", "4477"],
       "port": 4477
-    },
-    {
-      "name": "build-dashboard",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["modules/build/development-status.mjs", "--root", ".", "--no-open", "--port", "8642"],
-      "port": 8642
     }
   ]
 }
