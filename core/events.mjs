@@ -10,6 +10,10 @@
 //   - a module pushes one itself: api({ events }) gets events.publish(topic), and
 //     events.every(ms, fn), which runs fn on an interval only while a page listens (the Build
 //     module re-checks GitHub this way) and stops when the server closes.
+// events.stamp() lets a module keep what it read from the project until something changes: it
+// is null while the folder is not watched (no page has listened yet, or the watch failed), else a
+// string that stays the same exactly as long as no file below the root changed (any file, not
+// only the ones with a topic). The Build module keeps its project listing this way.
 // Topics that come within a moment of each other go out as one event.
 //
 // The page asks again for what the topic names (the map, the ticket list). The event carries no
@@ -33,6 +37,8 @@ export function createEvents({ root, modules }) {
   let flush = null
   let watcher = null
   let closed = false
+  let watches = 0   // how many times the folder has been watched: a new watch may have missed changes
+  let changes = 0   // files changed below the root during this watch
 
   function send(text) { for (const res of clients) res.write(text) }
 
@@ -49,7 +55,9 @@ export function createEvents({ root, modules }) {
   }
 
   function changed(rel) {
-    if (!rel || QUIET.test(rel)) return
+    if (rel && QUIET.test(rel)) return
+    changes++
+    if (!rel) return
     for (const m of modules) {
       if (typeof m.watch !== 'function') continue
       try { publish(m.watch(rel)) } catch { /* a module's classifier must not stop the others */ }
@@ -61,6 +69,7 @@ export function createEvents({ root, modules }) {
     if (watcher || !modules.some((m) => typeof m.watch === 'function')) return
     try {
       watcher = fs.watch(root, { recursive: true }, (_type, name) => changed(name ? String(name).split(path.sep).join('/') : ''))
+      watches++
       watcher.on('error', () => { watcher?.close(); watcher = null })
     } catch { watcher = null } // no such folder (yet): the pages still get what modules push
   }
@@ -75,6 +84,7 @@ export function createEvents({ root, modules }) {
       return () => { clearInterval(t); timers.delete(t) }
     },
     get listeners() { return clients.size },
+    stamp: () => (watcher ? `${watches}:${changes}` : null),
   }
 
   // GET /api/events: one page's stream.

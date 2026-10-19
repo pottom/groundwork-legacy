@@ -1,7 +1,9 @@
 // project-reader.mjs: what the Build module reads from a project, and only reads.
 //
-//   const project = openProject(root);
-//   project.list()           every markdown file below root ({ path, size, mtime }) and each folder's count of other files
+//   const project = openProject(root, { stamp });   stamp: the core's events.stamp (core/events.mjs), optional
+//   project.list()           every markdown file below root ({ path, size, mtime }) and each folder's count of
+//                            other files; kept while stamp() says nothing below root changed (the folder is
+//                            watched), walked afresh otherwise
 //   project.readFile(path)   the bytes of a listed file, or null
 //   project.gitAvailable()   is root the top of a git repository?
 //   project.gitFingerprint() what changes when any ref or HEAD does
@@ -14,7 +16,7 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
-import { isAbsolute, join, relative, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import './ticket-reader.js';
 
 // Folders that are never listed: the ticket reader's (ticket-reader.js), the sets the page
@@ -27,7 +29,7 @@ const MAX_DEPTH = 12;
 const GIT_MAX_BRANCHES = 60;
 const US = '\x1f', RS = '\x1e';
 
-export function openProject(asked) {
+export function openProject(asked, { stamp = () => null } = {}) {
   let ROOT = asked;
   try { ROOT = realpathSync(asked); } catch { /* listed as empty below */ }
 
@@ -88,14 +90,25 @@ export function openProject(asked) {
   }
 
   let listed = new Set();   // the paths of the last list: the only files that are served
-  const list = () => { const listing = listProject(); listed = new Set(listing.files.map((f) => f.path)); return listing; };
+  let kept = null;          // { stamp, listing }: the last list, and how the project looked then
+  const walk = () => {
+    const now = stamp();
+    const listing = listProject();
+    listed = new Set(listing.files.map((f) => f.path));
+    kept = { stamp: now, listing };
+    return listing;
+  };
+  const list = () => {
+    const now = stamp();
+    return now !== null && kept?.stamp === now ? kept.listing : walk();
+  };
 
   function readFile(path) {
     // Only what the list holds is served: that is the one rule for what may be
     // read. A listed path is made of real names joined by "/", so "..", a drive
     // letter or a backslash can never match. A path the last list did not have
     // is checked against a fresh one, so a new file is readable at once.
-    if (!listed.has(path)) list();
+    if (!listed.has(path)) walk();
     if (!listed.has(path)) return null;
     const full = join(ROOT, ...path.split('/'));
     try {
@@ -130,7 +143,46 @@ export function openProject(asked) {
     return gitTop !== null;
   }
 
+  // Where git keeps this checkout's HEAD (own) and the refs every worktree shares (common): .git
+  // itself, or for a linked worktree the folder its .git file names and that folder's commondir.
+  function gitDirs() {
+    const dotGit = join(ROOT, '.git');
+    const info = statSync(dotGit, { throwIfNoEntry: false });
+    if (!info) return null;
+    if (info.isDirectory()) return { own: dotGit, common: dotGit };
+    const named = /^gitdir:\s*(.+?)\s*$/m.exec(readFileSync(dotGit, 'utf8'));
+    if (!named) return null;
+    const own = resolve(ROOT, named[1]);
+    let common = own;
+    try { common = resolve(own, readFileSync(join(own, 'commondir'), 'utf8').trim()); } catch { /* no commondir: not a linked worktree */ }
+    return { own, common };
+  }
+
+  // Every file below dir, by path, with its bytes (the loose refs; reftable's tables).
+  function readTree(dir, into, prefix) {
+    let entries;
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      const at = join(dir, e.name);
+      if (e.isDirectory()) readTree(at, into, prefix + e.name + '/');
+      else if (e.isFile()) { try { into.push(prefix + e.name + '\0' + readFileSync(at, 'latin1')); } catch { /* gone meanwhile */ } }
+    }
+  }
+
+  // What changes when any ref or HEAD does: the bytes git keeps them in (HEAD, packed-refs, the
+  // loose refs, or the reftable), read from disk, so no git process runs. The page asks with it on
+  // every refresh. A layout this cannot read falls back to asking git.
   async function gitFingerprint() {
+    const dirs = gitDirs();
+    if (dirs) {
+      try {
+        const parts = ['HEAD\0' + readFileSync(join(dirs.own, 'HEAD'), 'latin1')];
+        try { parts.push('packed-refs\0' + readFileSync(join(dirs.common, 'packed-refs'), 'latin1')); } catch { /* none yet */ }
+        readTree(join(dirs.common, 'refs'), parts, 'refs/');
+        readTree(join(dirs.common, 'reftable'), parts, 'reftable/');
+        return 'f' + createHash('sha256').update(parts.join('\n')).digest('hex').slice(0, 15);
+      } catch { /* fall back to git */ }
+    }
     const refs = await git(['for-each-ref', '--format=%(refname) %(objectname)']);
     const head = (await gitOr(['symbolic-ref', '-q', 'HEAD'], '')).trim() + ' ' + (await gitOr(['rev-parse', '-q', '--verify', 'HEAD'], '')).trim();
     return createHash('sha256').update(refs + '\n' + head).digest('hex').slice(0, 16);

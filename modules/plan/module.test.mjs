@@ -44,6 +44,26 @@ test('the map round-trips through /api/plan/map and a browser save is merged', a
   }
 })
 
+test('/api/plan/ids gives the ids of the nodes of the map, for Build to check PRD lines against, without the map', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-ids-'))
+  const srv = await startServer({ root, modules: [plan], port: 0 })
+  try {
+    const base = `http://127.0.0.1:${srv.port}`
+    assert.equal((await fetch(`${base}/api/plan/ids`)).status, 404, 'no map yet')
+    const store = open(root)
+    store.init('Product')
+    store.apply([{ op: 'add', id: 'doc', parent: 'root', topic: 'Product', doc: 'prd' }, { op: 'add', id: 'goal', parent: 'doc', topic: 'Goal' }])
+    const { v, ids } = await (await fetch(`${base}/api/plan/ids`)).json()
+    assert.equal(v, store.read().v)
+    assert.deepEqual(ids, ['root', 'doc', 'goal'])
+    assert.deepEqual(await (await fetch(`${base}/api/plan/ids?v=${v}`)).json(), { v, same: true })
+    store.apply([{ op: 'add', id: 'more', parent: 'goal', topic: 'More' }])
+    assert.deepEqual((await (await fetch(`${base}/api/plan/ids?v=${v}`)).json()).ids, ['root', 'doc', 'goal', 'more'])
+  } finally {
+    await srv.close()
+  }
+})
+
 // Plan's own colours: its node types and implementation states. Everything else
 // (page, panels, text, lines, accent, fonts) comes from the shell's theme.
 const PLAN_COLOURS = ['--topic', '--inferred', '--missing', '--decision', '--parked', '--todo']
