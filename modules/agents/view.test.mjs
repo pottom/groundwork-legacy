@@ -63,6 +63,25 @@ test('an agent shows its state as a badge in the state\'s tone, its start and it
   assert.match(list, /duration\(/)
 })
 
+test('opening an agent (or a session) shows its timeline and its final report, read again live', () => {
+  const main = read('view/main.mjs')
+  assert.match(main, /fetch\(`\/api\/agents\/agent\?/)
+  assert.match(main, /hashchange/, 'the open agent is in the address: #agent=<session>/<agent>')
+  assert.match(main, /topics\.includes\('agents\.events'\)\) \{?[^}]*loadDetail\(\)|loadDetail\(\)[^\n]*agents\.events|agents\.events[\s\S]{0,80}loadDetail/)
+  const detail = read('view/detail.mjs')
+  assert.match(detail, /unsafeHTML\(/, 'the report is Markdown')
+  assert.match(detail, /from '\.\/markdown\.mjs'/, 'through the safe options: raw HTML shows as text')
+  assert.match(read('view/list.mjs'), /`#agent=\$\{s\.id\}\/\$\{a\.id\}`/)
+})
+
+test('every kind of step and test outcome has its words, in both languages', () => {
+  const kinds = [...read('timeline.mjs').matchAll(/^\/\/ {3}- (\w+)/gm)].map((m) => m[1])
+  assert.deepEqual(kinds, ['read', 'edit', 'command', 'tool', 'test', 'commit', 'skill', 'agent', 'waiting'])
+  for (const k of [...kinds.map((k) => `step.${k}`), 'outcome.passed', 'outcome.failed', 'outcome.ran', 'report.title', 'timeline.title']) {
+    assert.ok(UI_STRINGS.en[k] && UI_STRINGS.hu[k], k)
+  }
+})
+
 test('a duration reads as m:ss, or h:mm:ss from an hour on', () => {
   assert.equal(duration(0), '0:00')
   assert.equal(duration(42_400), '0:42')

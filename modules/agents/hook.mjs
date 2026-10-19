@@ -18,11 +18,18 @@
 //     commands?: the names of the commands a shell ran (`npm`, `git`; no arguments), skill?, ms?,
 //     subagentType?, description? (the Agent tool's short label, PreToolUse), agentId?, status?
 //     (the Agent tool's result, PostToolUse), interrupted? (PostToolUseFailure),
-//     notification? (notification_type), source? (SessionStart), reason? (SessionEnd) }
+//     notification? (notification_type), source? (SessionStart), reason? (SessionEnd),
+//     test?: passed | failed | ran (a shell call that ran tests, from a vetted list of test
+//     commands; the outcome from the call failing or the output's pass/fail counts),
+//     commit?: the short hash a `git commit` printed, or true }
 // Never a prompt, a file's content, a command's arguments, a tool's output, an error text, a
 // message, a URL or a search pattern: those can hold secrets (d-agents-redact).
 //
 // A log over 2 MB moves aside to events.1.jsonl (replacing an older one) before the line is written.
+//
+// The one exception is a subagent's final report (SubagentStop's last_assistant_message): it is
+// kept apart, in reports/<agent_id>.md, with what looks like a secret (keys, tokens, passwords,
+// a URL's credentials and query) taken out, capped at 40 000 characters; the newest 200 stay.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -59,11 +66,65 @@ export function commandNames(line) {
   return names.length ? names.slice(0, 8) : undefined
 }
 
+// The words of each part of a shell line, without leading VAR=value assignments; the first one
+// without its folder or `.exe`.
+function parts(line) {
+  return line.split(/&&|\|\||[;|\n]/).map((part) => {
+    const w = part.trim().replace(/^[({\s]+/, '').split(/\s+/).filter((x) => x && !/^[A-Za-z_]\w*=/.test(x)).map((x) => x.replace(/^["']|["']$/g, ''))
+    if (w.length) w[0] = w[0].split(/[\\/]/).pop().replace(/\.exe$/i, '').toLowerCase()
+    return w
+  }).filter((w) => w.length)
+}
+
+const RUNNERS = new Set(['vitest', 'jest', 'mocha', 'ava', 'tap', 'pytest', 'tox', 'phpunit', 'rspec', 'playwright', 'cypress'])
+const TEST_WORD = new Set(['npm', 'pnpm', 'yarn', 'bun', 'go', 'cargo', 'dotnet', 'mvn', 'gradle', 'gradlew', 'deno', 'mix', 'swift'])
+
+// Whether a shell line runs tests: a vetted list of test commands, nothing guessed from arguments.
+export function runsTests(line) {
+  return parts(line).some(([cmd, a, b]) =>
+    RUNNERS.has(cmd)
+    || (TEST_WORD.has(cmd) && (a === 'test' || a === 't' || (a === 'run' && /^test/.test(b ?? ''))))
+    || ((cmd === 'npx' || cmd === 'pnpx' || cmd === 'bunx') && RUNNERS.has(a))
+    || (cmd === 'node' && line.includes('--test'))
+    || (/^python3?$|^py$/.test(cmd) && a === '-m' && /^(pytest|unittest)$/.test(b ?? '')))
+}
+
+// Whether a shell line makes a git commit (`git commit`, `git -C dir commit`).
+function commits(line) {
+  return parts(line).some(([cmd, ...rest]) => {
+    if (cmd !== 'git') return false
+    for (let i = 0; i < rest.length; i++) {
+      if (rest[i] === '-C' || rest[i] === '-c') { i++; continue }
+      if (rest[i].startsWith('-')) continue
+      return rest[i] === 'commit'
+    }
+    return false
+  })
+}
+
+// A test run's outcome: failed when the call failed or the output counts failures, passed when it
+// counts none, else only that it ran. Only the word is kept, never the output.
+function outcome(i, tr) {
+  if (i.hook_event_name === 'PostToolUseFailure') return 'failed'
+  const out = [tr.stdout, tr.stderr].filter((x) => typeof x === 'string').join('\n').slice(-8000)
+  const fails = [...out.matchAll(/\b(\d+)\s+(?:failed|failing|failures?)\b|\b(?:fail|failed|failures?)\b[ \t:=]+(\d+)/gi)].map((m) => +(m[1] ?? m[2]))
+  if (fails.some((n) => n > 0) || /^FAIL\b/m.test(out)) return 'failed'
+  if (fails.length || /\b\d+\s+pass(?:ed|ing)?\b|\bpass(?:ed)?\b[ \t:=]+\d+|^ok\s/im.test(out)) return 'passed'
+  return 'ran'
+}
+
+// The commit a `git commit` made, from its first output line "[branch abc1234] ...", else true.
+function commitOf(tr) {
+  const m = typeof tr.stdout === 'string' && /^\[[^\]\s]+(?: \([^)]*\))? ([0-9a-f]{7,40})\]/m.exec(tr.stdout)
+  return m ? m[1] : true
+}
+
 // The line for one hook input: only what the module needs to show agents and their steps.
 export function summarize(i, now = new Date()) {
   const ti = i.tool_input && typeof i.tool_input === 'object' ? i.tool_input : {}
   const tr = i.tool_response && typeof i.tool_response === 'object' ? i.tool_response : {}
   const isAgent = i.tool_name === 'Agent' || i.tool_name === 'Task'
+  const ran = typeof ti.command === 'string' && /^Post/.test(i.hook_event_name)
   const e = {
     v: 1,
     at: now.toISOString(),
@@ -77,6 +138,8 @@ export function summarize(i, now = new Date()) {
     file: fileOf(ti, i.cwd),
     commands: typeof ti.command === 'string' ? commandNames(ti.command) : undefined,
     skill: i.tool_name === 'Skill' ? word(ti.skill) : undefined,
+    test: ran && runsTests(ti.command) ? outcome(i, tr) : undefined,
+    commit: ran && commits(ti.command) && i.hook_event_name === 'PostToolUse' ? commitOf(tr) : undefined,
     ms: Number.isFinite(i.duration_ms) ? Math.round(i.duration_ms) : undefined,
     subagentType: isAgent ? word(ti.subagent_type) : undefined,
     description: isAgent && i.hook_event_name === 'PreToolUse' ? label(ti.description) : undefined,
@@ -91,6 +154,37 @@ export function summarize(i, now = new Date()) {
   return e
 }
 
+// A report with what looks like a secret taken out: API keys and tokens, Authorization values,
+// "password: x" style pairs, private keys, a URL's user:password and query.
+export function redact(text) {
+  const R = '[redacted]'
+  return text
+    .replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g, R)
+    .replace(/\b(?:sk|pk|rk)-[\w-]{8,}|\bgh[pousr]_\w{8,}|\bgithub_pat_\w+|\bxox[abprs]-[\w-]+|\bAKIA[0-9A-Z]{16}\b|\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]+|\bnpm_\w{20,}/g, R)
+    .replace(/\b(Bearer|Basic|token)(\s+)[\w.~+/=-]{8,}/gi, `$1$2${R}`)
+    .replace(/(\b[\w-]*(?:password|passwd|pwd|secret|token|api[_-]?key|access[_-]?key|private[_-]?key|credentials?)\b["']?\s*[:=]\s*)(["']?)[^\s"'`,;]+/gi, `$1$2${R}`)
+    .replace(/(https?:\/\/)[^\s/@?#]+@/gi, '$1')
+    .replace(/(https?:\/\/[^\s?#)\]>"'`]+)\?[^\s)\]>"'`]*/gi, '$1')
+}
+
+const REPORT_MAX = 40_000
+const REPORTS_KEPT = 200
+
+// SubagentStop: the agent's closing message, redacted and capped, as reports/<agent>.md; only
+// the newest 200 reports stay. It is written before the log line, so the line's change shows it.
+function saveReport(input, dir) {
+  const text = input.last_assistant_message
+  if (input.hook_event_name !== 'SubagentStop' || typeof text !== 'string' || !/^[\w-]{1,60}$/.test(input.agent_id ?? '')) return
+  const reports = path.join(dir, 'reports')
+  fs.mkdirSync(reports, { recursive: true })
+  const body = redact(text)
+  fs.writeFileSync(path.join(reports, `${input.agent_id}.md`), body.length > REPORT_MAX ? body.slice(0, REPORT_MAX) + '\n\n…' : body)
+  const names = fs.readdirSync(reports).filter((f) => f.endsWith('.md'))
+  if (names.length <= REPORTS_KEPT) return
+  const byAge = names.map((f) => [f, fs.statSync(path.join(reports, f)).mtimeMs]).sort((a, b) => a[1] - b[1])
+  for (const [f] of byAge.slice(0, names.length - REPORTS_KEPT)) fs.rmSync(path.join(reports, f), { force: true })
+}
+
 function main() {
   let input = {}
   try { input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}') } catch { return }
@@ -100,6 +194,7 @@ function main() {
   const log = path.join(dir, 'events.jsonl')
   fs.mkdirSync(dir, { recursive: true })
   try { if (fs.statSync(log).size > MAX_BYTES) fs.renameSync(log, path.join(dir, 'events.1.jsonl')) } catch {}
+  saveReport(input, dir)
   fs.appendFileSync(log, JSON.stringify(summarize(input)) + '\n')
 }
 

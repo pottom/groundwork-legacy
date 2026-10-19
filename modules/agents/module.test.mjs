@@ -65,6 +65,23 @@ test('a session with a subagent, as the hooks logged it, is listed with its agen
   })
 })
 
+test('an agent\'s timeline and, once it stopped, its final report; the main session has a timeline, no report', async () => {
+  await withServer(async ({ root, base }) => {
+    const get = async (q) => (await fetch(`${base}/api/agents/agent?${q}`)).json()
+    hook(root, { hook_event_name: 'SubagentStart', agent_id: 'a-1', agent_type: 'Explore' })
+    hook(root, { hook_event_name: 'PostToolUse', agent_id: 'a-1', agent_type: 'Explore', tool_name: 'Bash', tool_use_id: 'x', tool_input: { command: 'npm test' }, tool_response: { stdout: '# pass 3\n# fail 0' } })
+    const running = await get('session=s-1&agent=a-1')
+    assert.deepEqual(running.steps.map((s) => [s.kind, s.outcome]), [['test', 'passed']])
+    assert.equal(running.report, null, 'no report while it runs')
+    hook(root, { hook_event_name: 'SubagentStop', agent_id: 'a-1', agent_type: 'Explore', last_assistant_message: '## Found\n\nThree files.' })
+    assert.equal((await get('session=s-1&agent=a-1')).report, '## Found\n\nThree files.')
+    assert.deepEqual(await get('session=s-1'), { steps: [], report: null })
+    assert.equal((await fetch(`${base}/api/agents/agent?agent=a-1`)).status, 400, 'a session is required')
+    assert.equal((await fetch(`${base}/api/agents/agent?session=s-1&agent=..%2F..%2Fx`)).status, 400)
+    assert.equal((await fetch(`${base}/api/agents/agent?session=s-1`, { method: 'POST' })).status, 405)
+  })
+})
+
 test('a new event in the log is the topic agents.events, so the open page reads the list again', async () => {
   await withServer(async ({ root, srv }) => {
     const sse = listen(srv.port)

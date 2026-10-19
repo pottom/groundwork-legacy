@@ -1,11 +1,15 @@
-// The list of sessions and their agents (lit-html), as GET /api/agents/list gives them.
+// The list of sessions and their agents (lit-html), as GET /api/agents/list gives them. An agent's
+// row opens it, a session's head opens the session, through the address: #agent=<session>/<agent>
+// or #agent=<session>. The open one shows its timeline and report (detail.mjs).
 //
-//   agentList({ sessions, error }, now)   the page's content; `now` (ms) times what still runs
+//   agentList({ sessions, error, open, detail, detailError }, now)
+//     the page's content; `now` (ms) times what still runs; `open` is { session, agent } or null
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js'
 import { repeat } from '/vendor/lit-html/directives/repeat.js'
 import { ui } from './strings.mjs'
 import { duration, clock } from './time.mjs'
+import { agentDetail } from './detail.mjs'
 
 const TONE = { running: 'info', done: 'ok', failed: 'bad' }
 
@@ -20,32 +24,47 @@ function times(item, now) {
   </span>`
 }
 
-function agentRow(a, now) {
-  return html`<li class="agents-agent" data-state=${a.state}>
+const isOpen = (open, s, a) => !!open && open.session === s.id && (open.agent ?? null) === (a?.id ?? null)
+
+// The link that opens an agent or a session, or closes the open one.
+const opener = (href, opened) => html`<a class="gw-btn gw-btn--ghost gw-btn--sm agents-open" href=${opened ? '#' : href}
+  aria-expanded=${opened ? 'true' : 'false'}>${ui(opened ? 'timeline.close' : 'timeline.open')}</a>`
+
+const detail = (view, agent, state) => agentDetail({ detail: view.detail, error: view.detailError }, { agent, state })
+
+function agentRow(s, a, view, now) {
+  const opened = isOpen(view.open, s, a)
+  return html`<li class="agents-agent" data-state=${a.state} data-open=${opened ? 'true' : nothing}>
     ${badge(a.state)}
     <span class="agents-name">${a.description || ui('agent.unnamed')}</span>
     ${a.type ? html`<span class="gw-tag">${a.type}</span>` : nothing}
     ${times(a, now)}
+    ${opener(`#agent=${s.id}/${a.id}`, opened)}
+    ${opened ? detail(view, true, a.state) : nothing}
   </li>`
 }
 
-function sessionCard(s, now) {
+function sessionCard(s, view, now) {
+  const opened = isOpen(view.open, s, null)
   return html`<section class="gw-card agents-session" data-state=${s.state}>
     <header class="gw-card__head agents-session__head">
       ${badge(s.state)}
       <h2 class="agents-session__title">${ui('session', { id: s.id.slice(0, 8) })}</h2>
       ${s.cwd ? html`<span class="gw-tag agents-cwd" title=${s.cwd}>${s.cwd}</span>` : nothing}
       ${times(s, now)}
+      ${opener(`#agent=${s.id}`, opened)}
     </header>
     <div class="gw-card__body">
+      ${opened ? detail(view, false, s.state) : nothing}
       ${s.agents.length
-        ? html`<ul class="agents-agents">${repeat(s.agents, (a) => a.id, (a) => agentRow(a, now))}</ul>`
+        ? html`<ul class="agents-agents">${repeat(s.agents, (a) => a.id, (a) => agentRow(s, a, view, now))}</ul>`
         : html`<p class="agents-none">${ui('no-agents')}</p>`}
     </div>
   </section>`
 }
 
-export function agentList({ sessions, error }, now) {
+export function agentList(view, now) {
+  const { sessions, error } = view
   if (error) return html`<div class="gw-callout gw-callout--bad"><div class="gw-callout__body">${ui('error')}</div></div>`
   if (!sessions) return nothing
   if (!sessions.length) {
@@ -60,5 +79,5 @@ export function agentList({ sessions, error }, now) {
       <span class="gw-badge gw-badge--count">${sessions.length}</span>
       <span class="gw-section-head__hint">${ui('hint')}</span>
     </div>
-    ${repeat(sessions, (s) => s.id, (s) => sessionCard(s, now))}`
+    ${repeat(sessions, (s) => s.id, (s) => sessionCard(s, view, now))}`
 }

@@ -124,3 +124,55 @@ test('the hook is one file that needs only Node: groundwork init copies it into 
   assert.ok(specs.length)
   for (const s of specs) assert.match(s, /^node:/, s)
 })
+
+test('a test run is marked with its outcome where the output tells it; a commit with its hash; no output is kept', () => {
+  const root = project()
+  const bash = (command, response, event = 'PostToolUse') => run(root, { ...base, cwd: root, hook_event_name: event, agent_id: 'a-1', agent_type: 'general-purpose',
+    tool_name: 'Bash', tool_use_id: 't', tool_input: { command }, tool_response: response, ...(event === 'PostToolUseFailure' ? { error: 'Exit code 1 OUTPUT-TEXT' } : {}) })
+  bash('npm test', { stdout: 'OUTPUT-TEXT\n# tests 12\n# pass 12\n# fail 0\n', stderr: '' })
+  bash('cd x && npx vitest run', { stdout: 'OUTPUT-TEXT Tests  2 failed | 10 passed', stderr: '' })
+  bash('node --test "a.test.mjs"', {}, 'PostToolUseFailure')
+  bash('pytest -q', { stdout: 'OUTPUT-TEXT', stderr: '' })
+  bash('npm install && npm run build', { stdout: '0 failed', stderr: '' })
+  bash('git add -A && git commit -m "OUTPUT-TEXT secret message"', { stdout: '[worktree-x 1a2b3c4] OUTPUT-TEXT secret message\n 2 files changed', stderr: '' })
+  bash('git -C ../w commit --amend --no-edit', { stdout: 'OUTPUT-TEXT', stderr: '' })
+  const got = lines(root)
+  assert.deepEqual(got.map((e) => e.test ?? null), ['passed', 'failed', 'failed', 'ran', null, null, null])
+  assert.deepEqual(got.map((e) => e.commit ?? null), [null, null, null, null, null, '1a2b3c4', true])
+  const text = fs.readFileSync(path.join(root, LOG), 'utf8')
+  assert.ok(!text.includes('OUTPUT-TEXT') && !text.includes('secret message'))
+})
+
+test('a subagent\'s final report is kept beside the log, redacted and capped; the log line holds none of it', () => {
+  const root = project()
+  const report = [
+    '## Done', '', 'Branch `worktree-x`, tests pass.',
+    'Key: sk-live-1234567890abcdef and ghp_abcdef1234567890, Authorization: Bearer abc.def.ghi1234567',
+    'password: hunter2, API_KEY=zzz-secret-zzz', 'See https://user:pw@x.test/path?token=qqq for more.',
+  ].join('\n')
+  assert.equal(run(root, { ...base, cwd: root, hook_event_name: 'SubagentStop', agent_id: 'a-1', agent_type: 'general-purpose', last_assistant_message: report }).status, 0)
+  const saved = fs.readFileSync(path.join(root, '.groundwork', 'agents', 'reports', 'a-1.md'), 'utf8')
+  assert.match(saved, /^## Done\n\nBranch `worktree-x`, tests pass\./)
+  for (const s of ['sk-live-1234567890abcdef', 'ghp_abcdef1234567890', 'abc.def.ghi1234567', 'hunter2', 'zzz-secret-zzz', 'user:pw', 'token=qqq']) assert.ok(!saved.includes(s), `the report keeps ${s}`)
+  assert.match(saved, /https:\/\/x\.test\/path/, 'a link keeps its address without the query')
+  assert.ok(!fs.readFileSync(path.join(root, LOG), 'utf8').includes('Done'))
+
+  run(root, { ...base, cwd: root, hook_event_name: 'SubagentStop', agent_id: 'a-2', last_assistant_message: 'x'.repeat(100_000) })
+  assert.ok(fs.readFileSync(path.join(root, '.groundwork', 'agents', 'reports', 'a-2.md'), 'utf8').length <= 40_100, 'capped')
+  run(root, { ...base, cwd: root, hook_event_name: 'SubagentStop', agent_id: '..', last_assistant_message: 'x' })
+  assert.deepEqual(fs.readdirSync(path.join(root, '.groundwork', 'agents', 'reports')).sort(), ['a-1.md', 'a-2.md'], 'an odd id writes nothing')
+})
+
+test('only the newest 200 reports are kept', () => {
+  const root = project()
+  const dir = path.join(root, '.groundwork', 'agents', 'reports')
+  fs.mkdirSync(dir, { recursive: true })
+  for (let i = 0; i < 200; i++) {
+    fs.writeFileSync(path.join(dir, `old-${i}.md`), 'x')
+    fs.utimesSync(path.join(dir, `old-${i}.md`), new Date(2020, 0, 1, 0, i), new Date(2020, 0, 1, 0, i))
+  }
+  run(root, { ...base, cwd: root, hook_event_name: 'SubagentStop', agent_id: 'new', last_assistant_message: 'done' })
+  const left = fs.readdirSync(dir)
+  assert.equal(left.length, 200)
+  assert.ok(left.includes('new.md') && !left.includes('old-0.md') && left.includes('old-199.md'))
+})
