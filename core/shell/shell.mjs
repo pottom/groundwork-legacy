@@ -27,6 +27,7 @@
 // tagline as module.<id>.tagline); in the browser i18n.mjs switches it to the chosen language,
 // and the language control in the header changes it for the shell and every module frame alike.
 
+import fs from 'node:fs'
 import { SHELL_STRINGS } from './strings.mjs'
 import { LANGS, DEFAULT_LANG } from './i18n.mjs'
 
@@ -46,8 +47,10 @@ const THEMES = [
   ['dark', 'themeDark', '<path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z"/>'],
 ]
 
-// The brand mark, the same file as the browser tab's icon (see <head>).
-const LOGO = '<img class="gw-logo" src="/shell/logo.svg" alt="">'
+// The brand mark, the same file as the browser tab's icon (see <head>). It is put inline, so its own
+// <style> follows the shell's light/dark choice (data-theme on the root), which an <img> cannot see.
+const LOGO = fs.readFileSync(new URL('./logo.svg', import.meta.url), 'utf8').trim()
+  .replace(/^<svg xmlns="[^"]*"/, '<svg class="gw-logo" aria-hidden="true"').replace(/ role="img" aria-label="[^"]*"/, '')
 
 // The shell's strings with the modules' taglines added, one set per language.
 function pageStrings(views) {

@@ -117,6 +117,14 @@ test('light or dark is a three-way segmented control in the header: System, Ligh
 test('the brand is the logo file: an image in the bar and the browser tab icon', () => {
   const html = page()
   assert.match(html, /<link rel="icon" type="image\/svg\+xml" href="\/shell\/logo\.svg">/)
-  assert.match(html, /<img class="gw-logo" src="\/shell\/logo\.svg" alt="">/)
-  assert.doesNotMatch(html, /gw-logo-fill/, 'no inline logo left')
+  assert.match(html, /<svg class="gw-logo" aria-hidden="true" viewBox="0 0 1248 1248">/, 'inline, so it follows the theme')
+  assert.doesNotMatch(html, /gw-logo-fill/, 'not the old gradient square')
+})
+
+test('the logo is light by default and dark when the OS or the user asks for it', () => {
+  const svg = fs.readFileSync(new URL('./logo.svg', import.meta.url), 'utf8')
+  assert.doesNotMatch(svg, /(?:fill|stroke|stop-color)="#/, 'every colour comes from its <style>')
+  assert.match(svg, /@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme="light"\]\) \./)
+  assert.match(svg, /\n\s*:root\[data-theme="dark"\] \./)
+  assert.doesNotMatch(svg, /id="(?!gwl-)/, 'ids are prefixed, the shell puts it in its page')
 })
