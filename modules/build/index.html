@@ -74,6 +74,10 @@
                        those map nodes (Plan's deep link /?module=plan&node=<id>)
     2.5.0  2026-10-19  checks: a ticket without a PRD line, or naming an id that is
                        not on Plan's map (docs/product/mindmap.json)
+    2.6.0  2026-10-19  from the server the page follows the core's live updates
+                       (Server-Sent Events, /api/events) instead of polling;
+                       ?prd=<id> shows only the tickets of that PRD item (Plan
+                       links here); /api/build/prd counts them for Plan
 -->
 <link rel="stylesheet" href="/shell/theme.css">
 <script>try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }</script>
@@ -571,7 +575,7 @@ const ui = i18n.t;
 const SERVER_ID = 'development-status';
 const SERVER_API = '/api/build';
 const SERVER_TIMEOUT_MS = 8000;
-const VERSION = '2.5.0';   // the same in module.mjs; the header comment lists the versions
+const VERSION = '2.6.0';   // the same in module.mjs; the header comment lists the versions
 
 const DEFAULT_TRACKER_DIR = '.scratch';
 const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
@@ -1047,7 +1051,9 @@ function renderInline(src, ctx, noLinks) {
 // ───────────────────────── State ─────────────────────────
 
 const STORE_KEY = 'development-status:' + location.pathname;
-const state = { view: 'waiting', doc: null, q: '', status: '', area: '', showClosed: false, activityDays: 14 };
+// prd: only the tickets naming this PRD item (Plan's link "/?module=build&prd=<id>"), closed ones too.
+const state = { view: 'waiting', doc: null, q: '', status: '', area: '', prd: '', showClosed: false, activityDays: 14 };
+try { state.prd = new URLSearchParams(location.search).get('prd') || ''; } catch (e) { /* no query */ }
 const openDetails = new Set();
 let source = null;       // { adapter, root, name, live, roots }; from the launcher's server also { server, launcher, reload }
 let cache = new Map();   // path → { size, mtime, text }
@@ -1057,6 +1063,8 @@ let recent = new Map();  // path → time of the last change seen in this sessio
 let lastChecked = null;
 let busy = false;
 let timer = null;
+let events = null;       // the server's live updates (EventSource on /api/events)
+let again = false;       // a refresh was asked for while one ran
 let lostAccess = false;
 let serverDown = false;
 let lastOpener = null;
@@ -1113,7 +1121,8 @@ function describeChange(path, before, after) {
 }
 
 async function refresh() {
-  if (busy || !source) return;
+  if (!source) return;
+  if (busy) { again = true; return; }
   busy = true;
   try {
     const listing = await scan(source);
@@ -1164,6 +1173,7 @@ async function refresh() {
   } finally {
     busy = false;
     renderLive(true);
+    if (again) { again = false; refresh(); }
   }
 }
 
@@ -1240,13 +1250,35 @@ async function refreshGit() {
   return true;
 }
 
-function startPolling() {
+// How the page follows the project. From the core server: its live updates (Server-Sent
+// Events on /api/events) say when a markdown file, a git ref or the GitHub issues changed, and
+// the page reads again; EventSource reconnects by itself, and every (re)connect reads again,
+// so nothing missed meanwhile is lost. A folder chosen in the browser (file://) is read again
+// every POLL_MS instead.
+function startLive() {
+  stopLive();
+  if (!source || !source.live) return;
+  if (source.server && typeof EventSource === 'function') {
+    events = new EventSource('/api/events');
+    events.addEventListener('hello', () => refresh());
+    events.addEventListener('change', (e) => {
+      let topics = [];
+      try { topics = JSON.parse(e.data).topics || []; } catch (err) { /* not ours */ }
+      if (topics.some((t) => t.startsWith('build.') || t === 'plan.map')) refresh();   // plan.map: the ids the PRD lines are checked against
+    });
+    events.addEventListener('error', () => { if (!serverDown) { serverDown = true; renderLive(false); } });
+    return;
+  }
+  timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
+}
+
+function stopLive() {
   clearInterval(timer);
-  if (source && source.live) timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
+  if (events) { events.close(); events = null; }
 }
 
 async function start(src) {
-  clearInterval(timer);
+  stopLive();
   source = src;
   cache = new Map();
   model = null;
@@ -1259,11 +1291,11 @@ async function start(src) {
   mapState = { key: '', ids: null };
   $('start-error').hidden = true;
   await refresh();
-  if (model) startPolling();
+  if (model) startLive();
 }
 
 function showStart(error) {
-  clearInterval(timer);
+  stopLive();
   source = null;
   model = null;
   $('app').hidden = true;
@@ -1278,10 +1310,11 @@ function showStart(error) {
 // ───────────────────────── Filtering ─────────────────────────
 
 function matches(t, ignoreClosed) {
+  if (state.prd && !t.prd.includes(state.prd)) return false;
   if (state.area && t.area !== state.area) return false;
   if (state.status && t.status !== state.status) return false;
   if (state.q && !t.hay.includes(fold(state.q.trim()))) return false;
-  if (!ignoreClosed && !state.showClosed && !state.status && isClosed(t)) return false;
+  if (!ignoreClosed && !state.showClosed && !state.status && !state.prd && isClosed(t)) return false;
   return true;
 }
 const visibleTickets = () => model.tickets.filter((t) => matches(t, false));
@@ -1343,7 +1376,9 @@ function renderLive(ticked) {
   } else if (source.live) {
     dot.className = 'dot on';
     if (ticked) { dot.classList.remove('tick'); void dot.offsetWidth; dot.classList.add('tick'); }
-    text = ui('live.on', { server: source.server ? ui('live.server', { host: source.server }) : '', sec: POLL_MS / 1000, at: lastChecked ? clock(lastChecked) : '–' });
+    text = source.server && typeof EventSource === 'function'
+      ? ui('live.push', { server: ui('live.server', { host: source.server }), at: lastChecked ? clock(lastChecked) : '–' })
+      : ui('live.on', { server: source.server ? ui('live.server', { host: source.server }) : '', sec: POLL_MS / 1000, at: lastChecked ? clock(lastChecked) : '–' });
     $('refresh').textContent = ui('live.refresh');
   } else {
     dot.className = 'dot';
@@ -1437,7 +1472,8 @@ function renderFilters() {
 function renderSummary() {
   const shown = visibleTickets().length;
   const hidden = model.tickets.filter((t) => matches(t, true)).length - shown;
-  $('f-summary').innerHTML = ui('filter.shown', { n: shown }) + (hidden ? ` · ${ui('filter.hidden', { n: hidden })} <button type="button" class="quiet" data-act="show-closed">${ui('filter.show')}</button>` : '') + (state.q || state.status || state.area ? ` <button type="button" class="quiet" data-act="clear">${ui('filter.clear')}</button>` : '');
+  const prd = state.prd ? `<span class="prd-filter">${ui('filter.prd', { id: `<span class="prd-ref">${esc(state.prd)}</span>` })} <button type="button" class="quiet" data-act="clear-prd" title="${esc(ui('filter.prd-clear'))}" aria-label="${esc(ui('filter.prd-clear'))}">×</button></span> · ` : '';
+  $('f-summary').innerHTML = prd + ui('filter.shown', { n: shown }) + (hidden ? ` · ${ui('filter.hidden', { n: hidden })} <button type="button" class="quiet" data-act="show-closed">${ui('filter.show')}</button>` : '') + (state.q || state.status || state.area || state.prd ? ` <button type="button" class="quiet" data-act="clear">${ui('filter.clear')}</button>` : '');
 }
 
 const VIEW_RENDERERS = {
@@ -1803,6 +1839,16 @@ function readHash() {
 }
 window.addEventListener('hashchange', readHash);
 
+// The PRD filter came in the address (?prd=): it goes from there too, so a reload shows everything.
+function clearPrd() {
+  state.prd = '';
+  try {
+    const url = new URL(location.href);
+    url.searchParams.delete('prd');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  } catch (e) { /* the filter is gone anyway */ }
+}
+
 function filtersChanged() {
   saveState();
   renderOverview();
@@ -1824,7 +1870,8 @@ document.addEventListener('click', (e) => {
   const act = e.target.closest('[data-act]');
   if (act) {
     if (act.dataset.act === 'show-closed') state.showClosed = true;
-    if (act.dataset.act === 'clear') { state.q = ''; state.status = ''; state.area = ''; }
+    if (act.dataset.act === 'clear') { state.q = ''; state.status = ''; state.area = ''; clearPrd(); }
+    if (act.dataset.act === 'clear-prd') clearPrd();
     if (act.dataset.act === 'more-days') { state.activityDays += 30; renderView(); return; }
     if (act.dataset.act === 'more-commits') { gitState.limit += GIT_PAGE; act.disabled = true; refreshGit().then(() => renderView()); return; }
     filtersChanged();

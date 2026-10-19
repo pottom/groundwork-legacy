@@ -206,7 +206,7 @@
                 "topic": "Helyi szerver",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Egyetlen helyi szerver szolgálja ki az összes modult, mindegyiket a saját API-jával. A szerver Node.js-en fut, csak beépített modulokkal, telepítendő függőség nélkül.\n\nAz írási jog modulonként adható: a Plan a saját dokumentumait írja, a Build csak olvas.",
+                  "prose": "Egyetlen helyi szerver szolgálja ki az összes modult, mindegyiket a saját API-jával. A szerver Node.js-en fut, csak beépített modulokkal, telepítendő függőség nélkül.\n\nAz írási jog modulonként adható: a Plan a saját dokumentumait írja, a Build csak olvas.\n\nA változásokról a szerver szól az oldalaknak (Server-Sent Events a `/api/events` alatt): a térkép, a helyi jegyek, a git és a GitHub-issue-k változása után az oldalak újraolvasnak, lekérdezgetés nélkül.",
                   "progress": "done"
                 },
                 "children": [
@@ -232,6 +232,24 @@
                   {
                     "id": "x-two-servers",
                     "topic": "Modulonként külön szerver",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-live-sse",
+                    "topic": "Élő frissítés Server-Sent Events-szel (/api/events)",
+                    "note": "A mag figyeli a projektmappát; a modul manifestje mondja meg, melyik fájl melyik témához tartozik, és maga is küldhet értesítést (a Build 20 mp-enként újra megkérdezi a GitHubot). Az oldalak csak értesítésre kérdeznek újra; újracsatlakozáskor mindent újraolvasnak.",
+                    "hyperLink": "core/events.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "x-polling",
+                    "topic": "Lekérdezgetés (polling) az oldalakból",
+                    "note": "A szerver nélkül, fájlból (file://) megnyitott Build továbbra is 3 mp-enként olvassa újra a mappát.",
                     "metadata": {
                       "status": "excluded"
                     }
@@ -642,8 +660,9 @@
                     "topic": "Döntésenként látszik, hány jegy lett és mennyi kész",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/build/project-tickets.mjs"
                   },
                   {
                     "id": "d-trace-how",
@@ -938,6 +957,16 @@
                     "topic": "GitLab-issue-k",
                     "metadata": {
                       "status": "parked"
+                    }
+                  },
+                  {
+                    "id": "d-prd-counts",
+                    "topic": "A Plan jegyszámai a Build jegyolvasójából (/api/build/prd)",
+                    "note": "A szerver ugyanazzal a ticket-reader.js-szel olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed.",
+                    "hyperLink": "modules/build/project-tickets.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
                     }
                   }
                 ]

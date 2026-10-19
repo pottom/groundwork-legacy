@@ -16,6 +16,8 @@ A ticket may name the PRD items (the ids of Plan's map nodes) it came from, on a
 
 The Checks view lists an open ticket without a PRD line, and a ticket naming an id that is not on the map. The map's ids come from Plan (`GET /api/plan/map`) on the server, or from `docs/product/mindmap.json` in a picked folder. Without a map no id counts as unknown, and a missing PRD line counts only once some ticket has one. Claude adds the line after `to-tickets` (see the groundwork-prd-maker skill).
 
+Plan shows, on each map item, how many tickets name it and how many of them are done; it gets the counts from `/api/build/prd`, which reads the tickets on the server with the same `ticket-reader.js` (`project-tickets.mjs`). Clicking the count opens Build with only that item's tickets, closed ones too (`/?module=build&prd=<id>`; the filter shows above the list and can be cleared).
+
 It shows the following views:
 
 - tickets and areas;
@@ -25,7 +27,7 @@ It shows the following views:
 - documents;
 - the git branch graph.
 
-The page re-reads the files every few seconds.
+On the core server the page follows the core's live updates (`/api/events`, Server-Sent Events): it reads again when a Markdown file, a git ref, Plan's map or the GitHub issues change (the server asks GitHub again every 20 seconds while a page listens), and on every reconnect. Opened as a file with a chosen folder, it re-reads the folder every 3 seconds.
 
 | File | Role |
 |---|---|
@@ -35,6 +37,7 @@ The page re-reads the files every few seconds.
 | `i18n.js` | a copy of `core/shell/i18n.mjs` without `export`; do not edit it here |
 | `module.mjs` | the manifest and the read-only endpoints under `/api/build/` |
 | `project-reader.mjs` | reads the project: the Markdown files inside the root, and the git history |
+| `project-tickets.mjs` | the tickets read on the server with `ticket-reader.js`, and per PRD item how many name it and how many are done (for Plan) |
 | `github-source.mjs` | fetches the GitHub issues on the server (with their dependency links), in the shape the ticket reader takes |
 
 ## Run
@@ -50,6 +53,7 @@ node core/groundwork.mjs --root .       # then open http://localhost:4477/build/
 | `GET /api/build/file?path=P` | the text of a listed file |
 | `GET /api/build/git?limit=N&known=F` | branches, tags and commits, when the root is the top of a git repository |
 | `GET /api/build/issues?known=F` | the GitHub issues of the `origin` repository, or `{ available: false, reason }` |
+| `GET /api/build/prd` | `{ items: { <id>: { total, done, tickets } } }`: per PRD item, the tickets naming it (a dropped one, wontfix or legacy, does not count; done, resolved and closed are done) |
 
 It never writes. It serves only the page, the project's Markdown files inside the root, in a git repository the branch history, and the GitHub issues of its origin; git and GitHub are only asked to read.
 

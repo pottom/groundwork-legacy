@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 13 kész, 0 részben, 0 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 14 kész, 0 részben, 0 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -12,8 +12,11 @@ Egyetlen helyi szerver szolgálja ki az összes modult, mindegyiket a saját API
 
 Az írási jog modulonként adható: a Plan a saját dokumentumait írja, a Build csak olvas.
 
+A változásokról a szerver szól az oldalaknak (Server-Sent Events a `/api/events` alatt): a térkép, a helyi jegyek, a git és a GitHub-issue-k változása után az oldalak újraolvasnak, lekérdezgetés nélkül.
+
 - Mindkettő Node, csak beépített modulokkal `kész` ([core/server.mjs](../../../core/server.mjs))
 - Egy közös szerver, modulonkénti API-val `kész` — Az írási jogot modulonként adjuk. ([core/server.mjs](../../../core/server.mjs))
+- Élő frissítés Server-Sent Events-szel (/api/events) `kész` — A mag figyeli a projektmappát; a modul manifestje mondja meg, melyik fájl melyik témához tartozik, és maga is küldhet értesítést (a Build 20 mp-enként újra megkérdezi a GitHubot). Az oldalak csak értesítésre kérdeznek újra; újracsatlakozáskor mindent újraolvasnak. ([core/events.mjs](../../../core/events.mjs))
 
 ## 2. Modulszerződés
 
@@ -77,6 +80,7 @@ Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és ford
 ## Elvetett megoldások
 
 - Modulonként külön szerver _(Helyi szerver)_
+- Lekérdezgetés (polling) az oldalakból — A szerver nélkül, fájlból (file://) megnyitott Build továbbra is 3 mp-enként olvassa újra a mappát. _(Helyi szerver)_
 - Bemásolható mappa _(Csomagolás és terjesztés)_
 - Külön oldal–indító verziópár _(Csomagolás és terjesztés)_
 - Token vagy jelszó _(Biztonság)_

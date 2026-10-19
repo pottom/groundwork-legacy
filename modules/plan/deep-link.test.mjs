@@ -4,7 +4,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { linkTarget, planLink } from './deep-link.mjs'
+import { linkTarget, planLink, buildLink } from './deep-link.mjs'
 import plan from './module.mjs'
 
 const map = {
@@ -42,4 +42,9 @@ test('the link Build and others use: through the shell, the id encoded', () => {
 
 test('the deep link code is served with the view', () => {
   assert.ok(plan.view.files.includes('deep-link.mjs'))
+})
+
+test('an item\'s tickets open in Build through the shell, filtered to that item', () => {
+  assert.equal(buildLink('d-trace'), '/?module=build&prd=d-trace')
+  assert.equal(buildLink('a b&c'), '/?module=build&prd=a%20b%26c')
 })

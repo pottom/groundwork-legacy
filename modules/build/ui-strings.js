@@ -29,6 +29,7 @@ const BUILD_STRINGS = {
     'live.lost': 'The browser no longer lets the page read the folder; showing the last known state.',
     'live.renew': 'Renew permission',
     'live.on': 'Live{server}: reads every {sec} seconds · checked {at}',
+    'live.push': 'Live{server}: reads again when something changes · read {at}',
     'live.server': ' · local server ({host})',
     'live.snapshot': 'Snapshot: read at {at}, does not refresh by itself',
     'live.reread': 'Read again (choose the folder)',
@@ -63,6 +64,8 @@ const BUILD_STRINGS = {
     'filter.hidden': 'closed hidden: {n}',
     'filter.show': 'show',
     'filter.clear': 'clear filters',
+    'filter.prd': 'Tickets of {id}',
+    'filter.prd-clear': 'Show every ticket, not only this PRD item\'s',
 
     'status.unparsed': 'unreadable',
 
@@ -299,6 +302,7 @@ const BUILD_STRINGS = {
     'live.lost': 'A böngésző már nem engedi olvasni a mappát; az utolsó ismert állás látszik.',
     'live.renew': 'Engedély megújítása',
     'live.on': 'Élő{server}: {sec} másodpercenként olvas · ellenőrizve {at}',
+    'live.push': 'Élő{server}: ha valami változik, újraolvas · beolvasva {at}',
     'live.server': ' · helyi szerver ({host})',
     'live.snapshot': 'Pillanatkép: beolvasva {at}, magától nem frissül',
     'live.reread': 'Újraolvasás (mappa kiválasztása)',
@@ -333,6 +337,8 @@ const BUILD_STRINGS = {
     'filter.hidden': '{n} zárt rejtve',
     'filter.show': 'mutasd',
     'filter.clear': 'szűrők törlése',
+    'filter.prd': '{id} jegyei',
+    'filter.prd-clear': 'Minden jegy látsszon, ne csak ennek a PRD-elemnek a jegyei',
 
     'status.unparsed': 'nem értelmezhető',
 
