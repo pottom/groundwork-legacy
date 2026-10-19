@@ -140,3 +140,50 @@ test('the PRD line names the PRD items a ticket came from, in both sources', () 
   assert.deepEqual(m.byPrd.get('f-build-trace').map((t) => t.label), ['core 01', '#4']);
   assert.deepEqual(m.byPrd.get('d-trace').map((t) => t.label), ['core 01', '#5']);
 });
+
+// The ids of the PRD map (Plan's docs/product/mindmap.json), when the page could read the map.
+const withMap = (src, ids) => ({ ...src, mapIds: ids });
+const prdProblems = (m) => m.problems.filter((p) => /prd/.test(p.kind)).map((p) => [p.kind, p.tickets.map((t) => t.label).join(' '), p.key, p.params])
+  .sort((a, b) => (a[0] + a[1] < b[0] + b[1] ? -1 : 1));
+
+test('a ticket naming an id that is not on the PRD map is an inconsistency', () => {
+  const m = readTickets(withMap({
+    ...local({ '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**PRD:** f-known, f-gone\n' }),
+    github: { repo: 'acme/app', issues: [issue(2, { body: '**PRD:** f-known\n' }), issue(3, { body: '**PRD:** d-old, d-older\n', state: 'closed' })] },
+  }, ['root', 'f-known']));
+  assert.deepEqual(prdProblems(m), [
+    ['unknown-prd', '#3', 'problem.unknown-prd.text', { list: 'd-old, d-older' }],
+    ['unknown-prd', 'core 01', 'problem.unknown-prd.text', { list: 'f-gone' }],
+  ]);
+});
+
+test('an open ticket without a PRD line is an inconsistency; a closed one is history', () => {
+  const m = readTickets(withMap({
+    ...local({ '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n' }),
+    github: { repo: 'acme/app', issues: [issue(2, { body: '**PRD:** f-known\n' }), issue(3), issue(4, { state: 'closed' })] },
+  }, ['f-known']));
+  assert.deepEqual(prdProblems(m), [
+    ['no-prd', '#3', 'problem.no-prd.text', {}],
+    ['no-prd', 'core 01', 'problem.no-prd.text', {}],
+  ]);
+});
+
+test('the PRD map ids come from every node of the map, nested or not; a broken map gives none', () => {
+  const { mapIds } = globalThis.GroundworkTickets;
+  const map = { v: 'abc', nodeData: { id: 'root', topic: 'R', children: [{ id: 'doc-a', children: [{ id: 'f-x' }, { id: 'd-y', children: [] }] }] } };
+  assert.deepEqual(mapIds(map), ['root', 'doc-a', 'f-x', 'd-y']);
+  assert.equal(mapIds(null), null);
+  assert.equal(mapIds({ error: 'no mindmap.json' }), null);
+  const m = readTickets(withMap(local({ '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**PRD:** f-x, f-z\n' }), mapIds(map)));
+  assert.deepEqual(prdProblems(m), [['unknown-prd', 'core 01', 'problem.unknown-prd.text', { list: 'f-z' }]]);
+});
+
+test('without the PRD map no id is unknown, and a missing PRD line counts only once the project uses them', () => {
+  const none = readTickets(local({ '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n' }));
+  assert.deepEqual(prdProblems(none), [], 'a project that does not link tickets to a PRD');
+  const some = readTickets(local({
+    '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n',
+    '.scratch/core/issues/02-two.md': '# Two\n\nStatus: ready-for-agent\n**PRD:** f-anything\n',
+  }));
+  assert.deepEqual(prdProblems(some), [['no-prd', 'core 01', 'problem.no-prd.text', {}]]);
+});

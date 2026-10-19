@@ -39,7 +39,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 // SERVER_ID, SERVER_API and VERSION in index.html.
 const SERVER_ID = 'development-status';
 const API_VERSION = 1;
-const VERSION = '2.5.0';
+const VERSION = '2.6.0';
 
 const ISSUES_CHECK_MS = 20000;   // GitHub itself is asked at most once a minute (github-source.mjs)
 const MARKDOWN = /\.(md|markdown)$/i;
