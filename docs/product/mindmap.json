@@ -435,8 +435,9 @@
                     "note": "A keret modulonként egy keretet tart meg, és csak elrejti; a térkép megtartja a nagyítást és kijelölést, a Build a görgetést és a szűrőket.",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/shell/frames.mjs"
                   },
                   {
                     "id": "d-toolbars",
