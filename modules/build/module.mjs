@@ -15,8 +15,9 @@
 //                                        page's ticket reader (project-tickets.mjs); Plan shows the counts
 //
 // Live updates (core/events.mjs): a markdown file changing is the topic "build.files", a git ref
-// or HEAD "build.git"; while a page listens, the server asks GitHub again every
-// ISSUES_CHECK_MS and pushes "build.issues" when the issues changed. The page then asks again.
+// or HEAD "build.git"; while a page listens, the server asks GitHub afresh every
+// ISSUES_CHECK_MS and pushes "build.issues" when the issues changed. The page then asks again
+// and gets the answer the re-check kept: a change on GitHub shows within one re-check.
 //
 // GitHub is asked by the server only (gh CLI, or GITHUB_TOKEN): no token ever reaches the page.
 //
@@ -41,7 +42,9 @@ const SERVER_ID = 'development-status';
 const API_VERSION = 1;
 const VERSION = '2.6.0';
 
-const ISSUES_CHECK_MS = 20000;   // GitHub itself is asked at most once a minute (github-source.mjs)
+// Once a minute, as GitHub's answer is kept for the pages' own reads (github-source.mjs): without a
+// token GitHub allows 60 requests an hour.
+const ISSUES_CHECK_MS = 60000;
 const MARKDOWN = /\.(md|markdown)$/i;
 const NEVER = /(^|\/)(node_modules|\.git|\.hg|\.svn)\//;
 const GIT_REF = /^\.git\/(HEAD|packed-refs|refs\/.+)$/;
@@ -80,9 +83,9 @@ async function git(project, url) {
 // The issues of the project's GitHub repository, when its origin is on GitHub.
 function issuesOf(project, githubRequest, ttlMs) {
   let source = null;
-  return async () => {
+  return async (options) => {
     source ??= project.gitRemoteUrl().then((remote) => openGitHub({ repo: githubRepo(remote), ...(githubRequest ? { request: githubRequest } : {}), ...(ttlMs != null ? { ttlMs } : {}) }));
-    return (await source).issues();
+    return (await source).issues(options);
   };
 }
 
@@ -108,7 +111,7 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
       const tickets = openTickets(project);
       let lastIssues;   // the fingerprint of the issues last seen by the live check
       events?.every(issuesCheckMs, async () => {
-        const answer = await issues();
+        const answer = await issues({ fresh: true });
         const now = answer.available ? answer.fingerprint : '';
         if (lastIssues !== undefined && now !== lastIssues) events.publish('build.issues');
         lastIssues = now;

@@ -254,13 +254,18 @@ test('the server re-checks GitHub while a page listens and pushes a change of th
   execFileSync('git', ['remote', 'add', 'origin', 'https://github.com/acme/app.git'], { cwd: root, stdio: 'pipe' });
   let title = 'Four';
   const request = async (p) => (p.startsWith('repos/acme/app/issues?') ? [{ number: 4, title, state: 'open', labels: [], body: '' }] : []);
-  const srv = await startServer({ root, modules: [buildModule({ githubRequest: request, githubTtlMs: 0, issuesCheckMs: 40 })], port: 0 });
+  // GitHub's answer is kept for a minute for the pages' own reads; the re-check asks afresh,
+  // so a change on GitHub reaches the pages within one re-check.
+  const srv = await startServer({ root, modules: [buildModule({ githubRequest: request, githubTtlMs: 60000, issuesCheckMs: 40 })], port: 0 });
   const sse = listen(srv.port);
   try {
     await sse.next((e) => e.event === 'hello');
+    const base = `http://127.0.0.1:${srv.port}`;
+    assert.equal((await (await fetch(`${base}/api/build/issues`)).json()).issues[0].title, 'Four');
     await new Promise((r) => setTimeout(r, 200));
     title = 'Four, renamed on GitHub';
     await sse.change('build.issues');
+    assert.equal((await (await fetch(`${base}/api/build/issues`)).json()).issues[0].title, 'Four, renamed on GitHub', 'the page asking after the push gets the new issues');
   } finally { sse.close(); await srv.close(); }
 });
 
@@ -287,5 +292,18 @@ test('Plan\'s ticket counts: per PRD item, the tickets naming it and how many ar
     const later = await prd();
     assert.deepEqual([later['f-other'].total, later['f-other'].done], [2, 2], 'a new ticket and a state change count without a restart');
     assert.deepEqual([later['d-trace'].total, later['d-trace'].done], [3, 3]);
+  } finally { await srv.close(); }
+});
+
+test('Plan\'s counts read the same ticket files as the Build page: a ticket the page does not read is not counted', async () => {
+  const root = project();
+  const write = (rel, text) => { fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); fs.writeFileSync(path.join(root, rel), text); };
+  write('.scratch/core/issues/01-first.md', '# First\n\n**PRD:** d-trace\n**Status:** done\n');
+  write('.scratch/web/ui/issues/01-nested.md', '# Nested area\n\n**PRD:** d-trace\n**Status:** ready-for-agent\n');
+  write('.scratch/web/dist/issues/01-built.md', '# A build output, not a ticket\n\n**PRD:** d-trace\n**Status:** ready-for-agent\n');
+  const srv = await startServer({ root, modules: [buildModule({ githubRequest: async () => [] })], port: 0 });
+  try {
+    const items = (await (await fetch(`http://127.0.0.1:${srv.port}/api/build/prd`)).json()).items;
+    assert.deepEqual(items['d-trace'].tickets.map((t) => t.path).sort(), ['.scratch/core/issues/01-first.md', '.scratch/web/ui/issues/01-nested.md']);
   } finally { await srv.close(); }
 });

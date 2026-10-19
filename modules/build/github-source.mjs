@@ -3,6 +3,7 @@
 //   const gh = openGitHub({ repo: 'owner/name', request? , ttlMs?, now? });
 //   await gh.issues()   { available: true, repo, issues, fingerprint, error? }
 //                       or { available: false, reason: 'no-repo' | 'error', error? }
+//   await gh.issues({ fresh: true })   the same, GitHub asked now whatever is kept (the live re-check)
 //   githubRepo(url)     'owner/name' from a GitHub remote URL, else null
 //   defaultRequest()    how GitHub is asked: `gh api` when the gh CLI is installed (its own
 //                       login, or GH_TOKEN / GITHUB_TOKEN), else the REST API with GITHUB_TOKEN
@@ -18,7 +19,10 @@
 //
 // The token never leaves the server: the page gets the issues only, and an error is cut to its
 // first line with anything token-like removed. Answers are kept for ttlMs; a stale one is served
-// at once while a fresh one is fetched, so the page's polling does not reach GitHub each time.
+// at once while a fresh one is fetched, so the pages' own reads do not reach GitHub each time.
+// The server's live re-check (module.mjs, while a page listens on /api/events) reads fresh: it
+// asks GitHub every time and keeps the answer, so a change on GitHub is pushed within one
+// re-check and the pages, asking after the push, get it from what is kept.
 
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -92,9 +96,9 @@ export function openGitHub({ repo, request = defaultRequest(), ttlMs = TTL_MS, n
 
   const answer = () => (kept ? (lastError ? { ...kept, error: lastError } : kept) : { available: false, reason: 'error', error: lastError });
 
-  async function issues() {
+  async function issues({ fresh = false } = {}) {
     if (!repo) return { available: false, reason: 'no-repo' };
-    if (!kept && !keptAt) await refresh();
+    if (fresh || (!kept && !keptAt)) await refresh();
     else if (now() - keptAt >= ttlMs) refresh();
     return answer();
   }
