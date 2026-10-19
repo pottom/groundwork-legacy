@@ -15,6 +15,7 @@
 
 import { SHELL_STRINGS } from './strings.mjs'
 import { LANGS, DEFAULT_LANG } from './i18n.mjs'
+import { prototypeShellPage } from './shell-prototype.mjs' // PROTOTYPE
 
 const T = SHELL_STRINGS[DEFAULT_LANG]
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
@@ -22,6 +23,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 // project: the project's name; version: Groundwork's, shown in the header; modules: the manifests; active: the id of the module to show;
 // params: the rest of the shell's query (URLSearchParams), handed on to that module's frame.
 export function shellPage({ project, version, modules, active, params }) {
+  if (params?.has('variant')) return prototypeShellPage({ project, version, modules, active, params }) // PROTOTYPE
   const views = modules.filter((m) => m.view)
   const current = views.find((m) => m.id === active) ?? views[0]
   const nav = views.map((m) => `<a href="/?module=${esc(encodeURIComponent(m.id))}"${m === current ? ' aria-current="page"' : ''}>${esc(m.name)}</a>`)
