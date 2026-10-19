@@ -1,20 +1,21 @@
-// The map's look follows the operating system's light or dark mode, also when it changes while the page is open.
+// The map's look follows the shell's light or dark (the user's choice, else the operating system's),
+// also when it changes while the page is open.
 // Run: node --test "modules/**/*.test.mjs"
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { mapTheme, followColorScheme } from './map-theme.mjs'
+import { mapTheme, followTheme } from './map-theme.mjs'
 import plan from './module.mjs'
 import { viewSource } from './view-source.test-helper.mjs'
 
-// A stand-in for matchMedia('(prefers-color-scheme: dark)').
-function fakeScheme(matches) {
+// A stand-in for the shell's switch, window.groundworkTheme (/shell/theme.js).
+function fakeTheme(theme) {
   const listeners = []
   return {
-    matches,
-    addEventListener: (type, fn) => type === 'change' && listeners.push(fn),
-    flip() { this.matches = !this.matches; for (const fn of listeners) fn({ matches: this.matches }) },
+    theme,
+    onChange: (fn) => { listeners.push(fn) },
+    flip() { this.theme = this.theme === 'dark' ? 'light' : 'dark'; for (const fn of listeners) fn(this.theme, this.theme) },
   }
 }
 
@@ -31,19 +32,19 @@ test('the map theme has a light and a dark variant built from the shell colours'
   assert.equal(dark.cssVar['--color'], 'var(--gw-fg)')
 })
 
-test('the theme is applied at once and again whenever the OS switches between light and dark', () => {
-  const scheme = fakeScheme(false)
+test('the theme is applied at once and again whenever the shell switches between light and dark', () => {
+  const theme = fakeTheme('light')
   const seen = []
-  followColorScheme(scheme, (dark) => seen.push(dark))
+  followTheme(theme, (dark) => seen.push(dark))
   assert.deepEqual(seen, [false])
-  scheme.flip()
-  scheme.flip()
+  theme.flip()
+  theme.flip()
   assert.deepEqual(seen, [false, true, false])
 })
 
 test('the Plan view uses the followed theme, and serves the file', () => {
   assert.ok(plan.view.files.includes('map-theme.mjs'))
   const html = viewSource()
-  assert.match(html, /followColorScheme\(matchMedia\('\(prefers-color-scheme: dark\)'\)/)
-  assert.doesNotMatch(html, /matchMedia\('\(prefers-color-scheme: dark\)'\)\.matches/)
+  assert.match(html, /followTheme\(groundworkTheme,/)
+  assert.doesNotMatch(html, /prefers-color-scheme/, 'not the OS alone: the shell\'s choice')
 })

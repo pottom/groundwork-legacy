@@ -83,13 +83,23 @@ body.gw-shell {
 @keyframes gw-live-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--gw-ok) 0%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .gw-live[data-state="on"] i { animation: none; } }
 
-/* the language: a quiet EN · HU segmented control, a track only on hover */
-.gw-lang { padding: 2px; background: transparent; box-shadow: none; transition: background .15s; }
+/* the language and the theme: quiet segmented controls, a track only on hover */
+.gw-lang, .gw-theme { padding: 2px; background: transparent; box-shadow: none; transition: background .15s; }
+
+/* the language: EN · HU */
 .gw-lang:hover { background: var(--gw-sunken); }
 .gw-lang > button { height: 24px; padding: 0 8px; font: 600 11.5px/1 var(--gw-font); letter-spacing: .03em; }
 .gw-lang > button::after { display: none; }
 .gw-lang > button[aria-pressed="true"] { background: var(--gw-sunken); box-shadow: none; }
 .gw-lang:hover > button[aria-pressed="true"] { background: var(--gw-surface); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+
+/* light or dark: System · Light · Dark as icons, the same quiet control as the language */
+.gw-theme:hover { background: var(--gw-sunken); }
+.gw-theme > button { height: 24px; padding: 0 6px; }
+.gw-theme > button::after { display: none; }
+.gw-theme > button[aria-pressed="true"] { background: var(--gw-sunken); box-shadow: none; color: var(--gw-accent); }
+.gw-theme:hover > button[aria-pressed="true"] { background: var(--gw-surface); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+.gw-theme-icon { width: 15px; height: 15px; display: block; }
 
 .gw-version { color: var(--gw-muted); font-size: 11px; }
 
@@ -165,6 +175,7 @@ body.gw-shell {
   .gw-icon { width: 16px; height: 16px; }
   .gw-live { order: 3; margin: 0 2px; }
   .gw-lang { order: 4; }
+  .gw-theme { order: 5; }
 }
 @media (max-width: 400px) {
   .gw-project { display: none; }

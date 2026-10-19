@@ -37,7 +37,9 @@ function declarations(opener) {
   return out
 }
 const LIGHT = declarations(/^:root\s*\{/gm)
-const DARK = declarations(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{/g)
+// Dark comes twice: when the OS is dark and no light is chosen, and when dark is chosen (theme.js).
+const DARK = declarations(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{/g)
+const CHOSEN_DARK = declarations(/^:root\[data-theme="dark"\]\s*\{/gm)
 
 const TONES = ['ok', 'warn', 'bad', 'info', 'violet', 'accent']
 // Hues with an AA text colour and a soft tint, but no badge or callout tone of their own.
@@ -60,6 +62,14 @@ test('colours that change between light and dark are set in both', () => {
   for (const [name, value] of Object.entries(LIGHT)) {
     if (/^#/.test(value)) assert.ok(name in DARK, `dark ${name}`)
   }
+})
+
+test('a chosen light or dark wins over the OS, with the same dark values as the OS\'s dark', () => {
+  assert.deepEqual(CHOSEN_DARK, DARK)
+  assert.match(RULES, /^:root\[data-theme="light"\]\s*\{\s*color-scheme:\s*light;?\s*\}/m)
+  assert.match(RULES, /^:root\[data-theme="dark"\]\s*\{\s*color-scheme:\s*dark;/m)
+  assert.match(HEADER, /\/shell\/theme\.js/, 'the contract tells a module to load the switch')
+  assert.doesNotMatch(HEADER, /there is no switch/)
 })
 
 test('every component class in the file is documented in the header', () => {

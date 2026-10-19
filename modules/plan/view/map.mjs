@@ -1,4 +1,4 @@
-// The map: Mind Elixir draws it; this module creates it, draws its branch lines, follows the OS's
+// The map: Mind Elixir draws it; this module creates it, draws its branch lines, follows the shell's
 // light or dark, decorates the nodes (status, branch colour, icons, badges), pans, fits and selects.
 //   createMap(data, { onOperation, onSelect })  the Mind Elixir instance on #map
 //   decorate()          the nodes' data attributes and badges, then the chrome and the document
@@ -6,7 +6,7 @@
 //   reveal(id), selectOnMap(id), labelMap()
 
 import MindElixir from '/vendor/mind-elixir/MindElixir.js'
-import { mapTheme, followColorScheme } from '../map-theme.mjs'
+import { mapTheme, followTheme } from '../map-theme.mjs'
 import { COMPONENT_TYPES, listDocs, isSection } from '../documents.mjs'
 import { buildLink } from '../deep-link.mjs'
 import { fitScale } from '../view-rules.mjs'
@@ -53,10 +53,10 @@ function subBranch({ pT, pL, pW, pH, cT, cL, cW, cH, direction, isFirst }) {
   return `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`
 }
 
-// Light or dark follows the OS, also when it switches while the page is open:
-// the map gets the matching theme and the branches their palette again.
+// Light or dark follows the shell's theme (/shell/theme.js), also when it switches while the page
+// is open: the map gets the matching theme and the branches their palette again.
 let THEME, PALETTE
-followColorScheme(matchMedia('(prefers-color-scheme: dark)'), (dark) => {
+followTheme(groundworkTheme, (dark) => {
   THEME = mapTheme({ dark, css, generateMainBranch: mainBranch, generateSubBranch: subBranch })
   PALETTE = THEME.palette
   if (state.mind) { state.mind.changeTheme(THEME); decorate() }

@@ -38,7 +38,7 @@ function browserFiles() {
   for (const m of MODULES) for (const f of m.view?.files ?? []) files.add(path.join(m.view.dir, f))
   for (const f of filesIn(path.join(ROOT, 'modules'), ['.html'])) files.add(f)
   for (const f of filesIn(VENDOR_DIR, ['.css', '.js', '.mjs', '.html'])) files.add(f)
-  for (const f of filesIn(SHELL_DIR, ['.css', '.mjs'])) files.add(f)
+  for (const f of filesIn(SHELL_DIR, ['.css', '.mjs', '.js'])) files.add(f)
   return [...files]
 }
 
