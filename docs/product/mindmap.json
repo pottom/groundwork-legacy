@@ -1199,64 +1199,73 @@
                     "topic": "Számozott ötletek (I-1, I-2 …) szerzővel és forrással",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/store.mjs"
                   },
                   {
                     "id": "f-ideas-kanban",
                     "topic": "Kanban: Új · Mérlegelés · Kidolgozásra · Elvetve",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/view/board.mjs"
                   },
                   {
                     "id": "f-ideas-matrix",
                     "topic": "Hatás–ráfordítás mátrix nézet",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "note": "A közepes (medium) becslés a kedvezőtlen oldalra számít (alacsony hatás, magas ráfordítás), így csak a biztos gyors nyerés látszik annak. Ha az ember egy ötletet másik kvadránsba mozgat, a megváltozott tengelyen high vagy low értéket kap.",
+                    "hyperLink": "modules/ideas/matrix.mjs"
                   },
                   {
                     "id": "f-ideas-assist",
                     "topic": "Claude becslése és a hasonló ötletek jelzése",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/similar.mjs"
                   },
                   {
                     "id": "f-ideas-to-plan",
                     "topic": "Termékötlet kidolgozásra: todo csomópont a Plan térképén, oda-vissza hivatkozással",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/view/plan.mjs"
                   },
                   {
                     "id": "f-ideas-to-build",
                     "topic": "Mérnöki ötletből jegy, ami hivatkozik az ötletre",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/ticket.mjs"
                   },
                   {
                     "id": "f-ideas-reject",
                     "topic": "Elvetés indoklással; a PRD Nem cél részébe vihető",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/view/reject.mjs"
                   },
                   {
                     "id": "f-ideas-claude",
                     "topic": "groundwork ideas parancs és skill Claude-nak",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/ideas/ideas.mjs"
                   }
                 ]
               },
@@ -1491,57 +1500,64 @@
                     "topic": "Excalidraw-szerkesztő a keretben",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/module.mjs"
                   },
                   {
                     "id": "f-board-list",
                     "topic": "Tetszőleges számú vázlat névvel: lista, létrehozás, átnevezés",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/view/sketches.mjs"
                   },
                   {
                     "id": "f-board-claude-read",
                     "topic": "Claude olvassa a vázlatot: alakzatok, szövegek, kapcsolatok",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/digest.mjs"
                   },
                   {
                     "id": "f-board-claude-draw",
                     "topic": "Claude rajzol: alakzatok, nyilak, szövegek, Mermaidből is",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/ops.mjs"
                   },
                   {
                     "id": "f-board-threads",
                     "topic": "Alakzatokhoz tűzött megjegyzésszálak",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/threads.mjs"
                   },
                   {
                     "id": "f-board-live",
                     "topic": "Élő frissítés: Claude rajza és válasza azonnal megjelenik",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/view/follow.mjs"
                   },
                   {
                     "id": "f-board-links",
                     "topic": "Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
+                      "impl": "done"
                     },
-                    "note": "Jó, ha van, de nem feltétlenül szükséges."
+                    "note": "Jó, ha van, de nem feltétlenül szükséges.",
+                    "hyperLink": "modules/sketch/links-store.mjs"
                   },
                   {
                     "id": "f-board-shape-links",
@@ -1549,8 +1565,9 @@
                     "note": "Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges.",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/sketch/view/targets.mjs"
                   }
                 ]
               },
@@ -1626,7 +1643,7 @@
                 "topic": "Technológiai stack",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A rajzolást az Excalidraw adja, a csomagba téve, mint a Mind Elixir; a React csak az ő belső függősége, a saját kódunk továbbra is lit-html. Nyitott kérdés, hogyan csomagolható fordítási lépés nélkül: a 0.17-es UMD-build, vagy egy egyszer, a frissítéskor előkészített ESM-változat. Ezt az első jegy dönti el.",
+                  "prose": "A rajzolást az Excalidraw adja, a csomagba téve, mint a Mind Elixir; a React csak az ő belső függősége, a saját kódunk továbbra is sima ES-modul. Az első jegy eldöntötte a csomagolást: a 0.17-es UMD-build a React 18 UMD-buildjeivel, változatlanul, fordítási lépés nélkül; egy egyszer előkészített 0.18-as ESM-változat csak akkor jön szóba, ha egy csak ott meglévő funkció kell.",
                   "progress": "done"
                 },
                 "children": [
@@ -1636,16 +1653,18 @@
                     "note": "A React csak az Excalidraw belső függősége; a saját kód lit-html marad.",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/vendor/README.md"
                   },
                   {
                     "id": "q-board-packaging",
-                    "topic": "Csomagolás build-lépés nélkül: 0.17-es UMD-build, vagy egyszer előkészített ESM",
-                    "note": "Az első jegy dönti el, és rögzíti a választást.",
+                    "topic": "Csomagolás: az Excalidraw 0.17.6 UMD-buildje a React 18.3.1 UMD-buildjeivel, változatlanul a core/vendor/ alatt",
+                    "note": "Fordítás és telepítés nélkül fut sima <script>-ből. A 0.18 csak ES-modulként jön, kb. 25 csupasz importtal, ami bundlert kívánna, és a React 19-nek nincs UMD-buildje. Ára: régebbi verzió (nincs reconcileElements, az elemszintű fésülést magunk írjuk), egyetlen ismert külső URL a csomagban (a tweet-beágyazás sablonja; a beágyazás ki van kapcsolva), a magyar fordítást mi kapcsoljuk be (70%-os), és a LICENSE-t a repóból tettük mellé.",
                     "metadata": {
-                      "status": "todo"
-                    }
+                      "status": "decision"
+                    },
+                    "hyperLink": "core/vendor/README.md"
                   },
                   {
                     "id": "x-board-tldraw",

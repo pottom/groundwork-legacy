@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1248 1248" role="img" aria-label="Groundwork">
+  <style>
+    /* Light by default; dark when the OS asks for it (the favicon, and the shell unless the user
+       picked Light) or the user picked Dark (the shell sets data-theme on its root). */
+    .gwl-t0 { stop-color: #ffffff }
+    .gwl-t1 { stop-color: #f8f6f1 }
+    .gwl-t2 { stop-color: #f0ede6 }
+    .gwl-t3 { stop-color: #e7e3da }
+    .gwl-t4 { stop-color: #8b9cf0 }
+    .gwl-t5 { stop-color: #c9cff5 }
+    .gwl-t6 { stop-color: #f3f1ec }
+    .gwl-t7 { stop-color: #4a6fe0 }
+    .gwl-t8 { stop-color: #5a78e6 }
+    .gwl-t9 { stop-color: #7a6ff0 }
+    .gwl-t10 { stop-color: #8b67f2 }
+    .gwl-t11 { stop-color: #9b6cf7 }
+    .gwl-t12 { stop-color: #3e66d8 }
+    .gwl-t13 { stop-color: #3358cf }
+    .gwl-t14 { stop-color: #2a4fc4 }
+    .gwl-t15 { stop-color: #3560d6 }
+    .gwl-t16 { stop-color: #2544ad }
+    .gwl-t17 { stop-color: #284bb8 }
+    .gwl-t18 { stop-color: #9468f3 }
+    .gwl-t19 { stop-color: #7f63ec }
+    .gwl-t20 { stop-color: #6058df }
+    .gwl-t21 { stop-color: #3f50cc }
+    .gwl-t22 { stop-color: #6f8ff0 }
+    .gwl-t23 { stop-color: #8c80f4 }
+    .gwl-t24 { stop-color: #7a6aee }
+    .gwl-t25 { stop-color: #f4f2ed }
+    .gwl-t26 { stop-color: #ebe8e1 }
+    .gwl-t27 { stop-color: #ddd9d1 }
+    .gwl-t28 { stop-color: #3fb877 }
+    .gwl-t29 { stop-color: #2f9e62 }
+    .gwl-t30 { stop-color: #8b5cf6 }
+    .gwl-t31 { stop-color: #cfcbc2 }
+    .gwl-t32 { stop-color: #c8c4bb }
+    .gwl-f33 { fill: #2a2f45 }
+    .gwl-f34 { fill: #ffffff }
+    .gwl-f35 { fill: #e5604f }
+    .gwl-f36 { fill: #e9a23b }
+    .gwl-f37 { fill: #2f9e62 }
+    .gwl-s38 { stroke: #ddd9d1 }
+    .gwl-f39 { fill: #a9bcf7 }
+    .gwl-f40 { fill: #ffffff }
+    .gwl-cast { opacity: .2 }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .gwl-t0 { stop-color: #262830 } :root:not([data-theme="light"]) .gwl-t1 { stop-color: #1e2026 } :root:not([data-theme="light"]) .gwl-t2 { stop-color: #18191e } :root:not([data-theme="light"]) .gwl-t3 { stop-color: #111216 } :root:not([data-theme="light"]) .gwl-t4 { stop-color: #4b5fd0 } :root:not([data-theme="light"]) .gwl-t5 { stop-color: #2e2f63 } :root:not([data-theme="light"]) .gwl-t6 { stop-color: #15161a } :root:not([data-theme="light"]) .gwl-t7 { stop-color: #5b7fe8 } :root:not([data-theme="light"]) .gwl-t8 { stop-color: #6f8af0 } :root:not([data-theme="light"]) .gwl-t9 { stop-color: #8a90f5 } :root:not([data-theme="light"]) .gwl-t10 { stop-color: #a08ff7 } :root:not([data-theme="light"]) .gwl-t11 { stop-color: #b48cf8 } :root:not([data-theme="light"]) .gwl-t12 { stop-color: #4a72e0 } :root:not([data-theme="light"]) .gwl-t13 { stop-color: #3f63d8 } :root:not([data-theme="light"]) .gwl-t14 { stop-color: #2f5bd3 } :root:not([data-theme="light"]) .gwl-t15 { stop-color: #3d68dc } :root:not([data-theme="light"]) .gwl-t16 { stop-color: #2a4bc0 } :root:not([data-theme="light"]) .gwl-t17 { stop-color: #2d52c8 } :root:not([data-theme="light"]) .gwl-t18 { stop-color: #a585f5 } :root:not([data-theme="light"]) .gwl-t19 { stop-color: #8f7af0 } :root:not([data-theme="light"]) .gwl-t20 { stop-color: #6d6ee6 } :root:not([data-theme="light"]) .gwl-t21 { stop-color: #4a5fd8 } :root:not([data-theme="light"]) .gwl-t22 { stop-color: #7d9cf0 } :root:not([data-theme="light"]) .gwl-t23 { stop-color: #9a95f4 } :root:not([data-theme="light"]) .gwl-t24 { stop-color: #8a7ff2 } :root:not([data-theme="light"]) .gwl-t25 { stop-color: #1c1e23 } :root:not([data-theme="light"]) .gwl-t26 { stop-color: #141519 } :root:not([data-theme="light"]) .gwl-t27 { stop-color: #2f3238 } :root:not([data-theme="light"]) .gwl-t28 { stop-color: #6fd49b } :root:not([data-theme="light"]) .gwl-t29 { stop-color: #5cc58a } :root:not([data-theme="light"]) .gwl-t30 { stop-color: #8b5cf6 } :root:not([data-theme="light"]) .gwl-t31 { stop-color: #3a3d45 } :root:not([data-theme="light"]) .gwl-t32 { stop-color: #32353c } :root:not([data-theme="light"]) .gwl-f33 { fill: #050507 } :root:not([data-theme="light"]) .gwl-f34 { fill: #121317 } :root:not([data-theme="light"]) .gwl-f35 { fill: #ee7a6c } :root:not([data-theme="light"]) .gwl-f36 { fill: #f0b45d } :root:not([data-theme="light"]) .gwl-f37 { fill: #5cc58a } :root:not([data-theme="light"]) .gwl-s38 { stroke: #2f3238 } :root:not([data-theme="light"]) .gwl-f39 { fill: #8fa8f5 } :root:not([data-theme="light"]) .gwl-f40 { fill: #c9b8fb }
+      :root:not([data-theme="light"]) .gwl-cast { opacity: .67 }
+    }
+    :root[data-theme="dark"] .gwl-t0 { stop-color: #262830 } :root[data-theme="dark"] .gwl-t1 { stop-color: #1e2026 } :root[data-theme="dark"] .gwl-t2 { stop-color: #18191e } :root[data-theme="dark"] .gwl-t3 { stop-color: #111216 } :root[data-theme="dark"] .gwl-t4 { stop-color: #4b5fd0 } :root[data-theme="dark"] .gwl-t5 { stop-color: #2e2f63 } :root[data-theme="dark"] .gwl-t6 { stop-color: #15161a } :root[data-theme="dark"] .gwl-t7 { stop-color: #5b7fe8 } :root[data-theme="dark"] .gwl-t8 { stop-color: #6f8af0 } :root[data-theme="dark"] .gwl-t9 { stop-color: #8a90f5 } :root[data-theme="dark"] .gwl-t10 { stop-color: #a08ff7 } :root[data-theme="dark"] .gwl-t11 { stop-color: #b48cf8 } :root[data-theme="dark"] .gwl-t12 { stop-color: #4a72e0 } :root[data-theme="dark"] .gwl-t13 { stop-color: #3f63d8 } :root[data-theme="dark"] .gwl-t14 { stop-color: #2f5bd3 } :root[data-theme="dark"] .gwl-t15 { stop-color: #3d68dc } :root[data-theme="dark"] .gwl-t16 { stop-color: #2a4bc0 } :root[data-theme="dark"] .gwl-t17 { stop-color: #2d52c8 } :root[data-theme="dark"] .gwl-t18 { stop-color: #a585f5 } :root[data-theme="dark"] .gwl-t19 { stop-color: #8f7af0 } :root[data-theme="dark"] .gwl-t20 { stop-color: #6d6ee6 } :root[data-theme="dark"] .gwl-t21 { stop-color: #4a5fd8 } :root[data-theme="dark"] .gwl-t22 { stop-color: #7d9cf0 } :root[data-theme="dark"] .gwl-t23 { stop-color: #9a95f4 } :root[data-theme="dark"] .gwl-t24 { stop-color: #8a7ff2 } :root[data-theme="dark"] .gwl-t25 { stop-color: #1c1e23 } :root[data-theme="dark"] .gwl-t26 { stop-color: #141519 } :root[data-theme="dark"] .gwl-t27 { stop-color: #2f3238 } :root[data-theme="dark"] .gwl-t28 { stop-color: #6fd49b } :root[data-theme="dark"] .gwl-t29 { stop-color: #5cc58a } :root[data-theme="dark"] .gwl-t30 { stop-color: #8b5cf6 } :root[data-theme="dark"] .gwl-t31 { stop-color: #3a3d45 } :root[data-theme="dark"] .gwl-t32 { stop-color: #32353c } :root[data-theme="dark"] .gwl-f33 { fill: #050507 } :root[data-theme="dark"] .gwl-f34 { fill: #121317 } :root[data-theme="dark"] .gwl-f35 { fill: #ee7a6c } :root[data-theme="dark"] .gwl-f36 { fill: #f0b45d } :root[data-theme="dark"] .gwl-f37 { fill: #5cc58a } :root[data-theme="dark"] .gwl-s38 { stroke: #2f3238 } :root[data-theme="dark"] .gwl-f39 { fill: #8fa8f5 } :root[data-theme="dark"] .gwl-f40 { fill: #c9b8fb }
+    :root[data-theme="dark"] .gwl-cast { opacity: .67 }
+  </style>
+  <defs>
+    <radialGradient id="gwl-back" cx="0.43" cy="0.37" r="0.87">
+      <stop class="gwl-t0" offset="0"/>
+      <stop class="gwl-t1" offset="0.46"/>
+      <stop class="gwl-t2" offset="0.77"/>
+      <stop class="gwl-t3" offset="1"/>
+    </radialGradient>
+    <radialGradient id="gwl-halo" cx="50%" cy="48%" r="50%">
+      <stop class="gwl-t4" stop-opacity=".48"/>
+      <stop class="gwl-t5" offset=".65" stop-opacity=".16"/>
+      <stop class="gwl-t6" offset="1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gwl-top" x1=".06" y1=".88" x2=".99" y2=".13" gradientUnits="objectBoundingBox">
+      <stop class="gwl-t7" offset="0"/>
+      <stop class="gwl-t8" offset=".28"/>
+      <stop class="gwl-t9" offset=".56"/>
+      <stop class="gwl-t10" offset=".82"/>
+      <stop class="gwl-t11" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-leftWall" x1=".13" y1="0" x2=".91" y2="1">
+      <stop class="gwl-t12" offset="0"/>
+      <stop class="gwl-t13" offset=".52"/>
+      <stop class="gwl-t14" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-bottomFace" x1=".13" y1=".02" x2=".79" y2=".98">
+      <stop class="gwl-t15"/>
+      <stop class="gwl-t14" offset=".52"/>
+      <stop class="gwl-t16" offset=".88"/>
+      <stop class="gwl-t17" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-rightWall" x1=".79" y1="0" x2=".19" y2="1">
+      <stop class="gwl-t18"/>
+      <stop class="gwl-t19" offset=".34"/>
+      <stop class="gwl-t20" offset=".78"/>
+      <stop class="gwl-t21" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-barTop" x1="0" y1="1" x2="1" y2="0">
+      <stop class="gwl-t22"/>
+      <stop class="gwl-t23" offset=".47"/>
+      <stop class="gwl-t11" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-barSide" x1="0" y1=".8" x2="1" y2="0">
+      <stop class="gwl-t13"/>
+      <stop class="gwl-t24" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-topEdge" x1="0" y1="1" x2="1" y2="0">
+      <stop class="gwl-t19"/>
+      <stop class="gwl-t18" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-rim" x1="0" y1="0" x2="1" y2="1">
+      <stop class="gwl-t8"/>
+      <stop class="gwl-t23" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-codeBody" x1="0" y1="0" x2="1" y2=".8">
+      <stop class="gwl-t25"/>
+      <stop class="gwl-t26" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-codeHeader" x1="0" y1="0" x2="1" y2="1">
+      <stop class="gwl-t27"/>
+      <stop class="gwl-t25" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-blueCode" x1="0" y1="0" x2="1" y2="0">
+      <stop class="gwl-t22"/>
+      <stop class="gwl-t8" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-greenCode" x1="0" y1="0" x2="1" y2="0">
+      <stop class="gwl-t28"/>
+      <stop class="gwl-t29" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-purpleCode" x1="0" y1="0" x2="1" y2="0">
+      <stop class="gwl-t30"/>
+      <stop class="gwl-t11" offset="1"/>
+    </linearGradient>
+    <linearGradient id="gwl-mutedCode" x1="0" y1="0" x2="1" y2="0">
+      <stop class="gwl-t31"/>
+      <stop class="gwl-t32" offset="1"/>
+    </linearGradient>
+    <filter id="gwl-shadow" x="-40%" y="-40%" width="180%" height="190%">
+      <feGaussianBlur stdDeviation="30"/>
+    </filter>
+    <filter id="gwl-editorShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="17"/>
+    </filter>
+    <clipPath id="gwl-squareClip"><rect x="18" y="18" width="1212" height="1212" rx="228"/></clipPath>
+    <clipPath id="gwl-editorClip"><path d="M398 446 Q398 417 421 414 L812 380 Q836 377 842 395 L842 706 Q839 729 813 736 L436 810 Q398 817 398 781 Z"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#gwl-squareClip)">
+    <rect x="18" y="18" width="1212" height="1212" fill="url(#gwl-back)"/>
+    <ellipse cx="630" cy="594" rx="550" ry="510" fill="url(#gwl-halo)"/>
+    <!-- soft grounded shadow -->
+    <path class="gwl-f33 gwl-cast" d="M220 362 L600 144 L1020 354 L1065 914 L726 1121 L204 833 Z" filter="url(#gwl-shadow)" transform="translate(0 25)"/>
+
+    <!-- small right extrusion below the overhanging top edge -->
+    <path d="M899 469 L996 356 Q1008 348 1008 361 L1008 409 Q1008 423 994 433 L917 479 Q904 487 899 479 Z" fill="url(#gwl-topEdge)"/>
+
+    <!-- inset code editor, visible through the opening of the G -->
+    <path class="gwl-f33 gwl-cast" d="M397 446 Q397 417 423 414 L813 380 Q840 376 841 403 L842 708 Q842 735 813 742 L433 806 Q398 812 397 783 Z" filter="url(#gwl-editorShadow)" transform="translate(0 9)"/>
+    <path d="M398 446 Q398 417 421 414 L812 380 Q836 377 842 395 L842 706 Q839 729 813 736 L436 810 Q398 817 398 781 Z" fill="url(#gwl-codeBody)"/>
+    <g clip-path="url(#gwl-editorClip)">
+      <path d="M394 426 L847 373 L846 456 L400 506 Z" fill="url(#gwl-codeHeader)"/>
+      <path class="gwl-f34" d="M420 491 L848 447 L848 770 L413 831 L413 518 Q414 497 420 491 Z" opacity=".65"/>
+      <circle class="gwl-f35" cx="449" cy="448" r="13.6"/>
+      <circle class="gwl-f36" cx="493" cy="443" r="13.4"/>
+      <circle class="gwl-f37" cx="536" cy="437" r="13.6"/>
+      <!-- syntax-colored code strokes -->
+      <path d="M451 530 L615 506" fill="none" stroke="url(#gwl-blueCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M451 583 L523 572" fill="none" stroke="url(#gwl-greenCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M567 565 L754 538" fill="none" stroke="url(#gwl-mutedCode)" stroke-width="27" stroke-linecap="round"/>
+      <path d="M451 635 L599 613" fill="none" stroke="url(#gwl-mutedCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M451 677 L552 662" fill="none" stroke="url(#gwl-mutedCode)" stroke-width="26" stroke-linecap="round"/>
+      <path d="M451 728 L541 714" fill="none" stroke="url(#gwl-purpleCode)" stroke-width="26" stroke-linecap="round"/>
+      <path class="gwl-s38" d="M455 779 L483 773" fill="none" stroke-width="26" stroke-linecap="round" opacity=".57"/>
+      <path class="gwl-s38" d="M524 768 L614 752" fill="none" stroke-width="26" stroke-linecap="round" opacity=".50"/>
+    </g>
+
+    <!-- main top upper-facing surface of geometric G -->
+    <path d="M251 325 L601 143 Q621 132 637 141 L993 331 Q1020 346 997 368 L918 475 Q905 488 885 476 L596 313 Q584 305 574 311 L381 416 Q367 424 367 442 L235 356 Q227 341 251 325 Z" fill="url(#gwl-top)"/>
+
+    <!-- left vertical face -->
+    <path d="M235 352 L367 419 L368 731 Q369 738 380 745 L236 827 Q231 817 231 805 L231 363 Q231 357 235 352 Z" fill="url(#gwl-leftWall)"/>
+
+    <!-- bottom left/front face, forms the folded-down base of the G -->
+    <path d="M234 812 L368 733 L687 927 Q708 939 708 957 L708 1075 Q709 1114 675 1109 Q665 1108 650 1098 L247 837 Q232 826 234 812 Z" fill="url(#gwl-bottomFace)"/>
+    <path class="gwl-f39" d="M368 732 L693 928 Q703 933 708 944 L708 953 Q704 941 690 933 L368 739 Z" opacity=".84"/>
+
+    <!-- inner rising bevel on the right, below terminal arm -->
+    <path d="M702 930 L888 826 Q899 819 899 805 L900 763 L900 835 Q900 841 888 849 L707 951 Z" fill="url(#gwl-rim)"/>
+
+    <!-- right main outer vertical face -->
+    <path d="M722 673 L1041 623 Q1056 624 1056 643 L1056 889 Q1057 910 1037 923 L724 1099 Q709 1110 707 1081 L707 956 Q707 942 723 930 L886 837 Q899 829 899 814 L899 764 L736 792 Q722 795 716 787 Z" fill="url(#gwl-rightWall)"/>
+
+    <!-- cap of the inward protruding bar -->
+    <path d="M641 616 L946 571 Q956 568 969 575 L1041 617 Q1050 623 1054 627 L730 677 Q724 678 717 675 L637 634 Q623 625 641 616 Z" fill="url(#gwl-barTop)"/>
+    <!-- front/left extruded face of the inward bar -->
+    <path d="M632 624 L724 676 L724 782 Q725 795 711 794 Q704 792 697 788 L642 754 Q629 746 629 733 L629 640 Q629 630 632 624 Z" fill="url(#gwl-barSide)"/>
+    <!-- subtle bright ridge where bar meets right face -->
+    <path class="gwl-f40" d="M723 677 L1053 626 Q1055 628 1056 637 L724 689 Z" opacity=".18"/>
+  </g>
+</svg>

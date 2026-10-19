@@ -1,4 +1,4 @@
-// The map: Mind Elixir draws it; this module creates it, draws its branch lines, follows the OS's
+// The map: Mind Elixir draws it; this module creates it, draws its branch lines, follows the shell's
 // light or dark, decorates the nodes (status, branch colour, icons, badges), pans, fits and selects.
 //   createMap(data, { onOperation, onSelect })  the Mind Elixir instance on #map
 //   decorate()          the nodes' data attributes and badges, then the chrome and the document
@@ -6,7 +6,7 @@
 //   reveal(id), selectOnMap(id), labelMap()
 
 import MindElixir from '/vendor/mind-elixir/MindElixir.js'
-import { mapTheme, followColorScheme } from '../map-theme.mjs'
+import { mapTheme, followTheme } from '../map-theme.mjs'
 import { COMPONENT_TYPES, listDocs, isSection } from '../documents.mjs'
 import { buildLink } from '../deep-link.mjs'
 import { fitScale } from '../view-rules.mjs'
@@ -53,10 +53,10 @@ function subBranch({ pT, pL, pW, pH, cT, cL, cW, cH, direction, isFirst }) {
   return `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`
 }
 
-// Light or dark follows the OS, also when it switches while the page is open:
-// the map gets the matching theme and the branches their palette again.
+// Light or dark follows the shell's theme (/shell/theme.js), also when it switches while the page
+// is open: the map gets the matching theme and the branches their palette again.
 let THEME, PALETTE
-followColorScheme(matchMedia('(prefers-color-scheme: dark)'), (dark) => {
+followTheme(groundworkTheme, (dark) => {
   THEME = mapTheme({ dark, css, generateMainBranch: mainBranch, generateSubBranch: subBranch })
   PALETTE = THEME.palette
   if (state.mind) { state.mind.changeTheme(THEME); decorate() }
@@ -134,6 +134,7 @@ export function decorate() {
     set('impl', impl)
     set('implLabel', impl ? ui(`impl.${impl}`) : null)
     ticketBadge(tpc, state.ticketCounts[n.id])
+    sketchBadges(tpc, state.sketchLinks[n.id])
   }
   if (linesStale()) {
     if (!relinking) { relinkNow(); return }   // the redraw's own decorate does the rest
@@ -161,6 +162,25 @@ function ticketBadge(tpc, count) {
   a.href = buildLink(tpc.nodeObj.id)
   a.title = ui('tickets.title', { done: count.done, total: count.total })
   if (count.total && count.done === count.total) a.dataset.complete = ''; else delete a.dataset.complete
+}
+
+// The sketches that link to a map item, a link each that opens the sketch (through the shell).
+// Set on Mind Elixir's node directly, like the ticket count.
+function sketchBadges(tpc, names = []) {
+  const have = [...tpc.querySelectorAll(':scope > a.mm-sketch')]
+  if (have.length === names.length && have.every((a, i) => a.dataset.sketch === names[i] && a.textContent === ui('sketch.badge', { name: names[i] }))) return
+  for (const a of have) a.remove()
+  for (const name of names) {
+    const a = document.createElement('a')
+    a.className = 'mm-sketch gw-pill'   // the shared pill (feedback.css)
+    a.target = '_top'
+    a.dataset.sketch = name
+    a.href = '/?module=sketch&sketch=' + encodeURIComponent(name)
+    a.textContent = ui('sketch.badge', { name })
+    a.title = ui('sketch.title', { name })
+    for (const ev of ['mousedown', 'pointerdown', 'dblclick']) a.addEventListener(ev, (e) => e.stopPropagation())
+    tpc.appendChild(a)
+  }
 }
 
 // ---- background pan ----

@@ -8,7 +8,7 @@ import { reader } from '../config.mjs';
 import { ui, dateText } from '../text.mjs';
 import { app, actions } from '../state.mjs';
 import { renderMarkdown } from '../markdown.mjs';
-import { icon, chip, badge, docLink, ticketLinks, blockerLinks, prdLinks, meter, flags } from '../parts.mjs';
+import { icon, chip, badge, docLink, ticketLinks, blockerLinks, prdLinks, ideaLinks, sketchLinks, sketchesOf, meter, flags } from '../parts.mjs';
 
 const { fold, plainInline } = reader;
 
@@ -30,6 +30,8 @@ function ticketMeta(t) {
 ${row(ui('table.area'), [t.area, area && area.spec ? [' · ', badge('neutral', ui('area.spec')), ' ', docLink(area.spec.path, area.spec.title)] : nothing], t.area || (area && area.spec))}
 ${row(ui('drawer.note'), t.statusNote)}
 ${row(ui('drawer.prd'), t.prd.length ? prdLinks(t) : html`<span class="muted">${ui('drawer.prd-none')}</span>`, t.prd.length || t.prdNone)}
+${row(ui('drawer.ideas'), ideaLinks(t), t.ideas.length)}
+${row(ui('drawer.sketch'), sketchLinks(t), sketchesOf(t).length)}
 ${row(ui('table.checks'), meter(t.checks), t.checks.total)}
 ${row(ui('table.blocked-by'), [blockerLinks(t), t.notes.length ? html` <span class="muted">${t.notes.join('; ')}</span>` : nothing], t.blockers.length || t.notes.length)}
 ${row(ui('drawer.unlocks'), ticketLinks(t.dependents), t.dependents.length)}

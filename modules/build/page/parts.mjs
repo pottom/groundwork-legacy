@@ -6,7 +6,7 @@ import { reader } from './config.mjs';
 import { ui, statusName, statusTitle, statusTone } from './text.mjs';
 import { app, docHref, isFree } from './state.mjs';
 
-const { isClosed, planLink } = reader;
+const { isClosed, planLink, sketchLink, ticketSketches } = reader;
 
 export const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 
@@ -42,6 +42,18 @@ export const ticketLinks = (list) => list.map((t, i) => [i ? ' ' : '', ticketLin
 export const prdLinks = (t) => t.prd.map((id, i) => [i ? ' ' : '', app.map.ids
   ? html`<a class="gw-tag" href=${planLink(id)} target="_top" title=${ui('prd.open', { id })}>${id}</a>`
   : html`<span class="gw-tag">${id}</span>`]);
+
+// The ideas a ticket was made from (its "**Idea:** I-12" line): each opens the Ideas module on that
+// idea, in the whole window. Without the Ideas module the shell shows its default tab.
+const ideaLink = (id) => '/?module=ideas&idea=' + encodeURIComponent(id);
+export const ideaLinks = (t) => t.ideas.map((id, i) => [i ? ' ' : '',
+  html`<a class="gw-tag" href=${ideaLink(id)} target="_top" title=${ui('idea.open', { id })}>${id}</a>`]);
+
+// The sketches of a ticket: its "**Sketch:**" line, and the sketches linking to it from Sketch's side
+// (GET /api/sketch/links, refresh.mjs). Each opens in Sketch, in the whole window.
+export const sketchesOf = (t) => ticketSketches(t, app.sketches.byTicket);
+export const sketchLinks = (t) => sketchesOf(t).map((name, i) => [i ? ' ' : '',
+  html`<a class="gw-tag" href=${sketchLink(name)} target="_top" title=${ui('sketch.open', { name })}>${name}</a>`]);
 
 export const progress = (value, title) => html`<span class="gw-progress" style="--value:${value}%" title=${title || nothing}></span>`;
 export const meter = (c) => (c.total

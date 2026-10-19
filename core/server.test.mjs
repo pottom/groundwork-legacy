@@ -308,15 +308,23 @@ test('the shell serves its theme, and every page of it uses the theme', async ()
   })
 })
 
-test('the theme defines the shared variables, light by default and dark when the OS asks for it', async () => {
+test('the theme defines the shared variables, light by default, dark when the OS asks for it or the user chooses it', async () => {
   await withShell(async ({ port }) => {
     const css = (await get(port, '/shell/theme.css')).body
     const block = (re) => { const m = re.exec(css); assert.ok(m, String(re)); return m[1] }
     const light = block(/^:root\s*\{([^}]*)\}/m)
-    const dark = block(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}/)
+    const dark = block(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([^}]*)\}/)
+    const chosen = block(/^:root\[data-theme="dark"\]\s*\{([^}]*)\}/m)
     assert.match(light, /color-scheme:\s*light dark/)
     for (const v of [...COLOURS, ...SHAPES]) assert.match(light, new RegExp(`${v}:`), `light ${v}`)
     for (const v of COLOURS) assert.match(dark, new RegExp(`${v}:`), `dark ${v}`)
+    for (const v of COLOURS) assert.match(chosen, new RegExp(`${v}:`), `chosen dark ${v}`)
+    const js = await get(port, '/shell/theme.js')
+    assert.equal(js.status, 200, 'the light/dark switch every page loads')
+    assert.match(js.headers['content-type'], /^text\/javascript/)
+    const logo = await get(port, '/shell/logo.svg')
+    assert.equal(logo.status, 200, 'the logo and favicon')
+    assert.match(logo.headers['content-type'], /^image\/svg\+xml/)
     assert.match(css, /@import url\('\/vendor\/fonts\.css'\)/)
   })
 })
@@ -345,7 +353,7 @@ test('the shell has a language picker and serves the translation module to its p
     const page = (await get(port, '/')).body
     assert.match(page, /<div class="gw-seg gw-lang" role="group"[^>]*>\s*<button type="button" data-lang="en" title="English"[^>]*>EN<\/button>\s*<button type="button" data-lang="hu" title="Magyar"[^>]*>HU<\/button>/)
     assert.match(page, /import \{ createI18n \} from '\/shell\/i18n\.mjs'/)
-    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs', '/shell/live.mjs', '/shell/frames.mjs']) {
+    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs', '/shell/live.mjs', '/shell/frames.mjs', '/shell/toasts.mjs']) {
       const r = await get(port, js)
       assert.equal(r.status, 200, js)
       assert.match(r.headers['content-type'], /javascript/)

@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
-> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 0 kész, 0 részben, 8 hiányzik.
+> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 8 kész, 0 részben, 0 hiányzik.
 
 ## 1. Probléma és cél
 
@@ -22,14 +22,14 @@ A fejlesztő felvázol valamit, és megkérdezi Claude-ot; Claude elolvassa a ra
 
 A modul névvel ellátott vázlatokat kezel; mindegyik egy Excalidraw-rajz a közös keretben. Claude parancssori eszközön és skillen át olvassa és rajzolja a vázlatot, Mermaid-leírásból is. A vázlat lényege a szálak: egy alakzatra tűzött rövid beszélgetés, amelyben ember és Claude felváltva válaszol. Minden változás élőben jelenik meg. Egy vázlat hivatkozhat ötletre, térképcsomópontra vagy jegyre, és azok is a vázlatra.
 
-- Excalidraw-szerkesztő a keretben `hiányzik`
-- Tetszőleges számú vázlat névvel: lista, létrehozás, átnevezés `hiányzik`
-- Claude olvassa a vázlatot: alakzatok, szövegek, kapcsolatok `hiányzik`
-- Claude rajzol: alakzatok, nyilak, szövegek, Mermaidből is `hiányzik`
-- Alakzatokhoz tűzött megjegyzésszálak `hiányzik`
-- Élő frissítés: Claude rajza és válasza azonnal megjelenik `hiányzik`
-- Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza `hiányzik` — Jó, ha van, de nem feltétlenül szükséges.
-- Egy alakzat is hivatkozhat ötletre, térképcsomópontra, jegyre vagy másik vázlatra `hiányzik` — Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges.
+- Excalidraw-szerkesztő a keretben `kész` ([modules/sketch/module.mjs](../../../modules/sketch/module.mjs))
+- Tetszőleges számú vázlat névvel: lista, létrehozás, átnevezés `kész` ([modules/sketch/view/sketches.mjs](../../../modules/sketch/view/sketches.mjs))
+- Claude olvassa a vázlatot: alakzatok, szövegek, kapcsolatok `kész` ([modules/sketch/digest.mjs](../../../modules/sketch/digest.mjs))
+- Claude rajzol: alakzatok, nyilak, szövegek, Mermaidből is `kész` ([modules/sketch/ops.mjs](../../../modules/sketch/ops.mjs))
+- Alakzatokhoz tűzött megjegyzésszálak `kész` ([modules/sketch/threads.mjs](../../../modules/sketch/threads.mjs))
+- Élő frissítés: Claude rajza és válasza azonnal megjelenik `kész` ([modules/sketch/view/follow.mjs](../../../modules/sketch/view/follow.mjs))
+- Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza `kész` — Jó, ha van, de nem feltétlenül szükséges. ([modules/sketch/links-store.mjs](../../../modules/sketch/links-store.mjs))
+- Egy alakzat is hivatkozhat ötletre, térképcsomópontra, jegyre vagy másik vázlatra `kész` — Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges. ([modules/sketch/view/targets.mjs](../../../modules/sketch/view/targets.mjs))
 
 ## 4. Funkcionális követelmények
 

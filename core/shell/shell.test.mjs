@@ -47,6 +47,17 @@ test('the modules stay alive: the frames are kept per module, and the server\'s 
   assert.doesNotMatch(js, /location\.replace/, 'a switch does not reload the frame')
 })
 
+test('the tools come after the workflow, behind one separator: Plan → Build | Sketch', () => {
+  const sketch = { ...view('sketch', 'Sketch'), tool: true }
+  const nav = (modules) => /<nav class="gw-nav"[^>]*>([\s\S]*?)<\/nav>/.exec(page({ modules }))[1]
+  const order = (html) => [...html.matchAll(/<a href="\/\?module=(\w+)"|<span class="gw-nav-sep"/g)].map((m) => m[1] ?? '|')
+  assert.deepEqual(order(nav([view('plan', 'Plan'), view('build', 'Build'), sketch])), ['plan', 'build', '|', 'sketch'])
+  assert.deepEqual(order(nav([view('plan', 'Plan'), view('build', 'Build')])), ['plan', 'build'], 'no tools, no separator')
+  assert.deepEqual(order(nav([sketch])), ['sketch'], 'nothing before the tools, no separator')
+  assert.match(nav([view('plan', 'Plan'), sketch]), /<span class="gw-nav-sep" aria-hidden="true"><\/span>/)
+  assert.match(SHELL_CSS, /\.gw-nav-sep\s*\{/)
+})
+
 test('the project name needs no extra font: no italic, and not the serif', () => {
   const rule = /\.gw-project\s*\{([^}]*)\}/.exec(SHELL_CSS)[1]
   assert.doesNotMatch(rule, /italic|--gw-font-serif/)
@@ -78,4 +89,42 @@ test('a hidden module frame keeps its size and place: hidden by visibility, stac
   assert.ok(hidden, 'a rule for the hidden frame')
   assert.match(hidden, /display:\s*block/, 'not display: none, which would lay the module out again at 0×0')
   assert.match(hidden, /visibility:\s*hidden/)
+})
+
+test('the theme switch loads first in <head>, before the look, so the page paints in the chosen theme', () => {
+  const head = /<head>([\s\S]*?)<\/head>/.exec(page())[1]
+  const at = (s) => head.indexOf(s)
+  assert.ok(at('<script src="/shell/theme.js"></script>') >= 0, 'a plain script, not a deferred module')
+  assert.ok(at('<script src="/shell/theme.js">') < at('/shell/theme.css'))
+})
+
+test('light or dark is a three-way segmented control in the header: System, Light, Dark, translated', () => {
+  const html = page()
+  const seg = /<div class="gw-seg gw-theme" role="group"([^>]*)>([\s\S]*?)<\/div>/.exec(html)
+  assert.ok(seg, 'a .gw-seg group')
+  assert.match(seg[1], /aria-label="Theme" data-i18n-aria-label="theme"/)
+  const buttons = [...seg[2].matchAll(/<button type="button" data-theme-choice="(\w+)" title="([^"]+)" aria-label="\2" data-i18n-title="(\w+)" data-i18n-aria-label="\3" aria-pressed="(true|false)">/g)]
+    .map((m) => [m[1], m[2], m[4]])
+  assert.deepEqual(buttons, [['system', 'Follow the system', 'true'], ['light', 'Light', 'false'], ['dark', 'Dark', 'false']])
+  for (const k of ['theme', 'themeSystem', 'themeLight', 'themeDark']) {
+    assert.ok(SHELL_STRINGS.en[k] && SHELL_STRINGS.hu[k] && SHELL_STRINGS.hu[k] !== SHELL_STRINGS.en[k], k)
+  }
+  const js = script(html)
+  assert.match(js, /groundworkTheme\.set\(/, 'a button switches')
+  assert.match(js, /groundworkTheme\.onChange\(/, 'the pressed button follows a change made elsewhere')
+})
+
+test('the brand is the logo file: an image in the bar and the browser tab icon', () => {
+  const html = page()
+  assert.match(html, /<link rel="icon" type="image\/svg\+xml" href="\/shell\/logo\.svg">/)
+  assert.match(html, /<svg class="gw-logo" aria-hidden="true" viewBox="0 0 1248 1248">/, 'inline, so it follows the theme')
+  assert.doesNotMatch(html, /gw-logo-fill/, 'not the old gradient square')
+})
+
+test('the logo is light by default and dark when the OS or the user asks for it', () => {
+  const svg = fs.readFileSync(new URL('./logo.svg', import.meta.url), 'utf8')
+  assert.doesNotMatch(svg, /(?:fill|stroke|stop-color)="#/, 'every colour comes from its <style>')
+  assert.match(svg, /@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme="light"\]\) \./)
+  assert.match(svg, /\n\s*:root\[data-theme="dark"\] \./)
+  assert.doesNotMatch(svg, /id="(?!gwl-)/, 'ids are prefixed, the shell puts it in its page')
 })

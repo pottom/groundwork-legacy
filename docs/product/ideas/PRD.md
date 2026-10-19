@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
-> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 0 kész, 0 részben, 8 hiányzik.
+> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 8 kész, 0 részben, 0 hiányzik.
 
 ## 1. Probléma és cél
 
@@ -29,14 +29,14 @@ A láda számozott ötletekből áll; a fő nézet egy négyoszlopos kanban, mel
 
 Claude egy parancssori eszközön és egy skillen át dolgozik a ládával, ugyanúgy, ahogy a Plan térképével.
 
-- Számozott ötletek (I-1, I-2 …) szerzővel és forrással `hiányzik`
-- Kanban: Új · Mérlegelés · Kidolgozásra · Elvetve `hiányzik`
-- Hatás–ráfordítás mátrix nézet `hiányzik`
-- Claude becslése és a hasonló ötletek jelzése `hiányzik`
-- Termékötlet kidolgozásra: todo csomópont a Plan térképén, oda-vissza hivatkozással `hiányzik`
-- Mérnöki ötletből jegy, ami hivatkozik az ötletre `hiányzik`
-- Elvetés indoklással; a PRD Nem cél részébe vihető `hiányzik`
-- groundwork ideas parancs és skill Claude-nak `hiányzik`
+- Számozott ötletek (I-1, I-2 …) szerzővel és forrással `kész` ([modules/ideas/store.mjs](../../../modules/ideas/store.mjs))
+- Kanban: Új · Mérlegelés · Kidolgozásra · Elvetve `kész` ([modules/ideas/view/board.mjs](../../../modules/ideas/view/board.mjs))
+- Hatás–ráfordítás mátrix nézet `kész` — A közepes (medium) becslés a kedvezőtlen oldalra számít (alacsony hatás, magas ráfordítás), így csak a biztos gyors nyerés látszik annak. Ha az ember egy ötletet másik kvadránsba mozgat, a megváltozott tengelyen high vagy low értéket kap. ([modules/ideas/matrix.mjs](../../../modules/ideas/matrix.mjs))
+- Claude becslése és a hasonló ötletek jelzése `kész` ([modules/ideas/similar.mjs](../../../modules/ideas/similar.mjs))
+- Termékötlet kidolgozásra: todo csomópont a Plan térképén, oda-vissza hivatkozással `kész` ([modules/ideas/view/plan.mjs](../../../modules/ideas/view/plan.mjs))
+- Mérnöki ötletből jegy, ami hivatkozik az ötletre `kész` ([modules/ideas/ticket.mjs](../../../modules/ideas/ticket.mjs))
+- Elvetés indoklással; a PRD Nem cél részébe vihető `kész` ([modules/ideas/view/reject.mjs](../../../modules/ideas/view/reject.mjs))
+- groundwork ideas parancs és skill Claude-nak `kész` ([modules/ideas/ideas.mjs](../../../modules/ideas/ideas.mjs))
 
 ## 4. Funkcionális követelmények
 

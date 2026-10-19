@@ -11,6 +11,10 @@
 //                                              minutes; anything else 0 (no-cache: it asks every time
 //                                              and gets a 304 while nothing changed), as a checkout
 //                                              changes its files without changing its version.
+//   readJson(req)                              the request's body, parsed as JSON
+//   isJson(req)                                the request says it is application/json: a write must,
+//                                              so another web site cannot post a form into the project
+//                                              (the browser asks first before it sends such a request)
 
 import fs from 'node:fs'
 import crypto from 'node:crypto'
@@ -112,6 +116,8 @@ export function sendFile(req, res, file, { vendor = false } = {}) {
 }
 
 const MAX_BODY = 20 * 1024 * 1024
+
+export const isJson = (req) => /^application\/json\b/i.test(req.headers['content-type'] ?? '')
 
 export function readJson(req) {
   return new Promise((resolve, reject) => {

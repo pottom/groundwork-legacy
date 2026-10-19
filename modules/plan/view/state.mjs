@@ -15,6 +15,9 @@ export const state = {
   // Per map item, the tickets naming it on their PRD line: { id: { total, done, tickets } } from
   // /api/build/prd (the Build module reads them with its ticket reader). {} without Build.
   ticketCounts: {},
+  // Per map item, the sketches that link to it: { id: [name] } from /api/sketch/links (the Sketch
+  // module's public endpoint). {} without Sketch.
+  sketchLinks: {},
   glossary: '',           // the project's GLOSSARY.md, shown under a PRD or a system overview
   mode: recall('mode') === 'edit' ? 'edit' : 'view',
   wantedView: recall('view'), // the view chosen; a narrow window may show another (view-rules.mjs)

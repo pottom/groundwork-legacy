@@ -129,6 +129,17 @@ async function loadTickets() {
   } catch { /* no connection: the live updates say when it is back */ }
 }
 
+// The sketches that link to map items (see state.sketchLinks).
+async function loadSketches() {
+  try {
+    const r = await fetch('/api/sketch/links', { cache: 'no-store' })
+    const next = r.ok ? (await r.json()).linked?.node || {} : {}
+    if (JSON.stringify(next) === JSON.stringify(state.sketchLinks)) return
+    state.sketchLinks = next
+    if (state.mind) decorate()
+  } catch { /* no connection: the live updates say when it is back */ }
+}
+
 // The map is read when the live connection says hello (once at the start, again after a
 // reconnect) and when it says the map changed: no request of its own at the start, no polling.
 let starting = false
@@ -158,15 +169,17 @@ async function start() {
 }
 
 // The live topics: the map file ("plan.map"), the glossary ("plan.glossary"), and the tickets or
-// GitHub issues Build reads ("build.files", "build.issues"). Each (re)connect says hello first.
+// GitHub issues Build reads ("build.files", "build.issues"), the sketches' links ("sketch.links").
+// Each (re)connect says hello first.
 export function connect() {
   let heard = false
   subscribe({
-    onHello: () => { heard = true; reloadMap(); loadTickets() },
+    onHello: () => { heard = true; reloadMap(); loadTickets(); loadSketches() },
     onChange: (topics) => {
       if (topics.includes('plan.map')) reloadMap()
       if (topics.includes('plan.glossary')) loadGlossary().then(() => { resetFlash(); renderPrd() })
       if (topics.includes('build.files') || topics.includes('build.issues')) loadTickets()
+      if (topics.includes('sketch.links')) loadSketches()
     },
     // no live connection at all: read what there is once, so the page is not blank
     onState: (s) => { if (s === 'off' && !heard && !state.mind) start() },
