@@ -5,6 +5,7 @@
 //   store.read()                     -> { v, data }       v: version id of the file
 //   store.apply(ops, by?)            -> { errors, v, data } Claude's ops (see applyOps)
 //   store.saveFromBrowser(base, data) -> { v, data, changed } merge a browser save made on version `base`
+//                                       or { stale, v, data } when `base` is unknown: nothing written
 //   store.takeHumanEdits()           -> ops               pending browser edits, collapsed, taken once
 //   store.init(title, { force })
 //
@@ -108,8 +109,11 @@ export function openMap(dir, io) {
       delete data.theme // presentation lives in index.html, not in the map file
       const sent = JSON.stringify(data) // `data` may be mutated below
       const cur = read()
-      const baseData = seen.has(base) ? JSON.parse(seen.get(base)) : cur.data
-      const ops = diff(baseData, data)
+      // A version this store never saw (e.g. the server restarted meanwhile) cannot be diffed:
+      // what the human changed is unknown, and diffing against the current file would undo
+      // Claude's newer edits. Nothing is written; the browser shows the current map instead.
+      if (base !== cur.v && !seen.has(base)) return { stale: true, v: cur.v, data: cur.data }
+      const ops = diff(JSON.parse(seen.get(base)), data)
       // Nodes the human adds without a status become "ask about this".
       for (const o of ops) if (o.op === 'add' && !o.status) o.status = 'todo'
       let next

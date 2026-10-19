@@ -111,11 +111,11 @@ test('moduleFiles moves a module\'s state from an older folder once', () => {
   const files = moduleFiles(root, manifest)
   assert.equal(files.read('.groundwork/demo/edits.jsonl'), 'pending\n')
   assert.equal(fs.existsSync(path.join(root, '.old-state')), false)
-  // A second old folder appearing later does not overwrite the new state.
+  // A second old folder appearing later does not overwrite the new state: it is added to it.
   fs.mkdirSync(path.join(root, '.old-state'))
-  fs.writeFileSync(path.join(root, '.old-state/edits.jsonl'), 'stale\n')
+  fs.writeFileSync(path.join(root, '.old-state/edits.jsonl'), 'later\n')
   moduleFiles(root, manifest)
-  assert.equal(files.read('.groundwork/demo/edits.jsonl'), 'pending\n')
+  assert.equal(files.read('.groundwork/demo/edits.jsonl'), 'pending\nlater\n')
 })
 
 test('a move may only go into a folder the module may write, from a plain top-level folder', () => {
@@ -130,4 +130,21 @@ test('a move may only go into a folder the module may write, from a plain top-le
   moduleFiles(root, { writes: ['.groundwork/demo'], moves: { '.linked-state': '.groundwork/demo' } })
   assert.equal(fs.existsSync(path.join(root, '.groundwork/demo')), false, 'a link is not moved')
   assert.ok(fs.existsSync(path.join(outside, 'keep.txt')))
+})
+
+test('when both folders exist, the old state is merged in: logs are appended, newer files kept', () => {
+  const root = tmp()
+  fs.mkdirSync(path.join(root, '.old-state'))
+  fs.writeFileSync(path.join(root, '.old-state', 'edits.jsonl'), 'old\n')
+  fs.writeFileSync(path.join(root, '.old-state', 'written.json'), '["OLD.md"]')
+  fs.writeFileSync(path.join(root, '.old-state', 'only-old.txt'), 'x')
+  fs.mkdirSync(path.join(root, '.groundwork', 'demo'), { recursive: true })
+  fs.writeFileSync(path.join(root, '.groundwork', 'demo', 'edits.jsonl'), 'new\n')
+  fs.writeFileSync(path.join(root, '.groundwork', 'demo', 'written.json'), '["NEW.md"]')
+  moduleFiles(root, { writes: ['.groundwork/demo'], moves: { '.old-state': '.groundwork/demo' } })
+  const dest = (f) => fs.readFileSync(path.join(root, '.groundwork', 'demo', f), 'utf8')
+  assert.equal(dest('edits.jsonl'), 'new\nold\n')
+  assert.equal(dest('written.json'), '["NEW.md"]')
+  assert.equal(dest('only-old.txt'), 'x')
+  assert.equal(fs.existsSync(path.join(root, '.old-state')), false)
 })

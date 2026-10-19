@@ -13,9 +13,9 @@
 //   { id, name, version,
 //     view: { dir, files: ['index.html', ...] },           served under /<id>/, index.html at /<id>/
 //     writes: ['docs/product', '.groundwork/<id>'],         the folders it may write to
-//     api: ({ root, files }) => (req, res, subpath) => handled }   subpath: the path after /api/<id>
+//     api: ({ root, files }) => (req, res, subpath, url) => handled }   subpath: the path after /api/<id>
 // The handler returns (or resolves to) true when it answered, anything else means 404.
-// `files` is the module's only file access: it writes only under `writes` (see files.mjs).
+// `files` is the module's only way to write: it writes only under `writes` (see files.mjs).
 
 import http from 'node:http'
 import fs from 'node:fs'

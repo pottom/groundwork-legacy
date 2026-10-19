@@ -222,8 +222,10 @@
                     "topic": "Egy közös szerver, modulonkénti API-val",
                     "note": "Az írási jogot modulonként adjuk.",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/server.mjs"
                   },
                   {
                     "id": "x-two-servers",
@@ -269,22 +271,28 @@
                         "id": "d-mod-manifest",
                         "topic": "Leíró: azonosító, név, verzió",
                         "metadata": {
-                          "status": "decision"
-                        }
+                          "status": "decision",
+                          "impl": "done"
+                        },
+                        "hyperLink": "modules/plan/module.mjs"
                       },
                       {
                         "id": "d-mod-api",
                         "topic": "Szerver-végpontok a /api/<module>/ alatt",
                         "metadata": {
-                          "status": "decision"
-                        }
+                          "status": "decision",
+                          "impl": "done"
+                        },
+                        "hyperLink": "core/server.mjs"
                       },
                       {
                         "id": "d-mod-view",
                         "topic": "Nézet a közös keretben",
                         "metadata": {
-                          "status": "decision"
-                        }
+                          "status": "decision",
+                          "impl": "partial"
+                        },
+                        "note": "A nézetet a Mag szolgálja ki a /<module>/ alatt; a közös keret még hiányzik."
                       },
                       {
                         "id": "d-mod-skills",
@@ -297,8 +305,10 @@
                         "id": "d-mod-writes",
                         "topic": "Mappák, ahová írhat (a Mag ellenőrzi)",
                         "metadata": {
-                          "status": "decision"
-                        }
+                          "status": "decision",
+                          "impl": "done"
+                        },
+                        "hyperLink": "core/files.mjs"
                       }
                     ]
                   }
@@ -377,8 +387,10 @@
                     "id": "d-move-dashboard",
                     "topic": "A dashboard-prototípus beköltözik",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/build/module.mjs"
                   },
                   {
                     "id": "d-init",
@@ -392,8 +404,10 @@
                     "id": "d-offline",
                     "topic": "Minden függőség a csomagban, internet nélkül is működik",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/vendor/README.md"
                   },
                   {
                     "id": "d-semver",
@@ -424,15 +438,19 @@
                     "id": "d-sec-local",
                     "topic": "Csak 127.0.0.1, idegen Host → 403",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/server.mjs"
                   },
                   {
                     "id": "d-sec-write",
                     "topic": "Írni csak a docs/product/ és a .groundwork/ alá",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/files.mjs"
                   },
                   {
                     "id": "x-sec-token",
@@ -667,7 +685,7 @@
                 "children": [
                   {
                     "id": "s-plan-me",
-                    "topic": "Mind Elixir 5.15.1 (CDN)",
+                    "topic": "Mind Elixir 5.15.1",
                     "metadata": {
                       "status": "decision",
                       "impl": "done"
@@ -676,7 +694,7 @@
                   },
                   {
                     "id": "s-plan-marked",
-                    "topic": "marked (CDN)",
+                    "topic": "marked 12.0.2",
                     "metadata": {
                       "status": "decision",
                       "impl": "done"
@@ -719,10 +737,10 @@
                   {
                     "id": "d-state-dir",
                     "topic": "Helyi állapot: .groundwork/<module>/, .gitignore-ban",
-                    "note": "Ma .prd-maker/; az init teszi a .gitignore-ba.",
+                    "note": "A Plan állapota a .groundwork/plan/ alatt; a régi .prd-maker/ átkerül. A .gitignore-ba az init teszi (még hiányzik).",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
+                      "impl": "partial"
                     }
                   }
                 ]

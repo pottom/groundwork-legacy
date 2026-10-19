@@ -972,6 +972,12 @@ async function save() {
       body: JSON.stringify({ base: version, data: content(mind.getData()) }),
     })
     const j = await r.json()
+    if (j.stale) { // the server does not know the version this edit was made on (it restarted)
+      version = j.v
+      show(j.data)
+      setSync('err', 'a szerver újraindult: az utolsó szerkesztés nem mentődött, ismételd meg')
+      return
+    }
     if (!r.ok) throw new Error(j.error)
     version = j.v
     if (j.changed && !dirty && !editing()) show(j.data)

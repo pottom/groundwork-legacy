@@ -4,14 +4,14 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 3 kész, 0 részben, 1 hiányzik.
+> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 3 kész, 1 részben, 0 hiányzik.
 
 ## 1. Technológiai stack
 
 A gondolattérképet a Mind Elixir, a dokumentumok Markdown-megjelenítését a marked adja. Mindkettő a csomag része, nem CDN-ről töltődik, így a Plan internet nélkül is működik.
 
-- Mind Elixir 5.15.1 (CDN) `kész` — A csomagba téve, nem CDN-ről.
-- marked (CDN) `kész` — A csomagba téve, nem CDN-ről.
+- Mind Elixir 5.15.1 `kész` — A csomagba téve, nem CDN-ről.
+- marked 12.0.2 `kész` — A csomagba téve, nem CDN-ről.
 
 ## 2. Adatok és tárolás
 
@@ -19,7 +19,7 @@ A Plan egyetlen igazságforrása a `docs/product/mindmap.json`; ebből generál�
 
 - docs/product/mindmap.json az igazságforrás `kész`
 - A docs/product/ gitbe kerül
-- Helyi állapot: .groundwork/<module>/, .gitignore-ban `hiányzik` — Ma .prd-maker/; az init teszi a .gitignore-ba.
+- Helyi állapot: .groundwork/<module>/, .gitignore-ban `részben` — A Plan állapota a .groundwork/plan/ alatt; a régi .prd-maker/ átkerül. A .gitignore-ba az init teszi (még hiányzik).
 
 ## Elvetett megoldások
 

@@ -1,7 +1,8 @@
 // The Plan module as the core server loads it: manifest, view and endpoints.
 //
 //   GET /api/plan/map[?v=<version>]  the map, or { same: true } when the browser already has that version
-//   PUT /api/plan/map                { base, data }: a browser save made on version `base`, merged
+//   PUT /api/plan/map                { base, data }: a browser save made on version `base`, merged;
+//                                    409 with the current map when `base` is unknown (nothing saved)
 //   GET /api/plan/glossary           { text } of the project's GLOSSARY.md
 
 import path from 'node:path'
@@ -34,7 +35,8 @@ export default {
       if (req.method === 'PUT') {
         try {
           const { base, data } = await readJson(req)
-          send(res, 200, store.saveFromBrowser(base, data))
+          const saved = store.saveFromBrowser(base, data)
+          send(res, saved.stale ? 409 : 200, saved)
         } catch (e) {
           send(res, 400, { error: e.message })
         }

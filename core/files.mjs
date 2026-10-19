@@ -70,12 +70,13 @@ function open(root, writes) {
     return abs
   }
 
+  let tmpCount = 0
   const files = {
     exists: (rel) => fs.existsSync(readable(rel)),
     read: (rel) => fs.readFileSync(readable(rel), 'utf8'),
     write(rel, text) {
       const abs = target(rel)
-      const tmp = target(rel + '.tmp')
+      const tmp = target(`${rel}.${process.pid}.${++tmpCount}.tmp`) // unique: two writes of one file never share it
       fs.mkdirSync(path.dirname(abs), { recursive: true })
       fs.writeFileSync(tmp, text)
       fs.renameSync(tmp, abs)
@@ -95,9 +96,9 @@ function open(root, writes) {
 //
 // The move is the only file operation outside a module's folders, so it is done here in
 // the core rather than by the module, and kept narrow: the source must be a real folder
-// (not a link) at the top of the project, the destination one the module may write, and
-// it runs only while the destination does not exist yet, so it happens once and never
-// overwrites newer state.
+// (not a link) at the top of the project, and the destination one the module may write.
+// When the destination exists too, the old folder is merged in without overwriting newer
+// state: logs (.jsonl) are appended, other files are copied only where missing.
 export function moduleFiles(root, manifest) {
   const { files, target } = open(root, manifest.writes || [])
   for (const [from, to] of Object.entries(manifest.moves || {})) {
@@ -106,14 +107,27 @@ export function moduleFiles(root, manifest) {
     const src = path.join(path.resolve(root), from)
     let st
     try { st = fs.lstatSync(src) } catch { continue }
-    if (!st.isDirectory() || fs.existsSync(dest)) continue
-    fs.mkdirSync(path.dirname(dest), { recursive: true })
-    try {
-      fs.renameSync(src, dest)
-    } catch { // e.g. a file in it is open on Windows: copy, then drop the old folder
-      fs.cpSync(src, dest, { recursive: true })
-      fs.rmSync(src, { recursive: true, force: true })
+    if (!st.isDirectory()) continue
+    if (fs.existsSync(dest)) mergeInto(src, dest)
+    else {
+      fs.mkdirSync(path.dirname(dest), { recursive: true })
+      try {
+        fs.renameSync(src, dest)
+      } catch { // e.g. a file in it is open on Windows: copy, then drop the old folder
+        fs.cpSync(src, dest, { recursive: true })
+      }
     }
+    fs.rmSync(src, { recursive: true, force: true })
   }
   return files
+}
+
+function mergeInto(src, dest) {
+  for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    const from = path.join(src, e.name), to = path.join(dest, e.name)
+    if (e.isDirectory()) { fs.mkdirSync(to, { recursive: true }); mergeInto(from, to) }
+    else if (!e.isFile()) continue // links are not followed
+    else if (!fs.existsSync(to)) fs.copyFileSync(from, to)
+    else if (e.name.endsWith('.jsonl')) fs.appendFileSync(to, fs.readFileSync(from))
+  }
 }

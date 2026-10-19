@@ -166,3 +166,18 @@ test('edits left in an old .prd-maker/ folder are moved to .groundwork/plan/ and
   assert.ok(fs.existsSync(path.join(dir, '.groundwork/plan/edits-history.jsonl')))
   assert.ok(fs.existsSync(path.join(dir, '.groundwork/plan/written.json')))
 })
+
+test('a browser save on a version the store never saw (the server restarted) does not undo Claude\'s edits', () => {
+  const { dir, store } = fresh()
+  const { v: old, data: browser } = store.read()
+  store.apply([{ op: 'add', id: 'b', parent: 'goal', topic: 'Claude adds' }])
+  const restarted = open(dir) // a new server: it never saw `old`
+  find(browser, 'a').topic = 'Human renames'
+  const res = restarted.saveFromBrowser(old, browser)
+  assert.equal(res.stale, true)
+  assert.ok(find(res.data, 'b'), 'the answer carries the current map for the browser to show')
+  const now = restarted.read().data
+  assert.ok(find(now, 'b'), 'Claude\'s node is not removed')
+  assert.equal(find(now, 'a').topic, 'First')
+  assert.deepEqual(restarted.takeHumanEdits(), [])
+})

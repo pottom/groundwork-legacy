@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 1 kész, 0 részben, 0 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 9 kész, 1 részben, 0 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -13,7 +13,7 @@ Egyetlen helyi szerver szolgálja ki az összes modult, mindegyiket a saját API
 Az írási jog modulonként adható: a Plan a saját dokumentumait írja, a Build csak olvas.
 
 - Mindkettő Node, csak beépített modulokkal `kész` ([core/server.mjs](../../../core/server.mjs))
-- Egy közös szerver, modulonkénti API-val — Az írási jogot modulonként adjuk.
+- Egy közös szerver, modulonkénti API-val `kész` — Az írási jogot modulonként adjuk. ([core/server.mjs](../../../core/server.mjs))
 
 ## 2. Modulszerződés
 
@@ -23,11 +23,11 @@ Az első verzióban minden modul a csomagon belül él, de a szerződés úgy k�
 
 - v1: a modulok a csomagon belül élnek
 - **Egy modul egy mappa, benne:**
-  - Leíró: azonosító, név, verzió
-  - Szerver-végpontok a /api/<module>/ alatt
-  - Nézet a közös keretben
+  - Leíró: azonosító, név, verzió `kész` ([modules/plan/module.mjs](../../../modules/plan/module.mjs))
+  - Szerver-végpontok a /api/<module>/ alatt `kész` ([core/server.mjs](../../../core/server.mjs))
+  - Nézet a közös keretben `részben` — A nézetet a Mag szolgálja ki a /<module>/ alatt; a közös keret még hiányzik.
   - Opcionális skillek és hookok (az init telepíti)
-  - Mappák, ahová írhat (a Mag ellenőrzi)
+  - Mappák, ahová írhat (a Mag ellenőrzi) `kész` ([core/files.mjs](../../../core/files.mjs))
 
 ## 3. Közös keret (fejléc, navigáció, téma)
 
@@ -47,17 +47,17 @@ A kód új, `groundwork` nevű repóban él; a prd-maker prototípus ennek a mag
 
 - npm-csomag: npx groundwork
 - Új groundwork repó (ez a mappa, átnevezve)
-- A dashboard-prototípus beköltözik
+- A dashboard-prototípus beköltözik `kész` ([modules/build/module.mjs](../../../modules/build/module.mjs))
 - npx groundwork init: skillek és hook a projektbe — A .claude/skills/ alá és a .claude/settings.json-ba, a meglévőt megtartva, csak jóváhagyás után.
-- Minden függőség a csomagban, internet nélkül is működik
+- Minden függőség a csomagban, internet nélkül is működik `kész` ([core/vendor/README.md](../../../core/vendor/README.md))
 - Egy közös semver verzió, a modulok a csomaggal együtt
 
 ## 5. Biztonság
 
 Egyetlen szerver ír és olvas, ezért a hozzáférés szűk: csak a helyi gépről (`127.0.0.1`) érhető el, és idegen `Host` fejlécű kérést elutasít. Írni csak a projekt dokumentációs mappájába (`docs/product/`) és a saját helyi állapotába (`.groundwork/`) tud. Tokent vagy jelszót nem használ, mert csak helyben fut.
 
-- Csak 127.0.0.1, idegen Host → 403
-- Írni csak a docs/product/ és a .groundwork/ alá
+- Csak 127.0.0.1, idegen Host → 403 `kész` ([core/server.mjs](../../../core/server.mjs))
+- Írni csak a docs/product/ és a .groundwork/ alá `kész` ([core/files.mjs](../../../core/files.mjs))
 
 ## 6. Platform és futtatási környezet
 

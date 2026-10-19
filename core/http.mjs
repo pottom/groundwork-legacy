@@ -17,10 +17,15 @@ export function send(res, code, body, type = TYPES['.json']) {
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body))
 }
 
+const MAX_BODY = 20 * 1024 * 1024
+
 export function readJson(req) {
   return new Promise((resolve, reject) => {
     let body = ''
-    req.on('data', (c) => (body += c))
+    req.on('data', (c) => {
+      body += c
+      if (body.length > MAX_BODY) { reject(new Error('request body too large')); req.destroy() }
+    })
     req.on('end', () => { try { resolve(JSON.parse(body)) } catch (e) { reject(e) } })
     req.on('error', reject)
   })
