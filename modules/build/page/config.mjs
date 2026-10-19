@@ -1,22 +1,22 @@
 // The page's fixed values: the server it talks to, the timings, the views and their filters, and
-// what the ticket reader (ticket-reader.js, a classic script loaded before the page's modules)
-// gives the page. The reader is shared with the server (project-tickets.mjs), which reads the
-// tickets for Plan's counts by the same rules.
+// the ticket reader (../ticket-reader.mjs). The reader is shared with the server
+// (project-tickets.mjs), which reads the tickets for Plan's counts by the same rules.
 
-// The Build module's endpoints on the core server, when the page is loaded from it. The same
+import * as reader from '../ticket-reader.mjs';
+
+// The Build module's endpoints on the core server, which the page is always loaded from. The same
 // values are in modules/build/module.mjs.
 export const SERVER_ID = 'development-status';
 export const SERVER_API = '/api/build';
 export const SERVER_TIMEOUT_MS = 8000;
 
-export const POLL_MS = 3000;     // a folder chosen in the browser is read again this often
 export const FRESH_MS = 90000;   // a ticket changed this recently is marked "fresh"
 export const TOAST_MS = 3500;
 
 // What a ticket is and how it is read (the model every view draws), where the tracker is and
 // which folders are walked, the states and the links to Plan: readTickets, locateProject, fold,
-// isClosed, CLOSED, DONE, UNPARSED, … (see the end of ticket-reader.js).
-export const reader = globalThis.GroundworkTickets;
+// isClosed, CLOSED, DONE, UNPARSED, … (see the end of ticket-reader.mjs).
+export { reader };
 const { DONE, UNPARSED } = reader;
 
 export const HUMAN = new Set(['ready-for-human', 'needs-info', 'needs-triage']);
@@ -57,6 +57,3 @@ export const PROBLEM_KINDS = [
   ['unknown-prd', 'problem.unknown-prd'],
 ];
 export const INFO_KINDS = new Set(PROBLEM_KINDS.filter((k) => k[2]).map((k) => k[0]));
-
-// Plan's map in a picked folder (on the server Plan sends only its ids).
-export const MAP_PATH = 'docs/product/mindmap.json';

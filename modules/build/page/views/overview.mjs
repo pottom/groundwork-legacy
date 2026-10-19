@@ -11,19 +11,14 @@ import { icon, pct } from '../parts.mjs';
 
 const callout = (tone, body, action) => html`<div class="gw-callout gw-callout--${tone}" role="status"><div class="gw-callout__body">${body}</div>${action || nothing}</div>`;
 
-// The refresh button's words: from the server or a live folder it reads again; a snapshot asks
-// for the folder again.
-export const refreshKey = () => (app.source && !app.source.live ? 'live.reread' : app.lostAccess ? 'live.renew' : 'live.refresh');
-
 export function noticesView(inShell) {
   const out = [];
   const at = app.lastChecked ? clock(app.lastChecked) : '–';
   const source = app.source;
   if (app.serverDown && !inShell) out.push(callout('warn', ui('live.down', { at, launcher: source && source.launcher ? ' (' + source.launcher + ')' : '' })));
-  if (app.lostAccess) out.push(callout('warn', ui('live.lost'), html`<button type="button" class="gw-btn gw-btn--sm" @click=${actions.readAgain}>${ui('live.renew')}</button>`));
   if (app.model.trackerPath == null && !app.model.repo) {
     const dir = reader.DEFAULT_TRACKER_DIR;
-    out.push(callout('info', [tx('overview.no-tracker', { dir }), source && source.live ? nothing : [' ', tx('overview.no-tracker-snapshot', { dir })]]));
+    out.push(callout('info', tx('overview.no-tracker', { dir })));
   }
   return out;
 }
@@ -54,7 +49,7 @@ export function overviewView() {
   const blocked = m.open.filter((t) => t.blocked).length;
   const none = ui('kpi.none');
   const p = pct(done, total);
-  const label = ui(refreshKey());
+  const label = ui('live.refresh');
   const foot = html`<div class="summary__foot"><span class="gw-progress" style="--value:${p}%" role="img" aria-label=${ui('overview.bar-label', { open, done })}></span><span class="summary__pct">${total ? ui('overview.done', { p }) : '–'}<span>${ui('overview.closed', { done, total })}</span></span><button type="button" class="gw-btn gw-btn--icon gw-btn--sm" title=${label} aria-label=${label} @click=${actions.readAgain}>${icon('refresh')}</button></div>`;
   return html`<section class="gw-card summary" aria-label=${ui('overview.label')}><div class="stats">
 ${stat('neutral', open, ui('kpi.open'), ui('kpi.open-sub', { total }))}

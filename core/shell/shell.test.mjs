@@ -55,3 +55,10 @@ test('the shell uses the shared tokens: the gradient marks the current tab', () 
   assert.match(SHELL_CSS, /aria-current="page"\][^{]*::before\s*\{[^}]*var\(--gw-gradient\)/)
   assert.doesNotMatch(SHELL_CSS, /linear-gradient\(90deg, var\(--gw-accent\), var\(--gw-accent-2\)\)/, 'the token, not a copy of it')
 })
+
+test('no file of the shell is longer than about 400 lines', () => {
+  for (const f of fs.readdirSync(new URL('.', import.meta.url))) {
+    const lines = fs.readFileSync(new URL('./' + f, import.meta.url), 'utf8').split('\n').length
+    assert.ok(lines <= 420, `core/shell/${f}: ${lines} lines`)
+  }
+})

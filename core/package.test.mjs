@@ -43,8 +43,8 @@ test('the package holds the core, the modules and their bundled libraries', asyn
     'core/groundwork.mjs', 'core/start.mjs', 'core/server.mjs', 'core/version.mjs', 'core/shell/theme.css',
     'core/vendor/mind-elixir/MindElixir.js', 'core/vendor/marked/marked.esm.js', 'core/vendor/fonts/inter/inter-latin-wght-normal.woff2',
     'modules/plan/module.mjs', 'modules/plan/index.html', 'modules/plan/skills/groundwork-prd-maker/SKILL.md',
-    'modules/build/module.mjs', 'modules/build/index.html', 'modules/build/ticket-reader.js',
-    'modules/build/build.css', 'modules/build/page/main.mjs', 'modules/build/page/views/git.mjs', 'modules/build/page.bundle.js',
+    'modules/build/module.mjs', 'modules/build/index.html', 'modules/build/ticket-reader.mjs',
+    'modules/build/build.css', 'modules/build/page/main.mjs', 'modules/build/page/views/git.mjs', 'modules/build/ui-strings.mjs',
   ]) assert.ok(files.includes(f), `${f} is in the package`)
 })
 

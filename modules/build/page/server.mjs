@@ -52,15 +52,14 @@ function treeFromListing(listing) {
   return root;
 }
 
-// Is the page loaded from the core server? Asked, not guessed from the protocol: served by
-// anything else, the page falls back to the folder picker.
+// Is the page loaded from the core server? Asked: served by anything else, the page says it needs
+// the server.
 export async function findServer() {
-  if (!/^https?:$/.test(location.protocol)) return null;
   try { return await serverJson('/hello'); } catch (err) { return null; }
 }
 
 export function serverSource(hello) {
-  const src = { adapter: treeAdapter, root: { children: new Map() }, name: hello.name || '', live: true, server: location.host, launcher: hello.launcher || '', version: hello.version || '', git: !!hello.git, github: !!hello.github };
+  const src = { adapter: treeAdapter, root: { children: new Map() }, name: hello.name || '', server: location.host, launcher: hello.launcher || '', version: hello.version || '', git: !!hello.git, github: !!hello.github };
   src.reload = async () => {
     const listing = await serverJson('/list');
     src.root = treeFromListing(listing);

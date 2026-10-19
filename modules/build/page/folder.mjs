@@ -1,6 +1,6 @@
-// Reading the project's files. Four ways to get at a folder share one small adapter: list a
-// directory's children, and turn a file node into a File (or what stands for one: size,
-// lastModified, text()). scan() walks the tracker and the ADR folder with it.
+// The project's files as a tree, made from the server's list (server.mjs): a node lists its
+// children, a file node stands for a file (size, lastModified, text()). scan() walks the tracker
+// and the ADR folder in it.
 
 import { reader } from './config.mjs';
 
@@ -8,35 +8,7 @@ const { locateProject, keepsFolder, README_FILE, GLOSSARY_FILE, ALWAYS_SKIP, SKI
 
 const joinPath = (a, b) => (a ? a + '/' + b : b);
 
-// A folder the browser hands out a handle for (Chromium: the picker, a dropped folder).
-export const handleAdapter = {
-  async children(dir) {
-    const out = [];
-    for await (const h of dir.values()) out.push({ name: h.name, isDir: h.kind === 'directory', node: h });
-    return out;
-  },
-  file: (h) => h.getFile(),
-};
-
-// Dropped folders where the browser has no file system handles (Firefox, Safari).
-export const entryAdapter = {
-  children(dir) {
-    return new Promise((resolve, reject) => {
-      const rd = dir.createReader();
-      const all = [];
-      const step = () => rd.readEntries((batch) => {
-        if (!batch.length) return resolve(all.map((e) => ({ name: e.name, isDir: e.isDirectory, node: e })));
-        all.push(...batch);
-        step();
-      }, reject);
-      step();
-    });
-  },
-  file: (e) => new Promise((resolve, reject) => e.file(resolve, reject)),
-};
-
-// A flat list of paths as a tree: the file list of <input webkitdirectory>, and the list the
-// server sends (server.mjs).
+// A tree of paths: the list the server sends (server.mjs).
 export const treeAdapter = {
   children: async (dir) => [...dir.children.values()],
   file: async (node) => node.file,
@@ -50,28 +22,6 @@ export function treeDir(root, parts) {
     dir = child.node;
   }
   return dir;
-}
-
-export function treeFromFiles(fileList) {
-  const root = { children: new Map() };
-  let name = '';
-  for (const f of fileList) {
-    const parts = (f.webkitRelativePath || f.name).split('/');
-    if (parts.length > 1) name = parts.shift();
-    const last = parts.pop();
-    treeDir(root, parts).children.set(last, { name: last, isDir: false, node: { file: f } });
-  }
-  return { root, name };
-}
-
-export async function findChild(A, dir, path) {
-  let node = dir;
-  for (const part of path.split('/')) {
-    const hit = (await A.children(node)).find((c) => c.isDir && c.name === part);
-    if (!hit) return null;
-    node = hit.node;
-  }
-  return node;
 }
 
 // The folders the reader's locateProject decides by, with their nodes: LOCATE_DEPTH levels
@@ -90,7 +40,7 @@ async function listFolders(A, root) {
   return nodes;
 }
 
-// The tracker and the ADR folder: the same rule as the server's (ticket-reader.js).
+// The tracker and the ADR folder: the same rule as the server's (ticket-reader.mjs).
 async function locate(src) {
   const nodes = await listFolders(src.adapter, src.root);
   const { trackerPath, adrPath } = locateProject([...nodes.keys()]);

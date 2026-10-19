@@ -167,6 +167,13 @@ export function walk(node, fn, parent = null) {
   for (const c of node.children || []) walk(c, fn, node)
 }
 
+// The ids of the map's nodes, the root first, each before its children ([] without a map).
+export function nodeIds(data) {
+  const ids = []
+  if (data?.nodeData) walk(data.nodeData, (node) => { if (node.id != null) ids.push(String(node.id)) })
+  return ids
+}
+
 export function index(data) {
   const m = new Map()
   walk(data.nodeData, (node, parent) => m.set(node.id, { node, parent }))

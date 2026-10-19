@@ -3,11 +3,13 @@
 //   send(res, code, body, type?)               data: never cached (no-store); body a string, Buffer or JSON
 //   sendCached(req, res, body, type, opts?)    a page or file the browser may keep: an ETag, a 304 when
 //                                              it still has it, compressed (br, gzip) when it accepts that
-//   sendFile(req, res, file, opts?)            sendCached for a file; read again only when it changed
-//
-// opts.maxAge: how many seconds the browser may use its copy without asking (default 0: no-cache,
-// it asks every time and gets a 304 while nothing changed); opts.immutable: kept for good, for a URL
-// that names its version.
+//   sendFile(req, res, file)                   sendCached for a file, with its cachePolicy; read again
+//                                              only when it changed
+//   cachePolicy(file)                          { maxAge }: how many seconds the browser may use its copy
+//                                              without asking. A font is kept a week; anything else 0
+//                                              (no-cache: it asks every time and gets a 304 while
+//                                              nothing changed), as a checkout changes its files
+//                                              without changing its version.
 
 import fs from 'node:fs'
 import crypto from 'node:crypto'
@@ -35,15 +37,18 @@ export function send(res, code, body, type = TYPES['.json']) {
 // Worth compressing: text, at least a little of it (woff2 and images are compressed already).
 const COMPRESSIBLE = /^(text\/|application\/json|image\/svg)/
 const MIN_COMPRESS = 1024
-const YEAR = 31536000
-const packed = new Map()   // ETag -> { br, gzip }: each body is compressed once
-const MAX_PACKED = 256
+const FONT_MAX_AGE = 7 * 24 * 3600
+const compressedBodies = new Map()   // ETag -> { br, gzip }: each body is compressed once
+const MAX_COMPRESSED = 256
 
-function variant(body, hash, encoding) {
-  let p = packed.get(hash)
+export const cachePolicy = (file) => ({ maxAge: file.endsWith('.woff2') ? FONT_MAX_AGE : 0 })
+
+// The body compressed with `encoding`, kept by its hash.
+function compressed(body, hash, encoding) {
+  let p = compressedBodies.get(hash)
   if (!p) {
-    if (packed.size >= MAX_PACKED) packed.delete(packed.keys().next().value)
-    packed.set(hash, (p = {}))
+    if (compressedBodies.size >= MAX_COMPRESSED) compressedBodies.delete(compressedBodies.keys().next().value)
+    compressedBodies.set(hash, (p = {}))
   }
   return (p[encoding] ??= encoding === 'br'
     ? zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: body.length } })
@@ -53,9 +58,9 @@ function variant(body, hash, encoding) {
 const hashOf = (body) => crypto.createHash('sha1').update(body).digest('hex').slice(0, 20)
 
 // The tags an If-None-Match header names, without W/ and without the encoding suffix.
-const named = (header = '') => header.split(',').map((t) => t.trim().replace(/^W\//, '').replace(/^"([^"-]*)(-\w+)?"$/, '$1'))
+const ifNoneMatchTags = (header = '') => header.split(',').map((t) => t.trim().replace(/^W\//, '').replace(/^"([^"-]*)(-\w+)?"$/, '$1'))
 
-export function sendCached(req, res, body, type, { maxAge = 0, immutable = false, hash } = {}) {
+export function sendCached(req, res, body, type, { maxAge = 0, hash } = {}) {
   const data = Buffer.isBuffer(body) ? body : Buffer.from(body, 'utf8')
   hash ??= hashOf(data)
   const accepts = String(req.headers['accept-encoding'] || '')
@@ -63,23 +68,23 @@ export function sendCached(req, res, body, type, { maxAge = 0, immutable = false
   const encoding = !compress ? null : /\bbr\b/.test(accepts) ? 'br' : /\bgzip\b/.test(accepts) ? 'gzip' : null
   const headers = {
     'content-type': type,
-    'cache-control': immutable ? `max-age=${YEAR}, immutable` : maxAge ? `max-age=${maxAge}` : 'no-cache',
+    'cache-control': maxAge ? `max-age=${maxAge}` : 'no-cache',
     etag: `"${hash}${encoding ? '-' + encoding : ''}"`,
     'x-content-type-options': 'nosniff',
     ...(compress ? { vary: 'accept-encoding' } : {}),
   }
-  if (named(req.headers['if-none-match']).includes(hash)) {
+  if (ifNoneMatchTags(req.headers['if-none-match']).includes(hash)) {
     res.writeHead(304, headers)
     return res.end()
   }
-  const out = encoding ? variant(data, hash, encoding) : data
+  const out = encoding ? compressed(data, hash, encoding) : data
   res.writeHead(200, { ...headers, ...(encoding ? { 'content-encoding': encoding } : {}), 'content-length': out.length })
   res.end(out)
 }
 
 const read = new Map()   // path -> { mtimeMs, size, data, hash }
 
-export function sendFile(req, res, file, opts) {
+export function sendFile(req, res, file) {
   const st = fs.statSync(file)
   let f = read.get(file)
   if (!f || f.mtimeMs !== st.mtimeMs || f.size !== st.size) {
@@ -88,7 +93,7 @@ export function sendFile(req, res, file, opts) {
     read.set(file, f)
   }
   const type = TYPES[file.slice(file.lastIndexOf('.'))] || 'application/octet-stream'
-  sendCached(req, res, f.data, type, { ...opts, hash: f.hash })
+  sendCached(req, res, f.data, type, { ...cachePolicy(file), hash: f.hash })
 }
 
 const MAX_BODY = 20 * 1024 * 1024

@@ -14,13 +14,13 @@ On the core server it also reads the project's **GitHub issues** as tickets, whe
 
 A ticket may name the PRD items (the ids of Plan's map nodes) it came from, on a line of its own near the top: `**PRD:** f-build-trace, d-trace`. Build shows these ids on the ticket and in its details; on the server each one is a link that opens Plan with that item focused and highlighted (`/?module=plan&node=<id>`). The ticket reader keeps them as `ticket.prd` and lists the tickets per id in `model.byPrd`. A line that is only a dash, `none` (`nincs`, `n/a`) or a remark in parentheses, such as `**PRD:** — (no decision yet)`, says the ticket deliberately has no PRD item: `ticket.prdNone`, no ids, and no "missing PRD" warning. Only words that look like map ids (with a hyphen, an underscore or a digit) count as ids; a remark in parentheses never does.
 
-The Checks view lists an open ticket without a PRD line, and a ticket naming an id that is not on the map. The map's ids come from Plan (`GET /api/plan/ids`, only the ids, `?v=` answers "same" while the map is unchanged) on the server, or from `docs/product/mindmap.json` in a picked folder. Without a map no id counts as unknown, and a missing PRD line counts only once some ticket has one. Claude adds the line after `to-tickets` (see the groundwork-prd-maker skill).
+The Checks view lists an open ticket without a PRD line, and a ticket naming an id that is not on the map. The map's ids come from Plan (`GET /api/plan/ids`, only the ids, `?v=` answers "same" while the map is unchanged). Without a map no id counts as unknown, and a missing PRD line counts only once some ticket has one. Claude adds the line after `to-tickets` (see the groundwork-prd-maker skill).
 
-Plan shows, on each map item, how many tickets name it and how many of them are done; it gets the counts from `/api/build/prd`, which reads the tickets on the server with the same `ticket-reader.js` (`project-tickets.mjs`). Clicking the count opens Build with only that item's tickets, closed ones too (`/?module=build&prd=<id>`; the filter shows above the list and can be cleared).
+Plan shows, on each map item, how many tickets name it and how many of them are done; it gets the counts from `/api/build/prd`, which reads the tickets on the server with the same `ticket-reader.mjs` (`project-tickets.mjs`). Clicking the count opens Build with only that item's tickets, closed ones too (`/?module=build&prd=<id>`; the filter shows above the list and can be cleared).
 
 ## The page
 
-The page uses the shell's design system (`/shell/theme.css`: the `--gw-*` tokens and the `.gw-*` components). Inside the shell it shows no bar of its own: the shell's header already shows the project, whether the page is live, the version and the language. Opened alone (`/build/` or from a folder) it has a slim bar with those. What the page does by itself (it read something again, nothing changed) shows as a toast that goes away; a stopped server or a folder it may no longer read shows as a notice above the overview.
+The page uses the shell's design system (`/shell/theme.css`: the `--gw-*` tokens and the `.gw-*` components). Inside the shell it shows no bar of its own: the shell's header already shows the project, whether the page is live, the version and the language. Opened alone (`/build/`) it has a slim bar with those. What the page does by itself (it read something again, nothing changed) shows as a toast that goes away; a stopped server shows as a notice above the overview. Build needs the core server: it has no mode opened from a file.
 
 The "Waiting on" view opens with one overview strip: open tickets, ready to write, waiting for a human, blocked, and the share of closed tickets under them. Status labels show by a translated name (`ready-for-agent` is "Ready for agent"), the label itself in the tooltip. Each view shows only the filters it applies; the filters in force show as removable pills, and none of them survives a reload.
 
@@ -33,30 +33,27 @@ It shows the following views:
 - documents;
 - the git branch graph.
 
-On the core server the page follows the core's live updates through `subscribe` from `/shell/live.mjs` (inside the shell the shell's one stream, opened alone its own `/api/events`): it reads again only what changed (`build.files` the Markdown files, `build.git` the history, `build.issues` the issues, `plan.map` the map ids, all in parallel) when a Markdown file, a git ref, Plan's map or the GitHub issues change (the server asks GitHub afresh once a minute while a page listens, so a change on GitHub shows within a minute), and on every reconnect. Opened as a file with a chosen folder, it re-reads the folder every 3 seconds.
+On the core server the page follows the core's live updates through `subscribe` from `/shell/live.mjs` (inside the shell the shell's one stream, opened alone its own `/api/events`): it reads again only what changed (`build.files` the Markdown files, `build.git` the history, `build.issues` the issues, `plan.map` the map ids, all in parallel) when a Markdown file, a git ref, Plan's map or the GitHub issues change (the server asks GitHub afresh once a minute while a page listens, so a change on GitHub shows within a minute), and on every reconnect.
 
 | File | Role |
 |---|---|
-| `index.html` | the dashboard page, only its skeleton; works on its own too (open it from this folder, pick the project folder; live only in Chromium browsers, and without the git view) |
-| `build.css` | the page's layout on the shell's design system, and the theme's tokens as a fallback for `file://` |
-| `page/main.mjs` | the page's start: what its controls do, the address (`#/<view>/<document>`), the keyboard, choosing a folder, the language |
+| `index.html` | the dashboard page, only its skeleton: the theme, `build.css` and `page/main.mjs` |
+| `build.css` | the page's layout on the shell's design system |
+| `page/main.mjs` | the page's start: what its controls do, the address (`#/<view>/<document>`), the keyboard, the language |
 | `page/config.mjs` | the fixed values: the server, the timings, the views and their filters, the ticket reader |
 | `page/text.mjs` | the words: the translation, `tx()` for a translated text with templates in it, status names, dates |
 | `page/state.mjs` | what the page holds: the view and the filters (`state`), what it read (`app`), which tickets the filters let through |
-| `page/folder.mjs`, `page/server.mjs` | reading the project: a folder chosen in the browser, or the core server's `/api/build/` |
+| `page/server.mjs`, `page/folder.mjs` | reading the project from the core server's `/api/build/`: the listing as a tree, and the tracker and ADR folder in it |
 | `page/refresh.mjs` | reading it again when it changed: the files, the issues, Plan's map ids and git, in parallel; the live updates |
 | `page/render.mjs` | puts the views into the skeleton's parts; the drawer's focus, the toasts |
 | `page/parts.mjs` | the small templates the views share: icons, badges, ticket links, section heads, empty states |
 | `page/views/*.mjs` | the views as lit-html templates: `chrome` (bar, start screen, tabs, filters), `overview` (notices, numbers), `tickets` (Waiting on, Areas), `deps`, `activity`, `docs` (Checks, Documents), `git`, `drawer` |
 | `page/markdown.mjs` | the Markdown renderer for the drawer: every piece of text escaped, its output the only HTML shown through `unsafeHTML` |
-| `page.bundle.js` | generated: the `page/` modules and lit-html as one classic script, for `file://`; do not edit it |
-| `file-bundle.mjs` | writes `page.bundle.js` (`node modules/build/file-bundle.mjs` after a change under `page/`); `file-bundle.test.mjs` fails while it is out of date |
-| `ticket-reader.js` | the ticket reader: `GroundworkTickets.readTickets(source)` turns a ticket source (the Markdown files, the GitHub issues, or both) into the model every view draws; the format is at its top |
-| `ui-strings.js` | the UI strings (`BUILD_STRINGS`), English and Hungarian |
-| `i18n.js` | a copy of `core/shell/i18n.mjs` without `export`; do not edit it here |
+| `ticket-reader.mjs` | the ticket reader, shared by the page and the server: `readTickets(source)` turns a ticket source (the Markdown files, the GitHub issues, or both) into the model every view draws; the format is at its top |
+| `ui-strings.mjs` | the UI strings (`BUILD_STRINGS`), English and Hungarian; no markup, code in backticks |
 | `module.mjs` | the manifest and the read-only endpoints under `/api/build/` |
 | `project-reader.mjs` | reads the project: the Markdown files inside the root, and the git history |
-| `project-tickets.mjs` | the tickets read on the server with `ticket-reader.js`, and per PRD item how many name it and how many are done (for Plan) |
+| `project-tickets.mjs` | the tickets read on the server with `ticket-reader.mjs`, and per PRD item how many name it and how many are done (for Plan) |
 | `github-source.mjs` | fetches the GitHub issues on the server (with their dependency links), in the shape the ticket reader takes |
 
 ## Run
@@ -76,15 +73,13 @@ npx @pottom/groundwork                          # in the project folder; then Bu
 
 It never writes. It serves only the page, the project's Markdown files inside the root, in a git repository the branch history, and the GitHub issues of its origin; git and GitHub are only asked to read.
 
-The header comments of the files describe the formats in detail. The UI is in English, with a Hungarian translation (the strings are `BUILD_STRINGS` in `ui-strings.js`). Inside the shell it follows the shell's language; opened alone it has its own language picker. The translation mechanism is `i18n.js`, a copy of `core/shell/i18n.mjs`: opened by double click (`file://`) there is no `/shell/` and the browser refuses ES module imports, but classic `<script src>` files beside the page still load. So `index.html`, `i18n.js`, `ui-strings.js` and `ticket-reader.js` stay together in this folder, and none of them may become a module. `ui-strings.test.mjs` keeps the copy equal to the original.
+The header comments of the files describe the formats in detail. The UI is in English, with a Hungarian translation (the strings are `BUILD_STRINGS` in `ui-strings.mjs`, translated by the shell's `/shell/i18n.mjs`). Inside the shell it follows the shell's language; opened alone it has its own language picker. The strings hold no markup: a piece of code is written in backticks and the page shows it as `<code>` (`tx()` in `page/text.mjs`).
 
-The page's own code is small ES modules under `page/`, which render with lit-html templates (`/vendor/lit-html/`, in `core/vendor/`) on the shell's `.gw-*` components; no view builds HTML strings, except the Markdown renderer, whose escaped output the drawer shows through lit's `unsafeHTML`. From the server `index.html` loads `page/main.mjs`. Opened as a file it cannot, so it loads `page.bundle.js` instead: the same modules and the lit-html they import as one classic script, which `file-bundle.mjs` writes. There is no build step at run time: the bundle is committed, and a test fails when it no longer matches the modules, so after changing anything under `page/` run `node modules/build/file-bundle.mjs`. The bundler takes only the import and export forms the page uses (`import { a } from './x.mjs'`, `export function`/`const`/`class`, `export { … }`) and refuses an import cycle.
+The page's own code is small ES modules under `page/`, which render with lit-html templates (`/vendor/lit-html/`, in `core/vendor/`) on the shell's `.gw-*` components; no view builds HTML strings, except the Markdown renderer, whose escaped output the drawer shows through lit's `unsafeHTML`. `index.html` loads `page/main.mjs`; there is no build step.
 
 ## Conventions in detail
 
-A ticket's fields are read near the top of the file, in any of these forms: `**Status:** ready-for-agent`, `Status: ready-for-agent`, `- **Status:** …` (the local format of the `/to-tickets` skill puts `**Blocked by:**` before `**Status:**`; the order does not matter). "Blocked by" may also be a `## Blocked by` heading with a list under it (the issue template's form), and it may name tickets by number (`01`, `#12`, `area 3`), by file name (`01-some-slug`) or by title; "None (can start immediately)" means none. Comments go under `## Comments`; a heading with a date (`### 2026-10-14 …`) is one comment. The tracker folder is `.scratch` by default (`DEFAULT_TRACKER_DIR` in `ticket-reader.js`); without it, the first folder whose subfolders hold `issues/`.
-
-Opened by double click (`file://`), the page asks once for the project folder (read only; it stays live only in Chromium browsers, which re-read it every 3 seconds) and loads the theme from `../../core/shell/theme.css` beside it, with the theme's tokens repeated in `build.css` as a fallback.
+A ticket's fields are read near the top of the file, in any of these forms: `**Status:** ready-for-agent`, `Status: ready-for-agent`, `- **Status:** …` (the local format of the `/to-tickets` skill puts `**Blocked by:**` before `**Status:**`; the order does not matter). "Blocked by" may also be a `## Blocked by` heading with a list under it (the issue template's form), and it may name tickets by number (`01`, `#12`, `area 3`), by file name (`01-some-slug`) or by title; "None (can start immediately)" means none. Comments go under `## Comments`; a heading with a date (`### 2026-10-14 …`) is one comment. The tracker folder is `.scratch` by default (`DEFAULT_TRACKER_DIR` in `ticket-reader.mjs`); without it, the first folder whose subfolders hold `issues/`.
 
 ## History
 

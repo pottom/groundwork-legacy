@@ -4,7 +4,7 @@
 import { html, svg, nothing } from '/vendor/lit-html/lit-html.js';
 import { reader } from './config.mjs';
 import { ui, statusName, statusTitle, statusTone } from './text.mjs';
-import { app, docHref, isFree } from './state.mjs';
+import { docHref, isFree } from './state.mjs';
 
 const { isClosed, planLink } = reader;
 
@@ -37,11 +37,8 @@ export const blockerLinks = (t) => t.blockers.map((b, i) => [i ? ' ' : '', b.tic
 export const ticketLinks = (list) => list.map((t, i) => [i ? ' ' : '', ticketLink(t)]);
 
 // The PRD items a ticket came from (its "**PRD:**" line): each opens Plan focused on that map node
-// (Plan's deep link, planLink in ticket-reader.js, in the whole window). Opened as a file
-// (file://) there is no Plan to open: the ids show as text.
-export const prdLinks = (t) => t.prd.map((id, i) => [i ? ' ' : '', app.source && app.source.server
-  ? html`<a class="gw-tag" href=${planLink(id)} target="_top" title=${ui('prd.open', { id })}>${id}</a>`
-  : html`<span class="gw-tag" title=${ui('prd.no-plan')}>${id}</span>`]);
+// (Plan's deep link, planLink in ticket-reader.mjs, in the whole window).
+export const prdLinks = (t) => t.prd.map((id, i) => [i ? ' ' : '', html`<a class="gw-tag" href=${planLink(id)} target="_top" title=${ui('prd.open', { id })}>${id}</a>`]);
 
 export const progress = (value, title) => html`<span class="gw-progress" style="--value:${value}%" title=${title || nothing}></span>`;
 export const meter = (c) => (c.total

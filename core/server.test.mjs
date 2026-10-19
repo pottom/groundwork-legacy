@@ -160,11 +160,12 @@ test('a changed file gets a new ETag, so the browser never keeps an old one', as
   } finally { await srv.close() }
 })
 
-test('fonts are kept a week; a file asked for with ?v=<version> is kept for good', async () => {
+test('fonts are kept a week; every other file is asked again each time, whatever its query', async () => {
   await withServer(async ({ port }) => {
     assert.match((await get(port, '/vendor/fonts/inter/inter-latin-wght-normal.woff2')).headers['cache-control'], /max-age=604800/)
-    assert.equal((await get(port, `/shell/theme.css?v=${VERSION}`)).headers['cache-control'], 'max-age=31536000, immutable')
-    assert.equal((await get(port, '/shell/theme.css?v=0.0.0-old')).headers['cache-control'], 'no-cache', 'another version is not kept')
+    // A checkout changes its files under the same version: nothing is kept for good.
+    assert.equal((await get(port, `/shell/theme.css?v=${VERSION}`)).headers['cache-control'], 'no-cache')
+    assert.equal((await get(port, '/vendor/lit-html/lit-html.js')).headers['cache-control'], 'no-cache')
   })
 })
 
@@ -263,6 +264,10 @@ test('the shell serves its theme, and every page of it uses the theme', async ()
       assert.equal(css.status, 200, href)
       assert.match(css.headers['content-type'], /^text\/css/)
     }
+    // the theme's components, which theme.css imports (a page links theme.css only)
+    const parts = [...(await get(port, '/shell/theme.css')).body.matchAll(/@import url\('(\/shell\/[\w-]+\.css)'\)/g)].map((m) => m[1])
+    assert.ok(parts.length >= 2, String(parts))
+    for (const href of parts) assert.equal((await get(port, href)).status, 200, href)
     assert.equal((await get(port, '/shell/shell.mjs')).status, 404)
     assert.equal((await get(port, '/shell/..%2fserver.mjs')).status, 404)
   })

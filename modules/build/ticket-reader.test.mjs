@@ -1,14 +1,13 @@
-// The ticket reader (ticket-reader.js): from a ticket source, the ticket model every Build view
+// The ticket reader (ticket-reader.mjs): from a ticket source, the ticket model every Build view
 // draws. Two sources stand behind its one entry point: the project's Markdown files (.scratch/)
-// and the GitHub issues the server fetched. It is a classic script (the page works from file://),
-// which under Node defines globalThis.GroundworkTickets once imported.
+// and the GitHub issues the server fetched. An ES module, shared by the page and the server.
 // Run: node --test "modules/**/*.test.mjs"
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import './ticket-reader.js';
+import * as reader from './ticket-reader.mjs';
 
-const { readTickets } = globalThis.GroundworkTickets;
+const { readTickets } = reader;
 
 // The local source: markdown texts by path, as the page reads them.
 const local = (files, more = {}) => ({
@@ -168,16 +167,6 @@ test('an open ticket without a PRD line is an inconsistency; a closed one is his
   ]);
 });
 
-test('the PRD map ids come from every node of the map, nested or not; a broken map gives none', () => {
-  const { mapIds } = globalThis.GroundworkTickets;
-  const map = { v: 'abc', nodeData: { id: 'root', topic: 'R', children: [{ id: 'doc-a', children: [{ id: 'f-x' }, { id: 'd-y', children: [] }] }] } };
-  assert.deepEqual(mapIds(map), ['root', 'doc-a', 'f-x', 'd-y']);
-  assert.equal(mapIds(null), null);
-  assert.equal(mapIds({ error: 'no mindmap.json' }), null);
-  const m = readTickets(withMap(local({ '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**PRD:** f-x, f-z\n' }), mapIds(map)));
-  assert.deepEqual(prdProblems(m), [['unknown-prd', 'core 01', 'problem.unknown-prd.text', { list: 'f-z' }]]);
-});
-
 test('without the PRD map no id is unknown, and a missing PRD line counts only once the project uses them', () => {
   const none = readTickets(local({ '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n' }));
   assert.deepEqual(prdProblems(none), [], 'a project that does not link tickets to a PRD');
@@ -216,7 +205,7 @@ test('a GitHub issue without a state label is waiting to be triaged', () => {
 
 // ───────── Where the tickets are: one rule for the page and the server ─────────
 
-const { locateProject, ticketPath, keepsFolder, DONE, DROPPED, CLOSED, isDone, isDropped } = globalThis.GroundworkTickets;
+const { locateProject, ticketPath, keepsFolder, DONE, DROPPED, CLOSED, isDone, isDropped } = reader;
 
 test('the tracker: .scratch when its areas hold issues, else the root, else the first such folder within three levels', () => {
   assert.equal(locateProject(['', '.scratch', '.scratch/core', '.scratch/core/issues', 'work', 'work/core', 'work/core/issues']).trackerPath, '.scratch');

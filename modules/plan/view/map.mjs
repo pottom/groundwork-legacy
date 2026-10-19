@@ -17,8 +17,25 @@ import { renderPrdSoon, highlightInPrd } from './document.mjs'
 
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 
-// Branch lines that leave the parent's right edge and enter the child's left edge
-// at mid-height (the default draws underline-style lines).
+// Every line runs from the right edge of a node's pill to the left edge of its child's pill, at
+// mid-height (Mind Elixir's defaults start the main lines inside the root and draw the others
+// underline-style).
+
+// Root to main topic. The parent box Mind Elixir hands over is me-root, which is the root's pill;
+// the child box is the main topic's pill itself.
+function mainBranch({ pT, pL, pW, pH, cT, cL, cW, cH, direction }) {
+  const y1 = pT + pH / 2, y2 = cT + cH / 2
+  if (direction === 'down') {
+    const x1 = pL + pW / 2, x2 = cL + cW / 2, my = (pT + pH + cT) / 2
+    return `M ${x1} ${pT + pH} C ${x1} ${my} ${x2} ${my} ${x2} ${cT}`
+  }
+  const x1 = direction === 'lhs' ? pL : pL + pW
+  const x2 = direction === 'lhs' ? cL + cW : cL
+  const mx = (x1 + x2) / 2
+  return `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`
+}
+
+// A node to its child.
 // The boxes Mind Elixir hands over are its me-parent boxes: below the main topics they carry the
 // node gap as padding on both sides, so the line starts and ends that far inside them, on the
 // node's own edge. A main topic's box (isFirst: its first-level children) has no padding.
@@ -40,20 +57,51 @@ function subBranch({ pT, pL, pW, pH, cT, cL, cW, cH, direction, isFirst }) {
 // the map gets the matching theme and the branches their palette again.
 let THEME, PALETTE
 followColorScheme(matchMedia('(prefers-color-scheme: dark)'), (dark) => {
-  THEME = mapTheme({ dark, css, generateSubBranch: subBranch })
+  THEME = mapTheme({ dark, css, generateMainBranch: mainBranch, generateSubBranch: subBranch })
   PALETTE = THEME.palette
   if (state.mind) { state.mind.changeTheme(THEME); decorate() }
 })
 
+// ---- the lines follow the nodes' sizes ----
+// Mind Elixir draws the lines for the sizes the nodes have at that moment. A node changes size
+// afterwards: decorate() adds icons and badges, a font loads, a language switch changes a badge's
+// words. So the sizes the lines were drawn for are kept, and whenever a node's size differs from
+// them, the lines are drawn again: at once when decorate itself changed a size (so no frame shows a
+// gap), and soon after when a ResizeObserver on the nodes or the fonts report a change. That is the
+// guard: a redraw only happens while the lines are out of date, and the redraw's decorate finds
+// every node at the size it was drawn for, so it stops by itself. A redraw is never started from
+// inside another (relinking): that one is put off instead.
+let drawnFor = new Map()   // me-tpc -> its size when the lines were last drawn
+let relinking = false
+let relinkTimer = 0
+const sizeOf = (t) => t.offsetWidth + 'x' + t.offsetHeight
+const linesStale = () => [...drawnFor].some(([t, size]) => t.isConnected && sizeOf(t) !== size)
+function relinkNow() {
+  if (!state.mind || !linesStale()) return
+  if (relinking) { relinkSoon(); return }
+  relinking = true
+  try { state.mind.linkDiv() } finally { relinking = false }
+}
+// A timer, not requestAnimationFrame: a map in a background tab gets its lines right as well.
+function relinkSoon() {
+  if (!relinkTimer) relinkTimer = setTimeout(() => { relinkTimer = 0; relinkNow() })
+}
+const resized = typeof ResizeObserver === 'function' ? new ResizeObserver(relinkSoon) : null
+document.fonts?.ready.then(relinkSoon)
+
+// Mind Elixir drew the lines (its linkDiv event): keep the sizes they fit, watch every node, decorate.
+function linesDrawn() {
+  const nodes = [...state.mind.container.querySelectorAll('me-tpc')]
+  drawnFor = new Map(nodes.map((t) => [t, sizeOf(t)]))
+  if (resized) { resized.disconnect(); for (const t of nodes) resized.observe(t) }
+  decorate()
+}
+
 // ---- decoration: status, branch colour, notes, badges ----
-// Decoration changes the size of nodes (icons, badges), and Mind Elixir drew the branch lines
-// for the sizes before it: when any node changed size, the lines are drawn again (which runs
-// decorate once more and finds nothing to change), so every line meets its node's edge.
-let relinks = 0 // how deep decorate -> linkDiv -> decorate goes (it stops when nothing changes size)
+// Runs after every drawing of the lines (linesDrawn), and when the data or the language changed.
 export function decorate() {
   const mind = state.mind
   const nodes = [...mind.container.querySelectorAll('me-tpc')]
-  const before = nodes.map((t) => t.offsetWidth * 10000 + t.offsetHeight)
   const data = mapData()
   const structured = listDocs(data).some((d) => !d.legacy)
   const setAccent = (n, i) => {
@@ -87,10 +135,9 @@ export function decorate() {
     set('implLabel', impl ? ui(`impl.${impl}`) : null)
     ticketBadge(tpc, state.ticketCounts[n.id])
   }
-  if (relinks < 2 && nodes.some((t, i) => t.offsetWidth * 10000 + t.offsetHeight !== before[i])) {
-    relinks++
-    try { mind.linkDiv() } finally { relinks-- }
-    return
+  if (linesStale()) {
+    if (!relinking) { relinkNow(); return }   // the redraw's own decorate does the rest
+    relinkSoon()
   }
   update()
   renderPrdSoon()
@@ -233,10 +280,11 @@ export function createMap(data, { onOperation, onSelect }) {
     allowUndo: true,
     newTopicName: ui('map.newTopic'),
     theme: THEME,
+    generateMainBranch: mainBranch,
     generateSubBranch: subBranch,
   })
   state.mind = mind
-  mind.bus.addListener('linkDiv', decorate)
+  mind.bus.addListener('linkDiv', linesDrawn)
   mind.init(data)
   if (state.mode !== 'edit') mind.disableEdit()
   labelMap()

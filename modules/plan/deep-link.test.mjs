@@ -49,11 +49,10 @@ test('an item\'s tickets open in Build through the shell, filtered to that item'
   assert.equal(buildLink('a b&c'), '/?module=build&prd=a%20b%26c')
 })
 
-// Build is a classic script page (it opens from file:// too) and cannot import this module: its
-// shared ticket reader makes the same link and reads the same address. Both sides must agree.
+// Build's ticket reader (shared by its page and the server) makes the same link and reads the same
+// address. Both sides must agree.
 test('Build makes Plan\'s deep link and reads Plan\'s Build link the same way', async () => {
-  await import('../build/ticket-reader.js')
-  const { planLink: buildsPlanLink, prdFilter } = globalThis.GroundworkTickets
+  const { planLink: buildsPlanLink, prdFilter } = await import('../build/ticket-reader.mjs')
   for (const id of ['d-trace', 'a b&c', 'é/ü?x=1#y']) {
     assert.equal(buildsPlanLink(id), planLink(id))
     assert.equal(linkTarget(new URL(buildsPlanLink(id), 'http://x').search, map).id, id)

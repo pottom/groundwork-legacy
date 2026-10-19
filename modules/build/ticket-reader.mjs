@@ -1,6 +1,6 @@
-// ticket-reader.js: what Build knows about a project's tickets, read from a ticket source.
+// ticket-reader.mjs: what Build knows about a project's tickets, read from a ticket source.
 //
-//   const model = GroundworkTickets.readTickets(source);
+//   const model = readTickets(source);
 //
 // The one entry point. A source has a name and one or both of:
 //
@@ -14,8 +14,8 @@
 //           [{ number, repo }] | null (GitHub's own dependency links; null when unknown),
 //           createdAt, closedAt, updatedAt, url }
 //
-// and, when the page could read Plan's map, mapIds: the ids of its nodes (mapIds(map) makes
-// them from the map's JSON). PRD references are checked against it: an id not among them is an
+// and, when the page could get them from Plan (GET /api/plan/ids), mapIds: the ids of the
+// map's nodes. PRD references are checked against it: an id not among them is an
 // "unknown-prd" problem; without mapIds no id is unknown. An open ticket without a PRD line is
 // a "no-prd" problem once the project links tickets to a PRD (it has a map, or a ticket names
 // an id).
@@ -58,12 +58,7 @@
 // The links between Plan and Build: planLink(id) is Plan's deep link (the same as Plan's
 // deep-link.mjs makes), prdFilter(location.search) the PRD item a Build link names (?prd=).
 //
-// A classic script, not an ES module: the page loads it with <script src> also when opened by
-// double click (file://). It defines one global, GroundworkTickets; under Node, importing the
-// file does the same (globalThis).
-
-(function (root) {
-'use strict';
+// An ES module, shared by the page (page/config.mjs) and the server (project-tickets.mjs).
 
 const DONE = new Set(['done', 'resolved', 'closed']);
 const DROPPED = new Set(['wontfix', 'legacy']);
@@ -131,7 +126,7 @@ function locateProject(folders) {
   return { trackerPath: tracker, adrPath: ADR_DIRS.find((d) => has.has(d)) || null };
 }
 
-// The folders locateProject needs, from a tree walked lazily (the page's folder picker):
+// The folders locateProject needs, from a tree walked lazily (the page's tree of the server's list):
 // down to the areas' "issues" folders of a tracker three levels deep. A heavy folder is listed
 // with its own subfolders (it may be an area) but not walked further.
 const LOCATE_DEPTH = TRACKER_DEPTH + 2;
@@ -546,21 +541,6 @@ function parseIssue(issue, repo) {
   return t;
 }
 
-// ───────────────────────── The PRD map ─────────────────────────
-
-// The ids of every node of Plan's map (docs/product/mindmap.json, or the data of GET
-// /api/plan/map): the source's mapIds. null when the map is not one (missing, an error answer).
-function mapIds(map) {
-  if (!map || !map.nodeData || typeof map.nodeData !== 'object') return null;
-  const ids = [];
-  const walk = (node) => {
-    if (node.id != null) ids.push(String(node.id));
-    for (const c of node.children || []) walk(c);
-  };
-  walk(map.nodeData);
-  return ids;
-}
-
 // ───────────────────────── Plan and Build ─────────────────────────
 
 // Plan's deep link (modules/plan/deep-link.mjs makes the same; a test holds them together),
@@ -568,9 +548,8 @@ function mapIds(map) {
 const planLink = (id) => '/?module=plan&node=' + encodeURIComponent(id);
 const prdFilter = (search) => new URLSearchParams(search || '').get('prd') || '';
 
-root.GroundworkTickets = {
-  readTickets, mapIds, locateProject, ticketPath, keepsFolder, planLink, prdFilter,
+export {
+  readTickets, locateProject, ticketPath, keepsFolder, planLink, prdFilter,
   DONE, DROPPED, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH,
   fold, plainInline, isClosed, isDone, isDropped,
 };
-})(typeof window !== 'undefined' ? window : globalThis);

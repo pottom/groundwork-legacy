@@ -48,6 +48,8 @@ test('the view renders through lit-html templates, not hand-built HTML strings',
   const src = viewSource()
   assert.match(src, /from '\/vendor\/lit-html\/lit-html\.js'/)
   assert.match(src, /from '\/vendor\/lit-html\/directives\/unsafe-html\.js'/, "marked's HTML goes in through unsafeHTML")
+  assert.match(src, /new Marked\(MARKDOWN_OPTIONS\)/, 'marked renders with the safe options of markdown.mjs')
+  assert.doesNotMatch(src, /import \{ marked \}/, 'not the global marked with its defaults')
   assert.doesNotMatch(src, /\.innerHTML\s*=|insertAdjacentHTML/)
 })
 

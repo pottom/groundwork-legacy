@@ -125,7 +125,6 @@ function graph(layout, refsAt) {
 
 export function gitView() {
   const source = app.source;
-  if (!source || !source.server) return empty('branch', ui('git.no-server-title'), tx('git.no-server'));
   if (!source.git) return html`<div class="gw-callout gw-callout--warn"><div class="gw-callout__body">${ui('git.old-server')}</div></div>`;
   const g = app.git.data;
   if (!g) {

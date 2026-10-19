@@ -1,15 +1,29 @@
-// The shared design system in theme.css: the tokens and the .gw-* components every module uses,
-// documented at the top of the file (that comment is the contract the modules read), and status
-// text that stays readable (WCAG AA, 4.5:1) in light and in dark.
+// The shared design system: the tokens and the .gw-* components every module uses, documented at
+// the top of theme.css (that comment is the contract the modules read), and status text that stays
+// readable (WCAG AA, 4.5:1) in light and in dark. theme.css holds the tokens and imports the
+// components' files beside it; a module links theme.css only.
 // Run: node --test core/
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
-const CSS = fs.readFileSync(new URL('./theme.css', import.meta.url), 'utf8')
-const HEADER = CSS.slice(0, CSS.indexOf('*/'))
+const read = (f) => fs.readFileSync(new URL(f, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+const THEME = read('./theme.css')
+// The files theme.css imports from /shell/, in order.
+const PARTS = [...THEME.matchAll(/@import url\('\/shell\/([\w-]+\.css)'\)/g)].map((m) => m[1])
+const CSS = [THEME, ...PARTS.map((f) => read('./' + f))].join('\n')
+const HEADER = THEME.slice(0, THEME.indexOf('*/'))
 const RULES = CSS.slice(CSS.indexOf('*/'))
+
+test('the theme is split into files of about 400 lines at most, which theme.css imports', () => {
+  assert.ok(PARTS.length >= 2, `theme.css imports its components: ${PARTS}`)
+  for (const f of ['theme.css', ...PARTS]) {
+    const lines = read('./' + f).split('\n').length
+    assert.ok(lines <= 420, `${f}: ${lines} lines`)
+  }
+  for (const f of PARTS) assert.doesNotMatch(read('./' + f), /^\s*:root\s*\{/m, `${f}: the tokens stay in theme.css`)
+})
 
 // The --gw-* declarations of every block `opener` starts (the file may add tokens in later blocks), as { name: value }.
 function declarations(opener) {
@@ -97,7 +111,7 @@ test('text on the filled gradient is AA at both ends', () => {
   }
 })
 
-test('the existing variables keep their names and values (modules copy them as a fallback)', () => {
+test('the existing variables keep their names and values', () => {
   const before = { '--gw-ok': '#1f8a4c', '--gw-bad': '#c0392b', '--gw-warn': '#b45309', '--gw-accent': '#2f5bd3', '--gw-accent-2': '#8b5cf6', '--gw-text': '15px/1.5', '--gw-text-small': '13px/1.4', '--gw-radius': '10px' }
   for (const [k, v] of Object.entries(before)) assert.equal(LIGHT[k], v, k)
 })

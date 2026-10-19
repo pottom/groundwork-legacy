@@ -17,12 +17,11 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import './ticket-reader.js';
+import { ALWAYS_SKIP, SKIP_DIRS } from './ticket-reader.mjs';
 
-// Folders that are never listed: the ticket reader's (ticket-reader.js), the sets the page
+// Folders that are never listed: the ticket reader's (ticket-reader.mjs), the sets the page
 // walks by. The page decides what a listed file means; the server only keeps the heavy and the
 // private folders out of the list.
-const { ALWAYS_SKIP, SKIP_DIRS } = globalThis.GroundworkTickets;
 const MARKDOWN = /\.(md|markdown)$/i;
 const MAX_DEPTH = 12;
 

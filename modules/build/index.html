@@ -5,18 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title data-i18n="page.title">Development status</title>
 <link rel="icon" href="data:,">
-<!-- The Build module's dashboard: where the work stands, read from the project's Markdown tickets,
-     specs and ADRs, its GitHub issues and its git history. This page is only the skeleton the views
-     render into; the code is in page/ (ES modules, lit-html templates), the styles in build.css.
-     What it reads, how it opens without the server and its history: README.md beside this file. -->
+<!-- The Build module's dashboard: where the work stands, read through the core server from the
+     project's Markdown tickets, specs and ADRs, its GitHub issues and its git history. This page is
+     only the skeleton the views render into; the code is in page/ (ES modules, lit-html templates),
+     the styles in build.css. What it reads and its history: README.md beside this file. -->
 <link rel="stylesheet" href="/shell/theme.css">
-<script>
-// Inside the shell (an iframe of /) the shell's header shows the project, the live state and the
-// version. Opened by double click (file://) there is no /shell/: the theme comes from the package's
-// own copy beside this folder, and build.css repeats its tokens as a fallback.
-try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }
-if (location.protocol === 'file:') document.write('<link rel="stylesheet" href="../../core/shell/theme.css">');
-</script>
 <link rel="stylesheet" href="build.css">
 </head>
 <body>
@@ -40,17 +33,6 @@ if (location.protocol === 'file:') document.write('<link rel="stylesheet" href="
 
 <div class="gw-toasts" id="toasts" aria-live="polite"></div>
 
-<!-- First three classic scripts, shared with the server or with core/shell: the UI translation
-     (i18n.js, a copy of core/shell/i18n.mjs without "export"; do not edit it, change the original
-     and copy it), Build's strings (ui-strings.js) and the ticket reader (ticket-reader.js). Then the
-     page itself: from the server its ES modules (page/main.mjs); opened by double click (file://),
-     where the browser loads no ES module, the same modules as one classic script, page.bundle.js
-     (written by file-bundle.mjs). -->
-<script src="i18n.js"></script>
-<script src="ui-strings.js"></script>
-<script src="ticket-reader.js"></script>
-<script>
-document.write(location.protocol === 'file:' ? '<script src="page.bundle.js"><\/script>' : '<script type="module" src="page/main.mjs"><\/script>');
-</script>
+<script type="module" src="page/main.mjs"></script>
 </body>
 </html>
