@@ -76,8 +76,31 @@ export function toggleView() {
   return html`<button id="prd-toggle" type="button" title=${title} aria-label=${title} @click=${() => setView(next())}>${ICON.chevron}</button>`
 }
 
-// The toolbar's height, for what sits under it (the notice, the document in the document view).
+// The toolbar stays one row: when its controls do not fit the map's width (a longer language, the
+// map beside the document), the view buttons drop their labels first, then the mode button; the
+// titles still name them. data-compact on #toolbar: '' | 'views' | 'all'. Called after each render.
+const COMPACT = ['', 'views', 'all']
+function wraps(bar) {
+  const kids = [...bar.children].filter((k) => k.offsetHeight > 0)
+  if (kids.length < 2) return false
+  const row = Math.max(...kids.map((k) => k.offsetHeight))
+  const top = Math.min(...kids.map((k) => k.offsetTop))
+  return kids.some((k) => k.offsetTop >= top + row * 0.75)
+}
+export function fitToolbar() {
+  const bar = document.getElementById('toolbar')
+  if (!bar) return
+  for (const level of COMPACT) {
+    if (bar.dataset.compact !== level) bar.dataset.compact = level
+    if (!wraps(bar)) return
+  }
+}
+
+// The toolbar's height, for what sits under it (the notice, the document in the document view);
+// a change of its size (the fonts arriving) fits it again.
 export function observeToolbar() {
-  new ResizeObserver(([e]) => document.documentElement.style.setProperty('--toolbar-h', `${Math.ceil(e.borderBoxSize?.[0]?.blockSize ?? e.target.offsetHeight)}px`))
-    .observe(document.getElementById('toolbar'))
+  new ResizeObserver(([e]) => {
+    document.documentElement.style.setProperty('--toolbar-h', `${Math.ceil(e.borderBoxSize?.[0]?.blockSize ?? e.target.offsetHeight)}px`)
+    fitToolbar()
+  }).observe(document.getElementById('toolbar'))
 }

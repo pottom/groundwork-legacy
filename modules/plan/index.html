@@ -8,6 +8,16 @@
 <link rel="stylesheet" href="/vendor/mind-elixir/MindElixir.css">
 <link rel="stylesheet" href="./view/plan.css">
 <link rel="stylesheet" href="./view/map.css">
+<!-- every module the page imports, fetched side by side instead of one import level after another (a test keeps the list whole) -->
+<link rel="modulepreload" href="/vendor/mind-elixir/MindElixir.js"><link rel="modulepreload" href="/vendor/marked/marked.esm.js">
+<link rel="modulepreload" href="/vendor/lit-html/lit-html.js"><link rel="modulepreload" href="/vendor/lit-html/directive.js"><link rel="modulepreload" href="/vendor/lit-html/directive-helpers.js">
+<link rel="modulepreload" href="/vendor/lit-html/directives/live.js"><link rel="modulepreload" href="/vendor/lit-html/directives/repeat.js"><link rel="modulepreload" href="/vendor/lit-html/directives/unsafe-html.js">
+<link rel="modulepreload" href="/shell/i18n.mjs"><link rel="modulepreload" href="/shell/live.mjs">
+<link rel="modulepreload" href="./view/state.mjs"><link rel="modulepreload" href="./view/strings.mjs"><link rel="modulepreload" href="./view/icons.mjs"><link rel="modulepreload" href="./view/data.mjs">
+<link rel="modulepreload" href="./view/map.mjs"><link rel="modulepreload" href="./view/focus.mjs"><link rel="modulepreload" href="./view/chrome.mjs"><link rel="modulepreload" href="./view/toolbar.mjs">
+<link rel="modulepreload" href="./view/legend.mjs"><link rel="modulepreload" href="./view/dock.mjs"><link rel="modulepreload" href="./view/document.mjs"><link rel="modulepreload" href="./view/editor.mjs">
+<link rel="modulepreload" href="./node-types.mjs"><link rel="modulepreload" href="./documents.mjs"><link rel="modulepreload" href="./doc-strings.mjs"><link rel="modulepreload" href="./ui-strings.mjs">
+<link rel="modulepreload" href="./map-theme.mjs"><link rel="modulepreload" href="./deep-link.mjs"><link rel="modulepreload" href="./view-rules.mjs"><link rel="modulepreload" href="./markdown.mjs">
 </head>
 <body data-state="loading">
 <!-- Mind Elixir draws the map; view/*.mjs renders the rest with lit-html (view/main.mjs says which part is where) -->

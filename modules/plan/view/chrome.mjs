@@ -8,7 +8,7 @@ import { repeat } from '/vendor/lit-html/directives/repeat.js'
 import { state } from './state.mjs'
 import { ui } from './strings.mjs'
 import { ICON } from './icons.mjs'
-import { toolbarView, toggleView } from './toolbar.mjs'
+import { toolbarView, toggleView, fitToolbar } from './toolbar.mjs'
 import { dockView } from './dock.mjs'
 import { legendView } from './legend.mjs'
 
@@ -56,6 +56,7 @@ function emptyView() {
 export function update() {
   document.body.dataset.state = state.page
   render(html`${toolbarView()}${legendView()}${noticeView()}${toggleView()}${dockView()}`, $('chrome'))
+  fitToolbar()
   render(toastsView(), $('toasts'))
   $('empty').hidden = state.page !== 'empty'
   render(emptyView(), $('empty'))

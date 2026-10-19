@@ -22,6 +22,13 @@ export function safeHref(href) {
 // marked hands over the title and an image's text escaped already, a link's text rendered.
 const titleAttr = (title) => (title ? ` title="${title}"` : '')
 
+// The panel's two renderings, from the bundled Marked class: block(text) for a paragraph,
+// inline(text) for a one-line note in a checklist row (no <p> around it). Both HTML strings.
+export function createMarkdown(Marked) {
+  const marked = new Marked(MARKDOWN_OPTIONS)
+  return { block: (t) => marked.parse(t || ''), inline: (t) => marked.parseInline(t || '') }
+}
+
 export const MARKDOWN_OPTIONS = {
   breaks: false,
   renderer: {

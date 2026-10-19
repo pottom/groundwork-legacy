@@ -52,5 +52,5 @@ export const meter = (c) => (c.total
 export const flags = (t) => (t.blocked ? [' ', badge('bad', ui('flag.blocked'))] : isFree(t) ? [' ', badge('ok', ui('flag.free'), ui('flag.free-title'))] : nothing);
 
 // A grid table on a card.
-export const table = (head, rows) => html`<div class="gw-card tablewrap"><table class="grid"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+export const table = (head, rows, cls = '') => html`<div class="gw-card tablewrap"><table class=${'grid' + (cls ? ' ' + cls : '')}><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
 

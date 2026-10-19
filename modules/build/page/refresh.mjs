@@ -192,17 +192,21 @@ export async function refreshGit() {
 // How the page follows the project: the core server's live updates (subscribe from
 // /shell/live.mjs: the shell's one stream inside the shell, the page's own when opened alone) say
 // what changed, and the page reads that again; every (re)connect reads everything, so nothing
-// missed meanwhile is lost.
+// missed meanwhile is lost. The first hello is also the first read: the page listens before it
+// reads, so one round of requests starts it (the shell answers at once when its stream is up).
 let liveStop = null;
 
 function startLive() {
   stopLive();
   if (!app.source) return;
+  let heard = false;
   liveStop = subscribe({
-    onHello: () => refresh(),
+    onHello: () => { heard = true; refresh(); },
     onChange: (topics) => { const parts = partsOf(topics); if (parts.length) refresh(parts); },
     onState: (s) => {
       app.liveState = s;
+      // No live connection at all: read what there is once, so the page is not blank.
+      if (s === 'off' && !heard && !app.model) { heard = true; refresh(); }
       if (s === 'off' && !app.serverDown) { app.serverDown = true; renderNotices(); }
       renderLive();
     },
@@ -220,8 +224,7 @@ export async function start(src) {
     source: src, cache: new Map(), listing: null, model: null, changeLog: [], recent: new Map(),
     serverDown: false, git: NO_GIT(), issues: NO_ISSUES(), map: { key: '', ids: null }, startError: '',
   });
-  await refresh();
-  if (app.model) startLive();
+  startLive();
 }
 
 // Back to the start screen, with an error when there is one.

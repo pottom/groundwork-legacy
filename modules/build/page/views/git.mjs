@@ -76,8 +76,8 @@ function refPill(r, color, asButton) {
   const cls = `ref ${r.kind === 'tag' ? 'tag' : r.kind === 'remote' ? 'remote lane' + color : 'lane' + color}${r.head ? ' head' : ''}`;
   const title = ui(r.kind === 'tag' ? 'git.tag' : r.kind === 'remote' ? 'git.remote' : r.head ? 'git.head' : 'git.local');
   return asButton
-    ? html`<button type="button" class=${cls} title=${ui('git.jump', { what: title })} @click=${() => actions.gitJump(r.hash)}>${r.name}</button>`
-    : html`<span class=${cls} title=${title}>${r.name}</span>`;
+    ? html`<button type="button" class=${cls} title=${r.name + ' · ' + ui('git.jump', { what: title })} @click=${() => actions.gitJump(r.hash)}><span class="ref__name">${r.name}</span></button>`
+    : html`<span class=${cls} title=${title}><span class="ref__name">${r.name}</span></span>`;
 }
 
 function branchState(r, g) {
@@ -147,7 +147,8 @@ export function gitView() {
   const merges = g.commits.filter((c) => c.parents.length > 1).length;
   const branchTable = table(
     html`<th>${ui('git.branch')}</th><th>${ui('git.relation', { base: g.base ? g.base : ui('git.base-branch') })}</th><th class="c-last">${ui('git.last-commit')}</th>`,
-    branches.map((r) => html`<tr><td class="c-branch">${refPill(r, color.get(r.hash) ?? 7, true)}${r.worktree && !r.head ? [' ', badge('violet', ui('git.worktree'), ui('git.worktree-title'))] : nothing}${r.upstream ? html`<span class="muted">→ ${r.upstream}</span>` : nothing}</td><td>${branchState(r, g)}</td><td class="c-last" title=${fullTime(r.date)}>${relTime(r.date)}</td></tr>`),
+    branches.map((r) => html`<tr><td class="c-branch">${refPill(r, color.get(r.hash) ?? 7, true)}${r.worktree && !r.head ? [' ', badge('violet', ui('git.worktree'), ui('git.worktree-title'))] : nothing}${r.upstream ? html`<span class="muted up" title=${r.upstream}>→ ${r.upstream}</span>` : nothing}</td><td class="c-rel">${branchState(r, g)}</td><td class="c-last" title=${fullTime(r.date)}>${relTime(r.date)}</td></tr>`),
+    'branches',
   );
   const shown = g.commits.length;
   const tags = g.refs.filter((r) => r.kind === 'tag').length;

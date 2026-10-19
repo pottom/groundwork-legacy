@@ -278,6 +278,17 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap;
   #start .gw-card__body { padding: 22px 20px; }
   .graph .row .who { display: none; }
   .graph .rows { min-width: 0; }
+  /* The branches as stacked cards: the name on its own line (cut with an ellipsis, the full name in
+     its title), then how it stands to the base and its last commit. */
+  table.grid.branches thead { display: none; }
+  table.grid.branches tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; padding: 10px 12px; border-bottom: 1px solid var(--gw-line); }
+  table.grid.branches tr:last-child { border-bottom: 0; }
+  table.grid.branches td { display: block; padding: 0; border: 0; min-width: 0; }
+  table.grid.branches td.c-branch { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+  table.grid.branches td.c-branch .ref { max-width: 100%; min-width: 0; }
+  table.grid.branches td.c-branch .ref__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  table.grid.branches td.c-branch .up { flex: 1 0 100%; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  table.grid.branches td.c-last { display: block; text-align: right; align-self: center; }
 }
 @media (max-width: 760px) {
   .nav { position: static; }
@@ -307,7 +318,4 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap;
   dl.meta dd { margin-bottom: 8px; }
   .graph .row .h, .graph .row .when { display: none; }
   .brand small { display: none; }
-  td.c-branch { white-space: normal; }
-  td.c-branch .ref { white-space: normal; overflow-wrap: anywhere; }
-  td.c-branch .muted { display: block; margin: 4px 0 0; }
 }

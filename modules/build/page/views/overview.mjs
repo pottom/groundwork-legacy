@@ -4,7 +4,7 @@
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js';
 import { live } from '/vendor/lit-html/directives/live.js';
-import { reader, GROUPS } from '../config.mjs';
+import { reader } from '../config.mjs';
 import { ui, tx, clock } from '../text.mjs';
 import { app, actions, docHref } from '../state.mjs';
 import { icon, pct } from '../parts.mjs';
@@ -42,19 +42,16 @@ function changes() {
 export function overviewView() {
   const m = app.model;
   const total = m.tickets.length, open = m.open.length, done = total - open;
-  const inGroup = (id) => m.open.filter((t) => GROUPS.find((g) => g.id === id).has(t.status));
-  const agentAll = inGroup('agent');
-  const agentFree = agentAll.filter((t) => !t.blocked).length;
-  const human = inGroup('human').length;
-  const blocked = m.open.filter((t) => t.blocked).length;
+  // The same buckets as the "Waiting on" view's sections (reader.waitingOn): each open ticket once.
+  const { agent, human, blocked } = m.waiting;
   const none = ui('kpi.none');
   const p = pct(done, total);
   const label = ui('live.refresh');
   const foot = html`<div class="summary__foot"><span class="gw-progress" style="--value:${p}%" role="img" aria-label=${ui('overview.bar-label', { open, done })}></span><span class="summary__pct">${total ? ui('overview.done', { p }) : '–'}<span>${ui('overview.closed', { done, total })}</span></span><button type="button" class="gw-btn gw-btn--icon gw-btn--sm" title=${label} aria-label=${label} @click=${actions.readAgain}>${icon('refresh')}</button></div>`;
   return html`<section class="gw-card summary" aria-label=${ui('overview.label')}><div class="stats">
 ${stat('neutral', open, ui('kpi.open'), ui('kpi.open-sub', { total }))}
-${stat('accent', agentFree, ui('kpi.agent'), agentAll.length > agentFree ? ui('kpi.agent-sub-blocked', { n: agentAll.length - agentFree }) : agentFree ? ui('kpi.agent-sub') : '', false, agentFree ? 'group-agent' : '')}
+${stat('accent', agent, ui('kpi.agent'), agent ? ui('kpi.agent-sub') : '', false, agent ? 'group-agent' : '')}
 ${stat('warn', human, ui('kpi.human'), human ? ui('kpi.human-sub') : none, !human, human ? 'group-human' : '')}
-${stat('bad', blocked, ui('kpi.blocked'), blocked ? ui('kpi.blocked-sub') : none, !blocked)}
+${stat('bad', blocked, ui('kpi.blocked'), blocked ? ui('kpi.blocked-sub') : none, !blocked, blocked ? 'group-blocked' : '')}
 </div>${total ? foot : nothing}</section>${app.changeLog.length ? changes() : nothing}`;
 }
