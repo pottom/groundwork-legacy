@@ -34,6 +34,7 @@ export const app = {
   issues: NO_ISSUES(), // the GitHub issues the server sent: the source of the GitHub tickets
   map: { key: '', ids: null },   // the ids of Plan's map
   sketches: { key: '', linked: null, byTicket: new Map() },   // the sketches linking to tickets, from Sketch
+  agents: { key: '', linked: null, byTicket: new Map() },     // the agents working on tickets, from Agents
   openDetails: new Set(),        // the <details> the user opened (areas, the change log)
   lastOpener: null,              // the document whose link opened the drawer, to focus it again
   startError: '',

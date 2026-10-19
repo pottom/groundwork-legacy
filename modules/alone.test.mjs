@@ -15,6 +15,7 @@ import plan from './plan/module.mjs'
 import build, { buildModule } from './build/module.mjs'
 import ideas from './ideas/module.mjs'
 import sketch from './sketch/module.mjs'
+import agents from './agents/module.mjs'
 
 // A project with a map and a ticket that names an item.
 function project() {
@@ -63,6 +64,8 @@ test('with only Build, its page and endpoints work, and Plan\'s endpoint is simp
     const ids = await get('/api/plan/ids')
     assert.equal(ids.status, 404, 'Build reads a non-ok answer as "no map": no PRD id counts as unknown')
     assert.equal((await get('/plan/')).status, 404)
+    const working = await get('/api/agents/tickets')
+    assert.equal(working.status, 404, 'Build reads a non-ok answer as "no agent on any ticket"')
   })
 })
 
@@ -87,6 +90,16 @@ test('with only Sketch, its page and endpoints work; the modules it links to are
     assert.equal((await get('/api/sketch/links')).status, 200)
     assert.equal((await get('/api/sketch/scene?name=main')).status, 200)
     for (const p of ['/api/ideas/list', '/api/plan/ids', '/api/build/prd']) assert.equal((await get(p)).status, 404, p)
+  })
+})
+
+test('with only Agents, its page and list work, and it needs no other module', async () => {
+  await withServer([agents], async (get) => {
+    assert.deepEqual(tabs(await (await get('/')).text()), ['agents'])
+    assert.match(await (await get('/agents/')).text(), /<html/i)
+    assert.deepEqual(await (await get('/api/agents/list')).json(), { sessions: [] })
+    assert.deepEqual(await (await get('/api/agents/tickets')).json(), { tickets: {} })
+    for (const p of ['/api/ideas/list', '/api/plan/ids', '/api/build/prd', '/api/sketch/links']) assert.equal((await get(p)).status, 404, p)
   })
 })
 

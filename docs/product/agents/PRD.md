@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
-> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 0 kész, 0 részben, 7 hiányzik.
+> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 7 kész, 0 részben, 0 hiányzik.
 
 ## 1. Probléma és cél
 
@@ -26,13 +26,13 @@ A modul listázza a futó és a befejezett agenteket a jegyükkel, a branchükke
 
 Külön nézet mutatja a worktree-ket és brancheket: mennyivel járnak előrébb vagy maradtak le az integrációs ághoz képest, össze vannak-e már fésülve, és eltakaríthatók-e. A figyelmet kérő agentek (engedélyre vár, elakadt, hibával állt le) kiemelve jelennek meg.
 
-- Futó és befejezett agentek: jegy, branch, állapot, időtartam `hiányzik`
-- Idővonal agentenként: fájlok, tesztek, commitok, fő lépések `hiányzik`
-- A záró jelentés megjelenítése `hiányzik`
-- Agent ↔ jegy ↔ branch; a Build jegyein látszik a dolgozó agent `hiányzik`
-- Worktree-k és branchek: előnyben, lemaradva, összefésülve, takarítható `hiányzik`
-- Figyelmet kérő agent kiemelése: engedélyre vár, elakadt, hibázott `hiányzik`
-- Élő frissítés `hiányzik`
+- Futó és befejezett agentek: jegy, branch, állapot, időtartam `kész` — Munkamenetek és subagentjeik állapottal (fut, kész, hibával állt le), indulással, időtartammal, jeggyel és branchcsel. ([modules/agents/view/list.mjs](../../../modules/agents/view/list.mjs))
+- Idővonal agentenként: fájlok, tesztek, commitok, fő lépések `kész` — Egy agentet (vagy munkamenetet) megnyitva az eszközhívásai lépésekbe csoportosítva, időponttal látszanak: olvasott fájlok, módosított fájlok, parancsok, egyéb eszközök. A tesztfuttatás (sikeres, sikertelen vagy ismeretlen kimenetellel) és a commit (a hash-ével) külön, kiemelt lépés, a használt skill és az indított subagent is. A hook a tesztet egy ellenőrzött parancslistából ismeri fel (npm test, node --test, vitest, pytest ...), a kimenetelt a hívás hibájából vagy a kimenet pass/fail számaiból veszi, és csak a szót tárolja. ([modules/agents/timeline.mjs](../../../modules/agents/timeline.mjs))
+- A záró jelentés megjelenítése `kész` — A subagent leállása után a záró jelentése az idővonal alatt Markdownként jelenik meg; futás közben jelzi, hogy a leálláskor érkezik. A nyers HTML szövegként látszik, link csak http(s), mailto vagy relatív címre mutat, kép nem töltődik be. ([modules/agents/view/detail.mjs](../../../modules/agents/view/detail.mjs))
+- Agent ↔ jegy ↔ branch; a Build jegyein látszik a dolgozó agent `kész` — Minden munkamenet és agent mutatja a branchét és a jegyét; a jegy a Buildben nyílik meg, a branch a worktree-k listájában a saját sorára visz. A Build jegyein (táblázat és fiók) „Dolgoznak rajta” jelvény jelenik meg agentenként, élőben (agents.events), amely az Agents modulban az agent idővonalát nyitja meg (/?module=agents&agent=<session>/<agent>, az oldal #agent= címe). ([modules/agents/agent-tickets.mjs](../../../modules/agents/agent-tickets.mjs))
+- Worktree-k és branchek: előnyben, lemaradva, összefésülve, takarítható `kész` — Minden worktree és helyi branch: előnyben/lemaradva az integrációs ághoz képest, összefésülve, nem commitolt változások, zárolt (futó agent), és ha ismert, a benne dolgozó agent és a jegy. A worktree-ben lévő branch mindig látszik (a 100-as korlát csak a többire vonatkozik). Egy frissen leágaztatott branch, amelynek még nincs saját commitja, nem számít összefésültnek és nem takarítható. Az eltakarítható (összefésült, tiszta, nem zárolt) worktree-hez és branchhez a git worktree remove / git branch -d parancs másolható; a modul semmit nem futtat. Élő: a refek változása az agents.git téma. ([modules/agents/view/worktrees.mjs](../../../modules/agents/view/worktrees.mjs))
+- Figyelmet kérő agent kiemelése: engedélyre vár, elakadt, hibázott `kész` — Kiemelve, az okkal: engedélyre vár (permission_prompt vagy elicitation Notification, az agent vagy a munkamenet következő eseményéig), elakadt (fut, de 10 perce nincs eseménye; a futó agentű munkamenet nem, azt az agent viseli), hibával állt le. 12 óránál régebbi nem számít. Az oldal a másodperces órájával ítél, így az elakadás új esemény nélkül is látszik. A héjban az Agents fülén szám, és minden új esetre egyszer toast jelenik meg (core/shell/attention.mjs). ([modules/agents/attention.mjs](../../../modules/agents/attention.mjs))
+- Élő frissítés `kész` ([modules/agents/view/main.mjs](../../../modules/agents/view/main.mjs))
 
 ## 4. Funkcionális követelmények
 

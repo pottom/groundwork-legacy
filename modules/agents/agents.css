@@ -1,0 +1,56 @@
+/* The Agents page: the sessions as cards, their agents as rows. Built from the shell's tokens and
+   .gw-* components (/shell/theme.css); only the layout is its own. */
+
+body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-text) var(--gw-font); }
+#agents { max-width: 1100px; margin: 0 auto; padding: calc(var(--gw-space) * 3); display: grid; gap: calc(var(--gw-space) * 2); }
+.agents-session__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); }
+.agents-session__title { margin: 0; font: var(--gw-title) var(--gw-font); }
+.agents-cwd { max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agents-times { margin-left: auto; display: flex; gap: calc(var(--gw-space) * 2); color: var(--gw-fg-2); font: var(--gw-text-small) var(--gw-font); font-variant-numeric: tabular-nums; }
+.agents-agents { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gw-space); }
+.agents-agent { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); padding: var(--gw-space) 0; border-top: 1px solid var(--gw-line); }
+.agents-agent:first-child { border-top: 0; }
+.agents-name { font-weight: 550; }
+/* the session or agent a link opened (Build's "being worked on"): the one current marker */
+/* (and the branch row an agent's branch links to) */
+.agents-session[data-focus], .agents-agent[data-focus], .agents-wt[data-focus] { position: relative; }
+.agents-session[data-focus]::before, .agents-agent[data-focus]::before, .agents-wt[data-focus]::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--gw-gradient); border-radius: var(--gw-radius-sm); }
+.agents-agent[data-focus], .agents-wt[data-focus] { padding-left: calc(var(--gw-space) * 1.5); }
+/* one that needs attention (waiting, stalled, failed): a warn edge, its reason as a badge */
+.agents-session[data-attention] { border-color: color-mix(in srgb, var(--gw-warn) 45%, var(--gw-line)); }
+.agents-agent[data-attention] { background: var(--gw-warn-soft); box-shadow: inset 3px 0 0 var(--gw-warn); padding-left: calc(var(--gw-space) * 1.5); border-radius: var(--gw-radius-sm); }
+.agents-none { margin: 0; color: var(--gw-muted); font: var(--gw-text-small) var(--gw-font); }
+.agents-open { margin-left: 0; }
+
+/* An open agent: its timeline, then its final report. Test runs and commits stand out. */
+.agents-detail { flex-basis: 100%; display: grid; gap: calc(var(--gw-space) * 2); padding: var(--gw-space) 0 calc(var(--gw-space) * 2); }
+.agents-detail__title { margin: 0 0 var(--gw-space); font: var(--gw-text-small) var(--gw-font); font-weight: 600; color: var(--gw-fg-2); }
+.agents-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.agents-step { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); padding: calc(var(--gw-space) / 2) var(--gw-space); border-left: 3px solid var(--gw-line); font: var(--gw-text-small) var(--gw-font); }
+.agents-step__time { color: var(--gw-muted); font-variant-numeric: tabular-nums; min-width: 8ch; }
+.agents-step__label { font-weight: 550; }
+.agents-step__what { display: flex; flex-wrap: wrap; gap: calc(var(--gw-space) / 2); min-width: 0; }
+.agents-step__count, .agents-more { color: var(--gw-muted); }
+.agents-step[data-kind="test"], .agents-step[data-kind="commit"] { border-left-color: var(--gw-accent); background: var(--gw-sunken); }
+.agents-step[data-outcome="failed"] { border-left-color: var(--gw-bad); }
+.agents-step[data-outcome="passed"] { border-left-color: var(--gw-ok); }
+.agents-hash { font-family: var(--gw-font-mono); }
+.agents-report__body { max-width: 75ch; overflow-wrap: anywhere; }
+.agents-report__body > :first-child { margin-top: 0; }
+.agents-report__body pre { overflow-x: auto; }
+.agents-report__body table { border-collapse: collapse; }
+.agents-report__body th, .agents-report__body td { padding: calc(var(--gw-space) / 2) var(--gw-space); border: 1px solid var(--gw-line); text-align: left; }
+@media (max-width: 640px) { .agents-times { margin-left: 0; width: 100%; } }
+
+/* The worktrees and branches (view/worktrees.mjs): one row each in a card. */
+.agents-worktrees { display: grid; gap: var(--gw-space); }
+.agents-wts { list-style: none; margin: 0; padding: 0 calc(var(--gw-space) * 2); }
+.agents-wt { display: grid; gap: var(--gw-space); padding: calc(var(--gw-space) * 1.5) 0; border-top: 1px solid var(--gw-line); }
+.agents-wt:first-child { border-top: 0; }
+.agents-wt__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); }
+.agents-wt__branch { font-weight: 550; max-width: 42ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agents-wt__counts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); color: var(--gw-fg-2); font: var(--gw-text-small) var(--gw-font); font-variant-numeric: tabular-nums; }
+.agents-wt__who { margin-left: auto; display: inline-flex; align-items: center; gap: var(--gw-space); font: var(--gw-text-small) var(--gw-font); }
+.agents-wt__clean { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); }
+.agents-wt__commands { flex: 1 1 24rem; min-width: 0; margin: 0; padding: var(--gw-space) calc(var(--gw-space) * 1.5); overflow-x: auto; background: var(--gw-sunken); border-radius: var(--gw-radius-sm); font: var(--gw-text-small) var(--gw-font-mono); }
+@media (max-width: 640px) { .agents-wt__who { margin-left: 0; width: 100%; } }

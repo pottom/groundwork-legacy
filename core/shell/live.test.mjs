@@ -75,6 +75,16 @@ test('the shell opens one stream and tells the frame about hello and changes', a
   assert.ok(frame.posted.every((p) => p.targetOrigin === ORIGIN), 'posts only to its own origin')
 })
 
+test('the shell itself hears hello and changes too (its tabs\' attention counts)', () => {
+  const { shell } = shellWithFrame()
+  const es = fakeEventSourceClass()
+  const got = []
+  relayEvents({ win: shell, EventSource: es.FakeEventSource, onHello: () => got.push('hello'), onChange: (topics) => got.push(topics) })
+  es.opened[0].emit('hello', '{}')
+  es.opened[0].emit('change', JSON.stringify({ topics: ['agents.events'] }))
+  assert.deepEqual(got, ['hello', ['agents.events']])
+})
+
 test('a frame that loads after the stream is up still gets a hello at once', async () => {
   const { shell, frame } = shellWithFrame()
   const es = fakeEventSourceClass()
