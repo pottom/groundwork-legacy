@@ -190,6 +190,10 @@ const BUILD_STRINGS = {
     'problem.mismatch.text': 'The file name\'s number is {file}, the Issue line\'s is #{field}.',
     'problem.no-number': 'Ticket without a number',
     'problem.no-number.text': 'There is no number in the file name or in the heading.',
+    'problem.no-prd': 'Ticket without a PRD reference',
+    'problem.no-prd.text': 'There is no "**PRD:**" line naming the map items it came from.',
+    'problem.unknown-prd': 'Ticket pointing to an id that is not on the map',
+    'problem.unknown-prd.text': 'Not on the PRD map: {list}.',
 
     'docs.empty': 'No such document.',
     'docs.own': 'The project\'s description and glossary',
@@ -456,6 +460,10 @@ const BUILD_STRINGS = {
     'problem.mismatch.text': 'A fájlnév száma {file}, az Issue soré #{field}.',
     'problem.no-number': 'Jegy szám nélkül',
     'problem.no-number.text': 'Sem a fájlnévben, sem a címsorban nincs szám.',
+    'problem.no-prd': 'Jegy PRD-hivatkozás nélkül',
+    'problem.no-prd.text': 'Nincs "**PRD:**" sora, amely megnevezné, mely térképelemekből készült.',
+    'problem.unknown-prd': 'Jegy, amely a térképen nem szereplő azonosítóra mutat',
+    'problem.unknown-prd.text': 'Nincs a PRD-térképen: {list}.',
 
     'docs.empty': 'Nincs ilyen dokumentum.',
     'docs.own': 'A projekt leírása és szószedete',

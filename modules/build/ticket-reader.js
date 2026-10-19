@@ -14,6 +14,12 @@
 //           [{ number, repo }] | null (GitHub's own dependency links; null when unknown),
 //           createdAt, closedAt, updatedAt, url }
 //
+// and, when the page could read Plan's map, mapIds: the ids of its nodes (mapIds(map) makes
+// them from the map's JSON). PRD references are checked against it: an id not among them is an
+// "unknown-prd" problem; without mapIds no id is unknown. An open ticket without a PRD line is
+// a "no-prd" problem once the project links tickets to a PRD (it has a map, or a ticket names
+// an id).
+//
 // The model (what every view draws):
 //
 //   tickets      [{ kind: 'ticket', source: 'file' | 'github', path, area, label, title, status,
@@ -364,14 +370,20 @@ function readTickets(source) {
   for (const t of m.tickets) for (const c of t.comments) m.comments.push({ ...c, ticket: t });
   m.comments.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0) || b.order - a.order);
 
-  findProblems(m);
+  findProblems(m, source.mapIds == null ? null : new Set(source.mapIds));
   return m;
 }
 
 // Each problem names the UI string that tells it (key, with its params): the page translates.
-function findProblems(m) {
+function findProblems(m, mapIds) {
   const add = (kind, tickets, key, params) => m.problems.push({ kind, tickets, key, params: params || {} });
+  // PRD references: every open ticket needs one once the project links tickets to a PRD (it
+  // has a map, or a ticket names one); an id is unknown only when the map could be read.
+  const linksPrd = !!mapIds || m.byPrd.size > 0;
   for (const t of m.tickets) {
+    const unknown = mapIds ? t.prd.filter((id) => !mapIds.has(id)) : [];
+    if (unknown.length) add('unknown-prd', [t], 'problem.unknown-prd.text', { list: unknown.join(', ') });
+    if (linksPrd && !t.prd.length && !isClosed(t)) add('no-prd', [t], 'problem.no-prd.text');
     if (!t.statusLine) add('no-status', [t], 'problem.no-status.text');
     else if (t.status === UNPARSED) {
       if (t.statusNote) add('bad-status', [t], 'problem.bad-status.text', { line: t.statusNote });
@@ -439,5 +451,20 @@ function parseIssue(issue, repo) {
   return t;
 }
 
-root.GroundworkTickets = { readTickets, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, fold, plainInline, isClosed };
+// ───────────────────────── The PRD map ─────────────────────────
+
+// The ids of every node of Plan's map (docs/product/mindmap.json, or the data of GET
+// /api/plan/map): the source's mapIds. null when the map is not one (missing, an error answer).
+function mapIds(map) {
+  if (!map || !map.nodeData || typeof map.nodeData !== 'object') return null;
+  const ids = [];
+  const walk = (node) => {
+    if (node.id != null) ids.push(String(node.id));
+    for (const c of node.children || []) walk(c);
+  };
+  walk(map.nodeData);
+  return ids;
+}
+
+root.GroundworkTickets = { readTickets, mapIds, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, fold, plainInline, isClosed };
 })(typeof window !== 'undefined' ? window : globalThis);

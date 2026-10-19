@@ -14,6 +14,8 @@ On the core server it also reads the project's **GitHub issues** as tickets, whe
 
 A ticket may name the PRD items (the ids of Plan's map nodes) it came from, on a line of its own near the top: `**PRD:** f-build-trace, d-trace`. Build shows these ids on the ticket and in its details; on the server each one is a link that opens Plan with that item focused and highlighted (`/?module=plan&node=<id>`). The ticket reader keeps them as `ticket.prd` and lists the tickets per id in `model.byPrd`.
 
+The Checks view lists an open ticket without a PRD line, and a ticket naming an id that is not on the map. The map's ids come from Plan (`GET /api/plan/map`) on the server, or from `docs/product/mindmap.json` in a picked folder. Without a map no id counts as unknown, and a missing PRD line counts only once some ticket has one. Claude adds the line after `to-tickets` (see the groundwork-prd-maker skill).
+
 It shows the following views:
 
 - tickets and areas;
