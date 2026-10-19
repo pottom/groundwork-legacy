@@ -58,6 +58,18 @@ test('a failed save is tried again with the next change', async () => {
   assert.deepEqual(saves, ['a@1', 'a@1'])
 })
 
+test('the sketch read again from disk is the new baseline: the same drawing in another order is not saved back, a newer edit is', async () => {
+  const { saver, saves, settle } = setup()
+  saver.loaded([el('a', 1)], {})
+  saver.loaded([el('a', 1), el('c', 1)], {})     // Claude drew c: the file changed, the page read it
+  saver.change([el('c', 1), el('a', 1)], {}, {})
+  await settle()
+  assert.deepEqual(saves, [])
+  saver.change([el('c', 1), el('a', 2)], {}, {})
+  await settle()
+  assert.deepEqual(saves, ['c@1,a@2'])
+})
+
 test('a new embedded image is a change of the drawing', async () => {
   const { saver, saves, settle } = setup()
   saver.loaded([el('a', 1)], {})
