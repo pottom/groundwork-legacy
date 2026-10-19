@@ -58,7 +58,7 @@ test('every key the page uses has a text, and every text is used', () => {
   const used = new Set()
   // (a file name such as "ticket-reader.mjs" is no key)
   // (nor is a live topic of another module, such as 'sketch.links' in refresh.mjs)
-  const topics = new Set(['sketch.links'])
+  const topics = new Set(['sketch.links', 'agents.events'])
   for (const m of rest.matchAll(/['"`]([a-z][\w-]*)\.([\w.-]*[\w-])['"`]/g)) if (spaces.has(m[1]) && !/\.(m?js|css)$/.test(m[2]) && !topics.has(`${m[1]}.${m[2]}`)) used.add(`${m[1]}.${m[2]}`)
   assert.ok(used.size > 100, `${used.size} keys`)
   for (const k of used) assert.ok(k in en, `no text for ${k}`)

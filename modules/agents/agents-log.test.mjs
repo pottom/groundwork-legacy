@@ -18,7 +18,7 @@ test('a session with a subagent: both listed, the agent labelled by its Agent ca
   const running = readAgents(log(...start))
   assert.deepEqual(running.sessions, [{
     id: 's-1', cwd: '/p', state: 'running', start: T(0), end: null,
-    agents: [{ id: 'a-1', type: 'general-purpose', description: 'Implement #35', state: 'running', start: T(2), end: null }],
+    agents: [{ id: 'a-1', type: 'general-purpose', description: 'Implement #35', state: 'running', start: T(2), end: null, cwd: '/p' }],
   }])
   const done = readAgents(log(...start,
     { at: T(9), event: 'SubagentStop', agent: 'a-1', agentType: 'general-purpose' },
@@ -26,7 +26,7 @@ test('a session with a subagent: both listed, the agent labelled by its Agent ca
     { at: T(12), event: 'Stop' }))
   assert.equal(done.sessions[0].state, 'done')
   assert.equal(done.sessions[0].end, T(12))
-  assert.deepEqual(done.sessions[0].agents[0], { id: 'a-1', type: 'general-purpose', description: 'Implement #35', state: 'done', start: T(2), end: T(9) })
+  assert.deepEqual(done.sessions[0].agents[0], { id: 'a-1', type: 'general-purpose', description: 'Implement #35', state: 'done', start: T(2), end: T(9), cwd: '/p' })
 })
 
 test('a session that goes on after a Stop is running again', () => {
@@ -64,5 +64,5 @@ test('newest session first; an agent whose start was rotated away is still liste
     + log({ at: T(5), event: 'PostToolUse', session: 'new', agent: 'a-9', agentType: 'Explore', tool: 'Read' })
   const { sessions } = readAgents(text)
   assert.deepEqual(sessions.map((s) => s.id), ['new', 'old'])
-  assert.deepEqual(sessions[0].agents, [{ id: 'a-9', type: 'Explore', description: null, state: 'running', start: T(5), end: null }])
+  assert.deepEqual(sessions[0].agents, [{ id: 'a-9', type: 'Explore', description: null, state: 'running', start: T(5), end: null, cwd: '/p' }])
 })

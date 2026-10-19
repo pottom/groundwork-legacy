@@ -1814,9 +1814,9 @@
                     "topic": "Futó és befejezett agentek: jegy, branch, állapot, időtartam",
                     "metadata": {
                       "status": "decision",
-                      "impl": "partial"
+                      "impl": "done"
                     },
-                    "note": "Megvan: munkamenetek és subagentjeik állapottal (fut, kész, hibával állt le), indulással és időtartammal. Hiányzik: jegy és branch.",
+                    "note": "Munkamenetek és subagentjeik állapottal (fut, kész, hibával állt le), indulással, időtartammal, jeggyel és branchcsel.",
                     "hyperLink": "modules/agents/view/list.mjs"
                   },
                   {
@@ -1840,8 +1840,10 @@
                     "topic": "Agent ↔ jegy ↔ branch; a Build jegyein látszik a dolgozó agent",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "note": "Minden munkamenet és agent mutatja a branchét és a jegyét; a jegy a Buildben nyílik meg. A Build jegyein (táblázat és fiók) „Dolgoznak rajta” jelvény jelenik meg agentenként, élőben (agents.events), amely az Agents modulban nyitja meg az agentet (/?module=agents&agent=<id>).",
+                    "hyperLink": "modules/agents/agent-tickets.mjs"
                   },
                   {
                     "id": "f-agents-worktrees",
@@ -2030,15 +2032,18 @@
                     "topic": "A jegyszám az agent feladatából, a branch nevéből vagy a commit-üzenetből jön",
                     "metadata": {
                       "status": "decision"
-                    }
+                    },
+                    "note": "Sorrendben: a feladat (az Agent-hívás leírása: #37, issue 37, ticket 37), a branch neve (egy rész elején álló szám, pl. 37-links, vagy issue-37 / gh-37; tetszőleges szám nem, így a milestone-7-agents nem jegy), végül a branch saját commitjai az agent futása alatt. A branch annak a git worktree-nek a branche, amelyben az agent legutóbbi eseményének cwd-je van. A fő checkout branchének commitjait nem olvassuk (ott minden agent osztozik rajta); a branch saját commitjai azok, amelyek nincsenek a fő checkout branchén. Csak GitHub-stílusú (#N) hivatkozás. A git-et a szerver futtatja, csak olvasva; a hook soha.",
+                    "hyperLink": "modules/agents/agent-tickets.mjs"
                   },
                   {
                     "id": "d-agents-build-endpoint",
                     "topic": "A Build egy kis nyilvános végponton kérdezi, ki dolgozik egy jegyen",
-                    "note": "A d-module-endpoints szerint; Agents nélkül a Build ugyanúgy működik.",
+                    "note": "GET /api/agents/tickets (public): { tickets: { '#37': [{ id, session, label, branch, start }] } }, csak a futó agentek és munkamenetek jegyenként. A d-module-endpoints szerint; Agents nélkül 404, és a Build nem mutat jelvényt (tesztelve: modules/alone.test.mjs).",
                     "metadata": {
                       "status": "decision"
-                    }
+                    },
+                    "hyperLink": "modules/agents/module.mjs"
                   }
                 ]
               },

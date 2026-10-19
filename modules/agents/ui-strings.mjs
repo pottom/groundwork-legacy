@@ -16,6 +16,10 @@ export const UI_STRINGS = {
     'empty.title': 'No agent activity yet',
     'empty.text': 'Run groundwork init in this project and restart Claude Code: its sessions and subagents show here as they run.',
     'error': 'Could not read the agents',
+    'ticket.from.task': 'Ticket {ticket}, named in its task. Open it in Build',
+    'ticket.from.branch': 'Ticket {ticket}, from its branch name. Open it in Build',
+    'ticket.from.commit': 'Ticket {ticket}, named in its commits. Open it in Build',
+    'branch': 'Branch {branch}',
   },
   hu: {
     'title': 'Agentek',
@@ -31,5 +35,9 @@ export const UI_STRINGS = {
     'empty.title': 'Még nincs agent-tevékenység',
     'empty.text': 'Futtasd a groundwork init parancsot ebben a projektben, és indítsd újra a Claude Code-ot: a munkamenetei és subagentjei futás közben itt jelennek meg.',
     'error': 'Nem sikerült beolvasni az agenteket',
+    'ticket.from.task': 'A(z) {ticket} jegy, a feladata nevezi meg. Megnyitás a Buildben',
+    'ticket.from.branch': 'A(z) {ticket} jegy, a branch nevéből. Megnyitás a Buildben',
+    'ticket.from.commit': 'A(z) {ticket} jegy, a commitjai nevezik meg. Megnyitás a Buildben',
+    'branch': '{branch} branch',
   },
 }

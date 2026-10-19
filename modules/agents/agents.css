@@ -11,5 +11,9 @@ body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-
 .agents-agent { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); padding: var(--gw-space) 0; border-top: 1px solid var(--gw-line); }
 .agents-agent:first-child { border-top: 0; }
 .agents-name { font-weight: 550; }
+/* the session or agent a link opened (Build's "being worked on"): the one current marker */
+.agents-session[data-focus], .agents-agent[data-focus] { position: relative; }
+.agents-session[data-focus]::before, .agents-agent[data-focus]::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--gw-gradient); border-radius: var(--gw-radius-sm); }
+.agents-agent[data-focus] { padding-left: calc(var(--gw-space) * 1.5); }
 .agents-none { margin: 0; color: var(--gw-muted); font: var(--gw-text-small) var(--gw-font); }
 @media (max-width: 640px) { .agents-times { margin-left: 0; width: 100%; } }
