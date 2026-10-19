@@ -1,37 +1,27 @@
 #!/usr/bin/env node
-// Starts the Groundwork core server for a project, with every module behind it.
+// The command: `npx @pottom/groundwork` (this file is the package's bin), or `node core/groundwork.mjs`.
+// It checks the Node.js version, then runs the command (commands.mjs): by default it starts the
+// core server (start.mjs) for a project.
 //
-//   node core/groundwork.mjs [--root DIR] [--port N] [--open]
+//   groundwork [--root DIR] [--port N] [--no-open]
+//   groundwork init [--root DIR] [--yes]   set the project up for Claude Code (init.mjs)
+//   groundwork plan <command>              the Plan module's command (modules/plan/plan.mjs)
 //
 //   --root DIR  the project folder (default: the current folder; also MINDMAP_DIR)
-//   --port N    the port (default 4477; also PORT)
-//   --open      open the start page in the browser
+//   --port N    the port (default 4477; also PORT; 0 picks a free one)
+//   --no-open   do not open the start page in the browser (it opens by default)
 //
-// Needs Node.js 20 or newer and nothing else: only Node's built-in modules.
+// Needs Node.js 20 or newer and nothing else: only Node's built-in modules. This file is
+// written so that an older Node can still run it far enough to say so (no newer syntax here;
+// the rest is loaded only after the check).
 
-import path from 'node:path'
-import { spawn } from 'node:child_process'
-import { startServer } from './server.mjs'
-import { MODULES } from './modules.mjs'
+var MIN_NODE = 20
+var major = Number(String(process.versions.node).split('.')[0])
 
-const args = process.argv.slice(2)
-const flag = (name, def) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : def }
-
-const root = path.resolve(flag('--root', process.env.MINDMAP_DIR || process.cwd()))
-const port = Number(flag('--port', process.env.PORT || 4477))
-
-try {
-  const { url } = await startServer({ root, modules: MODULES, port })
-  console.log(`groundwork: ${url}  (project: ${root})`)
-  for (const m of MODULES) console.log(`  ${m.name}: ${url}${m.id}/`)
-  if (args.includes('--open')) openBrowser(url)
-} catch (e) {
-  console.error(e.code === 'EADDRINUSE' ? `groundwork: port ${port} is in use (try --port N)` : `groundwork: ${e.message}`)
-  process.exit(1)
-}
-
-function openBrowser(url) {
-  const [cmd, ...rest] = process.platform === 'win32' ? ['cmd', '/c', 'start', '""', url]
-    : process.platform === 'darwin' ? ['open', url] : ['xdg-open', url]
-  spawn(cmd, rest, { stdio: 'ignore', detached: true }).unref()
+if (!(major >= MIN_NODE)) {
+  console.error('groundwork: needs Node.js ' + MIN_NODE + ' or newer; this is Node.js ' + process.versions.node + '.')
+  console.error('Install a newer Node.js from https://nodejs.org/ and run it again.')
+  process.exitCode = 1
+} else {
+  import('./commands.mjs')
 }

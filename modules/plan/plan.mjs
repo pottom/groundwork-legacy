@@ -2,14 +2,15 @@
 // Plan module CLI: a live, human-editable mind map for grilling sessions that
 // writes a PRD (PRD.md) as the interview goes. Its Claude skill is groundwork-prd-maker.
 //
-//   node modules/plan/plan.mjs init "<title>"   create mindmap.json in the current dir
-//   node modules/plan/plan.mjs apply '<ops>'    apply a JSON op array (or pipe it on stdin)
-//   node modules/plan/plan.mjs show             print the outline + pending human edits
-//   node modules/plan/plan.mjs kinds            print the document kinds and their starting sections,
-//                                               in the map's document language
-//   node modules/plan/plan.mjs hook             UserPromptSubmit hook (reads hook JSON on stdin)
+// Run as `npx @pottom/groundwork plan <command>` (core/commands.mjs), or `node modules/plan/plan.mjs <command>`:
 //
-// The editor is served by the core server: node core/groundwork.mjs
+//   init "<title>"   create mindmap.json in the current dir
+//   apply '<ops>'    apply a JSON op array (or pipe it on stdin)
+//   show             print the outline + pending human edits
+//   kinds            print the document kinds and their starting sections, in the map's document language
+//   hook             UserPromptSubmit hook (reads hook JSON on stdin); `groundwork init` installs it
+//
+// The editor is served by the core server: npx @pottom/groundwork
 // Reading, writing and merging the map is in map-store.mjs; the ops are described there.
 
 import fs from 'node:fs'
@@ -149,8 +150,8 @@ switch (cmd) {
   case 'show': cmdShow(dir); break
   case 'kinds': cmdKinds(dir); break
   case 'hook': cmdHook(); break
-  case 'serve': die('plan.mjs serve is gone: the core server serves the editor now. Run: node core/groundwork.mjs'); break
-  default: die('usage: plan.mjs init "<title>" | apply \'<ops json>\' | show | kinds | hook\n' +
+  case 'serve': die('plan serve is gone: the core server serves the editor now. Run: npx @pottom/groundwork'); break
+  default: die('usage: groundwork plan init "<title>" | apply \'<ops json>\' | show | kinds | hook\n' +
     `statuses: ${Object.keys(STATUSES).join(', ')}\ndocument kinds: ${Object.keys(KINDS).join(', ')}\ncomponent types: ${COMPONENT_TYPES.join(', ')}\n` +
     `document languages: ${Object.keys(DOC_STRINGS).join(', ')}`)
 }

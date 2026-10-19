@@ -43,7 +43,7 @@ On the core server the page follows the core's live updates (`/api/events`, Serv
 ## Run
 
 ```bash
-node core/groundwork.mjs --root .       # then open http://localhost:4477/build/
+npx @pottom/groundwork                          # in the project folder; then Build at http://localhost:4477/build/
 ```
 
 | Endpoint | Answer |

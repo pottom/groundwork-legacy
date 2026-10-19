@@ -10,7 +10,7 @@
   a project whose tickets, specs and decisions live in markdown files.
 
   No build, no dependencies. Two ways to open it:
-    - from the Groundwork core server (node core/groundwork.mjs, at /build/):
+    - from the Groundwork core server (npx @pottom/groundwork, at /build/):
       the Build module's read-only endpoints (/api/build/, module.mjs) hand
       the page the markdown files, so it goes live at once, in every browser;
     - or open this file by double click: it asks once for the project folder
@@ -51,9 +51,9 @@
   server (read only), so this view needs it; opened by double click, the
   page cannot run git.
 
-  Version: VERSION below; modules/build/module.mjs has the same constant. Bump
-  both together and add a line here (semver: a new view or field is a minor
-  step, a fix a patch, a change that breaks the server pairing a major one).
+  Version: since the npm package, Build has no version of its own: it ships
+  with Groundwork and carries the package's (package.json, core/version.mjs),
+  which the page shows from /api/build/hello. The history before that:
     1.0.0  2026-10-18  the first numbered version: tickets, areas, dependencies,
                        activity, inconsistencies, documents, and the git branch
                        graph; the version is shown in the header, and a
@@ -78,6 +78,8 @@
                        (Server-Sent Events, /api/events) instead of polling;
                        ?prd=<id> shows only the tickets of that PRD item (Plan
                        links here); /api/build/prd counts them for Plan
+    (Groundwork 0.1.0, 2026-10-19: the last own version, 2.6.0, is followed by
+    the package's; the header shows it, and the page/launcher check is gone)
 -->
 <link rel="stylesheet" href="/shell/theme.css">
 <script>try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }</script>
@@ -375,7 +377,6 @@ ul.tree ul .node { display: inline-flex; max-width: 100%; background: var(--rais
 
 /* Git branches */
 .ver { font: 500 11.5px/1.6 var(--gw-font-mono); color: var(--gw-muted); padding: 0 7px; border-radius: 999px; border: 1px solid var(--gw-line); white-space: nowrap; }
-.ver.warn { color: var(--c-human); border-color: color-mix(in srgb, var(--c-human) 45%, transparent); }
 .ref { --c: var(--c-neutral); display: inline-flex; align-items: center; gap: 4px; font: 600 11px/1.55 var(--gw-font-mono); padding: 0 6px; border-radius: 5px; white-space: nowrap;
   color: color-mix(in srgb, var(--c) 80%, var(--gw-fg)); background: color-mix(in srgb, var(--c) 13%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
 .ref.remote { background: transparent; border-style: dashed; font-weight: 500; }
@@ -575,7 +576,6 @@ const ui = i18n.t;
 const SERVER_ID = 'development-status';
 const SERVER_API = '/api/build';
 const SERVER_TIMEOUT_MS = 8000;
-const VERSION = '2.6.0';   // the same in module.mjs; the header comment lists the versions
 
 const POLL_MS = 3000;
 const FRESH_MS = 90000;
@@ -1374,12 +1374,11 @@ function renderLive(ticked) {
 }
 
 function renderVersion() {
-  const other = source && source.server && source.version !== VERSION ? source.version || ui('ver.older') : '';
-  $('ver').textContent = other ? ui('ver.mismatch', { version: VERSION, other }) : `v${VERSION}`;
-  $('ver').className = 'ver' + (other ? ' warn' : '');
-  $('ver').title = other
-    ? ui('ver.mismatch-title', { version: VERSION, other })
-    : `development-status ${VERSION}`;
+  // Groundwork's version, from the server; opened by double click there is none to show.
+  const version = source && source.server ? source.version : '';
+  $('ver').textContent = version ? `v${version}` : '';
+  $('ver').hidden = !version;
+  $('ver').title = version ? `Groundwork ${version}` : '';
 }
 
 function renderOverview() {
@@ -1670,7 +1669,7 @@ function renderGitView() {
     return `<p class="lead">${ui('git.no-server')}</p>`;
   }
   if (!source.git) {
-    return `<div class="notice">${ui('git.old-server', { version: source.version ? ' (' + esc(source.version) + ')' : '', page: VERSION })}</div>`;
+    return `<div class="notice">${ui('git.old-server')}</div>`;
   }
   const g = gitState.data;
   if (!g) {

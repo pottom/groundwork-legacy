@@ -12,7 +12,7 @@ Groundwork takes a project from idea to delivery, in one portable package that w
 > 1. one shared server for both modules;
 > 2. a shared look with an English UI;
 > 3. linking Plan and Build;
-> 4. publishing on npm (`npx groundwork`).
+> 4. publishing on npm (`npx @pottom/groundwork`).
 
 ## Repository layout
 
@@ -32,11 +32,14 @@ Every folder has a README that says what is in it.
 
 Requirements: Node.js 20 or newer. Nothing else to install.
 
+In a project folder:
+
 ```bash
-node core/groundwork.mjs --root .                           # the core server: http://localhost:4477, Plan at /plan/, Build at /build/
+npx @pottom/groundwork              # the core server for this folder: http://localhost:4477, Plan at /plan/, Build at /build/; opens the browser
+npx @pottom/groundwork init         # sets the project up for Claude Code: the skills, the hook, .groundwork/ in .gitignore (asks first)
 ```
 
-`--root` is the project to work on (default: the current folder). The core server listens on `127.0.0.1` only and refuses requests with a foreign `Host` header.
+Options: `--root DIR` (the project, default the current folder), `--port N`, `--no-open`. In this repository, `node core/groundwork.mjs` does the same. The package has one version (`package.json`), shown in the header; the modules carry it too. Everything it needs is in the package, so it starts without a network. The core server listens on `127.0.0.1` only and refuses requests with a foreign `Host` header.
 
 Run the tests with `npm test` (Node's built-in test runner).
 

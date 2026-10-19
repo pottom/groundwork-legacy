@@ -34,10 +34,6 @@ const BUILD_STRINGS = {
     'live.snapshot': 'Snapshot: read at {at}, does not refresh by itself',
     'live.reread': 'Read again (choose the folder)',
 
-    'ver.older': 'older',
-    'ver.mismatch': 'v{version} · launcher {other}',
-    'ver.mismatch-title': 'The page is {version}, the Build module\'s server (module.mjs) is {other}: the two files come from different versions.',
-
     'error.server-down': 'The local server does not answer.',
     'error.not-our-server': 'Something other than the status page\'s server answers at this address.',
     'error.read': 'Could not read the folder: {error}',
@@ -249,8 +245,8 @@ const BUILD_STRINGS = {
     'git.behind-merged': 'commits in {base} since: {n}',
     'git.ahead': 'commits not in {base}: {n}',
     'git.behind': 'behind: {n}',
-    'git.no-server': 'The branch graph comes from the Groundwork server: <code>node core/groundwork.mjs</code>, then <code>/build/</code>. Opened with a folder picker, the browser cannot run git.',
-    'git.old-server': 'The Build module\'s server{version} is older than the page ({page}) and gives no git data. Update it and start it again.',
+    'git.no-server': 'The branch graph comes from the Groundwork server: <code>npx @pottom/groundwork</code>, then <code>/build/</code>. Opened with a folder picker, the browser cannot run git.',
+    'git.old-server': 'The Build module\'s server gives no git data. Start it again with npx @pottom/groundwork.',
     'git.no-repo': 'The folder is not the top of a git repository, so there is nothing to draw.',
     'git.error': 'Git did not answer: {error}',
     'git.loading': 'Loading the git data…',
@@ -306,10 +302,6 @@ const BUILD_STRINGS = {
     'live.server': ' · helyi szerver ({host})',
     'live.snapshot': 'Pillanatkép: beolvasva {at}, magától nem frissül',
     'live.reread': 'Újraolvasás (mappa kiválasztása)',
-
-    'ver.older': 'régebbi',
-    'ver.mismatch': 'v{version} · indító {other}',
-    'ver.mismatch-title': 'Az oldal {version}, a Build modul szervere (module.mjs) {other}: a két fájl más verzióból való.',
 
     'error.server-down': 'A helyi szerver nem válaszol.',
     'error.not-our-server': 'Ezen a címen nem az állapotoldal szervere válaszol.',
@@ -522,8 +514,8 @@ const BUILD_STRINGS = {
     'git.behind-merged': '{n} commit azóta a {base}-ben',
     'git.ahead': '{n} commit nincs a {base}-ben',
     'git.behind': '{n} lemaradás',
-    'git.no-server': 'Az ággráfot a Groundwork szervere adja: <code>node core/groundwork.mjs</code>, utána <code>/build/</code>. Mappaválasztással megnyitva a böngésző nem tud gitet futtatni.',
-    'git.old-server': 'A Build modul szervere{version} régebbi, mint az oldal ({page}), és nem ad git adatot. Frissítsd, és indítsd újra.',
+    'git.no-server': 'Az ággráfot a Groundwork szervere adja: <code>npx @pottom/groundwork</code>, utána <code>/build/</code>. Mappaválasztással megnyitva a böngésző nem tud gitet futtatni.',
+    'git.old-server': 'A Build modul szervere nem ad git adatot. Indítsd újra: npx @pottom/groundwork.',
     'git.no-repo': 'A mappa nem egy git-tároló teteje, így nincs mit rajzolni.',
     'git.error': 'A git nem válaszolt: {error}',
     'git.loading': 'A git adatai töltődnek…',

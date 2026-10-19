@@ -33,14 +33,15 @@ import { fileURLToPath } from 'node:url';
 import { openProject } from './project-reader.mjs';
 import { githubRepo, openGitHub } from './github-source.mjs';
 import { openTickets, prdProgress } from './project-tickets.mjs';
+import { VERSION } from '../../core/version.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 // What the page checks to know it talks to this module. The same values are
-// SERVER_ID, SERVER_API and VERSION in index.html.
+// SERVER_ID and SERVER_API in index.html. The version is the package's (core/version.mjs): the
+// page and this server ship together, so the page shows the one it gets from /hello.
 const SERVER_ID = 'development-status';
 const API_VERSION = 1;
-const VERSION = '2.6.0';
 
 // Once a minute, as GitHub's answer is kept for the pages' own reads (github-source.mjs): without a
 // token GitHub allows 60 requests an hour.
@@ -119,7 +120,7 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
       return async (req, res, sub, url) => {
         const head = req.method === 'HEAD';
         if (req.method !== 'GET' && !head) return sendText(res, 405, 'Method not allowed'), true;
-        if (sub === '/hello') return sendJson(res, { version: VERSION, git: true, github: true, name, launcher: 'node core/groundwork.mjs' }, head), true;
+        if (sub === '/hello') return sendJson(res, { version: VERSION, git: true, github: true, name, launcher: 'npx @pottom/groundwork' }, head), true;
         if (sub === '/list') return sendJson(res, { name, ...project.list() }, head), true;
         if (sub === '/file') {
           const body = project.readFile(url.searchParams.get('path') || '');

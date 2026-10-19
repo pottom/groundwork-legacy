@@ -25,7 +25,7 @@ root                          the system or product
 
 The sections are only starting points. What a project needs, and what "scope" means for it, differs from project to project. Propose sections fitted to this project, and let the human confirm or change them.
 
-The table below shows the English names, while a map without a language is Hungarian. `node modules/plan/plan.mjs kinds` prints the starting sections in the map's document language (see Session flow, step 1): use the titles it prints, not the ones here.
+The table below shows the English names, while a map without a language is Hungarian. `node core/groundwork.mjs plan kinds` prints the starting sections in the map's document language (see Session flow, step 1): use the titles it prints, not the ones here.
 
 | kind | file | starting sections |
 |---|---|---|
@@ -63,14 +63,14 @@ Questions, the choices you offered, and your recommendations never go on the map
 
 ## Tools
 
-All access goes through `node modules/plan/plan.mjs`. Never write the map or the documents by hand: `apply` merges with edits the human is making at the same moment.
+All access goes through `node core/groundwork.mjs plan <command>`, run in the project's root folder. Never write the map or the documents by hand: `apply` merges with edits the human is making at the same moment.
 
 - `init "<name>"`: create an empty map whose root is the system or product name.
 - `show`: print the outline with ids, statuses, documents and section state, plus any human edits you have not seen yet.
 - `apply`: change the map and the documents, then print the outline. Pass a JSON op array on stdin with a quoted heredoc in the Bash tool. This avoids Windows quoting problems:
 
   ```bash
-  node modules/plan/plan.mjs apply <<'EOF'
+  node core/groundwork.mjs plan apply <<'EOF'
   [{"op":"add","id":"c-app","parent":"root","topic":"Mobilapp","component":"software","dir":"app"},
    {"op":"add","id":"doc-app-prd","parent":"c-app","topic":"Termék","doc":"prd"},
    {"op":"add","id":"t-app-users","parent":"doc-app-prd","topic":"Felhasználók","status":"topic"},
@@ -102,9 +102,9 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
 
 ## Session flow
 
-1. **Start.** If `docs/product/mindmap.json` is missing, run `init`. Start the core server with `preview_start` (configuration `groundwork`, from `.claude/launch.json`; or `node core/groundwork.mjs`) and open `/plan/`.
+1. **Start.** If `docs/product/mindmap.json` is missing, run `init`. Start the core server: with `preview_start` when `.claude/launch.json` has a `groundwork` configuration, otherwise run `node core/groundwork.mjs --no-open` in the background (it prints its address; `--port N` picks another port when 4477 is taken). Open `/plan/`.
 
-   Set the document language to the language of the conversation: `{"op":"set","id":"root","lang":"…"}`. `show` prints it on the root line. A map without one is Hungarian (`hu`). Every fixed text of the documents (header, states, closing sections) and the starting sections from `kinds` are then in that language, so the map's own labels and prose must be in it too. The languages there are: `hu`, `en` (the usage line of `plan.mjs` lists them). If the conversation is in a language with no strings, use `en` and say so. If the conversation switches language for good, change it and translate the map's labels and prose.
+   Set the document language to the language of the conversation: `{"op":"set","id":"root","lang":"…"}`. `show` prints it on the root line. A map without one is Hungarian (`hu`). Every fixed text of the documents (header, states, closing sections) and the starting sections from `kinds` are then in that language, so the map's own labels and prose must be in it too. The languages there are: `hu`, `en` (the usage line of `node core/groundwork.mjs plan` lists them). If the conversation is in a language with no strings, use `en` and say so. If the conversation switches language for good, change it and translate the map's labels and prose.
 2. **Existing project?** If there is already code or documentation, read it before asking anything. Dispatch a sub-agent for a thorough analysis:
    - the product: README, specs, glossary, docs;
    - every ADR in `docs/adr/`, with its state;

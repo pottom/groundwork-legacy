@@ -8,7 +8,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { startServer } from './server.mjs'
-import { listen } from './sse-client.mjs'
+import { listen } from './sse-client.test-helper.mjs'
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-events-'))
 const write = (root, rel, text) => { fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); fs.writeFileSync(path.join(root, rel), text) }

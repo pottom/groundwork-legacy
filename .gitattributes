@@ -1,0 +1,4 @@
+# LF line ends on every OS. The npm package is packed from a checkout, and a bin whose
+# shebang ends in CR ("#!/usr/bin/env node\r") does not run on macOS or Linux.
+* text=auto eol=lf
+*.woff2 binary

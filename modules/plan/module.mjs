@@ -12,18 +12,26 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { send, readJson } from '../../core/http.mjs'
 import { openMap } from './map-store.mjs'
+import { VERSION } from '../../core/version.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 export default {
   id: 'plan',
   name: 'Plan',
-  version: '0.1.0',
+  version: VERSION,   // the package's: one version for Groundwork and its modules
   view: { dir: HERE, files: ['index.html', 'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs'] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],
   // Local state from before the move to .groundwork/plan/ (the prd-maker prototype).
   moves: { '.prd-maker': '.groundwork/plan' },
+  // `groundwork plan <command>` runs plan.mjs: the skill's tool and the hook.
+  cli: path.join(HERE, 'plan.mjs'),
+  // What `groundwork init` puts into a project for Claude Code.
+  claude: {
+    skills: [path.join(HERE, 'skills', 'groundwork-prd-maker')],
+    hooks: [{ event: 'UserPromptSubmit', run: 'plan hook' }],   // installed as `<RUNNER> plan hook`
+  },
   watch: (p) => (p === 'docs/product/mindmap.json' ? 'plan.map' : p === 'GLOSSARY.md' ? 'plan.glossary' : null),
   api({ root, files }) {
     const store = openMap(root, files)
