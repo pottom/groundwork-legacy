@@ -14,6 +14,12 @@ import fs from 'node:fs'
 import { STATUSES } from './node-types.mjs'
 import { BASE_DIR, KINDS, COMPONENT_TYPES, listDocs, isSection } from './documents.mjs'
 import { openMap, walk, index } from './map-store.mjs'
+import { moduleFiles } from '../../core/files.mjs'
+import plan from './module.mjs'
+
+// The CLI and the hook run outside the server, but write through the same writer the core
+// grants Plan from its manifest (this also moves old .prd-maker/ state over).
+const open = (dir) => openMap(dir, moduleFiles(dir, plan))
 
 // ---------- text output ----------
 
@@ -75,13 +81,13 @@ function editsBlock(store, data) {
 // ---------- commands ----------
 
 function cmdInit(dir, title, force) {
-  const store = openMap(dir)
+  const store = open(dir)
   try { store.init(title, { force }) } catch (e) { die(e.message) }
   console.log(`created ${store.file}`)
 }
 
 function cmdApply(dir, arg) {
-  const store = openMap(dir)
+  const store = open(dir)
   const raw = arg ?? fs.readFileSync(0, 'utf8')
   let ops = JSON.parse(raw)
   if (!Array.isArray(ops)) ops = [ops]
@@ -93,7 +99,7 @@ function cmdApply(dir, arg) {
 }
 
 function cmdShow(dir) {
-  const store = openMap(dir)
+  const store = open(dir)
   const { data } = store.read()
   const edits = editsBlock(store, data)
   if (edits) console.log(edits + '\n')
@@ -103,7 +109,7 @@ function cmdShow(dir) {
 function cmdHook() {
   try {
     const input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}')
-    const store = openMap(input.cwd || process.cwd())
+    const store = open(input.cwd || process.cwd())
     const out = []
     if (/grill/i.test(input.prompt || '')) {
       out.push('This project draws grilling sessions on a live mind map: load the `groundwork-prd-maker` skill alongside the grilling skill.')

@@ -73,7 +73,7 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 | `node-types.mjs` | csomópont-típusok: címke, [Lucide](https://lucide.dev) ikon |
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
 | `docs/product/**/*.md` | a generált dokumentumok (a cél-projektben) |
-| `.prd-maker/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések, a generált fájlok listája |
+| `.groundwork/plan/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések, a generált fájlok listája (a cél-projektben; egy régi `.prd-maker/` mappát a mag ide költöztet) |
 | `skills/groundwork-prd-maker/SKILL.md` | a munkamenet Claude-nak (a repó `.claude/skills/` alatti példánya ennek a másolata) |
 | `.claude/settings.json` | `UserPromptSubmit` hook: továbbítja a kézi szerkesztéseket, és grill promptnál emlékeztet a skillre |
 | `.claude/launch.json` | `groundwork` preview szerver: a mag szerver (port 4477), a Plan a `/plan/` alatt |
