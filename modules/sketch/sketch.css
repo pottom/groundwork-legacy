@@ -14,3 +14,38 @@ html, body { height: 100%; margin: 0; background: var(--gw-bg); }
 .sk-bar__name { width: 14rem; max-width: 40vw; }
 .sk-bar__error { color: var(--gw-bad); font-size: 0.85em; white-space: nowrap; }
 #board { position: fixed; inset: var(--sk-bar-height) 0 0 0; }
+
+/* Threads (view/thread-panel.mjs): the Comments button at the bar's right end, a pin on each shape
+   with a thread (over the board, moving with it), and the panel of one thread or of them all. */
+.sk-thread-toggle { position: fixed; top: 0; right: 12px; height: var(--sk-bar-height); display: flex; align-items: center; z-index: 3; }
+.sk-pins { position: fixed; inset: var(--sk-bar-height) 0 0 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.sk-pin {
+  position: absolute; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer;
+  min-width: 22px; height: 22px; padding: 0 6px; border: 0; border-radius: 11px 11px 11px 2px;
+  background: var(--gw-gradient-fill); color: var(--gw-accent-fg); font: 600 var(--gw-text-xs) var(--gw-font);
+  box-shadow: var(--gw-shadow);
+}
+.sk-pin--closed { background: var(--gw-sunken); color: var(--gw-fg-2); }
+.sk-pin--current { outline: 2px solid var(--gw-focus); outline-offset: 2px; }
+.sk-thread {
+  position: fixed; top: calc(var(--sk-bar-height) + 8px); right: 12px; z-index: 4;
+  width: min(22rem, calc(100vw - 24px)); max-height: calc(100vh - var(--sk-bar-height) - 24px); overflow-y: auto;
+  box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+  background: var(--gw-surface); color: var(--gw-fg); font: var(--gw-text) var(--gw-font); box-shadow: var(--gw-shadow-lg);
+}
+.sk-thread[hidden] { display: none; }
+.sk-thread h2 { margin: 0; font-size: 1em; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sk-thread__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sk-thread__list, .sk-thread__comments { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sk-thread__item {
+  width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; text-align: left; cursor: pointer;
+  border: 1px solid var(--gw-line); border-radius: var(--gw-radius-sm); background: var(--gw-bg); color: inherit; font: inherit;
+}
+.sk-thread__item:hover { border-color: var(--gw-line-strong); }
+.sk-thread__shape { font-weight: 600; overflow-wrap: anywhere; }
+.sk-thread__meta { color: var(--gw-fg-2); font-size: 0.85em; }
+.sk-thread__comments p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sk-thread__hint { margin: 0; color: var(--gw-muted); }
+.sk-thread__form { display: flex; flex-direction: column; gap: 8px; }
+.sk-thread__form textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+.sk-thread__actions { display: flex; justify-content: flex-end; gap: 8px; }

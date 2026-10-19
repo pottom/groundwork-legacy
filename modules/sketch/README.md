@@ -1,6 +1,6 @@
 # Sketch module
 
-A drawing board in the shell: [Excalidraw](https://excalidraw.com), so the developer and Claude can explain things with boxes and arrows. A sketch is a standard `.excalidraw` file under `docs/product/sketches/`, kept in git, which excalidraw.com (or any Excalidraw) opens as it is. There are as many named sketches as you like, each its own file (`docs/product/sketches/<name>.excalidraw`); the bar above the board lists them, opens one, makes a new one and renames the open one. The page opens the sketch a deep link names (`/?module=sketch&sketch=<name>`), else the one last opened in this browser, else the first, else `main`; the shell's address follows the sketch shown. The plan, in Hungarian: [`docs/product/sketch/PRD.md`](../../docs/product/sketch/PRD.md), [`TECH.md`](../../docs/product/sketch/TECH.md).
+A drawing board in the shell: [Excalidraw](https://excalidraw.com), so the developer and Claude can explain things with boxes and arrows. A sketch is a standard `.excalidraw` file under `docs/product/sketches/`, kept in git, which excalidraw.com (or any Excalidraw) opens as it is. A short conversation, a thread, can be pinned to a shape; the threads live beside the sketch in `<name>.threads.json`. There are as many named sketches as you like, each its own file (`docs/product/sketches/<name>.excalidraw`); the bar above the board lists them, opens one, makes a new one and renames the open one. The page opens the sketch a deep link names (`/?module=sketch&sketch=<name>`), else the one last opened in this browser, else the first, else `main`; the shell's address follows the sketch shown. The plan, in Hungarian: [`docs/product/sketch/PRD.md`](../../docs/product/sketch/PRD.md), [`TECH.md`](../../docs/product/sketch/TECH.md).
 
 Sketch is a tool, not a step of the workflow: its tab comes after Plan and Build, behind a separator (`tool: true` in the manifest).
 
@@ -11,7 +11,8 @@ Sketch is a tool, not a step of the workflow: its tab comes after Plan and Build
 | `module.mjs` | the manifest and the endpoints (below) |
 | `sketch-store.mjs` | the sketches on disk: lists, creates and renames them, reads a scene, saves one merged with the file (`merge.mjs`) as the standard file without the viewer's state (zoom, scroll, selection), refuses an embedded image over 2 MB |
 | `merge.mjs` | two versions of a sketch merged element by element: the higher `version` wins, on a tie the lower `versionNonce`; a deletion is kept as `isDeleted: true`. Used by the server and the page alike |
-| `sketch.mjs` | `groundwork sketch list \| show \| apply` (below) |
+| `threads.mjs` | the threads pinned to shapes, in `<name>.threads.json` beside the sketch: comment, close or reopen, list them with which are orphaned (their shape deleted); the text `threads` prints |
+| `sketch.mjs` | `groundwork sketch list \| show \| apply \| threads \| comment \| close \| reopen` (below) |
 | `ops.mjs` | the ops of `apply` turned into Excalidraw elements: shapes with bound labels, texts, arrows bound to shapes, move, update, delete, Mermaid |
 | `mermaid.mjs` | a Mermaid flowchart read and laid out in layers, in Node (below) |
 | `digest.mjs` | the text `show` prints |
@@ -25,6 +26,8 @@ Sketch is a tool, not a step of the workflow: its tab comes after Plan and Build
 | `view/board.mjs` | Excalidraw mounted with React (`React.createElement`, no JSX); its own file and theme actions and embeds are off; offers Hungarian, which Excalidraw 0.17.6 hides as only 70% translated |
 | `view/theme.mjs` | `followTheme(apply)`: light or dark as the shell shows it (the switch in its header, `/shell/theme.js`, else the OS), now and on every switch |
 | `view/sketches.mjs` | which sketch opens (`chooseSketch`), the rule for a name (`isSketchName`, shared with the store), and the bar of sketches (plain DOM) |
+| `view/pins.mjs` | the threads without the DOM: where a shape's pin goes on screen (`pinPlaces`), the selected shape, a shape's label, and the threads API the page calls |
+| `view/thread-panel.mjs` | the pins on the shapes, the Comments button and the panel: a thread's comments, a field to answer, resolve or reopen; the list of all threads, orphaned ones too (lit-html) |
 | `view/saver.mjs` | saves only when the drawing changed (an element's version, an image), once the changes rest for 0.7 s; a failed save is tried again with the next change |
 
 ## Endpoints
@@ -37,6 +40,10 @@ Sketch is a tool, not a step of the workflow: its tab comes after Plan and Build
 | `POST /api/sketch/rename` | `{ from, to }`: moves the file; 409 when `to` is taken; a sketch not drawn yet becomes an empty `to`; a change of case only works on Windows and macOS too |
 | `PUT /api/sketch/scene?name=<name>` | the page's save, the scene with its deleted elements, merged with the file element by element; `content-type: application/json` required (415), 400 when it is not a scene or the name is not a plain name, 413 when an image is too large; nothing is written then |
 
+| `GET /api/sketch/threads?name=<name>` | `{ threads: [{ element, closed, orphaned, comments: [{ author, at, text }] }] }`, in the order they were started |
+| `POST /api/sketch/comment?name=<name>` | `{ element, text, author? }`: a comment on the shape's thread, starting it (and reopening a closed one); without an author it is the developer's (git `user.name`, else the OS user); 404 when the shape is not in the sketch and has no thread, 400 when the text is empty or over 4000 characters |
+| `POST /api/sketch/close?name=<name>` | `{ element, closed? }`: closes the thread, `closed: false` reopens it; 404 when there is none |
+
 `<name>` is letters, digits, `-` and `_` (up to 64), and defaults to `main`. Every write (`PUT`, `POST`) must be `application/json` (415), so another site cannot post a form here. Sketch may write only under `docs/product/sketches/`. It has no public endpoints. A change of a file there is the live topic `sketch.files`.
 
 ## Claude on the board
@@ -46,6 +53,12 @@ Sketch is a tool, not a step of the workflow: its tab comes after Plan and Build
 | `groundwork sketch list` | the sketches' names, one per line |
 | `groundwork sketch show <name>` | one line per element with its id: `rectangle api "API" at 0,0 size 120x60`, `arrow reads "reads": api "API" -> db "Database"`, `text note "Draft" at 0,200`; a label shows on its shape |
 | `groundwork sketch apply <name> '<ops>'` | a JSON array of ops (or on stdin): `add` (rectangle, ellipse, diamond, text, arrow, line), `move`, `update`, `delete`, `mermaid`; the fields are in the header of `ops.mjs` and in the skill. One wrong op: nothing is written, exit 1 |
+
+| `groundwork sketch threads <name>` | every thread: the shape (id and label), open or closed, orphaned when the shape was deleted, each comment with author and time |
+| `groundwork sketch comment <name> <id> "<text>"` | a comment on the shape's thread, starting it; the text may come on stdin; the author is `Claude` unless `--author` names another |
+| `groundwork sketch close \| reopen <name> <id>` | closes a resolved thread, or opens it again |
+
+**Threads.** A thread is a short conversation pinned to one shape: comments with author and time, closed when resolved (d-board-thread-fields). They live beside the drawing in `docs/product/sketches/<name>.threads.json`, keyed by element id, so the `.excalidraw` file stays the standard one; a rename of the sketch takes the file along. A shape deleted later keeps its thread, orphaned, not lost: it has no pin, the panel's list shows it as "Shape deleted", and it can still be answered. In the page a pin with the number of comments marks each shape with a thread and follows it as the board scrolls and zooms; the Comments button opens the selected shape's thread, or the list. A comment saves the drawing first, so a shape drawn a moment ago can have one. The threads file is under `docs/product/sketches/` too, so a comment from Claude is a `sketch.files` event and shows on the open page at once.
 
 **Two editors at once.** The page and `apply` both write through `sketch-store.mjs`, which merges with the file as it is at that moment, element by element (`merge.mjs`). Excalidraw 0.17.6 does not export its `reconcileElements`, so the rule is ours, the same as its: every edit raises an element's `version`. The page sends its deleted elements too (Excalidraw's `serializeAsJSON` drops them), and the file keeps them as `isDeleted: true`, so a deletion is not undone by the other side. On `sketch.files` the page reads the file again and merges it into the board (`view/follow.mjs`): Claude's drawing appears, and the element the developer is dragging keeps its newer version.
 

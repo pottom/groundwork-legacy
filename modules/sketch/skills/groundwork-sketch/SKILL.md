@@ -1,6 +1,6 @@
 ---
 name: groundwork-sketch
-description: Reads and draws on the project's Excalidraw sketches (docs/product/sketches/<name>.excalidraw), the shared drawing board in Groundwork's Sketch tab. Use when the user mentions the sketch, the board, a drawing or diagram they made, asks you to draw, sketch or diagram something (boxes and arrows, a flow, an architecture, a Mermaid flowchart), or refers to shapes "on the board".
+description: Reads and draws on the project's Excalidraw sketches (docs/product/sketches/<name>.excalidraw), the shared drawing board in Groundwork's Sketch tab. Use when the user mentions the sketch, the board, a drawing or diagram they made, asks you to draw, sketch or diagram something (boxes and arrows, a flow, an architecture, a Mermaid flowchart), or refers to shapes "on the board", or to comments and threads on the sketch.
 ---
 
 A sketch is a drawing the human and you share. The human draws in the browser (Groundwork's Sketch tab); you read it and draw on it with the commands below. What you draw appears in the open sketch at once, and what the human draws at the same time stays: the two are merged element by element. Never edit the `.excalidraw` file by hand.
@@ -43,6 +43,24 @@ Run `{{groundwork}} sketch apply <name> '<ops>'`, the ops a JSON array (or pipe 
 - Mermaid: `flowchart`/`graph` with TD, LR, BT or RL; nodes `a[box]`, `a(round)`, `a{decision}`, `a((circle))`; edges `-->`, `---`, `-.->`, `==>`, labels `-->|text|` or `-- text -->`, chains and `&`. It is laid out in layers. Other Mermaid diagrams are refused; draw them with shapes and arrows.
 
 Done when `apply` printed the sketch with your change, and, if the layout matters, you looked at it in the browser pane.
+
+## Threads on shapes
+
+The human can pin a short conversation to a shape (a pin on it in the browser). Read them with `{{groundwork}} sketch threads <name>`:
+
+```
+Threads on main: 1 open, 1 closed
+api "API" (open)
+  Ann, 2026-10-19 10:00: Should this be a queue?
+db "Database" (closed, orphaned: the shape was deleted)
+  Claude, 2026-10-18 16:20: Which database?
+```
+
+- Answer, or start a thread on a shape: `{{groundwork}} sketch comment <name> <id> "<text>"` (or the text on stdin). It is signed `Claude` and shows on the open sketch at once.
+- `{{groundwork}} sketch close <name> <id>` when a thread is resolved; `reopen` opens it again. Close a thread only when its question is answered or the human says so.
+- An orphaned thread's shape was deleted; it can still be answered.
+
+When the user mentions comments or questions on the sketch, read the threads first and answer the open ones there, where the human asked.
 
 ## Your limits
 

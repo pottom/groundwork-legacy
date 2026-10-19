@@ -8,7 +8,8 @@
 //   store.save(name, scene)              merges it with the file on disk and writes the result, which
 //                                        it returns; throws SketchError (status 400 or 413)
 //   store.create(name)                   a new empty sketch; SketchError 409 when the name is taken
-//   store.rename(from, to)               moves the file; 409 when `to` is taken; a sketch not drawn
+//   store.rename(from, to)               moves the file, and its <name>.threads.json (threads.mjs);
+//                                        409 when `to` is taken; a sketch not drawn
 //                                        yet (read() gives the empty scene) becomes an empty `to`
 //   isSketchName(name)                   a plain name: letters, digits, "-" and "_"
 //
@@ -42,7 +43,9 @@ const fileOf = (name) => {
   return `${DIR}/${name}${EXT}`
 }
 
-const emptyScene = () => ({ type: 'excalidraw', version: 2, source: SOURCE, elements: [], appState: { gridSize: null, viewBackgroundColor: '#ffffff' }, files: {} })
+const threadsOf = (name) => `${DIR}/${name}.threads.json`
+
+const emptyScene =() => ({ type: 'excalidraw', version: 2, source: SOURCE, elements: [], appState: { gridSize: null, viewBackgroundColor: '#ffffff' }, files: {} })
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
@@ -94,10 +97,15 @@ export function openSketches(files, root) {
       // it must go before the new name is written (or writing it would overwrite the drawing).
       const caseOnly = from.toLowerCase() === to.toLowerCase()
       if (caseOnly ? this.list().includes(to) : files.exists(dest)) taken(to)
-      const text = files.exists(src) ? files.read(src) : json(emptyScene())
-      if (caseOnly && files.exists(src)) files.remove(src)
-      files.write(dest, text)
-      if (!caseOnly && files.exists(src)) files.remove(src)
+      const move = (src, dest, text) => {
+        if (caseOnly && files.exists(src)) files.remove(src)
+        files.write(dest, text)
+        if (!caseOnly && files.exists(src)) files.remove(src)
+      }
+      move(src, dest, files.exists(src) ? files.read(src) : json(emptyScene()))
+      // Its threads (threads.mjs) go along, so no comment is left behind on the old name.
+      const [tsrc, tdest] = [threadsOf(from), threadsOf(to)]
+      if (files.exists(tsrc)) move(tsrc, tdest, files.read(tsrc))
     },
     read(name) {
       const rel = fileOf(name)

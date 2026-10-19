@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
-> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 2 kész, 0 részben, 6 hiányzik.
+> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 3 kész, 0 részben, 5 hiányzik.
 
 ## 1. Probléma és cél
 
@@ -26,7 +26,7 @@ A modul névvel ellátott vázlatokat kezel; mindegyik egy Excalidraw-rajz a kö
 - Tetszőleges számú vázlat névvel: lista, létrehozás, átnevezés `kész` ([modules/sketch/view/sketches.mjs](../../../modules/sketch/view/sketches.mjs))
 - Claude olvassa a vázlatot: alakzatok, szövegek, kapcsolatok `hiányzik`
 - Claude rajzol: alakzatok, nyilak, szövegek, Mermaidből is `hiányzik`
-- Alakzatokhoz tűzött megjegyzésszálak `hiányzik`
+- Alakzatokhoz tűzött megjegyzésszálak `kész`
 - Élő frissítés: Claude rajza és válasza azonnal megjelenik `hiányzik`
 - Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza `hiányzik` — Jó, ha van, de nem feltétlenül szükséges.
 - Egy alakzat is hivatkozhat ötletre, térképcsomópontra, jegyre vagy másik vázlatra `hiányzik` — Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges.

@@ -180,3 +180,48 @@ test('a left-to-right flowchart runs left to right; one that is not a flowchart 
   assert.equal(bad.code, 1)
   assert.match(bad.stderr, /flowchart/)
 })
+
+// Threads pinned to shapes (f-board-threads): Claude reads and answers them.
+const THREADS = (dir, name = 'main') => JSON.parse(fs.readFileSync(path.join(dir, 'docs', 'product', 'sketches', `${name}.threads.json`), 'utf8')).threads
+
+test('comment pins a thread to a shape as Claude; threads prints every thread with its comments; close and reopen', async () => {
+  const dir = project()
+  await apply(dir, [{ op: 'add', type: 'rectangle', id: 'api', x: 0, y: 0, label: 'API' }])
+  assert.match((await sketch(dir, 'threads', 'main')).stdout, /no threads/i)
+  const r = await sketch(dir, 'comment', 'main', 'api', 'Should this be a queue?')
+  assert.equal(r.code, 0, r.stderr)
+  assert.equal(THREADS(dir).api.comments[0].author, 'Claude')
+  assert.equal((await sketch(dir, 'comment', 'main', 'api', 'Agreed.', '--author', 'Ann')).code, 0)
+  const out = (await sketch(dir, 'threads', 'main')).stdout
+  assert.match(out, /^Threads on main: 1 open, 0 closed$/m)
+  assert.match(out, /^api "API" \(open\)$/m)
+  assert.match(out, /^ {2}Claude, \d{4}-\d\d-\d\d \d\d:\d\d: Should this be a queue\?$/m)
+  assert.match(out, /^ {2}Ann, .*: Agreed\.$/m)
+  assert.equal((await sketch(dir, 'close', 'main', 'api')).code, 0)
+  assert.equal(THREADS(dir).api.closed, true)
+  assert.match((await sketch(dir, 'threads', 'main')).stdout, /^api "API" \(closed\)$/m)
+  assert.equal((await sketch(dir, 'reopen', 'main', 'api')).code, 0)
+  assert.equal(THREADS(dir).api.closed, false)
+  assert.equal(fileOf(dir).elements.some((e) => 'threads' in e), false, 'the .excalidraw file stays standard')
+})
+
+test('comment reads its text from stdin too; a deleted shape\'s thread shows as orphaned', async () => {
+  const dir = project()
+  await apply(dir, [{ op: 'add', type: 'rectangle', id: 'api', x: 0, y: 0, label: 'API' }])
+  const r = await runCommand(process.execPath, [BIN, 'sketch', 'comment', 'main', 'api'], { cwd: dir, input: 'Line one\nline two\n' })
+  assert.equal(r.code, 0, r.stderr)
+  assert.equal(THREADS(dir).api.comments[0].text, 'Line one\nline two')
+  await apply(dir, [{ op: 'delete', id: 'api' }])
+  assert.match((await sketch(dir, 'threads', 'main')).stdout, /^api "API" \(open, orphaned: the shape was deleted\)$/m, 'with the label it had')
+})
+
+test('a comment on no shape, or with no text, stops with exit code 1 and writes nothing', async () => {
+  const dir = project()
+  await apply(dir, [{ op: 'add', type: 'rectangle', id: 'api', x: 0, y: 0 }])
+  for (const args of [['comment', 'main', 'nope', 'Hi'], ['comment', 'main'], ['close', 'main', 'api'], ['comment', 'main', 'api', ' ']]) {
+    const r = await sketch(dir, ...args)
+    assert.equal(r.code, 1, args.join(' '))
+    assert.match(r.stderr, /\S/)
+  }
+  assert.equal(fs.existsSync(path.join(dir, 'docs', 'product', 'sketches', 'main.threads.json')), false)
+})

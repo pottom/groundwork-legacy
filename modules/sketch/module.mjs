@@ -11,8 +11,14 @@
 //                                       it is not a scene or the name is not a plain name, 413 when an
 //                                       embedded image is too large; nothing is written then. A save
 //                                       merges with the file element by element (merge.mjs)
+//   GET  /api/sketch/threads?name=<name> { threads: [{ element, closed, orphaned, comments: [{ author, at, text }] }] }
+//   POST /api/sketch/comment?name=<name> { element, text, author? }: a comment on the shape's thread,
+//                                       starting it; without an author it is the developer's (git
+//                                       user.name, else the OS user); 404 when there is no such shape
+//   POST /api/sketch/close?name=<name>   { element, closed? }: closes the thread (closed: false reopens)
 //
-// Claude reads and draws with `groundwork sketch show | apply` (sketch.mjs), taught by the
+// Threads pinned to shapes live beside the sketch in <name>.threads.json (threads.mjs).
+// Claude reads and draws with `groundwork sketch show | apply` and answers with `threads | comment` (sketch.mjs), taught by the
 // groundwork-sketch skill that `groundwork init` installs. A change of a sketch file is the topic
 // sketch.files, on which the open page reads the sketch again, so Claude's drawing shows at once.
 //
@@ -21,15 +27,18 @@
 // of the workflow: the shell shows its tab after the others, behind a separator (`tool: true`).
 
 import path from 'node:path'
+import os from 'node:os'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { send, readJson } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { openSketches, SketchError, DIR } from './sketch-store.mjs'
+import { openThreads } from './threads.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 // The page's files, the only ones served under /sketch/.
-const VIEW_FILES = ['index.html', 'sketch.css', 'ui-strings.mjs', 'view/asset-path.js', 'view/main.mjs', 'view/board.mjs', 'view/saver.mjs', 'view/follow.mjs', 'view/theme.mjs', 'view/sketches.mjs', 'merge.mjs']
+const VIEW_FILES = ['index.html', 'sketch.css', 'ui-strings.mjs', 'view/asset-path.js', 'view/main.mjs', 'view/board.mjs', 'view/saver.mjs', 'view/follow.mjs', 'view/theme.mjs', 'view/sketches.mjs', 'view/pins.mjs', 'view/thread-panel.mjs', 'merge.mjs']
 
 export default {
   id: 'sketch',
@@ -46,7 +55,12 @@ export default {
   public: [],   // nothing another module may read yet (modules/README.md)
   api({ root, files }) {
     const store = openSketches(files, root)
+    const threads = openThreads(files, store)
+    const nameIn = (url) => url.searchParams.get('name') ?? 'main'
     return async (req, res, sub, url) => {
+      if (sub === '/threads') return answer(res, () => send(res, 200, { threads: threads.list(nameIn(url)) }))
+      if (sub === '/comment') return change(req, res, async (b) => send(res, 200, threads.comment(nameIn(url), b.element, { text: b.text, author: b.author || developer(root) })))
+      if (sub === '/close') return change(req, res, async (b) => send(res, 200, threads.close(nameIn(url), b.element, b.closed)))
       if (sub === '/list') return send(res, 200, { sketches: store.list().map((name) => ({ name })) }), true
       if (sub === '/create') return change(req, res, async (body) => (store.create(body.name), send(res, 201, { name: body.name })))
       if (sub === '/rename') return change(req, res, async ({ from, to }) => (store.rename(from, to), send(res, 200, { name: to })))
@@ -78,7 +92,26 @@ async function body(req) {
   }
 }
 
-// A POST that changes which sketches there are (create, rename): fn gets its JSON body.
+// A read; its SketchError (a name that is not a plain name) is the client's.
+function answer(res, fn) {
+  try {
+    fn()
+  } catch (e) {
+    send(res, e instanceof SketchError ? e.status : 500, { error: e.message })
+  }
+  return true
+}
+
+// Who comments from the page: the developer, as git knows them in this project, else the OS user.
+let who
+function developer(root) {
+  if (who) return who
+  try { who = execFileSync('git', ['config', 'user.name'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 }).trim() } catch {}
+  if (!who) try { who = os.userInfo().username } catch {}
+  return (who ||= 'developer')
+}
+
+// A POST that changes the sketches (create, rename) or their threads (comment, close): fn gets its JSON body.
 async function change(req, res, fn) {
   try {
     if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' }), true
