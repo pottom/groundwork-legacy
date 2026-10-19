@@ -25,7 +25,7 @@ root                          the system or product
 
 The sections are only starting points. What a project needs, and what "scope" means for it, differs from project to project. Propose sections fitted to this project, and let the human confirm or change them.
 
-`node modules/plan/plan.mjs kinds` prints the starting sections in the map's document language (see Session flow, step 1). Use those titles. In English:
+The table below shows the English names, while a map without a language is Hungarian. `node modules/plan/plan.mjs kinds` prints the starting sections in the map's document language (see Session flow, step 1): use the titles it prints, not the ones here.
 
 | kind | file | starting sections |
 |---|---|---|

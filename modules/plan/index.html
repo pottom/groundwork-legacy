@@ -392,6 +392,7 @@
 <script type="module">
 import MindElixir from '/vendor/mind-elixir/MindElixir.js'
 import { STATUSES, IMPL, iconUrl } from './node-types.mjs'
+import { mapTheme, followColorScheme } from './map-theme.mjs'
 import { buildPrd, progressSummary, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from './documents.mjs'
 import { marked } from '/vendor/marked/marked.esm.js'
 import { createI18n } from '/shell/i18n.mjs'
@@ -406,12 +407,7 @@ for (const key of Object.keys(STATUSES)) document.documentElement.style.setPrope
 // document icon (Lucide file-text)
 document.documentElement.style.setProperty('--i-doc', `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>')}")`)
 
-const dark = matchMedia('(prefers-color-scheme: dark)').matches
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-
-const PALETTE = dark
-  ? ['#60a5fa', '#34d399', '#f472b6', '#fbbf24', '#a78bfa', '#22d3ee', '#fb923c', '#f87171']
-  : ['#3b82f6', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#ef4444']
 
 // Branch lines that leave the parent's right edge and enter the child's left edge
 // at mid-height (the default draws underline-style lines).
@@ -429,36 +425,6 @@ function subBranch({ pT, pL, pW, pH, cT, cL, cW, cH, direction }) {
   return `M ${x1} ${y1} C ${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`
 }
 
-const THEME = {
-  name: dark ? 'grill-dark' : 'grill-light',
-  type: dark ? 'dark' : 'light',
-  palette: PALETTE,
-  generateSubBranch: subBranch,
-  cssVar: {
-    '--bgcolor': 'transparent',
-    '--color': css('--gw-fg'),
-    '--main-color': css('--gw-fg'),
-    '--main-bgcolor': css('--gw-surface'),
-    '--main-bgcolor-transparent': 'transparent',
-    '--root-color': css('--gw-accent-fg'),
-    '--root-bgcolor': css('--gw-accent'),
-    '--root-border-color': 'transparent',
-    '--root-radius': '999px',
-    '--main-radius': '999px',
-    '--topic-padding': '6px 12px',
-    '--node-gap-x': '56px',
-    '--node-gap-y': '9px',
-    '--main-gap-x': '70px',
-    '--main-gap-y': '22px',
-    '--selected': css('--gw-accent'),
-    '--accent-color': css('--gw-accent'),
-    '--panel-color': css('--gw-fg'),
-    '--panel-bgcolor': css('--gw-surface'),
-    '--panel-border-color': css('--gw-line'),
-    '--map-padding': '60px 80px',
-  },
-}
-
 const syncEl = document.getElementById('sync')
 // The sync line keeps its key, so a language switch can say it again.
 let syncState = { cls: '', key: 'sync.loading', vars: undefined }
@@ -469,6 +435,14 @@ const setSync = (cls, key, vars) => {
 }
 
 let mind, version = null, dirty = false, saving = false, timer = null
+// Light or dark follows the OS, also when it switches while the page is open:
+// the map gets the matching theme and the branches their palette again.
+let THEME, PALETTE
+followColorScheme(matchMedia('(prefers-color-scheme: dark)'), (dark) => {
+  THEME = mapTheme({ dark, css, generateSubBranch: subBranch })
+  PALETTE = THEME.palette
+  if (mind) { mind.changeTheme(THEME); decorate() }
+})
 // In focus mode Mind Elixir's nodeData is just the focused branch; this is always the whole map.
 // Mind Elixir's findEle throws when a node is not on screen (collapsed or outside the focused layer).
 const ele = (id) => { try { return mind.findEle(id) } catch { return null } }
@@ -499,7 +473,7 @@ function decorate() {
     if (st) tpc.dataset.status = st; else delete tpc.dataset.status
     if (n.metadata?.doc) tpc.dataset.layer = n.metadata.doc; else delete tpc.dataset.layer
     const ct = n.metadata?.component
-    if (ct) { tpc.dataset.component = ct; tpc.dataset.componentLabel = COMPONENT_TYPES[ct] ? ui(`component.${ct}`) : ct } else { delete tpc.dataset.component; delete tpc.dataset.componentLabel }
+    if (ct) { tpc.dataset.component = ct; tpc.dataset.componentLabel = COMPONENT_TYPES.includes(ct) ? ui(`component.${ct}`) : ct } else { delete tpc.dataset.component; delete tpc.dataset.componentLabel }
     if (structured && isSection(data, n.id)) tpc.dataset.section = ''; else delete tpc.dataset.section
     if (n.note) tpc.dataset.hasNote = ''; else delete tpc.dataset.hasNote
     const impl = n.metadata?.impl
@@ -525,7 +499,7 @@ for (const key of Object.keys(STATUSES)) {
 const IMPL_COLORS = { done: 'var(--decision)', partial: 'var(--parked)', missing: 'var(--missing)' }
 const implButtons = {}
 dock.insertAdjacentHTML('beforeend', '<span class="sep"></span>')
-for (const key of Object.keys(IMPL)) {
+for (const key of IMPL) {
   const b = document.createElement('button')
   b.className = 'impl'
   b.style.setProperty('--c', IMPL_COLORS[key])

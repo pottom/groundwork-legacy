@@ -1,6 +1,7 @@
 // The UI translation mechanism: one small browser module with no dependencies, served at
 // /shell/i18n.mjs. The shell and every module view use it; a page that runs without the core
-// server (Build's folder-picker mode) can import a copy of this file, it needs nothing else.
+// server (Build's folder-picker mode) can load a copy of it as a classic script (without "export"; see
+// modules/build/i18n.js), it needs nothing else.
 //
 // The UI language is not the language of the generated documents (see modules/plan/doc-strings.mjs).
 //

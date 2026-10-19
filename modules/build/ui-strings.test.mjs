@@ -2,9 +2,9 @@
 // default, every label also in Hungarian, following the language chosen in the shell.
 //
 // The page also runs without the server (opened by double click, from file://), where neither
-// /shell/ nor module imports are available. So index.html carries what it needs inline: a copy of
-// the mechanism (<script id="gw-i18n">, kept equal to core/shell/i18n.mjs here) and its strings
-// (<script id="build-strings">, BUILD_STRINGS).
+// /shell/ nor module imports are available, only classic <script src> next to the page. So Build
+// carries what it needs as two classic scripts beside index.html: a copy of the mechanism
+// (i18n.js, kept equal to core/shell/i18n.mjs here) and its strings (ui-strings.js, BUILD_STRINGS).
 // Run: node --test "modules/**/*.test.mjs"
 
 import { test } from 'node:test'
@@ -12,6 +12,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import vm from 'node:vm'
 import { createI18n, LANG_KEY } from '../../core/shell/i18n.mjs'
+import build from './module.mjs'
 
 // Line endings depend on the checkout (core.autocrlf): compare without them.
 const read = (f) => fs.readFileSync(new URL(f, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
@@ -22,23 +23,26 @@ const HUNGARIAN_LETTERS = /[áéíóöőúüűÁÉÍÓÖŐÚÜŰ]/
 // parsing, not UI text.
 const READS_FILES = 'reads Hungarian files too'
 
-const SCRIPT = (id) => new RegExp(`<script id="${id}"[^>]*>([\\s\\S]*?)</script>`)
-const inline = (id) => {
-  const m = SCRIPT(id).exec(PAGE)
-  assert.ok(m, `<script id="${id}"> in index.html`)
-  return m[1]
-}
-const STRINGS = vm.runInNewContext(inline('build-strings') + '\n;BUILD_STRINGS')
+const I18N_COPY = read('./i18n.js')
+const STRINGS_FILE = read('./ui-strings.js')
+const STRINGS = vm.runInNewContext(STRINGS_FILE + '\n;BUILD_STRINGS')
 const { en, hu } = STRINGS
 
 test('the page carries the shell\'s translation mechanism unchanged', () => {
-  const copy = inline('gw-i18n').trim()
-  assert.equal(copy, SHELL_I18N.replace(/^export /gm, '').trim())
+  assert.equal(I18N_COPY.trim(), SHELL_I18N.replace(/^export /gm, '').trim())
+})
+
+test('the translation and the strings load as classic scripts beside the page, before its own script', () => {
+  const srcs = [...PAGE.matchAll(/<script\b([^>]*)>/g)].map((m) => /src="([^"]+)"/.exec(m[1])?.[1] ?? null)
+  assert.deepEqual(srcs.filter(Boolean), ['i18n.js', 'ui-strings.js'])
+  assert.ok(srcs.indexOf('ui-strings.js') < srcs.lastIndexOf(null), 'loaded before the page script')
+  assert.doesNotMatch(PAGE, /type="module"/)
+  assert.doesNotMatch(PAGE, /const BUILD_STRINGS|function createI18n/, 'no inline copy left')
+  for (const f of ['i18n.js', 'ui-strings.js']) assert.ok(build.view.files.includes(f), `${f} is served`)
 })
 
 test('the page has no Hungarian text outside its strings', () => {
-  const rest = PAGE.replace(SCRIPT('build-strings'), '')
-  const lines = rest.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => HUNGARIAN_LETTERS.test(l) && !l.includes(READS_FILES))
+  const lines = PAGE.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => HUNGARIAN_LETTERS.test(l) && !l.includes(READS_FILES))
   assert.deepEqual(lines, [])
   assert.match(PAGE, /<html lang="en">/)
 })
@@ -54,7 +58,7 @@ test('the English and the Hungarian set have the same keys, and the Hungarian on
 })
 
 test('every key the page uses has a text, and every text is used', () => {
-  const rest = PAGE.replace(SCRIPT('build-strings'), '')
+  const rest = PAGE
   const spaces = new Set(Object.keys(en).map((k) => k.split('.')[0]))
   const used = new Set()
   for (const m of rest.matchAll(/['"`]([a-z][\w-]*)\.([\w.-]*[\w-])['"`]/g)) if (spaces.has(m[1])) used.add(`${m[1]}.${m[2]}`)

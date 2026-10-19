@@ -151,6 +151,6 @@ switch (cmd) {
   case 'hook': cmdHook(); break
   case 'serve': die('plan.mjs serve is gone: the core server serves the editor now. Run: node core/groundwork.mjs'); break
   default: die('usage: plan.mjs init "<title>" | apply \'<ops json>\' | show | kinds | hook\n' +
-    `statuses: ${Object.keys(STATUSES).join(', ')}\ndocument kinds: ${Object.keys(KINDS).join(', ')}\ncomponent types: ${Object.keys(COMPONENT_TYPES).join(', ')}\n` +
+    `statuses: ${Object.keys(STATUSES).join(', ')}\ndocument kinds: ${Object.keys(KINDS).join(', ')}\ncomponent types: ${COMPONENT_TYPES.join(', ')}\n` +
     `document languages: ${Object.keys(DOC_STRINGS).join(', ')}`)
 }

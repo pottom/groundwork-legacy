@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 9 kész, 1 részben, 0 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 13 kész, 0 részben, 0 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -25,7 +25,7 @@ Az első verzióban minden modul a csomagon belül él, de a szerződés úgy k�
 - **Egy modul egy mappa, benne:**
   - Leíró: azonosító, név, verzió `kész` ([modules/plan/module.mjs](../../../modules/plan/module.mjs))
   - Szerver-végpontok a /api/<module>/ alatt `kész` ([core/server.mjs](../../../core/server.mjs))
-  - Nézet a közös keretben `részben` — A nézetet a Mag szolgálja ki a /<module>/ alatt; a közös keret még hiányzik.
+  - Nézet a közös keretben `kész` — A nézetet a Mag szolgálja ki a /<module>/ alatt, a közös keretben (fejléc, navigáció). ([core/shell/shell.mjs](../../../core/shell/shell.mjs))
   - Opcionális skillek és hookok (az init telepíti)
   - Mappák, ahová írhat (a Mag ellenőrzi) `kész` ([core/files.mjs](../../../core/files.mjs))
 
@@ -33,9 +33,9 @@ Az első verzióban minden modul a csomagon belül él, de a szerződés úgy k�
 
 Minden modul egy közös kinézetet használ, amelyet a Mag ad; ez követi az operációs rendszer világos vagy sötét beállítását. A felület alapnyelve angol, magyar fordítással. A generált dokumentumok nyelvét nem a felület, hanem a beszélgetés nyelve határozza meg.
 
-- Felület angolul, magyar fordítással
-- Közös kinézet a Magból, minden modul ehhez igazodik
-- Világos vagy sötét az OS beállítása szerint
+- Felület angolul, magyar fordítással `kész` — A keret, a Plan és a Build is; a nyelvet a fejlécben lehet váltani. ([core/shell/i18n.mjs](../../../core/shell/i18n.mjs))
+- Közös kinézet a Magból, minden modul ehhez igazodik `kész` — A közös változók a /shell/theme.css-ben; a Plan és a Build is ezeket használja. ([core/shell/theme.css](../../../core/shell/theme.css))
+- Világos vagy sötét az OS beállítása szerint `kész` — Kapcsoló nincs; a nézetek újratöltés nélkül is követik a váltást. ([core/shell/theme.css](../../../core/shell/theme.css))
 
 ## 4. Csomagolás és terjesztés
 

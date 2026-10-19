@@ -23,7 +23,9 @@ The page re-reads the files every few seconds.
 
 | File | Role |
 |---|---|
-| `index.html` | the dashboard page; works on its own too (open it, pick the project folder; live only in Chromium browsers, and without the git view) |
+| `index.html` | the dashboard page; works on its own too (open it from this folder, pick the project folder; live only in Chromium browsers, and without the git view) |
+| `ui-strings.js` | the UI strings (`BUILD_STRINGS`), English and Hungarian |
+| `i18n.js` | a copy of `core/shell/i18n.mjs` without `export`; do not edit it here |
 | `module.mjs` | the manifest and the read-only endpoints under `/api/build/` |
 | `project-reader.mjs` | reads the project: the Markdown files inside the root, and the git history |
 
@@ -42,4 +44,4 @@ node core/groundwork.mjs --root .       # then open http://localhost:4477/build/
 
 It never writes. It serves only the page, the project's Markdown files inside the root and, in a git repository, the branch history; git is only asked to read.
 
-The header comments of the files describe the formats in detail. The UI is in English, with a Hungarian translation (the strings are `BUILD_STRINGS` in `index.html`). Inside the shell it follows the shell's language; opened alone it has its own language picker. The translation mechanism is an inline copy of `core/shell/i18n.mjs`, so the page needs no server; `ui-strings.test.mjs` keeps the copy equal to the original.
+The header comments of the files describe the formats in detail. The UI is in English, with a Hungarian translation (the strings are `BUILD_STRINGS` in `ui-strings.js`). Inside the shell it follows the shell's language; opened alone it has its own language picker. The translation mechanism is `i18n.js`, a copy of `core/shell/i18n.mjs`: opened by double click (`file://`) there is no `/shell/` and the browser refuses ES module imports, but classic `<script src>` files beside the page still load. So `index.html`, `i18n.js` and `ui-strings.js` stay together in this folder, and none of them may become a module. `ui-strings.test.mjs` keeps the copy equal to the original.

@@ -91,8 +91,10 @@
                 "id": "d-core-role",
                 "topic": "A Mag: közös szerver és keret, felhasználói funkció nélkül",
                 "metadata": {
-                  "status": "decision"
-                }
+                  "status": "decision",
+                  "impl": "done"
+                },
+                "hyperLink": "core/README.md"
               },
               {
                 "id": "d-trace",
@@ -290,9 +292,10 @@
                         "topic": "Nézet a közös keretben",
                         "metadata": {
                           "status": "decision",
-                          "impl": "partial"
+                          "impl": "done"
                         },
-                        "note": "A nézetet a Mag szolgálja ki a /<module>/ alatt; a közös keret még hiányzik."
+                        "note": "A nézetet a Mag szolgálja ki a /<module>/ alatt, a közös keretben (fejléc, navigáció).",
+                        "hyperLink": "core/shell/shell.mjs"
                       },
                       {
                         "id": "d-mod-skills",
@@ -327,22 +330,31 @@
                     "id": "d-ui-lang",
                     "topic": "Felület angolul, magyar fordítással",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "note": "A keret, a Plan és a Build is; a nyelvet a fejlécben lehet váltani.",
+                    "hyperLink": "core/shell/i18n.mjs"
                   },
                   {
                     "id": "d-shared-look",
                     "topic": "Közös kinézet a Magból, minden modul ehhez igazodik",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "note": "A közös változók a /shell/theme.css-ben; a Plan és a Build is ezeket használja.",
+                    "hyperLink": "core/shell/theme.css"
                   },
                   {
                     "id": "d-theme-os",
                     "topic": "Világos vagy sötét az OS beállítása szerint",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "note": "Kapcsoló nincs; a nézetek újratöltés nélkül is követik a váltást.",
+                    "hyperLink": "core/shell/theme.css"
                   }
                 ]
               },
@@ -619,8 +631,11 @@
                     "id": "d-plan-lang",
                     "topic": "Dokumentumok a beszélgetés nyelvén",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "partial"
+                    },
+                    "note": "Magyar és angol szövegkészlet van; más nyelvű beszélgetésnél a dokumentumok angolul készülnek.",
+                    "hyperLink": "modules/plan/doc-strings.mjs"
                   },
                   {
                     "id": "f-plan-trace",
