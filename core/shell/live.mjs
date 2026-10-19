@@ -1,8 +1,8 @@
 // Live updates in the browser: one stream of server events per tab. Served at /shell/live.mjs.
 //
 // The shell owns the connection. It opens the one EventSource on /api/events and relays what
-// arrives to the module's frame with postMessage; a module page never opens a second stream
-// while it sits in the shell. Opened on its own (no shell around it), the same call opens the
+// arrives to every module frame with postMessage, the hidden ones the shell keeps alive too; a
+// module page never opens a second stream while it sits in the shell. Opened on its own (no shell around it), the same call opens the
 // page's own stream, so a module writes one line either way:
 //
 //   import { subscribe } from '/shell/live.mjs'

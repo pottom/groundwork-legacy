@@ -143,9 +143,12 @@ body.gw-shell {
 
 /* ---- the module's view ---- */
 
-.gw-main { flex: 1; min-height: 0; }
+.gw-main { position: relative; flex: 1; min-height: 0; }
 
-.gw-view { display: block; width: 100%; height: 100%; border: 0; background: var(--gw-bg); }
+/* one frame per visited module, stacked; the hidden ones keep their size, so a module is not
+   laid out again at 0×0 (its zoom and scroll stay), and frames.mjs makes them inert */
+.gw-view { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; background: var(--gw-bg); }
+.gw-view[hidden] { display: block; visibility: hidden; pointer-events: none; }
 
 /* narrow windows: one row, the tabs as a segmented control in the bar */
 @media (max-width: 760px) {

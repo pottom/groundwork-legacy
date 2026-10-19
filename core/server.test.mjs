@@ -310,7 +310,7 @@ test('the shell has a language picker and serves the translation module to its p
     const page = (await get(port, '/')).body
     assert.match(page, /<div class="gw-seg gw-lang" role="group"[^>]*>\s*<button type="button" data-lang="en" title="English"[^>]*>EN<\/button>\s*<button type="button" data-lang="hu" title="Magyar"[^>]*>HU<\/button>/)
     assert.match(page, /import \{ createI18n \} from '\/shell\/i18n\.mjs'/)
-    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs', '/shell/live.mjs']) {
+    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs', '/shell/live.mjs', '/shell/frames.mjs']) {
       const r = await get(port, js)
       assert.equal(r.status, 200, js)
       assert.match(r.headers['content-type'], /javascript/)
