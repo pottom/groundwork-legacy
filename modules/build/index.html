@@ -72,6 +72,8 @@
                        tickets moved into ticket-reader.js
     2.4.0  2026-10-19  a ticket's "**PRD:**" line shows as links that open Plan on
                        those map nodes (Plan's deep link /?module=plan&node=<id>)
+    2.5.0  2026-10-19  checks: a ticket without a PRD line, or naming an id that is
+                       not on Plan's map (docs/product/mindmap.json)
 -->
 <link rel="stylesheet" href="/shell/theme.css">
 <script>try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }</script>
@@ -569,7 +571,7 @@ const ui = i18n.t;
 const SERVER_ID = 'development-status';
 const SERVER_API = '/api/build';
 const SERVER_TIMEOUT_MS = 8000;
-const VERSION = '2.4.0';   // the same in module.mjs; the header comment lists the versions
+const VERSION = '2.5.0';   // the same in module.mjs; the header comment lists the versions
 
 const DEFAULT_TRACKER_DIR = '.scratch';
 const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
@@ -851,6 +853,8 @@ const PROBLEM_KINDS = [
   ['released', 'problem.released', true],
   ['mismatch', 'problem.mismatch'],
   ['no-number', 'problem.no-number'],
+  ['no-prd', 'problem.no-prd'],
+  ['unknown-prd', 'problem.unknown-prd'],
 ];
 
 // Kinds that are worth knowing but are not a contradiction: not counted as a warning.
@@ -1124,7 +1128,8 @@ async function refresh() {
     }
     for (const path of [...cache.keys()]) if (!seen.has(path)) { cache.delete(path); touched.push(path); }
     touched.push(...await refreshIssues());
-    const shape = listing.trackerPath + '|' + listing.adrPath + '|' + listing.others.length;
+    await refreshMap();
+    const shape = listing.trackerPath + '|' + listing.adrPath + '|' + listing.others.length + '|' + (mapState.ids ? mapState.key : '-');
     const first = !model;
     if (first || touched.length || shape !== source.shape) {
       source.shape = shape;
@@ -1132,6 +1137,7 @@ async function refresh() {
         name: source.name,
         files: { entries: cache, others: listing.others, trackerPath: listing.trackerPath, adrPath: listing.adrPath },
         github: issueState.repo ? { repo: issueState.repo, issues: issueState.issues } : null,
+        mapIds: mapState.ids,
       });
       if (!first && touched.length) {
         const now = Date.now();
@@ -1181,6 +1187,39 @@ async function refreshIssues() {
   return touched;
 }
 
+// The ids of Plan's map (docs/product/mindmap.json), which the reader checks the tickets'
+// PRD lines against. On the server Plan sends it (GET /api/plan/map, "same" while unchanged);
+// from a picked folder the file is read when its size or time changed. No map (none in the
+// project, Plan not running, an unreadable file): ids null, and no PRD id counts as unknown.
+const MAP_PATH = 'docs/product/mindmap.json';
+let mapState = { key: '', ids: null };
+
+async function refreshMap() {
+  if (!source) return;
+  try {
+    if (source.server) {
+      const known = mapState.key ? '?v=' + encodeURIComponent(mapState.key) : '';
+      const res = await fetch('/api/plan/map' + known, { cache: 'no-store' });
+      const data = res.ok ? await res.json() : null;
+      if (data && data.same) return;
+      const ids = GroundworkTickets.mapIds(data && data.data);   // { v, data: the map }
+      mapState = { key: ids && data.v ? String(data.v) : '', ids };
+      return;
+    }
+    const A = source.adapter;
+    const dir = await findChild(A, source.root, MAP_PATH.split('/').slice(0, -1).join('/'));
+    const hit = dir && (await A.children(dir)).find((c) => !c.isDir && c.name === MAP_PATH.split('/').pop());
+    if (!hit) { mapState = { key: '', ids: null }; return; }
+    const f = await A.file(hit.node);
+    const key = f.size + '@' + f.lastModified;
+    if (key === mapState.key) return;
+    mapState = { key, ids: GroundworkTickets.mapIds(JSON.parse(await f.text())) };
+  } catch (err) {
+    if (err && (err.name === 'NotAllowedError' || err.name === 'NotFoundError')) throw err;
+    mapState = { key: '', ids: null };   // a map caught mid-write, or no Plan: try again next round
+  }
+}
+
 // The launcher's git history; true when it changed. The server is told what
 // the page has, and answers "unchanged" while no ref moved.
 async function refreshGit() {
@@ -1217,6 +1256,7 @@ async function start(src) {
   serverDown = false;
   gitState = { data: null, error: '', limit: GIT_PAGE, open: new Set(), hit: '' };
   issueState = NO_ISSUES();
+  mapState = { key: '', ids: null };
   $('start-error').hidden = true;
   await refresh();
   if (model) startPolling();
