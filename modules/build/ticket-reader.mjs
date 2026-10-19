@@ -30,7 +30,7 @@
 //                   PRD items (Plan's map nodes) named on the ticket's "**PRD:** a, b" line, [] without
 //                   one; ideas: the ideas (the Ideas module's 'I-12') named on its "**Idea:** I-12"
 //                   line, [] without one; sketches: the sketches named on its "**Sketch:** a, b" line
-//                   (Sketch's own names, docs/product/sketches/<name>.excalidraw)
+//                   (the Sketch module's own names; Build never opens a sketch)
 //   areas        Map name → { name, spec, tickets, docs, extras, open, closed, local }; a local
 //                ticket's area is its folder, a GitHub issue's is its milestone ('' without one)
 //   areaList, docs, adrs, readme, glossaries, byPath, byIssue, byLocal, resolveIssue(n),
@@ -64,7 +64,8 @@
 // deep-link.mjs makes), prdFilter(location.search) the PRD item a Build link names (?prd=).
 // sketchLink(name) opens a sketch in the shell (/?module=sketch&sketch=<name>; a name the sketch
 // had before a rename still finds it). ticketFilter(location.search) is the ticket a link names
-// (?ticket=#34), findTicket(model, ref) that ticket.
+// (?ticket=#34), findTicket(model, ref) that ticket. linkedSketches(model, linked) and
+// ticketSketches(t, map) add the sketches that link to a ticket from Sketch's side.
 //
 // An ES module, shared by the page (page/config.mjs) and the server (project-tickets.mjs).
 
@@ -606,8 +607,23 @@ function findTicket(model, ref) {
   return model.byPath.get(r) || null;
 }
 
+// The sketches that link to a ticket from Sketch's side: Sketch's public GET /api/sketch/links
+// answers linked.ticket, { '#34': ['flow'], 'core 3': ['main'] }, a ref as findTicket takes it.
+// linkedSketches(model, linked) -> Map(ticket -> [names]); a ref that is no ticket is left out, and
+// without Sketch (null) the map is empty. ticketSketches(t, map): the ticket's own "**Sketch:**"
+// line first, then the sketches linking to it, each once.
+function linkedSketches(model, linked) {
+  const out = new Map();
+  for (const [ref, names] of Object.entries(linked || {})) {
+    const t = Array.isArray(names) ? findTicket(model, ref) : null;
+    if (t) out.set(t, [...(out.get(t) || []), ...names.map(String)]);
+  }
+  return out;
+}
+const ticketSketches = (t, linked) => [...new Set([...t.sketches, ...((linked && linked.get(t)) || [])])];
+
 export {
-  readTickets, locateProject, ticketPath, keepsFolder, planLink, sketchLink, prdFilter, ticketFilter, findTicket,
+  readTickets, locateProject, ticketPath, keepsFolder, planLink, sketchLink, prdFilter, ticketFilter, findTicket, linkedSketches, ticketSketches,
   DONE, DROPPED, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH,
   fold, plainInline, isClosed, isDone, isDropped, waitingOn, WAITING, HUMAN, TEST,
 };

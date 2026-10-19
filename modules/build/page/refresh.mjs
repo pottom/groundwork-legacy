@@ -1,5 +1,5 @@
 // Reading the project from the server, and again when it changed: the Markdown files, the GitHub
-// issues, Plan's map ids and the git history, all in parallel.
+// issues, Plan's map ids, the sketches that link to tickets (Sketch) and the git history, all in parallel.
 // A live update names what changed, and only that is asked again; every (re)connect reads all.
 
 import { reader, FRESH_MS, NO_REPO } from './config.mjs';
@@ -10,7 +10,7 @@ import { subscribe } from '/shell/live.mjs';
 import { serverJson } from './server.mjs';
 import { renderAll, renderView, renderNav, renderNotices, renderLive, showStartScreen, toast } from './render.mjs';
 
-const { readTickets } = reader;
+const { readTickets, linkedSketches } = reader;
 
 function describeChange(path, before, after) {
   if (after && after.kind === 'ticket') {
@@ -28,8 +28,8 @@ function describeChange(path, before, after) {
   return { label: name, text: () => ui(before ? 'change.modified' : 'change.new-file') };
 }
 
-const ALL_PARTS = ['files', 'issues', 'map', 'git'];
-const TOPIC_PART = { 'build.files': 'files', 'build.issues': 'issues', 'build.git': 'git', 'plan.map': 'map' };
+const ALL_PARTS = ['files', 'issues', 'map', 'sketches', 'git'];
+const TOPIC_PART = { 'build.files': 'files', 'build.issues': 'issues', 'build.git': 'git', 'plan.map': 'map', 'sketch.links': 'sketches' };
 function partsOf(topics) {
   const parts = new Set();
   for (const t of topics) {
@@ -83,11 +83,12 @@ async function refreshOnce(want) {
   const src = app.source;
   const wasDown = app.serverDown;
   try {
-    const [files, issues, , gitChanged] = await Promise.all([
+    const [files, issues, , gitChanged, sketchesChanged] = await Promise.all([
       want.has('files') || !app.listing ? readFiles() : [],
       want.has('issues') ? refreshIssues() : [],
       want.has('map') ? refreshMap() : null,
       want.has('git') ? refreshGit() : false,
+      want.has('sketches') ? refreshSketches() : false,
     ]);
     if (src !== app.source) return;
     const touched = [...files, ...issues];
@@ -112,9 +113,13 @@ async function refreshOnce(want) {
         setTimeout(() => { if (app.model) renderView(); }, FRESH_MS + 500);
       }
       app.model = next;
+      app.sketches.byTicket = linkedSketches(next, app.sketches.linked);
       renderAll();
       if (first && actions.openLinked) actions.openLinked();
-    } else if (gitChanged && app.model) { renderNav(true); if (state.view === 'git') renderView(); }
+    } else {
+      if (gitChanged && app.model) { renderNav(true); if (state.view === 'git') renderView(); }
+      if (sketchesChanged && app.model) { app.sketches.byTicket = linkedSketches(app.model, app.sketches.linked); renderView(); }
+    }
     app.lastChecked = new Date();
     app.serverDown = false;
     if (wasDown) renderNotices();
@@ -167,6 +172,23 @@ async function refreshMap() {
   } catch (err) {
     app.map = { key: '', ids: null };   // no Plan, or the server stopped: try again next round
   }
+}
+
+// The sketches that link to tickets from Sketch's side (its public GET /api/sketch/links: linked.ticket,
+// { '#34': ['flow'] }); true when they changed. No Sketch (not running, no answer): none, no error,
+// and a ticket shows only its own "**Sketch:**" line.
+async function refreshSketches() {
+  let linked = null;
+  try {
+    const res = await fetch('/api/sketch/links', { cache: 'no-store' });
+    linked = res.ok ? ((await res.json()).linked || {}).ticket || null : null;
+  } catch (err) {
+    linked = null;
+  }
+  const key = JSON.stringify(linked || {});
+  if (key === app.sketches.key) return false;
+  app.sketches = { ...app.sketches, key, linked };
+  return true;
 }
 
 // The server's git history; true when it changed. The server is told what the page has, and

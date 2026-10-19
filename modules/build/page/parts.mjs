@@ -6,7 +6,7 @@ import { reader } from './config.mjs';
 import { ui, statusName, statusTitle, statusTone } from './text.mjs';
 import { app, docHref, isFree } from './state.mjs';
 
-const { isClosed, planLink, sketchLink } = reader;
+const { isClosed, planLink, sketchLink, ticketSketches } = reader;
 
 export const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 
@@ -49,8 +49,10 @@ const ideaLink = (id) => '/?module=ideas&idea=' + encodeURIComponent(id);
 export const ideaLinks = (t) => t.ideas.map((id, i) => [i ? ' ' : '',
   html`<a class="gw-tag" href=${ideaLink(id)} target="_top" title=${ui('idea.open', { id })}>${id}</a>`]);
 
-// The sketches a ticket links to (its "**Sketch:**" line): each opens in Sketch, in the whole window.
-export const sketchLinks = (t) => t.sketches.map((name, i) => [i ? ' ' : '',
+// The sketches of a ticket: its "**Sketch:**" line, and the sketches linking to it from Sketch's side
+// (GET /api/sketch/links, refresh.mjs). Each opens in Sketch, in the whole window.
+export const sketchesOf = (t) => ticketSketches(t, app.sketches.byTicket);
+export const sketchLinks = (t) => sketchesOf(t).map((name, i) => [i ? ' ' : '',
   html`<a class="gw-tag" href=${sketchLink(name)} target="_top" title=${ui('sketch.open', { name })}>${name}</a>`]);
 
 export const progress = (value, title) => html`<span class="gw-progress" style="--value:${value}%" title=${title || nothing}></span>`;

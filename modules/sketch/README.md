@@ -64,7 +64,7 @@ Links survive renaming a sketch: its own links move along, links to it from othe
 
 | Endpoint | Who reads it |
 |---|---|
-| `GET /api/sketch/links` | Ideas (the sketches on a card) and Plan (the sketches on a map node) |
+| `GET /api/sketch/links` | Ideas (the sketches on a card), Plan (the sketches on a map node) and Build (the sketches linking to a ticket, beside its `**Sketch:**` line) |
 
 ## Claude on the board
 

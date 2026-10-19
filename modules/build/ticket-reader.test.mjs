@@ -174,6 +174,24 @@ test('the Sketch line names the sketches a ticket links to, in both sources', ()
   assert.equal(reader.sketchLink('checkout-flow'), '/?module=sketch&sketch=checkout-flow');
 });
 
+test('a ticket shows the sketches that link to it from Sketch\'s side too, beside its own Sketch line', () => {
+  const m = readTickets({
+    ...local({
+      '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**Sketch:** checkout-flow\n',
+      '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n',
+    }),
+    github: { repo: 'acme/app', issues: [issue(34)] },
+  });
+  // What GET /api/sketch/links answers as linked.ticket: refs as Sketch keeps them.
+  const linked = { '#34': ['flow'], 'core 1': ['checkout-flow', 'arch'], 'core 3': ['main'], '#99': ['lost'] };
+  const sketches = reader.linkedSketches(m, linked);
+  assert.deepEqual(reader.ticketSketches(byLabel(m, '#34'), sketches), ['flow']);
+  assert.deepEqual(reader.ticketSketches(byLabel(m, 'core 01'), sketches), ['checkout-flow', 'arch'], 'its own line first, each sketch once');
+  assert.deepEqual(reader.ticketSketches(byLabel(m, 'core 03'), sketches), ['main']);
+  assert.deepEqual(reader.ticketSketches(byLabel(m, 'core 01'), reader.linkedSketches(m, {})), ['checkout-flow'], 'without Sketch: the line alone');
+  assert.deepEqual(reader.linkedSketches(m, null).size, 0);
+});
+
 test('a ticket a link names (?ticket=): an issue number, an area and number, or its path', () => {
   const m = readTickets({
     ...local({ '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n' }),

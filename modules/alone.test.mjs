@@ -13,6 +13,8 @@ import { moduleFiles } from '../core/files.mjs'
 import { openMap } from './plan/map-store.mjs'
 import plan from './plan/module.mjs'
 import build, { buildModule } from './build/module.mjs'
+import ideas from './ideas/module.mjs'
+import sketch from './sketch/module.mjs'
 
 // A project with a map and a ticket that names an item.
 function project() {
@@ -64,6 +66,38 @@ test('with only Build, its page and endpoints work, and Plan\'s endpoint is simp
   })
 })
 
+test('with only Ideas, its page and endpoints work; Plan, Build and Sketch are simply not there', async () => {
+  await withServer([ideas], async (get, send) => {
+    assert.deepEqual(tabs(await (await get('/')).text()), ['ideas'])
+    assert.match(await (await get('/ideas/')).text(), /<html/i)
+    assert.deepEqual((await (await get('/api/ideas/list')).json()).ideas, [])
+    // The one write Ideas asks another module for: without Plan it is a 404, which the page reads
+    // as "the map is unavailable" (view/plan.mjs); the idea stays as it is.
+    const todo = await send('POST', '/api/plan/todo', JSON.stringify({ idea: 'I-1', title: 'x' }), 'application/json')
+    assert.equal(todo.status, 404)
+    for (const p of ['/api/build/ideas', '/api/sketch/links']) assert.equal((await get(p)).status, 404, `${p}: nothing to show`)
+  })
+})
+
+test('with only Sketch, its page and endpoints work; the modules it links to are simply not there', async () => {
+  await withServer([sketch], async (get) => {
+    assert.deepEqual(tabs(await (await get('/')).text()), ['sketch'])
+    assert.match(await (await get('/sketch/')).text(), /<html/i)
+    assert.deepEqual((await (await get('/api/sketch/list')).json()).sketches, [])
+    assert.equal((await get('/api/sketch/links')).status, 200)
+    assert.equal((await get('/api/sketch/scene?name=main')).status, 200)
+    for (const p of ['/api/ideas/list', '/api/plan/ids', '/api/build/prd']) assert.equal((await get(p)).status, 404, p)
+  })
+})
+
+test('Plan and Build without Ideas and Sketch: the endpoints they read from those are simply not there', async () => {
+  await withServer([plan, buildModule({ githubRequest: async () => [] })], async (get) => {
+    assert.equal((await get('/api/plan/ids')).status, 200)
+    assert.equal((await get('/api/build/prd')).status, 200)
+    assert.equal((await get('/api/sketch/links')).status, 404, 'Plan\'s nodes and Build\'s tickets show only their own sketches')
+  })
+})
+
 test('each module declares the endpoints other modules may read, and the server answers them', async () => {
   assert.deepEqual(plan.public, ['GET /api/plan/ids', 'POST /api/plan/todo'])
   assert.deepEqual(build.public, ['GET /api/build/prd', 'GET /api/build/ideas'])
@@ -109,4 +143,22 @@ test('neither module reads the other\'s files: Build never opens the map, Plan n
   for (const [file, text] of sources(plan)) {
     assert.doesNotMatch(text, /ticket-reader|project-tickets|\.\.\/build\//, `plan/${file}`)
   }
+})
+
+test('no module reads the files of Ideas or Sketch, nor do they read another module\'s files', () => {
+  const imports = (id) => new RegExp(`['"]\\.\\.\\/(\\.\\.\\/)?${id}\\/`)   // an import from that module's folder
+  const IDEA_FILES = /ideas\/items/
+  const SKETCH_FILES = /docs\/product\/sketches|\.excalidraw\b|links\.json|\.threads\.json/
+  for (const m of MODULES) {
+    for (const [file, text] of sources(m)) {
+      for (const o of MODULES.filter((x) => x !== m)) assert.doesNotMatch(text, imports(o.id), `${m.id}/${file} imports from ${o.id}`)
+      if (m !== ideas) assert.doesNotMatch(text, IDEA_FILES, `${m.id}/${file} reads the idea files`)
+      if (m !== sketch) assert.doesNotMatch(text, SKETCH_FILES, `${m.id}/${file} reads the sketch files`)
+    }
+  }
+  for (const [file, text] of [...sources(ideas), ...sources(sketch)]) {
+    assert.doesNotMatch(text, /mindmap\.json|ticket-reader|project-tickets/, file)
+  }
+  assert.deepEqual(ideas.public, [])
+  assert.deepEqual(sketch.public, ['GET /api/sketch/links'])
 })

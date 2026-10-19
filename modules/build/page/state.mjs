@@ -33,6 +33,7 @@ export const app = {
   git: NO_GIT(),       // the git history from the server: { data, error, limit, open: Set of hashes, hit }
   issues: NO_ISSUES(), // the GitHub issues the server sent: the source of the GitHub tickets
   map: { key: '', ids: null },   // the ids of Plan's map
+  sketches: { key: '', linked: null, byTicket: new Map() },   // the sketches linking to tickets, from Sketch
   openDetails: new Set(),        // the <details> the user opened (areas, the change log)
   lastOpener: null,              // the document whose link opened the drawer, to focus it again
   startError: '',

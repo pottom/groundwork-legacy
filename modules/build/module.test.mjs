@@ -376,6 +376,14 @@ test('a ticket\'s ideas link to the Ideas module in the whole window, beside its
   assert.match(readBuild('page/views/drawer.mjs'), /ideaLinks\(t\)/);
 });
 
+test('a ticket shows the sketches linked to it from Sketch (its public GET /api/sketch/links), followed live', () => {
+  assert.match(PAGE, /fetch\('\/api\/sketch\/links'/);
+  assert.match(PAGE, /'sketch\.links'/, 'read again when the links change');
+  assert.match(PAGE, /linkedSketches\(/);
+  assert.match(readBuild('page/parts.mjs'), /ticketSketches\(/);
+  for (const f of ['page/views/tickets.mjs', 'page/views/drawer.mjs']) assert.match(readBuild(f), /sketchesOf\(t\)\.length/, f);
+});
+
 test('the view follows the shell\'s one stream (subscribe from /shell/live.mjs) and asks Plan only for the map ids', () => {
   assert.doesNotMatch(PAGE, /new EventSource/);
   assert.match(PAGE, /import \{ subscribe \} from '\/shell\/live\.mjs'/);
