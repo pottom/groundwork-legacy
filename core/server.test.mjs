@@ -10,6 +10,9 @@ import path from 'node:path'
 import { startServer } from './server.mjs'
 import { shellPage } from './shell/shell.mjs'
 import { SHELL_STRINGS } from './shell/strings.mjs'
+import { VERSION } from './version.mjs'
+import { send } from './http.mjs'
+import zlib from 'node:zlib'
 
 function fakeModule(viewDir) {
   return {
@@ -33,19 +36,26 @@ async function withServer(fn) {
 // Two modules with views and one without, in a project folder with a name that needs escaping.
 async function withShell(fn) {
   const root = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gw-shell-')), 'my <project>')
-  const view = (id, name) => ({ id, name, version: '1', view: { dir: root, files: ['index.html'] } })
-  const modules = [view('one', 'First'), view('two', 'Second & more'), { id: 'headless', name: 'Headless', version: '1' }]
+  const view = (id, name, extra) => ({ id, name, version: '1', view: { dir: root, files: ['index.html'] }, ...extra })
+  const modules = [
+    view('one', 'First', { tagline: { en: 'The <first> one', hu: 'Az <első>' }, icon: '<circle cx="12" cy="12" r="4"/>' }),
+    view('two', 'Second & more'),
+    { id: 'headless', name: 'Headless', version: '1' },
+  ]
   const srv = await startServer({ root, modules, port: 0 })
   try { await fn(srv) } finally { await srv.close() }
 }
 
-// A raw request, so the Host header can be anything.
-function get(port, pathname, host = `127.0.0.1:${port}`) {
+// A raw request, so the Host header can be anything; `headers` adds more.
+function get(port, pathname, host = `127.0.0.1:${port}`, headers = {}) {
   return new Promise((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port, path: pathname, headers: { host } }, (res) => {
-      let body = ''
-      res.on('data', (c) => (body += c))
-      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }))
+    const req = http.request({ host: '127.0.0.1', port, path: pathname, headers: { host, ...headers } }, (res) => {
+      const chunks = []
+      res.on('data', (c) => chunks.push(c))
+      res.on('end', () => {
+        const raw = Buffer.concat(chunks)
+        resolve({ status: res.statusCode, headers: res.headers, raw, body: raw.toString('utf8') })
+      })
     })
     req.on('error', reject)
     req.end()
@@ -66,10 +76,40 @@ test('a foreign Host header gets 403', async () => {
   })
 })
 
-test('localhost and 127.0.0.1 Host headers are accepted', async () => {
+test('localhost, 127.0.0.1 and [::1] Host headers are accepted', async () => {
   await withServer(async ({ port }) => {
     assert.equal((await get(port, '/api/demo/hello', `localhost:${port}`)).status, 200)
     assert.equal((await get(port, '/api/demo/hello', `127.0.0.1:${port}`)).status, 200)
+    assert.equal((await get(port, '/api/demo/hello', `[::1]:${port}`)).status, 200)
+  })
+})
+
+// A raw request to ::1, or null when this machine has no IPv6 loopback.
+function get6(port, pathname, host = `[::1]:${port}`) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ host: '::1', port, path: pathname, headers: { host } }, (res) => {
+      let body = ''
+      res.on('data', (c) => (body += c))
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }))
+    })
+    req.on('error', (e) => (['EADDRNOTAVAIL', 'EAFNOSUPPORT', 'ENETUNREACH'].includes(e.code) ? resolve(null) : reject(e)))
+    req.end()
+  })
+}
+
+test('"localhost" is fast: the server answers on ::1 too, where localhost resolves first', async () => {
+  await withServer(async ({ port }) => {
+    const r = await get6(port, '/api/demo/hello')
+    if (r === null) return // no IPv6 loopback here: localhost can only be 127.0.0.1
+    assert.equal(r.status, 200)
+    assert.equal((await get6(port, '/api/demo/hello', `localhost:${port}`)).status, 200)
+    assert.equal((await get6(port, '/api/demo/hello', 'evil.example.com')).status, 403)
+  })
+})
+
+test('connections are kept open long enough for a pause between clicks', async () => {
+  await withServer(async ({ server }) => {
+    assert.ok(server.keepAliveTimeout >= 60000, String(server.keepAliveTimeout))
   })
 })
 
@@ -80,6 +120,116 @@ test('module endpoints are under /api/<module>/ and get the project root', async
     assert.equal((await get(port, '/api/demo/missing')).status, 404)
     assert.equal((await get(port, '/api/nobody/hello')).status, 404)
   })
+})
+
+test('every answer tells the browser not to guess its type, and says how long it is', async () => {
+  await withServer(async ({ port }) => {
+    for (const p of ['/api/modules', '/demo/', '/vendor/fonts.css', '/api/demo/missing']) {
+      const r = await get(port, p)
+      assert.equal(r.headers['x-content-type-options'], 'nosniff', p)
+      assert.equal(Number(r.headers['content-length']), Buffer.byteLength(r.body), p)
+    }
+  })
+})
+
+test('files are cached by the browser and asked again cheaply: an unchanged one is a 304 without a body', async () => {
+  await withServer(async ({ port }) => {
+    for (const p of ['/demo/', '/shell/theme.css', '/vendor/marked/marked.esm.js']) {
+      const first = await get(port, p)
+      assert.equal(first.status, 200, p)
+      assert.ok(first.headers.etag, p)
+      const again = await get(port, p, undefined, { 'if-none-match': first.headers.etag })
+      assert.equal(again.status, 304, p)
+      assert.equal(again.body, '', p)
+      assert.equal(again.headers.etag, first.headers.etag, p)
+    }
+  })
+})
+
+test('a changed file gets a new ETag, so the browser never keeps an old one', async () => {
+  const viewDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-view-'))
+  fs.writeFileSync(path.join(viewDir, 'index.html'), '<h1>one</h1>')
+  const srv = await startServer({ root: '/project', modules: [fakeModule(viewDir)], port: 0 })
+  try {
+    const first = await get(srv.port, '/demo/')
+    fs.writeFileSync(path.join(viewDir, 'index.html'), '<h1>two, longer</h1>')
+    const again = await get(srv.port, '/demo/', undefined, { 'if-none-match': first.headers.etag })
+    assert.equal(again.status, 200)
+    assert.equal(again.body, '<h1>two, longer</h1>')
+    assert.notEqual(again.headers.etag, first.headers.etag)
+  } finally { await srv.close() }
+})
+
+test('fonts are kept a week, the bundled libraries five minutes; the shell\'s and the modules\' own files are asked again each time', async () => {
+  await withServer(async ({ port }) => {
+    assert.match((await get(port, '/vendor/fonts/inter/inter-latin-wght-normal.woff2')).headers['cache-control'], /max-age=604800/)
+    // /vendor/ changes only with a Groundwork release: kept a short while, so the pages of one
+    // visit do not ask for each library again; an upgrade shows within minutes.
+    const lib = await get(port, '/vendor/lit-html/lit-html.js')
+    assert.equal(lib.headers['cache-control'], 'max-age=300')
+    assert.ok(lib.headers.etag, 'and asked again cheaply after that')
+    // What a checkout changes while one works on it: never kept without asking, whatever its query.
+    assert.equal((await get(port, `/shell/theme.css?v=${VERSION}`)).headers['cache-control'], 'no-cache')
+    assert.equal((await get(port, '/demo/')).headers['cache-control'], 'no-cache')
+  })
+})
+
+test('the start page may be cached too, but data from /api/ never is', async () => {
+  await withShell(async ({ port }) => {
+    const page = await get(port, '/')
+    assert.equal(page.headers['cache-control'], 'no-cache')
+    assert.equal((await get(port, '/', undefined, { 'if-none-match': page.headers.etag })).status, 304)
+    assert.equal((await get(port, '/api/modules')).headers['cache-control'], 'no-store')
+  })
+})
+
+test('text is sent compressed when the browser accepts it, and the same when it does not', async () => {
+  await withServer(async ({ port }) => {
+    const p = '/vendor/marked/marked.esm.js'
+    const plain = await get(port, p)
+    assert.equal(plain.headers['content-encoding'], undefined)
+    const br = await get(port, p, undefined, { 'accept-encoding': 'gzip, deflate, br' })
+    assert.equal(br.headers['content-encoding'], 'br')
+    assert.match(br.headers.vary, /accept-encoding/i)
+    assert.ok(br.raw.length < plain.raw.length / 2)
+    assert.equal(zlib.brotliDecompressSync(br.raw).toString('utf8'), plain.body)
+    const gz = await get(port, p, undefined, { 'accept-encoding': 'gzip' })
+    assert.equal(gz.headers['content-encoding'], 'gzip')
+    assert.equal(zlib.gunzipSync(gz.raw).toString('utf8'), plain.body)
+    assert.equal(Number(gz.headers['content-length']), gz.raw.length)
+    const font = await get(port, '/vendor/fonts/inter/inter-latin-wght-normal.woff2', undefined, { 'accept-encoding': 'br' })
+    assert.equal(font.headers['content-encoding'], undefined, 'woff2 is compressed already')
+  })
+})
+
+test('API answers of 1 KB or more are compressed too, and still never cached', async () => {
+  const items = Array.from({ length: 200 }, (_, i) => ({ id: `item-${i}`, title: `Item number ${i}` }))
+  const mod = {
+    id: 'data', name: 'Data', version: '1',
+    api: () => (req, res, sub) => {
+      if (sub === '/big') { send(res, 200, { items }); return true }
+      if (sub === '/small') { send(res, 200, { ok: true }); return true }
+      return false
+    },
+  }
+  const srv = await startServer({ root: '/project', modules: [mod], port: 0 })
+  try {
+    const plain = await get(srv.port, '/api/data/big')
+    assert.equal(plain.headers['content-encoding'], undefined)
+    assert.deepEqual(JSON.parse(plain.body), { items })
+    const br = await get(srv.port, '/api/data/big', undefined, { 'accept-encoding': 'gzip, deflate, br' })
+    assert.equal(br.headers['content-encoding'], 'br')
+    assert.equal(br.headers['cache-control'], 'no-store')
+    assert.match(br.headers.vary, /accept-encoding/i)
+    assert.equal(Number(br.headers['content-length']), br.raw.length)
+    assert.ok(br.raw.length < plain.raw.length / 3)
+    assert.deepEqual(JSON.parse(zlib.brotliDecompressSync(br.raw).toString('utf8')), { items })
+    const gz = await get(srv.port, '/api/data/big', undefined, { 'accept-encoding': 'gzip' })
+    assert.equal(gz.headers['content-encoding'], 'gzip')
+    assert.deepEqual(JSON.parse(zlib.gunzipSync(gz.raw).toString('utf8')), { items })
+    const small = await get(srv.port, '/api/data/small', undefined, { 'accept-encoding': 'br' })
+    assert.equal(small.headers['content-encoding'], undefined, 'under 1 KB: not worth it')
+  } finally { await srv.close() }
 })
 
 test('the module list shows each manifest', async () => {
@@ -137,7 +287,7 @@ test('the start page is the shell: the project name in the header, the first mod
 
 // The shared style variables modules may use; theme.css documents each.
 const COLOURS = ['--gw-bg', '--gw-surface', '--gw-sunken', '--gw-fg', '--gw-fg-2', '--gw-muted', '--gw-line', '--gw-line-strong',
-  '--gw-accent', '--gw-accent-fg', '--gw-focus', '--gw-ok', '--gw-warn', '--gw-bad', '--gw-shadow']
+  '--gw-accent', '--gw-accent-2', '--gw-accent-fg', '--gw-focus', '--gw-ok', '--gw-warn', '--gw-bad', '--gw-shadow']
 const SHAPES = ['--gw-font', '--gw-font-serif', '--gw-font-mono', '--gw-text', '--gw-text-small', '--gw-radius', '--gw-space', '--gw-header-height']
 
 test('the shell serves its theme, and every page of it uses the theme', async () => {
@@ -149,6 +299,10 @@ test('the shell serves its theme, and every page of it uses the theme', async ()
       assert.equal(css.status, 200, href)
       assert.match(css.headers['content-type'], /^text\/css/)
     }
+    // the theme's components, which theme.css imports (a page links theme.css only)
+    const parts = [...(await get(port, '/shell/theme.css')).body.matchAll(/@import url\('(\/shell\/[\w-]+\.css)'\)/g)].map((m) => m[1])
+    assert.ok(parts.length >= 2, String(parts))
+    for (const href of parts) assert.equal((await get(port, href)).status, 200, href)
     assert.equal((await get(port, '/shell/shell.mjs')).status, 404)
     assert.equal((await get(port, '/shell/..%2fserver.mjs')).status, 404)
   })
@@ -176,8 +330,8 @@ test('the shell shows its text in English and marks every string for translation
     assert.match(page, /<html lang="en">/)
     assert.match(page, /<nav class="gw-nav" aria-label="Modules" data-i18n-aria-label="nav"/)
     const empty = shellPage({ project: 'p', modules: [], active: null })
-    assert.match(empty, /<p class="gw-empty" data-i18n="noView">No module has a view\.<\/p>/)
-    const keys = [...new Set([...i18nKeys(page), ...i18nKeys(empty)])]
+    assert.match(empty, /<p class="gw-empty__title" data-i18n="noView">No module has a view\.<\/p>/)
+    const keys = [...new Set([...i18nKeys(page), ...i18nKeys(empty)])].filter((k) => !k.startsWith('module.'))  // taglines: the manifests'
     assert.ok(keys.length >= 3, keys.join())
     for (const k of keys) {
       assert.ok(SHELL_STRINGS.en[k], `en ${k}`)
@@ -189,9 +343,9 @@ test('the shell shows its text in English and marks every string for translation
 test('the shell has a language picker and serves the translation module to its pages', async () => {
   await withShell(async ({ port }) => {
     const page = (await get(port, '/')).body
-    assert.match(page, /<select class="gw-lang"[^>]*>\s*<option value="en">English<\/option>\s*<option value="hu">Magyar<\/option>/)
+    assert.match(page, /<div class="gw-seg gw-lang" role="group"[^>]*>\s*<button type="button" data-lang="en" title="English"[^>]*>EN<\/button>\s*<button type="button" data-lang="hu" title="Magyar"[^>]*>HU<\/button>/)
     assert.match(page, /import \{ createI18n \} from '\/shell\/i18n\.mjs'/)
-    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs']) {
+    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs', '/shell/live.mjs', '/shell/frames.mjs']) {
       const r = await get(port, js)
       assert.equal(r.status, 200, js)
       assert.match(r.headers['content-type'], /javascript/)
@@ -208,7 +362,7 @@ test('a module may not take an id the core uses for its own paths', async () => 
 test('the navigation lists every module with a view, from the manifests, and opens each', async () => {
   await withShell(async ({ port }) => {
     const nav = /<nav[^>]*>([\s\S]*?)<\/nav>/.exec((await get(port, '/')).body)[1]
-    const links = [...nav.matchAll(/<a href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map((m) => [m[1], m[2]])
+    const links = [...nav.matchAll(/<a href="([^"]*)"[^>]*>[\s\S]*?<b class="gw-tab-name">([^<]*)<\/b>[\s\S]*?<\/a>/g)].map((m) => [m[1], m[2]])
     assert.deepEqual(links, [['/?module=one', 'First'], ['/?module=two', 'Second &amp; more']])
     const two = (await get(port, '/?module=two')).body
     assert.match(two, /<iframe[^>]*src="\/two\/"/)
@@ -216,6 +370,31 @@ test('the navigation lists every module with a view, from the manifests, and ope
     assert.doesNotMatch(two, /<a href="\/\?module=one" aria-current/)
     assert.match((await get(port, '/?module=nobody')).body, /<iframe[^>]*src="\/one\/"/)
   })
+})
+
+test('each tab shows the icon and the tagline its manifest gives, translated in the page', async () => {
+  await withShell(async ({ port }) => {
+    const page = (await get(port, '/')).body
+    const tab = (href) => new RegExp(`<a href="${href.replace(/[?]/g, '\\$&')}"[^>]*>([\\s\\S]*?)</a>`).exec(page)[1]
+    const one = tab('/?module=one')
+    assert.match(one, /<svg class="gw-icon"[^>]*><circle cx="12" cy="12" r="4"\/><\/svg>/)
+    assert.match(one, /<small class="gw-tab-tagline" data-i18n="module\.one\.tagline">The &lt;first&gt; one<\/small>/)
+    const two = tab('/?module=two')
+    assert.match(two, /<svg class="gw-icon"/, 'a module without an icon gets a plain one')
+    assert.doesNotMatch(two, /gw-tab-tagline/, 'no tagline, no line for it')
+    // the page translates the taglines with the shell's strings; in the script a "<" is
+    // written as \u003c, so no text can end the script early
+    assert.match(page, /"module\.one\.tagline":"The \\u003cfirst> one"/)
+    assert.match(page, /"module\.one\.tagline":"Az \\u003celső>"/)
+  })
+})
+
+test('the header shows the brand, the version and whether the page is live', async () => {
+  const page = shellPage({ project: 'p', version: '9.8.7', modules: [], active: null })
+  assert.match(page, /<header[^>]*>[\s\S]*Groundwork[\s\S]*v9\.8\.7[\s\S]*<\/header>/)
+  assert.match(page, /<span class="gw-live" data-state="connecting"[^>]*><i><\/i><span data-i18n="connecting">/)
+  assert.match(page, /relayEvents\(/, 'the shell owns the live stream (live.mjs)')
+  for (const k of ['live', 'offline', 'connecting']) assert.ok(SHELL_STRINGS.hu[k] && SHELL_STRINGS.en[k], k)
 })
 
 test('a deep link reaches the module: the shell hands the rest of its query to the frame', async () => {

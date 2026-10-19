@@ -103,6 +103,14 @@
                 "metadata": {
                   "status": "decision"
                 }
+              },
+              {
+                "id": "d-nav-order",
+                "topic": "Fejléc: Ideas → Plan → Build | Sketch · Agents · Present",
+                "note": "Az első három a folyamat, a többi eszköz, elválasztva.",
+                "metadata": {
+                  "status": "decision"
+                }
               }
             ]
           },
@@ -142,6 +150,41 @@
                 "metadata": {
                   "status": "decision"
                 }
+              },
+              {
+                "id": "p-export",
+                "topic": "groundwork export: statikus, csak olvasható pillanatkép a követőknek",
+                "metadata": {
+                  "status": "parked"
+                }
+              },
+              {
+                "id": "r-5",
+                "topic": "5. Közös keret és a felületek csiszolása",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "r-6",
+                "topic": "6. Ötletláda és Sketch",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "r-7",
+                "topic": "7. Agents",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "r-8",
+                "topic": "8. Present",
+                "metadata": {
+                  "status": "decision"
+                }
               }
             ]
           },
@@ -178,6 +221,14 @@
               {
                 "id": "n-risk-merge",
                 "topic": "Egyidejű szerkesztésnél a sorrend elveszhet",
+                "metadata": {
+                  "status": "note"
+                }
+              },
+              {
+                "id": "n-risk-excalidraw",
+                "topic": "Az Excalidraw mérete és csomagolása build-lépés nélkül",
+                "note": "A Sketch első jegye bizonyítja, hogy megoldható.",
                 "metadata": {
                   "status": "note"
                 }
@@ -249,7 +300,6 @@
                   {
                     "id": "x-polling",
                     "topic": "Lekérdezgetés (polling) az oldalakból",
-                    "note": "A szerver nélkül, fájlból (file://) megnyitott Build továbbra is 3 mp-enként olvassa újra a mappát.",
                     "metadata": {
                       "status": "excluded"
                     }
@@ -332,6 +382,16 @@
                         "hyperLink": "core/files.mjs"
                       }
                     ]
+                  },
+                  {
+                    "id": "d-module-endpoints",
+                    "topic": "A modulok egymás kis, deklarált végpontjait olvassák",
+                    "note": "Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/README.md"
                   }
                 ]
               },
@@ -373,6 +433,34 @@
                     },
                     "note": "Kapcsoló nincs; a nézetek újratöltés nélkül is követik a váltást.",
                     "hyperLink": "core/shell/theme.css"
+                  },
+                  {
+                    "id": "d-shell-owns",
+                    "topic": "A keret birtokolja az élő kapcsolatot, a verziót, a nyelvet és a projekt nevét",
+                    "note": "Fülenként egy eseményfolyam; a modulok a /shell/live.mjs-en át kapják, és nem ismétlik a keret jelzéseit.",
+                    "hyperLink": "core/shell/live.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "d-keep-alive",
+                    "topic": "Fülváltáskor a modulok életben maradnak",
+                    "note": "A keret modulonként egy keretet tart meg, és csak elrejti; a térkép megtartja a nagyítást és kijelölést, a Build a görgetést és a szűrőket.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/shell/frames.mjs"
+                  },
+                  {
+                    "id": "d-toolbars",
+                    "topic": "A modulok eszköztára a modulban marad",
+                    "note": "A keret modulfüggetlen marad; harmadik modulnál újragondolható.",
+                    "metadata": {
+                      "status": "decision"
+                    }
                   }
                 ]
               },
@@ -506,7 +594,7 @@
                 "topic": "Platform és futtatási környezet",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható; a Build szerver nélküli, mappaválasztós módja csak Chromium-alapú böngészőben működik.",
+                  "prose": "A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható.",
                   "progress": "done"
                 },
                 "children": [
@@ -530,6 +618,15 @@
                     "metadata": {
                       "status": "decision"
                     }
+                  },
+                  {
+                    "id": "d-perf",
+                    "topic": "Teljesítménycél: 300 ms első kirajzolás, 100 ms fülváltás, 50 ms kérésenként",
+                    "note": "Helyben, meleg indulásnál; a #19 mérése ehhez viszonyít.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "partial"
+                    }
                   }
                 ]
               },
@@ -538,7 +635,7 @@
                 "topic": "Technológiai stack",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és fordítási lépés nélkül, ahogy a két meglévő eszköz is. Amit módosítunk, az azonnal fut, és nincs függőségi lánc, ami csendben eltörhetne. Hogy a kód áttekinthető maradjon, minden modul több kisebb fájlra bomlik, nem egyetlen nagy fájlra.",
+                  "prose": "Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és fordítási lépés nélkül. Amit módosítunk, az azonnal fut, offline is, és nincs függőségi lánc, ami csendben eltörhetne; az agentek is közvetlenül tudják futtatni és javítani a kódot.\n\nA felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a csomagba tett sablonkönyvtár, a lit-html rajzolja deklaratívan és hatékonyan, a közös megjelenést pedig a keret theme.css-e adja kész komponensekkel. Hogy a kód áttekinthető maradjon, minden modul oldala kis fájlokra bomlik (nézetek, állapot, adatlekérés), nem egyetlen nagy index.html-re. Így megkapjuk egy keretrendszer előnyeit, a build-lépés és a függőségi lánc nélkül.",
                   "progress": "done"
                 },
                 "children": [
@@ -554,8 +651,10 @@
                     "id": "d-small-files",
                     "topic": "Modulonként több kisebb fájl, nem egy óriásfájl",
                     "metadata": {
-                      "status": "decision"
-                    }
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "note": "A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; build-lépés nincs, a böngésző a szerverről tölti be őket. A közös téma is több fájl: a theme.css a tokeneket tartja és importálja a komponenseket."
                   },
                   {
                     "id": "x-framework",
@@ -569,6 +668,25 @@
                     "topic": "Fordítási lépés",
                     "metadata": {
                       "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-lit-html",
+                    "topic": "Deklaratív nézetek lit-html-lel, a csomagba téve",
+                    "note": "lit-html 3.2.1, kb. 7 KB, a core/vendor/ alatt; fordítási lépés nélkül fut, offline is.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    },
+                    "hyperLink": "core/vendor/lit-html/lit-html.js"
+                  },
+                  {
+                    "id": "d-design-system",
+                    "topic": "Közös dizájnrendszer a theme.css-ben (.gw-* komponensek)",
+                    "hyperLink": "core/shell/theme.css",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
                     }
                   }
                 ]
@@ -688,6 +806,14 @@
                     "metadata": {
                       "status": "excluded"
                     }
+                  },
+                  {
+                    "id": "d-plan-first",
+                    "topic": "A térkép van elöl; üres térképnél indítókártya",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
                   }
                 ]
               },
@@ -750,6 +876,14 @@
                     "topic": "Függőségek CDN-ről",
                     "metadata": {
                       "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "p-one-md",
+                    "topic": "Egy közös Markdown-renderelő a két modulban",
+                    "note": "Előbb próba: elég-e a Build biztonságos renderelője a Plan dokumentumaihoz; ha igen, a marked (90 KB) kikerül.",
+                    "metadata": {
+                      "status": "parked"
                     }
                   }
                 ]
@@ -814,7 +948,7 @@
                 "topic": "Hatókör és fő funkciók",
                 "metadata": {
                   "status": "topic",
-                  "prose": "A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. Szerver nélkül, mappaválasztóval is megnyitható. A prototípus minden funkciója része az első verziónak.\n\nÚj képessége lesz, hogy egy jegyről egy kattintással el lehet jutni ahhoz a PRD-elemhez, amiből született. Egy Claude-skill, amely a chatben foglalja össze a projekt állapotát, később jöhet.",
+                  "prose": "A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. A Groundwork szerverén fut; fájlból, szerver nélkül nem nyitható meg. A prototípus minden funkciója része az első verziónak.\n\nÚj képessége lesz, hogy egy jegyről egy kattintással el lehet jutni ahhoz a PRD-elemhez, amiből született. Egy Claude-skill, amely a chatben foglalja össze a projekt állapotát, később jöhet.",
                   "progress": "done"
                 },
                 "children": [
@@ -860,12 +994,11 @@
                   },
                   {
                     "id": "f-build-fileonly",
-                    "topic": "Szerver nélkül is: mappaválasztóval (Chromium)",
+                    "topic": "Szerver nélküli, fájlból megnyitott Build",
                     "metadata": {
-                      "status": "decision",
-                      "impl": "done"
+                      "status": "excluded"
                     },
-                    "note": "Csak Chromium-alapú böngészőben."
+                    "note": "Elhagyva: az npx @pottom/groundwork egy parancs, a fájlmód pedig generált bundle-t, azaz build-lépést igényelt volna."
                   },
                   {
                     "id": "f-build-trace",
@@ -880,6 +1013,14 @@
                     "topic": "Claude-skill a projekt állapotáról",
                     "metadata": {
                       "status": "parked"
+                    }
+                  },
+                  {
+                    "id": "d-build-tabs",
+                    "topic": "Hét egyenrangú nézet, elöl az áttekintés",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
                     }
                   }
                 ]
@@ -972,11 +1113,1184 @@
                   {
                     "id": "d-prd-counts",
                     "topic": "A Plan jegyszámai a Build jegyolvasójából (/api/build/prd)",
-                    "note": "A szerver ugyanazzal a ticket-reader.js-szel olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed.",
+                    "note": "A szerver ugyanazzal a jegyolvasóval (ticket-reader.mjs) olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed.",
                     "hyperLink": "modules/build/project-tickets.mjs",
                     "metadata": {
                       "status": "decision",
                       "impl": "done"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-ideas",
+        "topic": "Ötletek modul",
+        "metadata": {
+          "component": "software",
+          "dir": "ideas"
+        },
+        "children": [
+          {
+            "id": "doc-ideas-prd",
+            "topic": "Termék",
+            "metadata": {
+              "doc": "prd"
+            },
+            "children": [
+              {
+                "id": "t-ideas-problem",
+                "topic": "Probléma és cél",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Az ötletek ma szétszóródnak: a chatben, a code review-k megjegyzéseiben, ideiglenes jegyzetfájlokban és GitHub-hozzászólásokban élnek. Az AI munka közben sok mindent észrevesz, és ilyenkor vagy rögtön megcsinálja, kérdezés nélkül, vagy elfelejtődik.\n\nAz Ötletek modul egy közös, számozott ötletláda. Ember és Claude egyformán felírhat bele, a sorsáról viszont mindig az ember dönt: kidolgozásra szánja, vagy indoklással elveti. Így semmi nem vész el, és semmi nem történik meg úgy, hogy a fejlesztő nem döntött róla.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ideas-goal",
+                    "topic": "Egy hely minden ötletnek, emberi döntéssel",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-ideas-users",
+                "topic": "Felhasználók és használati esetek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A fejlesztő a böngészőben látja az ötleteket, rendezi őket, és dönt róluk. Claude a beszélgetés vagy a munka közben vesz fel ötletet, ha valamit észrevesz, ami nem tartozik a mostani feladathoz, és becslést meg hasonló, korábbi ötleteket fűz hozzá. A projekt követői olvassák a ládát, hogy lássák, mi jöhet még, és mit vetettek el miért.\n\nTipikus esetek: egy code review találatai ötletként kerülnek a ládába, és a fejlesztő egyenként dönt róluk; egy termékötletből a Planben grilling lesz; egy mérnöki ötletből közvetlenül jegy.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ideas-who",
+                    "topic": "Ember és Claude is felírhat ötletet",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ideas-human-decides",
+                    "topic": "Kidolgozásról és elvetésről csak az ember dönt",
+                    "note": "Claude felvehet, pontosíthat, becsülhet és javasolhat, de nem dönt.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-ideas-scope",
+                "topic": "Hatókör és fő funkciók",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A láda számozott ötletekből áll; a fő nézet egy négyoszlopos kanban, mellette egy hatás–ráfordítás mátrix, amelyen egy pillantásra látszanak a gyors nyerők. A kidolgozásra szánt ötlet a fajtája szerint ágazik el: a termékötlet todo csomópont lesz a Plan térképén, a mérnöki ötletből jegy készül. Az elvetett ötlet indoklással marad meg, így Claude nem javasolja újra, és a PRD „Nem cél” részébe is átvihető.\n\nClaude egy parancssori eszközön és egy skillen át dolgozik a ládával, ugyanúgy, ahogy a Plan térképével.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "f-ideas-inbox",
+                    "topic": "Számozott ötletek (I-1, I-2 …) szerzővel és forrással",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-ideas-kanban",
+                    "topic": "Kanban: Új · Mérlegelés · Kidolgozásra · Elvetve",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-ideas-matrix",
+                    "topic": "Hatás–ráfordítás mátrix nézet",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-ideas-assist",
+                    "topic": "Claude becslése és a hasonló ötletek jelzése",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-ideas-to-plan",
+                    "topic": "Termékötlet kidolgozásra: todo csomópont a Plan térképén, oda-vissza hivatkozással",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-ideas-to-build",
+                    "topic": "Mérnöki ötletből jegy, ami hivatkozik az ötletre",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-ideas-reject",
+                    "topic": "Elvetés indoklással; a PRD Nem cél részébe vihető",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-ideas-claude",
+                    "topic": "groundwork ideas parancs és skill Claude-nak",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-ideas-func",
+                "topic": "Funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Minden ötletnek van címe, leírása, szerzője (ember vagy Claude), forrása (beszélgetés, review, jegy), fajtája (termék vagy mérnöki), becsült hatása és ráfordítása, állapota, döntés esetén indoklása, és hivatkozásai más elemekre. A szám egyszer kiosztva az ötleté marad, akkor is, ha elvetik.\n\nA döntő állapotokat (Kidolgozásra, Elvetve) csak a böngészőben lehet beállítani; Claude parancsa ezt elutasítja. Minden változás élőben jelenik meg minden megnyitott oldalon.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ideas-fields",
+                    "topic": "Mezők: cím, leírás, szerző, forrás, fajta, hatás, ráfordítás, állapot, indoklás, hivatkozások",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ideas-numbers",
+                    "topic": "A számok soha nem használódnak újra",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ideas-ai-limits",
+                    "topic": "Claude csak az Új és a Mérlegelés között mozgat",
+                    "note": "A Kidolgozásra és az Elvetve állapotot csak a böngészőben, az ember állíthatja.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ideas-edit",
+                    "topic": "A böngészőben szerkeszthető, élő frissítéssel",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-ideas-nfr",
+                "topic": "Nem funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Az Ötletek modul a közös dizájnrendszert használja, angolul és magyarul is működik, hálózat nélkül is, és belefér a közös teljesítménycélba (300 ms első kirajzolás, 50 ms kérésenként).",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ideas-nfr",
+                    "topic": "A közös keret kinézete, angol és magyar felület, offline, a teljesítménycélon belül",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "doc-ideas-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-ideas-arch",
+                "topic": "Architektúra és komponensek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Az Ötletek a Planhez és a Buildhez hasonló modul: a manifestje adja a nézetet, a /api/ideas/ végpontokat, a groundwork ideas parancsot és a groundwork init által telepített skillt. A böngészőoldal kis ES-modulokból áll, a nézeteket lit-html rajzolja, az élő frissítést a keret továbbítja.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ideas-module",
+                    "topic": "Önálló modul a modulszerződés szerint: nézet, végpontok, groundwork ideas parancs, skill",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ideas-view",
+                    "topic": "Kis ES-modulok, lit-html nézetek",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-ideas-data",
+                "topic": "Adatok és tárolás",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Minden ötlet egy saját Markdown-fájl a docs/product/ideas/items/ alatt: a fejléc tartalmazza a mezőket, a törzs a leírást és a megbeszélést. Gitben van, így a csapat látja, és a döntések visszakövethetők. A következő szám a legnagyobb meglévő plusz egy; ha két ágon ugyanaz a szám születik, összefésüléskor az újabb ötlet új számot kap.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ideas-store",
+                    "topic": "Ötletenként egy Markdown-fájl a docs/product/ideas/items/ alatt, gitben",
+                    "note": "Pl. I-012-gyors-tabvaltas.md, fejlécben a mezőkkel; a docs/product/ideas/ mappában a modul saját PRD-je és TECH-je is ott van.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "n-ideas-collide",
+                    "topic": "Két ágon azonos szám születhet; összefésüléskor az újabb új számot kap",
+                    "metadata": {
+                      "status": "note"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-ideas-int",
+                "topic": "Integrációk és interfészek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A termékötletből a Plan saját, kis végpontja készít todo csomópontot, a térképet tehát továbbra is csak a Plan írja; a csomópont hivatkozik az ötletre, az ötlet a csomópontra. A mérnöki ötletből Claude készít jegyet, amelynek első sorai között szerepel az **Idea:** I-12 hivatkozás, a Build pedig ezt linkként mutatja.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ideas-plan-endpoint",
+                    "topic": "A Plan egy kis végponton vesz fel todo csomópontot (POST /api/plan/todo)",
+                    "note": "A d-module-endpoints szerint; a térképet továbbra is csak a Plan írja.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ideas-ticket-line",
+                    "topic": "A jegyben **Idea:** I-12 sor; a Build hivatkozásként mutatja",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-ideas-sec",
+                "topic": "Biztonság",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A modul a core írójával dolgozik, és csak a docs/product/ideas/items/ mappába írhat. A Markdown-tartalom biztonságos renderelővel jelenik meg, nyers HTML nélkül.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-ideas-writes",
+                    "topic": "Csak a docs/product/ideas/items/ alá írhat",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-board",
+        "topic": "Sketch modul",
+        "metadata": {
+          "component": "software",
+          "dir": "sketch"
+        },
+        "children": [
+          {
+            "id": "doc-board-prd",
+            "topic": "Termék",
+            "metadata": {
+              "doc": "prd"
+            },
+            "children": [
+              {
+                "id": "t-board-problem",
+                "topic": "Probléma és cél",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egy architektúrát, egy folyamatot vagy egy hibát szövegben lassú elmagyarázni, és a chatben leírt magyarázat utána elvész. A Sketch modul egy közös vázlatfelület: a fejlesztő és Claude ugyanarra a felületre rajzol, és az alakzatokhoz tűzött rövid szálakban válaszolnak egymásnak, így a magyarázat a rajzon marad.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-board-goal",
+                    "topic": "Közös vázlatfelület, ahol ember és Claude oda-vissza magyaráz",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-board-users",
+                "topic": "Felhasználók és használati esetek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A fejlesztő felvázol valamit, és megkérdezi Claude-ot; Claude elolvassa a rajzot, a szálban válaszol, és ha kell, maga is rajzol: dobozokat, nyilakat, folyamatot. Fordítva is: Claude egy diagrammal magyaráz el egy javaslatot, a fejlesztő pedig a rajzon jelzi, mi nem stimmel. A követők a vázlatokat olvassák.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-board-who",
+                    "topic": "Ember és Claude is rajzol és válaszol",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-board-scope",
+                "topic": "Hatókör és fő funkciók",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A modul névvel ellátott vázlatokat kezel; mindegyik egy Excalidraw-rajz a közös keretben. Claude parancssori eszközön és skillen át olvassa és rajzolja a vázlatot, Mermaid-leírásból is. A vázlat lényege a szálak: egy alakzatra tűzött rövid beszélgetés, amelyben ember és Claude felváltva válaszol. Minden változás élőben jelenik meg. Egy vázlat hivatkozhat ötletre, térképcsomópontra vagy jegyre, és azok is a vázlatra.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "f-board-draw",
+                    "topic": "Excalidraw-szerkesztő a keretben",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-board-list",
+                    "topic": "Tetszőleges számú vázlat névvel: lista, létrehozás, átnevezés",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-board-claude-read",
+                    "topic": "Claude olvassa a vázlatot: alakzatok, szövegek, kapcsolatok",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-board-claude-draw",
+                    "topic": "Claude rajzol: alakzatok, nyilak, szövegek, Mermaidből is",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-board-threads",
+                    "topic": "Alakzatokhoz tűzött megjegyzésszálak",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-board-live",
+                    "topic": "Élő frissítés: Claude rajza és válasza azonnal megjelenik",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-board-links",
+                    "topic": "Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    },
+                    "note": "Jó, ha van, de nem feltétlenül szükséges."
+                  },
+                  {
+                    "id": "f-board-shape-links",
+                    "topic": "Egy alakzat is hivatkozhat ötletre, térképcsomópontra, jegyre vagy másik vázlatra",
+                    "note": "Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-board-func",
+                "topic": "Funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Ha a fejlesztő és Claude egyszerre módosít, a változások elemenként fésülődnek össze, így egyikük sem írja felül a másikat. Egy szál egy alakzathoz tartozik, hozzászólásokból áll szerzővel és idővel, és lezárható, ha a kérdés megoldódott. A vázlat szabványos .excalidraw fájl marad, amelyet bármely Excalidraw megnyit.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-board-merge",
+                    "topic": "Egyidejű szerkesztésnél elemszintű összefésülés",
+                    "note": "Az Excalidraw elemeinek version mezője alapján; Claude és a böngésző nem írja felül egymást.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-board-thread-fields",
+                    "topic": "Szál: alakzat, hozzászólások szerzővel és idővel, lezárható",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-board-std-file",
+                    "topic": "A vázlat szabványos .excalidraw fájl, az excalidraw.com is megnyitja",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-board-nfr",
+                "topic": "Nem funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Az Excalidraw nagy, ezért a Sketch csak akkor töltődik be, amikor először megnyitják; a Plan és a Build ettől nem lassul. A vázlat világos vagy sötét módja és nyelve a keretét követi, és hálózat nélkül is működik.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-board-lazy",
+                    "topic": "Csak megnyitáskor töltődik be, a többi modul gyors marad",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-board-theme",
+                    "topic": "A vázlat követi a keret témáját és nyelvét",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "doc-board-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-board-stack",
+                "topic": "Technológiai stack",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A rajzolást az Excalidraw adja, a csomagba téve, mint a Mind Elixir; a React csak az ő belső függősége, a saját kódunk továbbra is lit-html. Nyitott kérdés, hogyan csomagolható fordítási lépés nélkül: a 0.17-es UMD-build, vagy egy egyszer, a frissítéskor előkészített ESM-változat. Ezt az első jegy dönti el.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "s-board-excalidraw",
+                    "topic": "Excalidraw, a csomagba téve, React-tel együtt",
+                    "note": "A React csak az Excalidraw belső függősége; a saját kód lit-html marad.",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "q-board-packaging",
+                    "topic": "Csomagolás build-lépés nélkül: 0.17-es UMD-build, vagy egyszer előkészített ESM",
+                    "note": "Az első jegy dönti el, és rögzíti a választást.",
+                    "metadata": {
+                      "status": "todo"
+                    }
+                  },
+                  {
+                    "id": "x-board-tldraw",
+                    "topic": "tldraw",
+                    "note": "Kötöttebb licenc.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-board-data",
+                "topic": "Adatok és tárolás",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Minden vázlat egy .excalidraw fájl a docs/product/sketches/ alatt, mellette a szálak egy <név>.threads.json fájlban, az alakzatok azonosítója szerint. Így a rajz szabványos marad, a beszélgetés pedig gitben, a rajz mellett él.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-board-store",
+                    "topic": "docs/product/sketches/<név>.excalidraw, gitben",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-board-threads-file",
+                    "topic": "A szálak külön fájlban: <név>.threads.json, alakzat-azonosító szerint",
+                    "note": "Így a .excalidraw fájl szabványos marad.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-board-int",
+                "topic": "Integrációk és interfészek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Claude a groundwork sketch parancson át dolgozik: a show szöveges kivonatot ad az alakzatokról, szövegekről és nyilakról, az apply műveletekkel rajzol, a comment a szálakba ír. Ha képre van szüksége, a böngészőpanelben nézi meg a vázlatot; a szerver nem renderel képet.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-board-cli",
+                    "topic": "groundwork sketch: list, show (szöveges kivonat), apply (műveletek), comment",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-board-image",
+                    "topic": "Képet Claude a böngészőpanelből kér, a szerver nem renderel",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-board-sec",
+                "topic": "Biztonság",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A modul csak a docs/product/sketches/ alá írhat. A táblába illesztett képek mérete korlátozott, hogy a fájlok kezelhetők maradjanak gitben.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-board-writes",
+                    "topic": "Csak a docs/product/sketches/ alá írhat; beágyazott képek mérethatárral",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-agents",
+        "topic": "Agents modul",
+        "metadata": {
+          "component": "software",
+          "dir": "agents"
+        },
+        "children": [
+          {
+            "id": "doc-agents-prd",
+            "topic": "Termék",
+            "metadata": {
+              "doc": "prd"
+            },
+            "children": [
+              {
+                "id": "t-agents-problem",
+                "topic": "Probléma és cél",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egy mérföldkő munkáján gyakran több agent dolgozik egyszerre, mindegyik a saját worktree-jében és branchén, egy-egy jegyen. Az állapotukat ma csak a chatből lehet követni: ki min dolgozik, meddig jutott, vár-e valamire, és mit jelentett a végén.\n\nAz Agents modul ezt teszi láthatóvá egy helyen, élőben: az agenteket a jegyükkel, a branchükkel, a haladásukkal és a záró jelentésükkel. Az első változat csak megfigyel; indítani és leállítani továbbra is a Claude Code-ban lehet.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-agents-goal",
+                    "topic": "Egy helyen látszik, melyik agent min dolgozik, hol tart és mit jelentett",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-agents-users",
+                "topic": "Felhasználók és használati esetek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A felhasználó a fejlesztő, aki egy mérföldkő jegyeit agentekkel valósíttatja meg, gyakran párhuzamosan, és közben máson dolgozik vagy távolról figyel. Ránéz, melyik agent hol tart, melyik vár engedélyre vagy akadt el, melyik végzett, és mi van a jelentésében; a worktree-k listájából látja, mi van már összefésülve, és mit lehet eltakarítani.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-agents-user",
+                    "topic": "A fejlesztő, aki agenteket futtat és összefésüli a munkájukat",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-agents-scope",
+                "topic": "Hatókör és fő funkciók",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A modul listázza a futó és a befejezett agenteket a jegyükkel, a branchükkel, az állapotukkal és az időtartamukkal. Egy agentet megnyitva látszik az idővonala, vagyis a fő lépései (milyen fájlokat érintett, futtatott-e teszteket, mit commitolt), és a végén a záró jelentése. Az agentek, a jegyek és a branchek össze vannak kötve, a Build jegyein pedig látszik, ha éppen dolgozik rajtuk valaki.\n\nKülön nézet mutatja a worktree-ket és brancheket: mennyivel járnak előrébb vagy maradtak le az integrációs ághoz képest, össze vannak-e már fésülve, és eltakaríthatók-e. A figyelmet kérő agentek (engedélyre vár, elakadt, hibával állt le) kiemelve jelennek meg.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "f-agents-list",
+                    "topic": "Futó és befejezett agentek: jegy, branch, állapot, időtartam",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-agents-timeline",
+                    "topic": "Idővonal agentenként: fájlok, tesztek, commitok, fő lépések",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-agents-report",
+                    "topic": "A záró jelentés megjelenítése",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-agents-ticket-link",
+                    "topic": "Agent ↔ jegy ↔ branch; a Build jegyein látszik a dolgozó agent",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-agents-worktrees",
+                    "topic": "Worktree-k és branchek: előnyben, lemaradva, összefésülve, takarítható",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-agents-attention",
+                    "topic": "Figyelmet kérő agent kiemelése: engedélyre vár, elakadt, hibázott",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-agents-live",
+                    "topic": "Élő frissítés",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-agents-func",
+                "topic": "Funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A modul csak megfigyel: nem indít, nem állít le és nem üzen agenteknek; ez később jöhet, ha a megfigyelés bevált. Egy agentről az összefoglalót, az idővonalat és a záró jelentést mutatja, a teljes beszélgetés-átiratot nem.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-agents-observe",
+                    "topic": "Csak megfigyel; indítás és leállítás a Claude Code-ban",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "p-agents-control",
+                    "topic": "Agentek irányítása a böngészőből",
+                    "note": "Indítás, leállítás, üzenet; később, ha a megfigyelés bevált.",
+                    "metadata": {
+                      "status": "parked"
+                    }
+                  },
+                  {
+                    "id": "d-agents-summary",
+                    "topic": "Összefoglaló és idővonal, teljes átirat nélkül",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-agents-transcript",
+                    "topic": "A teljes beszélgetés-átirat megjelenítése",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-agents-nfr",
+                "topic": "Nem funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A hook minden eszközhívásnál lefut, ezért legfeljebb 100 ms-ot adhat hozzá; egy agent munkája ettől nem lassulhat érezhetően. A modul a közös dizájnrendszert használja, angolul és magyarul is működik, hálózat nélkül is.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-agents-overhead",
+                    "topic": "A hook nem lassítja érezhetően az agenteket: legfeljebb 100 ms eszközhívásonként",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-agents-nfr",
+                    "topic": "A közös keret kinézete, angol és magyar felület, offline",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "doc-agents-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-agents-arch",
+                "topic": "Architektúra és komponensek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A groundwork init a modul manifestjéből Claude Code hookokat telepít, amelyek az agentek indulását, eszközhívásait, figyelmeztetéseit és végét egy helyi eseménynaplóba írják; a worktree-k és branchek állapotát a git adja. A Claude Code saját naplófájljait nem olvassuk: belső formátumúak, és magánjellegű tartalom van bennük.\n\nKét kérdést az első jegy dönt el: milyen mezőkkel azonosítják a hookok a subagenteket, és hogyan lesz a hook elég gyors, mert az npx-es hívás eszközhívásonként túl lassú.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-agents-hooks",
+                    "topic": "Claude Code hookok írják az eseményeket; a groundwork init telepíti őket",
+                    "note": "Pl. SessionStart, SubagentStart/Stop, PreToolUse/PostToolUse, Notification, Stop.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "q-agents-hook-fields",
+                    "topic": "Milyen mezőkkel azonosítják a hookok a subagenteket?",
+                    "note": "Az első jegy dönti el a Claude Code dokumentációja és kipróbálás alapján.",
+                    "metadata": {
+                      "status": "todo"
+                    }
+                  },
+                  {
+                    "id": "q-agents-hook-speed",
+                    "topic": "Gyors hook: közvetlen node-útvonal vagy a futó szervernek küldött esemény az npx helyett",
+                    "note": "Az npx-es hívás kb. 0,7 s lenne eszközhívásonként.",
+                    "metadata": {
+                      "status": "todo"
+                    }
+                  },
+                  {
+                    "id": "x-agents-claude-logs",
+                    "topic": "A ~/.claude alatti naplófájlok olvasása",
+                    "note": "Belső formátum, ami változhat, és magánjellegű tartalom van benne.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-agents-git",
+                    "topic": "A worktree-k és branchek állapotát a git adja",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-agents-data",
+                "topic": "Adatok és tárolás",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Az események egy csak hozzáírható JSON Lines naplóba kerülnek a .groundwork/agents/ alatt, amely gitignore-ban van; az agentek állapotát a szerver ebből számolja. A régi futások forgatással kerülnek ki, hogy a napló ne nőjön korlátlanul.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-agents-store",
+                    "topic": "Helyi eseménynapló: .groundwork/agents/events.jsonl, gitignore-ban",
+                    "note": "Csak hozzáírás; régi futások forgatással kerülnek ki.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-agents-int",
+                "topic": "Integrációk és interfészek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egy agent jegyét a feladatleírásában szereplő jegyszám, a branch neve vagy a commit-üzenet adja. A Build egy kis, deklarált végponton kérdezi meg az Agents modult, dolgozik-e valaki egy jegyen, és ha az Agents nincs jelen, ugyanúgy működik.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-agents-ticket-from",
+                    "topic": "A jegyszám az agent feladatából, a branch nevéből vagy a commit-üzenetből jön",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-agents-build-endpoint",
+                    "topic": "A Build egy kis nyilvános végponton kérdezi, ki dolgozik egy jegyen",
+                    "note": "A d-module-endpoints szerint; Agents nélkül a Build ugyanúgy működik.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-agents-sec",
+                "topic": "Biztonság",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A napló nem tárolja az eszközhívások tartalmát: csak az eszköz nevét, az érintett fájl útját és a futtatott parancs nevét, így fájltartalom, token vagy jelszó nem kerülhet bele. A modul csak a .groundwork/agents/ alá írhat.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-agents-redact",
+                    "topic": "A napló csak összefoglalót tárol: eszköz, fájlút, parancs neve; tartalmat és titkot nem",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-agents-writes",
+                    "topic": "Csak a .groundwork/agents/ alá írhat",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-present",
+        "topic": "Present modul",
+        "metadata": {
+          "component": "software",
+          "dir": "present"
+        },
+        "children": [
+          {
+            "id": "doc-present-prd",
+            "topic": "Termék",
+            "metadata": {
+              "doc": "prd"
+            },
+            "children": [
+              {
+                "id": "t-present-problem",
+                "topic": "Probléma és cél",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egy projekt bemutatásához ma kézzel kell összeszedni a célt, a döntéseket, a haladást és a terveket, és a kész prezentáció másnapra elavul. Pedig a Groundwork mindezt tudja: a Plan a célt és a döntéseket, a Build a haladást, a Sketch az ábrákat, az Ideas a jövőt.\n\nA Present modul ezekből készít prezentációt: az egész projektről, egy mérföldkőről vagy a fejlesztés pillanatnyi állásáról. A diák élő adatblokkokat tartalmazhatnak, így egy státuszprezentáció bármikor, frissen bemutatható.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-goal",
+                    "topic": "Prezentáció a projektről, egy mérföldkőről vagy a fejlesztés állásáról, a Groundwork adataiból",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-users",
+                "topic": "Felhasználók és használati esetek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A fejlesztő mutatja be a projektet egy megrendelőnek, a csapatnak vagy egy érdeklődőnek; Claude megírja a vázat és az előadói jegyzeteket, a fejlesztő átírja, majd teljes képernyőn, előadói nézettel bemutatja, vagy PDF-ben elküldi.\n\nTipikus esetek: egy mérföldkő lezárásakor egy összefoglaló arról, mi készült el és mi jön; egy heti státusz, amely mindig a friss számokat mutatja; egy projektbemutató egy új érdeklődőnek.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-users",
+                    "topic": "A fejlesztő mutatja be; a közönség megrendelő, csapat vagy érdeklődő",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-scope",
+                "topic": "Hatókör és fő funkciók",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Present diasorokat kezel, amelyek a böngészőben, teljes képernyőn, a közös kinézettel jelennek meg, billentyűzettel lapozhatók, és előadói nézetük is van jegyzetekkel, időmérővel és a következő diával. A diák élő adatblokkokat tartalmazhatnak, például egy mérföldkő haladását, a nyitott blokkolókat, a döntéseket vagy a méréseket, így a prezentáció mindig a friss állapotot mutatja. Vázlat és ötletlista is kerülhet diára.\n\nHárom sablonnal indul: projektbemutató, mérföldkő-összefoglaló és fejlesztési állás. Claude a skillen át megírja a történetet és az előadói jegyzeteket, a fejlesztő a böngészőben szerkeszti, élő előnézettel. PDF-be a böngésző nyomtatásával menthető; a PowerPoint-export későbbre marad.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "f-present-deck",
+                    "topic": "Diasor a böngészőben: teljes képernyő, billentyűzetes lapozás, közös kinézet",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-live",
+                    "topic": "Élő adatblokkok: mérföldkő-haladás, blokkolók, döntések, mérések",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-templates",
+                    "topic": "Sablonok: projektbemutató, mérföldkő-összefoglaló, fejlesztési állás",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-claude",
+                    "topic": "Claude írja a történetet és az előadói jegyzeteket, skillen át",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-edit",
+                    "topic": "Szerkesztés a böngészőben, élő előnézettel",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-speaker",
+                    "topic": "Előadói nézet: jegyzetek, időmérő, következő dia",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-pdf",
+                    "topic": "PDF-be mentés a böngésző nyomtatásával",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-sources",
+                    "topic": "Vázlatok és ötletek a diákon",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "p-present-pptx",
+                    "topic": "PowerPoint-export",
+                    "metadata": {
+                      "status": "parked"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-func",
+                "topic": "Funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egy élő adatblokk rögzíthető is: ilyenkor a rögzítés pillanatának számait mutatja, így egy mérföldkő-összefoglaló később is a lezáráskori állapotot idézi. Ha egy blokk forrásmodulja hiányzik, a dia hiba helyett nyugodt helykitöltőt mutat.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-snapshot",
+                    "topic": "Egy élő blokk rögzíthető: pillanatképként az akkori számokat mutatja",
+                    "note": "Egy mérföldkő-összefoglaló így később is a lezáráskori állapotot mutatja.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-present-missing",
+                    "topic": "Ha egy blokk forrásmodulja hiányzik, a dia nyugodt helykitöltőt mutat",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-nfr",
+                "topic": "Nem funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Present a közös dizájnrendszert használja, angolul és magyarul is működik, hálózat nélkül is. A diák szövege a diasor saját nyelvén van, függetlenül a felület nyelvétől, ahogy a Plan dokumentumainál.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-nfr",
+                    "topic": "Közös kinézet, angol és magyar felület, offline; a diák szövege a diasor nyelvén",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "doc-present-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-present-arch",
+                "topic": "Architektúra és komponensek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Present a többihez hasonló modul: nézet, /api/present/ végpontok, groundwork present parancs és skill; a böngészőoldal kis ES-modulokból áll, lit-html-lel. Az élő blokkok a többi modul deklarált, nyilvános végpontjaiból olvasnak, így a Present nem nyúl más modul adataihoz közvetlenül.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-module",
+                    "topic": "Önálló modul: nézet, végpontok, groundwork present parancs, skill; kis ES-modulok, lit-html",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-present-blocks",
+                    "topic": "Az élő blokkok a többi modul deklarált nyilvános végpontjaiból olvasnak",
+                    "note": "A d-module-endpoints szerint, pl. a Build haladás-végpontja.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-data",
+                "topic": "Adatok és tárolás",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Minden diasor egy Markdown-fájl a docs/product/decks/ alatt: a diákat egy --- sor választja el, az élő blokkok gw: kezdetű kódblokkok (például gw:milestone 5), az előadói jegyzetek a Note: sor után állnak. A fejléc a címet, a nyelvet és a sablont tárolja. Így a diasor olvasható, diffelhető, és gitben él.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-store",
+                    "topic": "Diasoronként egy Markdown-fájl a docs/product/decks/ alatt, gitben",
+                    "note": "A diákat --- választja el; az élő blokkok gw: kódblokkok; a jegyzetek Note: után.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-sec",
+                "topic": "Biztonság",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A modul csak a docs/product/decks/ alá írhat. A diák Markdownja biztonságos renderelővel jelenik meg, nyers HTML és veszélyes hivatkozások nélkül.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-writes",
+                    "topic": "Csak a docs/product/decks/ alá írhat; a Markdown nyers HTML nélkül jelenik meg",
+                    "metadata": {
+                      "status": "decision"
                     }
                   }
                 ]

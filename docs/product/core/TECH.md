@@ -2,9 +2,9 @@
 
 # Groundwork — Mag: Műszaki terv
 
-_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
+_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 15 kész, 0 részben, 0 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 21 kész, 1 részben, 0 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -31,6 +31,7 @@ Az első verzióban minden modul a csomagon belül él, de a szerződés úgy k�
   - Nézet a közös keretben `kész` — A nézetet a Mag szolgálja ki a /<module>/ alatt, a közös keretben (fejléc, navigáció). ([core/shell/shell.mjs](../../../core/shell/shell.mjs))
   - Opcionális skillek és hookok (az init telepíti)
   - Mappák, ahová írhat (a Mag ellenőrzi) `kész` ([core/files.mjs](../../../core/files.mjs))
+- A modulok egymás kis, deklarált végpontjait olvassák `kész` — Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót. ([modules/README.md](../../../modules/README.md))
 
 ## 3. Közös keret (fejléc, navigáció, téma)
 
@@ -39,6 +40,9 @@ Minden modul egy közös kinézetet használ, amelyet a Mag ad; ez követi az op
 - Felület angolul, magyar fordítással `kész` — A keret, a Plan és a Build is; a nyelvet a fejlécben lehet váltani. ([core/shell/i18n.mjs](../../../core/shell/i18n.mjs))
 - Közös kinézet a Magból, minden modul ehhez igazodik `kész` — A közös változók a /shell/theme.css-ben; a Plan és a Build is ezeket használja. ([core/shell/theme.css](../../../core/shell/theme.css))
 - Világos vagy sötét az OS beállítása szerint `kész` — Kapcsoló nincs; a nézetek újratöltés nélkül is követik a váltást. ([core/shell/theme.css](../../../core/shell/theme.css))
+- A keret birtokolja az élő kapcsolatot, a verziót, a nyelvet és a projekt nevét `kész` — Fülenként egy eseményfolyam; a modulok a /shell/live.mjs-en át kapják, és nem ismétlik a keret jelzéseit. ([core/shell/live.mjs](../../../core/shell/live.mjs))
+- Fülváltáskor a modulok életben maradnak `kész` — A keret modulonként egy keretet tart meg, és csak elrejti; a térkép megtartja a nagyítást és kijelölést, a Build a görgetést és a szűrőket. ([core/shell/frames.mjs](../../../core/shell/frames.mjs))
+- A modulok eszköztára a modulban marad — A keret modulfüggetlen marad; harmadik modulnál újragondolható.
 
 ## 4. Csomagolás és terjesztés
 
@@ -67,23 +71,28 @@ Saját tokent vagy jelszót nem kér és nem tárol. A GitHub olvasásához a fe
 
 ## 6. Platform és futtatási környezet
 
-A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható; a Build szerver nélküli, mappaválasztós módja csak Chromium-alapú böngészőben működik.
+A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval. Chrome, Edge, Firefox és Safari böngészőben használható.
 
 - Windows, macOS, Linux
 - Node 20 vagy újabb
 - Chrome, Edge, Firefox, Safari
+- Teljesítménycél: 300 ms első kirajzolás, 100 ms fülváltás, 50 ms kérésenként `részben` — Helyben, meleg indulásnál; a #19 mérése ehhez viszonyít.
 
 ## 7. Technológiai stack
 
-Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és fordítási lépés nélkül, ahogy a két meglévő eszköz is. Amit módosítunk, az azonnal fut, és nincs függőségi lánc, ami csendben eltörhetne. Hogy a kód áttekinthető maradjon, minden modul több kisebb fájlra bomlik, nem egyetlen nagy fájlra.
+Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és fordítási lépés nélkül. Amit módosítunk, az azonnal fut, offline is, és nincs függőségi lánc, ami csendben eltörhetne; az agentek is közvetlenül tudják futtatni és javítani a kódot.
+
+A felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a csomagba tett sablonkönyvtár, a lit-html rajzolja deklaratívan és hatékonyan, a közös megjelenést pedig a keret theme.css-e adja kész komponensekkel. Hogy a kód áttekinthető maradjon, minden modul oldala kis fájlokra bomlik (nézetek, állapot, adatlekérés), nem egyetlen nagy index.html-re. Így megkapjuk egy keretrendszer előnyeit, a build-lépés és a függőségi lánc nélkül.
 
 - Sima JavaScript ES-modulok, build-lépés nélkül — Mindkét meglévő eszköz már így készült.
-- Modulonként több kisebb fájl, nem egy óriásfájl
+- Modulonként több kisebb fájl, nem egy óriásfájl `kész` — A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; build-lépés nincs, a böngésző a szerverről tölti be őket. A közös téma is több fájl: a theme.css a tokeneket tartja és importálja a komponenseket.
+- Deklaratív nézetek lit-html-lel, a csomagba téve `kész` — lit-html 3.2.1, kb. 7 KB, a core/vendor/ alatt; fordítási lépés nélkül fut, offline is. ([core/vendor/lit-html/lit-html.js](../../../core/vendor/lit-html/lit-html.js))
+- Közös dizájnrendszer a theme.css-ben (.gw-* komponensek) `kész` ([core/shell/theme.css](../../../core/shell/theme.css))
 
 ## Elvetett megoldások
 
 - Modulonként külön szerver _(Helyi szerver)_
-- Lekérdezgetés (polling) az oldalakból — A szerver nélkül, fájlból (file://) megnyitott Build továbbra is 3 mp-enként olvassa újra a mappát. _(Helyi szerver)_
+- Lekérdezgetés (polling) az oldalakból _(Helyi szerver)_
 - Bemásolható mappa _(Csomagolás és terjesztés)_
 - Külön oldal–indító verziópár _(Csomagolás és terjesztés)_
 - Saját token- vagy jelszókezelés (bekérés, tárolás) _(Biztonság)_

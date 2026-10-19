@@ -2,13 +2,13 @@
 
 # Groundwork — Build modul: Termék
 
-_Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Műszaki terv](../build/TECH.md)._
+_Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
 > Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 6 kész, 0 részben, 1 hiányzik.
 
 ## 1. Hatókör és fő funkciók
 
-A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. Szerver nélkül, mappaválasztóval is megnyitható. A prototípus minden funkciója része az első verziónak.
+A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Markdown-jegyeiből és a git történetéből mutatja, hol tart a munka: jegyek és területek, függések, aktivitás, ellentmondások, dokumentumok és az ágak gráfja. A Groundwork szerverén fut; fájlból, szerver nélkül nem nyitható meg. A prototípus minden funkciója része az első verziónak.
 
 Új képessége lesz, hogy egy jegyről egy kattintással el lehet jutni ahhoz a PRD-elemhez, amiből született. Egy Claude-skill, amely a chatben foglalja össze a projekt állapotát, később jöhet.
 
@@ -17,8 +17,8 @@ A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Mark
 - Ellentmondások kiszűrése `kész`
 - Dokumentumok: specek, ADR-ek, fogalomtár `kész`
 - Git ágak és merge-ök gráfja `kész`
-- Szerver nélkül is: mappaválasztóval (Chromium) `kész` — Csak Chromium-alapú böngészőben.
 - Jegyről egy kattintással a PRD-elemhez `hiányzik`
+- Hét egyenrangú nézet, elöl az áttekintés `kész`
 
 ## 2. Felhasználók és használati esetek
 
@@ -26,6 +26,10 @@ A Build nézeteit bárki használhatja, aki a projektet követi, Claude nélkül
 
 - Bárki, aki a projektet követi, Claude nélkül is
 - _Claude nélkül csak olvasás_
+
+## Nem célok
+
+- Szerver nélküli, fájlból megnyitott Build — Elhagyva: az npx @pottom/groundwork egy parancs, a fájlmód pedig generált bundle-t, azaz build-lépést igényelt volna. _(Hatókör és fő funkciók)_
 
 ## Későbbi verziók
 

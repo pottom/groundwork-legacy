@@ -77,6 +77,31 @@ test('a module can push a change of its own, and check something on an interval 
   assert.equal(checks, after, 'the server closed: the interval stopped')
 })
 
+test('a module can tell whether anything below the root changed since it last looked, while the folder is watched', async () => {
+  let ctx
+  const root = tmp()
+  const srv = await startServer({ root, modules: [watcher((c) => { ctx = c })], port: 0 })
+  try {
+    assert.equal(ctx.events.stamp(), null, 'nobody listens yet: the folder is not watched, nothing can be known')
+    const sse = listen(srv.port)
+    try {
+      await sse.next((e) => e.event === 'hello')
+      const before = ctx.events.stamp()
+      assert.equal(typeof before, 'string')
+      assert.equal(ctx.events.stamp(), before, 'nothing changed: the same stamp')
+      write(root, 'notes/one.md', '# one\n')
+      await sse.change('demo.notes')
+      const after = ctx.events.stamp()
+      assert.notEqual(after, before)
+      write(root, 'other/x.txt', 'x')   // no module's topic, still a change below the root
+      const deadline = Date.now() + 3000
+      while (ctx.events.stamp() === after && Date.now() < deadline) await new Promise((r) => setTimeout(r, 20))
+      assert.notEqual(ctx.events.stamp(), after)
+    } finally { sse.close() }
+  } finally { await srv.close() }
+  assert.equal(ctx.events.stamp(), null, 'closed: not watched any more')
+})
+
 test('changes close together go out as one event', async () => {
   let ctx
   const srv = await startServer({ root: tmp(), modules: [watcher((c) => { ctx = c })], port: 0 })

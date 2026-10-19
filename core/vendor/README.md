@@ -6,6 +6,7 @@ The browser-side dependencies, shipped in the package so Groundwork works withou
 |---|---|---|---|---|
 | `mind-elixir` | 5.15.1 | MIT | `mind-elixir/MindElixir.js`, `mind-elixir/MindElixir.css` (from `dist/`) | https://www.npmjs.com/package/mind-elixir/v/5.15.1 |
 | `marked` | 12.0.2 | MIT (plus the BSD notice of the original Markdown, in `LICENSE.md`) | `marked/marked.esm.js` (from `lib/`) | https://www.npmjs.com/package/marked/v/12.0.2 |
+| `lit-html` | 3.2.1 | BSD-3-Clause | `lit-html/lit-html.js`, `lit-html/directive.js`, `lit-html/directive-helpers.js`, `lit-html/directives/{repeat,class-map,live,unsafe-html}.js` (the package's minified ES modules, unchanged) | https://www.npmjs.com/package/lit-html/v/3.2.1 |
 | `@fontsource-variable/inter` | 5.3.0 | OFL-1.1 | `fonts/inter/inter-latin{,-ext}-wght-normal.woff2` (Inter, variable weight) | https://www.npmjs.com/package/@fontsource-variable/inter/v/5.3.0 |
 | `@fontsource-variable/source-serif-4` | 5.3.1 | OFL-1.1 | `fonts/source-serif-4/source-serif-4-latin{,-ext}-opsz-{normal,italic}.woff2` (Source Serif 4, variable weight and optical size) | https://www.npmjs.com/package/@fontsource-variable/source-serif-4/v/5.3.1 |
 

@@ -43,7 +43,8 @@ test('the package holds the core, the modules and their bundled libraries', asyn
     'core/groundwork.mjs', 'core/start.mjs', 'core/server.mjs', 'core/version.mjs', 'core/shell/theme.css',
     'core/vendor/mind-elixir/MindElixir.js', 'core/vendor/marked/marked.esm.js', 'core/vendor/fonts/inter/inter-latin-wght-normal.woff2',
     'modules/plan/module.mjs', 'modules/plan/index.html', 'modules/plan/skills/groundwork-prd-maker/SKILL.md',
-    'modules/build/module.mjs', 'modules/build/index.html', 'modules/build/ticket-reader.js',
+    'modules/build/module.mjs', 'modules/build/index.html', 'modules/build/ticket-reader.mjs',
+    'modules/build/build.css', 'modules/build/page/main.mjs', 'modules/build/page/views/git.mjs', 'modules/build/ui-strings.mjs',
   ]) assert.ok(files.includes(f), `${f} is in the package`)
 })
 
@@ -107,8 +108,8 @@ test('`npx -y @pottom/groundwork` serves another project: Plan and Build work', 
   try {
     assert.match(gw.output, new RegExp(`groundwork ${versionRe.source}`))
     const page = await (await fetch(gw.url)).text()
-    assert.match(page, /other project/)
-    assert.match(page, new RegExp(`Groundwork ${versionRe.source}`))
+    assert.match(page, /<span class="gw-project"[^>]*>Other<\/span>/, 'the project is named by its README heading')
+    assert.match(page, new RegExp(`<span class="gw-version">v${versionRe.source}</span>`))
     assert.equal((await fetch(gw.url + 'plan/')).status, 200)
     assert.equal((await fetch(gw.url + 'vendor/mind-elixir/MindElixir.js')).status, 200)
     assert.equal((await (await fetch(gw.url + 'api/plan/map')).json()).data.nodeData.topic, 'Other')

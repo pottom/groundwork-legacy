@@ -1,14 +1,13 @@
 // The UI translation mechanism: one small browser module with no dependencies, served at
-// /shell/i18n.mjs. The shell and every module view use it; a page that runs without the core
-// server (Build's folder-picker mode) can load a copy of it as a classic script (without "export"; see
-// modules/build/i18n.js), it needs nothing else.
+// /shell/i18n.mjs. The shell and every module view use it; it needs nothing else.
 //
 // The UI language is not the language of the generated documents (see modules/plan/doc-strings.mjs).
 //
 //   const i18n = createI18n({ en: { save: 'Save', saved: 'Saved at {time}' }, hu: { ... } })
 //   i18n.lang                      'en' or 'hu'
 //   i18n.t('saved', { time })      the text in the current language; {name} placeholders are filled;
-//                                  a key missing in the language falls back to English, then to the key
+//                                  a key missing in the language falls back to English, then to the key;
+//                                  "a(z) {name}" takes the Hungarian article that fits the value
 //   i18n.apply(document)           fills elements marked with data-i18n="key" (text),
 //                                  data-i18n-title, data-i18n-aria-label, data-i18n-placeholder (attributes);
 //                                  on a document it also sets <html lang>
@@ -26,7 +25,17 @@ export const DEFAULT_LANG = 'en'
 export const LANGS = { en: 'English', hu: 'Magyar' }
 const MESSAGE = 'groundwork:lang'
 
-const defaultStorage = () => { try { return globalThis.localStorage ?? null } catch { return null } }
+// Hungarian's definite article before a name filled in: "a(z) {base}" reads "a main" or
+// "az origin/main" (a vowel sound: a vowel letter, or a number read as egy… or öt…). When the
+// name starts otherwise unreadably, the generic "a(z)" stays. a: 'a' or 'A', as written.
+function huArticle(a, value) {
+  const c = value.trimStart()[0] ?? ''
+  if (/[aáeéiíoóöőuúüű15]/i.test(c)) return a + 'z'
+  if (/[\p{L}\d]/u.test(c)) return a
+  return a + '(z)'
+}
+
+const defaultStorage =() => { try { return globalThis.localStorage ?? null } catch { return null } }
 
 export function createI18n(strings, { storage = defaultStorage(), win = globalThis.window ?? null } = {}) {
   const known = (l) => (typeof l === 'string' && Object.hasOwn(strings, l) ? l : null)
@@ -44,7 +53,12 @@ export function createI18n(strings, { storage = defaultStorage(), win = globalTh
 
   const t = (key, vars) => {
     const text = strings[lang]?.[key] ?? strings[DEFAULT_LANG]?.[key] ?? key
-    return vars ? text.replace(/\{(\w+)\}/g, (m, name) => (name in vars ? String(vars[name]) : m)) : text
+    if (!vars) return text
+    return text.replace(/(\b[aA]\(z\) )?\{(\w+)\}/g, (m, art, name) => {
+      if (!(name in vars)) return m
+      const value = String(vars[name])
+      return (art ? huArticle(art[0], value) + ' ' : '') + value
+    })
   }
 
   win?.addEventListener?.('storage', (e) => { if (e.key === LANG_KEY) change(e.newValue) })

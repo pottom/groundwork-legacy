@@ -2,7 +2,7 @@
 
 # Groundwork — Plan modul: Műszaki terv
 
-_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
+_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
 > Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 3 kész, 1 részben, 0 hiányzik.
 
@@ -24,3 +24,7 @@ A Plan egyetlen igazságforrása a `docs/product/mindmap.json`; ebből generál�
 ## Elvetett megoldások
 
 - Függőségek CDN-ről _(Technológiai stack)_
+
+## Későbbre halasztva
+
+- Egy közös Markdown-renderelő a két modulban — Előbb próba: elég-e a Build biztonságos renderelője a Plan dokumentumaihoz; ha igen, a marked (90 KB) kikerül. _(Technológiai stack)_

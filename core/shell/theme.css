@@ -1,40 +1,150 @@
-/* The shared look of Groundwork: colours and typography for the shell and every module.
-   Served by the core at /shell/theme.css. A module's page links it and uses the variables:
+/* The shared look of Groundwork: the design tokens and the .gw-* components for the shell and
+   every module. Served by the core at /shell/theme.css. This comment is the contract: a module
+   links this file, uses the tokens and the classes below, and keeps no local copy of them.
+
+   This file holds the tokens; the components live beside it, and this file imports them, so a
+   module still links theme.css only:
+     controls.css   tones, badge, tag, dot, segmented control, buttons, field, card, section header,
+                    toolbar, tabs
+     feedback.css   progress, empty state, callout, toasts, focus and motion, pill, stat, popover
 
      <link rel="stylesheet" href="/shell/theme.css">
      body { background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-text) var(--gw-font); }
 
    Light or dark follows the operating system (prefers-color-scheme); there is no switch.
-   Only the colours change between the two; the names stay the same.
+   Only the values change between the two; the names stay the same.
 
-   Colours
+   Rules of the look
+     - Hues are for fills, dots and icons; text in a status colour uses its -text token (WCAG AA,
+       4.5:1, on --gw-bg, --gw-surface, --gw-sunken and on its own -soft tint, light and dark).
+     - One "current" language: whatever is current, selected or primary is marked with the accent
+       gradient (--gw-gradient): a 2 px line, a 1.5 px outline, or the fill of a primary button.
+       Never a solid accent bar in one place and the gradient in another.
+     - Labels are in sentence case, never uppercase or tracked; ids and paths are .gw-tag (mono).
+     - The shell shows whether the page is live. A module shows only its own transient activity
+       (saving, saved, re-reading) as a .gw-toast, never a second live indicator.
+
+   ---- Tokens ----
+
+   Surfaces and text
      --gw-bg            page background
      --gw-surface       cards, panels, the header
-     --gw-sunken        wells, inputs, code blocks: a step below the page
+     --gw-sunken        wells, inputs, code blocks, tracks: a step below the page
      --gw-fg            main text
-     --gw-fg-2          secondary text, still readable
-     --gw-muted         hints, captions, disabled
+     --gw-fg-2          secondary text, still readable (AA)
+     --gw-muted         hints, captions, disabled (AA on every background)
      --gw-line          borders and dividers
-     --gw-line-strong   borders that must stand out (inputs, hover)
-     --gw-accent        links, the current item, primary buttons
-     --gw-accent-fg     text on an --gw-accent background
+     --gw-line-strong   borders that must stand out (inputs, hover, dashed empty states)
+     --gw-shadow        the shadow of a raised surface (cards)
+     --gw-shadow-lg     the shadow of a floating one (toasts, popovers, glass chrome)
      --gw-focus         focus ring
-     --gw-ok            done, success
-     --gw-warn          waiting, attention
-     --gw-bad           error, missing
-     --gw-shadow        the shadow of a raised surface
 
-   Typography and shape
+   Accent
+     --gw-accent        links, the current item
+     --gw-accent-2      the second stop of the accent gradient
+     --gw-accent-fg     text on an accent or gradient fill
+     --gw-gradient      accent -> accent-2, left to right: the "current/primary" marker (lines, outlines, the logo)
+     --gw-gradient-fill the same gradient, deep enough for --gw-accent-fg text on it (primary buttons, selected chips)
+
+   Status: a hue, an AA text colour and a soft tint (the hue at 12% on whatever is below)
+     --gw-ok            done, success              --gw-ok-text      --gw-ok-soft
+     --gw-warn          waiting, attention, partly --gw-warn-text    --gw-warn-soft
+     --gw-bad           error, missing             --gw-bad-text     --gw-bad-soft
+     --gw-info          information, in progress   --gw-info-text    --gw-info-soft
+     --gw-violet        a fifth category (topics)  --gw-violet-text  --gw-violet-soft
+     --gw-pink          a sixth: ask about it      --gw-pink-text    --gw-pink-soft    (a hue only: no badge, dot or callout tone)
+     (--gw-accent)      the brand as a status      --gw-accent-text  --gw-accent-soft
+
+   Typography: font sizes in the `font` shorthand form, use as `font: var(--gw-text) var(--gw-font)`
      --gw-font          the interface font (Inter, bundled)
      --gw-font-serif    reading text in documents (Source Serif 4, bundled)
      --gw-font-mono     code, ids, paths
-     --gw-text          body text size/line height, for `font: var(--gw-text) var(--gw-font)`
-     --gw-text-small    small text, same form
-     --gw-radius        corner radius
-     --gw-space         the base spacing step; use multiples (calc(var(--gw-space) * 2))
-     --gw-header-height the height of the shell's header */
+     --gw-text-xs       11.5px: badges, captions
+     --gw-text-small    13px: chrome (toolbars, buttons, filters)
+     --gw-text          15px: body text
+     --gw-title         weight + size: section titles, `font: var(--gw-title) var(--gw-font)`
+     --gw-display       weight + size: the one big number or heading of a view
+
+   Shape and space
+     --gw-radius-sm     6px: buttons, tags, inputs
+     --gw-radius        10px: the default corner
+     --gw-radius-lg     14px: cards, panels, empty states
+     --gw-radius-pill   999px: badges, segmented tracks, toasts
+     --gw-space         8px, the base spacing step; use multiples (calc(var(--gw-space) * 2))
+     --gw-header-height the height of the shell's bar
+
+   ---- Components ----
+   Each takes the tokens above; tones are a modifier class. Interactive ones have a focus ring.
+
+   .gw-badge          a status pill: <span class="gw-badge gw-badge--ok">Done</span>
+                      tones: .gw-badge--ok .gw-badge--warn .gw-badge--bad .gw-badge--info
+                      .gw-badge--violet .gw-badge--accent .gw-badge--neutral (the default look)
+     .gw-badge--dot   with a leading 6 px dot in the hue
+     .gw-badge--count a count in a tab or heading: sunken, tabular numbers (<span class="gw-badge gw-badge--count">17</span>)
+   .gw-tag            mono, for things one copies: #17, d-trace, branch names, paths; an <a class="gw-tag">
+                      turns accent on hover
+   .gw-dot            an 8 px status dot: .gw-dot--ok .gw-dot--warn .gw-dot--bad .gw-dot--info
+                      .gw-dot--violet .gw-dot--accent .gw-dot--neutral; .gw-dot--pulse breathes (live)
+   .gw-seg            a segmented control: <div class="gw-seg" role="group"> of <button>s (or <a>s);
+                      the current one has aria-pressed="true", aria-selected="true" or aria-current
+   .gw-btn            a button, the secondary look by default (also .gw-btn--secondary)
+     .gw-btn--primary filled with the gradient
+     .gw-btn--ghost   transparent until hover
+     .gw-btn--icon    32 x 32, an icon only; give it a translated title and aria-label
+     .gw-btn--sm      28 px high
+     .gw-btn--danger  destructive: red text, red tint on hover
+                      a toggle that is on (aria-pressed="true") gets the gradient outline: a mode
+   .gw-field          an <input>, <select> or <textarea>: <input class="gw-field">
+   .gw-card           a surface: border, large radius, shadow, no coloured stripes
+     .gw-card__head   its header row (holds a .gw-section-head or a title and actions)
+     .gw-card__body   its padded content
+     .gw-card--glass  floating chrome over a canvas (map toolbars, docks, tooltips): translucent, blurred
+   .gw-popover        a floating panel a button opens (a legend, a menu): glass, scrolls when tall; the page
+                      places it (position, top/left, width) and hides it with [hidden]; give its button
+                      aria-expanded and aria-controls, close it on Escape and on a click outside
+                      <div class="gw-popover" role="dialog"><h3 class="gw-popover__title">Status</h3>
+                      <ul class="gw-popover__list"><li class="gw-popover__item"><i></i>Decision</li></ul></div>
+     .gw-popover__title  a group heading, small and muted
+     .gw-popover__list   its rows; style="--gw-popover-cols: 2" for two columns
+     .gw-popover__item   a row: an icon slot and a label; a <button> or <a> row is a menu item (hover, focus ring)
+   .gw-section-head   a section header: <div class="gw-section-head"><h2 class="gw-section-head__title">
+                      Branches</h2><span class="gw-badge gw-badge--count">17</span>
+                      <span class="gw-section-head__hint">10 local</span></div>
+                      parts .gw-section-head__title .gw-section-head__hint (wraps below when narrow)
+   .gw-toolbar        a row of controls; .gw-toolbar__spacer pushes the rest to the right
+   .gw-tabs           underline tabs inside a module (a <nav> of <a>s or <button>s); the current one
+                      has aria-current or aria-selected="true" and the gradient line under it
+   .gw-progress       a thin bar: <div class="gw-progress" style="--value: 64%"></div>, in --gw-ok;
+                      .gw-progress--accent fills it with the gradient
+   .gw-empty          "nothing here": <div class="gw-empty"><span class="gw-empty__icon"><svg/></span>
+                      <p class="gw-empty__title">No map yet</p><p class="gw-empty__text">One sentence.</p>
+                      <div class="gw-empty__action">a button or a .gw-tag command</div></div>
+                      parts .gw-empty__icon .gw-empty__title .gw-empty__text .gw-empty__action;
+                      at most one per view
+   .gw-callout        a notice in the page flow (offline, an unknown deep link): a 3 px bar in the
+                      tone, a soft background; parts .gw-callout__icon .gw-callout__body .gw-callout__close;
+                      tones .gw-callout--info (default) .gw-callout--ok .gw-callout--warn .gw-callout--bad
+                      .gw-callout--accent
+   .gw-toasts         the fixed bottom-right stack for .gw-toast; give it aria-live="polite"
+   .gw-toast          a transient message (Saved 18:49, Could not save); dismiss it after a few
+                      seconds; tones .gw-toast--ok .gw-toast--bad .gw-toast--info (a dot in the tone)
+
+   Added for Build (#20):
+   .gw-pill           a filter in force, removable: <span class="gw-pill">Status <b>Ready</b>
+                      <button type="button" aria-label="Remove the filter Status"><svg/></button></span>
+   .gw-stat           one number of an overview strip: <div class="gw-stat"><span class="gw-stat__label">
+                      <span class="gw-dot gw-dot--warn"></span>Waiting for a human</span>
+                      <span class="gw-stat__value">3</span><span class="gw-stat__sub">to decide</span></div>;
+                      an <a class="gw-stat"> is a link (tinted on hover); parts .gw-stat__label
+                      .gw-stat__value .gw-stat__sub; .gw-stat--zero mutes the number, .gw-stat--good
+                      shows the sub line in --gw-ok-text. The strip around the stats is the module's layout.
+   An <svg> inside .gw-btn--icon or .gw-empty__icon takes that component's icon size even when it
+   carries a class of its own (such as a module's svg.i).
+*/
 
 @import url('/vendor/fonts.css');
+@import url('/shell/controls.css');
+@import url('/shell/feedback.css');
 
 :root {
   color-scheme: light dark;
@@ -48,19 +158,46 @@
   --gw-line: #e4e0d7;
   --gw-line-strong: #cfcac0;
   --gw-accent: #2f5bd3;
+  --gw-accent-2: #8b5cf6;
   --gw-accent-fg: #ffffff;
   --gw-focus: #2f5bd3;
   --gw-ok: #1f8a4c;
   --gw-warn: #b45309;
   --gw-bad: #c0392b;
+  --gw-info: #0284c7;
+  --gw-violet: #8b5cf6;
   --gw-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
+  --gw-shadow-lg: 0 2px 6px rgb(0 0 0 / .06), 0 12px 32px rgb(0 0 0 / .10);
+
+  --gw-ok-text: #17703d;
+  --gw-warn-text: #9a4a08;
+  --gw-bad-text: #a93226;
+  --gw-info-text: #075a8c;
+  --gw-violet-text: #6d3fd8;
+  --gw-accent-text: #2a52c4;
+
+  --gw-ok-soft: color-mix(in srgb, var(--gw-ok) 12%, transparent);
+  --gw-warn-soft: color-mix(in srgb, var(--gw-warn) 12%, transparent);
+  --gw-bad-soft: color-mix(in srgb, var(--gw-bad) 12%, transparent);
+  --gw-info-soft: color-mix(in srgb, var(--gw-info) 12%, transparent);
+  --gw-violet-soft: color-mix(in srgb, var(--gw-violet) 12%, transparent);
+  --gw-accent-soft: color-mix(in srgb, var(--gw-accent) 12%, transparent);
+
+  --gw-gradient: linear-gradient(90deg, var(--gw-accent), var(--gw-accent-2));
+  --gw-gradient-fill: linear-gradient(135deg, #2f5bd3, #7547e6);
 
   --gw-font: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
   --gw-font-serif: 'Source Serif 4', Georgia, serif;
   --gw-font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --gw-text-xs: 11.5px/1.4;
   --gw-text: 15px/1.5;
   --gw-text-small: 13px/1.4;
+  --gw-title: 650 19px/1.3;
+  --gw-display: 680 28px/1.1;
+  --gw-radius-sm: 6px;
   --gw-radius: 10px;
+  --gw-radius-lg: 14px;
+  --gw-radius-pill: 999px;
   --gw-space: 8px;
   --gw-header-height: 48px;
 }
@@ -76,11 +213,35 @@
     --gw-line: #2f3238;
     --gw-line-strong: #464a52;
     --gw-accent: #7d9cf0;
+    --gw-accent-2: #b48cf8;
     --gw-accent-fg: #15161a;
     --gw-focus: #7d9cf0;
     --gw-ok: #5cc58a;
     --gw-warn: #f0b45d;
     --gw-bad: #ee7a6c;
+    --gw-info: #5ab8e8;
+    --gw-violet: #b48cf8;
     --gw-shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
+    --gw-shadow-lg: 0 2px 8px rgb(0 0 0 / .35), 0 16px 40px rgb(0 0 0 / .4);
+    --gw-ok-text: #6fd49b;
+    --gw-warn-text: #f5c27a;
+    --gw-bad-text: #f48f82;
+    --gw-info-text: #7cc8f0;
+    --gw-violet-text: #c4a3fa;
+    --gw-accent-text: #97b0f5;
+    --gw-gradient-fill: linear-gradient(135deg, var(--gw-accent), var(--gw-accent-2));
+  }
+}
+
+/* a sixth hue: "ask about it" (Plan's to-do items); text in it uses --gw-pink-text (AA) */
+:root {
+  --gw-pink: #d6336c;
+  --gw-pink-text: #b02659;
+  --gw-pink-soft: color-mix(in srgb, var(--gw-pink) 12%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gw-pink: #f472b6;
+    --gw-pink-text: #f68fc6;
   }
 }

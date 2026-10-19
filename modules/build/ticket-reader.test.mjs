@@ -1,14 +1,13 @@
-// The ticket reader (ticket-reader.js): from a ticket source, the ticket model every Build view
+// The ticket reader (ticket-reader.mjs): from a ticket source, the ticket model every Build view
 // draws. Two sources stand behind its one entry point: the project's Markdown files (.scratch/)
-// and the GitHub issues the server fetched. It is a classic script (the page works from file://),
-// which under Node defines globalThis.GroundworkTickets once imported.
+// and the GitHub issues the server fetched. An ES module, shared by the page and the server.
 // Run: node --test "modules/**/*.test.mjs"
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import './ticket-reader.js';
+import * as reader from './ticket-reader.mjs';
 
-const { readTickets } = globalThis.GroundworkTickets;
+const { readTickets, waitingOn } = reader;
 
 // The local source: markdown texts by path, as the page reads them.
 const local = (files, more = {}) => ({
@@ -70,7 +69,7 @@ test('GitHub issues: closed is closed or wontfix; open takes its state label', (
     issue(4, { labels: ['needs-triage'] }),
     issue(5, { labels: ['enhancement'] }),
   ]));
-  assert.deepEqual(m.tickets.map((t) => [t.label, t.status]), [['#1', 'closed'], ['#2', 'wontfix'], ['#3', 'ready-for-agent'], ['#4', 'needs-triage'], ['#5', 'open']]);
+  assert.deepEqual(m.tickets.map((t) => [t.label, t.status]), [['#1', 'closed'], ['#2', 'wontfix'], ['#3', 'ready-for-agent'], ['#4', 'needs-triage'], ['#5', 'needs-triage']]);
   assert.deepEqual(m.open.map((t) => t.label), ['#3', '#4', '#5']);
   assert.deepEqual(byLabel(m, '#3').labels, ['bug', 'ready-for-agent']);
   assert.equal(byLabel(m, '#3').url, 'https://github.com/acme/app/issues/3');
@@ -83,6 +82,24 @@ test('GitHub issues: the milestone is the area', () => {
   assert.deepEqual(m.areaList.map((a) => [a.name, a.open, a.closed]), [['', 1, 0], ['1. Start', 1, 1]]);
   assert.equal(byLabel(m, '#1').milestone, '1. Start');
   assert.equal(m.areaRef, null, 'a milestone does not name tickets as "<area> <n>"');
+});
+
+test('what an open ticket waits on: one bucket each, blocked before its status, the counts sum to the open tickets', () => {
+  const m = readTickets(local({
+    '.scratch/core/issues/01-base.md': '# Base\n\nStatus: claimed\n',
+    '.scratch/core/issues/02-free.md': '# Free agent\n\nStatus: ready-for-agent\n',
+    '.scratch/core/issues/03-wait.md': '# Blocked agent\n\nStatus: ready-for-agent\nBlocked by: 01\n',
+    '.scratch/core/issues/04-ask.md': '# Free human\n\nStatus: needs-info\n',
+    '.scratch/core/issues/05-ask.md': '# Blocked human\n\nStatus: ready-for-human\nBlocked by: 01\n',
+    '.scratch/core/issues/06-test.md': '# Test\n\nStatus: needs-browser-test\n',
+    '.scratch/core/issues/07-odd.md': '# Odd\n\nStatus: parked\n',
+    '.scratch/core/issues/08-done.md': '# Done\n\nStatus: done\nBlocked by: 01\n',
+  }));
+  const on = (label) => waitingOn(byLabel(m, label));
+  assert.deepEqual(['core 01', 'core 02', 'core 03', 'core 04', 'core 05', 'core 06', 'core 07', 'core 08'].map(on),
+    ['claimed', 'agent', 'blocked', 'human', 'blocked', 'test', 'other', 'closed']);
+  assert.deepEqual({ ...m.waiting }, { agent: 1, human: 1, blocked: 2, test: 1, claimed: 1, other: 1, unparsed: 0 });
+  assert.equal(Object.values(m.waiting).reduce((a, b) => a + b, 0), m.open.length);
 });
 
 test('GitHub issues: blocked by GitHub\'s links, a "## Blocked by" section or a "Blocked by:" line', () => {
@@ -168,16 +185,6 @@ test('an open ticket without a PRD line is an inconsistency; a closed one is his
   ]);
 });
 
-test('the PRD map ids come from every node of the map, nested or not; a broken map gives none', () => {
-  const { mapIds } = globalThis.GroundworkTickets;
-  const map = { v: 'abc', nodeData: { id: 'root', topic: 'R', children: [{ id: 'doc-a', children: [{ id: 'f-x' }, { id: 'd-y', children: [] }] }] } };
-  assert.deepEqual(mapIds(map), ['root', 'doc-a', 'f-x', 'd-y']);
-  assert.equal(mapIds(null), null);
-  assert.equal(mapIds({ error: 'no mindmap.json' }), null);
-  const m = readTickets(withMap(local({ '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**PRD:** f-x, f-z\n' }), mapIds(map)));
-  assert.deepEqual(prdProblems(m), [['unknown-prd', 'core 01', 'problem.unknown-prd.text', { list: 'f-z' }]]);
-});
-
 test('without the PRD map no id is unknown, and a missing PRD line counts only once the project uses them', () => {
   const none = readTickets(local({ '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n' }));
   assert.deepEqual(prdProblems(none), [], 'a project that does not link tickets to a PRD');
@@ -188,9 +195,35 @@ test('without the PRD map no id is unknown, and a missing PRD line counts only o
   assert.deepEqual(prdProblems(some), [['no-prd', 'core 01', 'problem.no-prd.text', {}]]);
 });
 
+test('a PRD line of a dash, "none" or only a remark says "deliberately no PRD": no ids, no missing PRD', () => {
+  const m = readTickets(withMap(local({
+    '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**PRD:** — (no decision yet; the look was chosen from a prototype)\n',
+    '.scratch/core/issues/02-two.md': '# Two\n\nStatus: ready-for-agent\n**PRD:** —\n',
+    '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n**PRD:** none\n',
+    '.scratch/core/issues/04-four.md': '# Four\n\nStatus: ready-for-agent\nPRD: nincs (még)\n',
+    '.scratch/core/issues/05-five.md': '# Five\n\nStatus: ready-for-agent\n**PRD:** n/a\n',
+    '.scratch/core/issues/06-six.md': '# Six\n\nStatus: ready-for-agent\n**PRD:** (to be grilled first)\n',
+    '.scratch/core/issues/07-seven.md': '# Seven\n\nStatus: ready-for-agent\n**PRD:** f-known (the shell part only), d-trace\n',
+    '.scratch/core/issues/08-eight.md': '# Eight\n\nStatus: ready-for-agent\n**PRD:** f-known needs a grilling session first\n',
+  }), ['f-known', 'd-trace']));
+  for (const label of ['core 01', 'core 02', 'core 03', 'core 04', 'core 05', 'core 06']) {
+    assert.deepEqual(byLabel(m, label).prd, [], label);
+    assert.equal(byLabel(m, label).prdNone, true, label);
+  }
+  assert.deepEqual(byLabel(m, 'core 07').prd, ['f-known', 'd-trace']);
+  assert.deepEqual(byLabel(m, 'core 08').prd, ['f-known'], 'plain words are not ids');
+  assert.equal(byLabel(m, 'core 07').prdNone, false);
+  assert.deepEqual(prdProblems(m), []);
+});
+
+test('a GitHub issue without a state label is waiting to be triaged', () => {
+  const m = readTickets(github([issue(1), issue(2, { labels: ['bug'] })]));
+  assert.deepEqual(m.tickets.map((t) => t.status), ['needs-triage', 'needs-triage']);
+});
+
 // ───────── Where the tickets are: one rule for the page and the server ─────────
 
-const { locateProject, ticketPath, keepsFolder, DONE, DROPPED, CLOSED, isDone, isDropped } = globalThis.GroundworkTickets;
+const { locateProject, ticketPath, keepsFolder, DONE, DROPPED, CLOSED, isDone, isDropped } = reader;
 
 test('the tracker: .scratch when its areas hold issues, else the root, else the first such folder within three levels', () => {
   assert.equal(locateProject(['', '.scratch', '.scratch/core', '.scratch/core/issues', 'work', 'work/core', 'work/core/issues']).trackerPath, '.scratch');

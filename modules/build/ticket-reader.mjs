@@ -1,6 +1,6 @@
-// ticket-reader.js: what Build knows about a project's tickets, read from a ticket source.
+// ticket-reader.mjs: what Build knows about a project's tickets, read from a ticket source.
 //
-//   const model = GroundworkTickets.readTickets(source);
+//   const model = readTickets(source);
 //
 // The one entry point. A source has a name and one or both of:
 //
@@ -14,8 +14,8 @@
 //           [{ number, repo }] | null (GitHub's own dependency links; null when unknown),
 //           createdAt, closedAt, updatedAt, url }
 //
-// and, when the page could read Plan's map, mapIds: the ids of its nodes (mapIds(map) makes
-// them from the map's JSON). PRD references are checked against it: an id not among them is an
+// and, when the page could get them from Plan (GET /api/plan/ids), mapIds: the ids of the
+// map's nodes. PRD references are checked against it: an id not among them is an
 // "unknown-prd" problem; without mapIds no id is unknown. An open ticket without a PRD line is
 // a "no-prd" problem once the project links tickets to a PRD (it has a map, or a ticket names
 // an id).
@@ -38,7 +38,7 @@
 //
 // A ticket's state: a local file's Status line (the first word; the rest is the note); a GitHub
 // issue's state: closed is "closed" ("wontfix" when closed as not planned or duplicate), open is
-// its first state label (ready-for-agent, needs-triage, ...), else "open". "Blocked by": the
+// its first state label (ready-for-agent, needs-triage, ...), else "needs-triage". "Blocked by": the
 // "Blocked by:" line or a "## Blocked by" section in the text, and for an issue also GitHub's
 // own dependency links. "#12" names an issue (global), "core 3" or "3" a local ticket of an
 // area; a title or a file name names a ticket too.
@@ -53,17 +53,13 @@
 //                                   strict: skip the heavy folders from the top, as for ADRs)
 //
 // A ticket's state, once: DONE (done, resolved, closed) and DROPPED (wontfix, legacy) are
-// CLOSED; isDone(t), isDropped(t), isClosed(t).
+// CLOSED; isDone(t), isDropped(t), isClosed(t). waitingOn(t) is the one bucket an open ticket is
+// counted in (WAITING; model.waiting holds the counts).
 //
 // The links between Plan and Build: planLink(id) is Plan's deep link (the same as Plan's
 // deep-link.mjs makes), prdFilter(location.search) the PRD item a Build link names (?prd=).
 //
-// A classic script, not an ES module: the page loads it with <script src> also when opened by
-// double click (file://). It defines one global, GroundworkTickets; under Node, importing the
-// file does the same (globalThis).
-
-(function (root) {
-'use strict';
+// An ES module, shared by the page (page/config.mjs) and the server (project-tickets.mjs).
 
 const DONE = new Set(['done', 'resolved', 'closed']);
 const DROPPED = new Set(['wontfix', 'legacy']);
@@ -79,6 +75,22 @@ const plainInline = (s) => s.replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]*)\]\(
 const isClosed = (t) => CLOSED.has(t.status);
 const isDone = (t) => DONE.has(t.status);
 const isDropped = (t) => DROPPED.has(t.status);
+
+// What an open ticket waits on: exactly one bucket each, so the overview's numbers and the
+// "Waiting on" view's sections are the same counts and sum to the open tickets. A ticket waiting
+// for an open ticket is "blocked" whatever its status; the rest go by status.
+const HUMAN = new Set(['ready-for-human', 'needs-info', 'needs-triage']);
+const TEST = /^needs-(.*)-test$/;
+const WAITING = ['agent', 'human', 'blocked', 'test', 'claimed', 'other', 'unparsed'];
+function waitingOn(t) {
+  if (isClosed(t)) return 'closed';
+  if (t.blocked) return 'blocked';
+  if (t.status === 'ready-for-agent') return 'agent';
+  if (HUMAN.has(t.status)) return 'human';
+  if (TEST.test(t.status)) return 'test';
+  if (t.status === 'claimed') return 'claimed';
+  return t.status === UNPARSED ? 'unparsed' : 'other';
+}
 
 // ───────────────────────── Where the files are ─────────────────────────
 
@@ -131,7 +143,7 @@ function locateProject(folders) {
   return { trackerPath: tracker, adrPath: ADR_DIRS.find((d) => has.has(d)) || null };
 }
 
-// The folders locateProject needs, from a tree walked lazily (the page's folder picker):
+// The folders locateProject needs, from a tree walked lazily (the page's tree of the server's list):
 // down to the areas' "issues" folders of a tracker three levels deep. A heavy folder is listed
 // with its own subfolders (it may be an area) but not walked further.
 const LOCATE_DEPTH = TRACKER_DEPTH + 2;
@@ -194,12 +206,19 @@ function parseBlockedBy(raw) {
 }
 
 // "f-build-trace, `d-trace`; [x-own](…) and n-1" → the ids of the PRD items (map nodes), each once.
+// A remark in parentheses is not an id, and only what looks like a map id counts (a hyphen,
+// an underscore or a digit in it): "f-known needs a grilling" names f-known only. A line that
+// is only a dash, "none" (nincs, n/a) or a remark says "deliberately no PRD": none is true.
 const PRD_ID = /^[\p{L}\p{N}][\p{L}\p{N}_.-]*$/u;
+const PRD_NONE = /^(?:[—–-]+|none|nincs|n\/a|nothing|semmi)(?![\p{L}\p{N}-])/iu;
 function parsePrd(raw) {
-  const ids = String(raw).replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*]/g, '')
-    .split(/[\s,;]+/).map((s) => s.replace(/[.)]+$/, '').replace(/^\(+/, ''))
-    .filter((s) => PRD_ID.test(s) && !/^(and|és|or|vagy)$/i.test(s));
-  return [...new Set(ids)];
+  let s = String(raw).replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*]/g, '');
+  for (let k = 0; k < 4 && /\([^()]*\)/.test(s); k++) s = s.replace(/\([^()]*\)/g, ' ');
+  s = s.trim();
+  if (!s || PRD_NONE.test(s)) return { ids: [], none: true };
+  const ids = s.split(/[\s,;]+/).map((x) => x.replace(/[.)]+$/, '').replace(/^\(+/, ''))
+    .filter((x) => PRD_ID.test(x) && /[-_\d]/.test(x));
+  return { ids: [...new Set(ids)], none: false };
 }
 
 function parseTicket(path, area, fileName, text) {
@@ -225,7 +244,9 @@ function parseTicket(path, area, fileName, text) {
   t.mismatch = issueField && fm && fm[1].length >= 3 && +fm[1] !== +issueField[1] ? { file: +fm[1], field: +issueField[1] } : null;
   t.earlier = t.fields['earlier name'] || '';
   t.type = t.fields.type || '';
-  t.prd = parsePrd(t.fields.prd || '');
+  const prd = 'prd' in t.fields ? parsePrd(t.fields.prd) : { ids: [], none: false };
+  t.prd = prd.ids;
+  t.prdNone = prd.none;
 
   const headingsEnd = (() => { const c = lines.findIndex((l) => COMMENTS_HEADING.test(l)); return c < 0 ? lines.length : c; })();
   // The issue template's form: a "## Blocked by" (or "## Status") heading with
@@ -448,6 +469,8 @@ function readTickets(source) {
   m.statusCounts = new Map();
   for (const t of m.tickets) m.statusCounts.set(t.status, (m.statusCounts.get(t.status) || 0) + 1);
   m.open = m.tickets.filter((t) => !isClosed(t));
+  m.waiting = Object.fromEntries(WAITING.map((w) => [w, 0]));
+  for (const t of m.open) m.waiting[waitingOn(t)]++;
   // "core 3" names a local ticket: only the folders' areas, not the milestones.
   const names = [...m.areas.values()].filter((a) => a.local && a.name).map((a) => a.name).sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   m.areaRef = names.length ? new RegExp('(^|[^\\w/.-])((' + names.join('|') + ')\\s(\\d{1,4}))(?![\\w-])', 'g') : null;
@@ -469,7 +492,7 @@ function findProblems(m, mapIds) {
   for (const t of m.tickets) {
     const unknown = mapIds ? t.prd.filter((id) => !mapIds.has(id)) : [];
     if (unknown.length) add('unknown-prd', [t], 'problem.unknown-prd.text', { list: unknown.join(', ') });
-    if (linksPrd && !t.prd.length && !isClosed(t)) add('no-prd', [t], 'problem.no-prd.text');
+    if (linksPrd && !t.prd.length && !t.prdNone && !isClosed(t)) add('no-prd', [t], 'problem.no-prd.text');
     if (!t.statusLine) add('no-status', [t], 'problem.no-status.text');
     else if (t.status === UNPARSED) {
       if (t.statusNote) add('bad-status', [t], 'problem.bad-status.text', { line: t.statusNote });
@@ -512,7 +535,7 @@ function parseIssue(issue, repo) {
   if (issue.state === 'closed') {
     t.status = issue.stateReason === 'not_planned' || issue.stateReason === 'duplicate' ? 'wontfix' : 'closed';
   } else {
-    t.status = (labels.find((l) => STATE_LABEL.test(l)) || 'open').toLowerCase();
+    t.status = (labels.find((l) => STATE_LABEL.test(l)) || 'needs-triage').toLowerCase();   // no state label yet: to be triaged
   }
   t.statusNote = '';
   t.fields.status = t.status;
@@ -537,21 +560,6 @@ function parseIssue(issue, repo) {
   return t;
 }
 
-// ───────────────────────── The PRD map ─────────────────────────
-
-// The ids of every node of Plan's map (docs/product/mindmap.json, or the data of GET
-// /api/plan/map): the source's mapIds. null when the map is not one (missing, an error answer).
-function mapIds(map) {
-  if (!map || !map.nodeData || typeof map.nodeData !== 'object') return null;
-  const ids = [];
-  const walk = (node) => {
-    if (node.id != null) ids.push(String(node.id));
-    for (const c of node.children || []) walk(c);
-  };
-  walk(map.nodeData);
-  return ids;
-}
-
 // ───────────────────────── Plan and Build ─────────────────────────
 
 // Plan's deep link (modules/plan/deep-link.mjs makes the same; a test holds them together),
@@ -559,9 +567,8 @@ function mapIds(map) {
 const planLink = (id) => '/?module=plan&node=' + encodeURIComponent(id);
 const prdFilter = (search) => new URLSearchParams(search || '').get('prd') || '';
 
-root.GroundworkTickets = {
-  readTickets, mapIds, locateProject, ticketPath, keepsFolder, planLink, prdFilter,
+export {
+  readTickets, locateProject, ticketPath, keepsFolder, planLink, prdFilter,
   DONE, DROPPED, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH,
-  fold, plainInline, isClosed, isDone, isDropped,
+  fold, plainInline, isClosed, isDone, isDropped, waitingOn, WAITING, HUMAN, TEST,
 };
-})(typeof window !== 'undefined' ? window : globalThis);

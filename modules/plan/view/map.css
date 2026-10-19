@@ -1,0 +1,178 @@
+/* Plan's map: Mind Elixir's nodes, lines, zoom toolbar and context menu in the shell's design system.
+   The node types' colours (--topic, --decision, ...) are set in plan.css, their icons (--i-*) by icons.mjs. */
+
+/* Mind Elixir's zoom toolbar, as glass chrome; the layout trio is not used (the map always grows to the right) */
+.mind-elixir-toolbar.lt { display: none !important; }
+.mind-elixir-toolbar.rb {
+  right: var(--edge) !important; bottom: 14px !important; padding: 4px !important; display: flex; gap: 2px;
+  background: color-mix(in srgb, var(--gw-surface) 80%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--gw-line) 75%, transparent); border-radius: var(--gw-radius-lg) !important;
+  box-shadow: var(--gw-shadow-lg) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+}
+.mind-elixir-toolbar.rb span {
+  display: grid !important; place-items: center; width: 30px; height: 30px; margin: 0 !important;
+  border-radius: var(--gw-radius-sm); color: var(--gw-fg-2); cursor: pointer; transition: background .15s, color .15s;
+}
+.mind-elixir-toolbar.rb span:hover { background: var(--gw-sunken); color: var(--gw-fg); }
+.mind-elixir-toolbar.rb span:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 1px; }
+.mind-elixir-toolbar.rb svg { width: 16px !important; height: 16px !important; color: currentColor; fill: currentColor; }
+body[data-mode="edit"] .mind-elixir-toolbar.rb { bottom: 70px !important; }
+
+.map-container .context-menu .menu-list {
+  background: color-mix(in srgb, var(--gw-surface) 88%, transparent) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid var(--gw-line); border-radius: var(--gw-radius); box-shadow: var(--gw-shadow-lg); padding: 4px; overflow: hidden;
+}
+.map-container .context-menu .menu-list li {
+  background: transparent !important; color: var(--gw-fg) !important; border: 0 !important;
+  border-radius: var(--gw-radius-sm); font: 500 var(--gw-text-small) var(--gw-font); margin: 1px 0;
+}
+.map-container .context-menu .menu-list li:hover { background: var(--gw-accent-soft) !important; }
+.map-container .context-menu .key { background: var(--gw-sunken) !important; color: var(--gw-fg-2) !important; border: 0; border-radius: 5px; font-family: var(--gw-font-mono); }
+
+/* ---- the map ---- */
+.map-container { font-family: var(--gw-font) !important; cursor: grab; }
+.map-container.panning, .map-container.panning * { cursor: grabbing !important; }
+.map-container me-tpc { cursor: pointer; font-family: var(--gw-font); transition: box-shadow .2s; }
+.map-container .lines path { stroke-width: 3px; stroke-linecap: round; }
+.map-container .subLines path { stroke-width: 2px; stroke-linecap: round; opacity: .75; }
+.map-container me-tpc .tags { display: none; }
+/* the expander sits on the node's edge, where its branch lines leave (the map always grows to the right) */
+.map-container me-children me-parent > me-epd { top: calc(50% - 9px) !important; left: auto !important; right: calc(var(--node-gap-x) - 9px) !important; }
+
+/* root: the shell's gradient at the centre of the map */
+.map-container me-root me-tpc {
+  background: var(--gw-gradient-fill);
+  color: var(--gw-accent-fg); font-size: 19px; font-weight: 700; letter-spacing: -.01em;
+  padding: 14px 26px; border: 0; border-radius: 999px;
+  box-shadow: 0 14px 34px -14px color-mix(in srgb, var(--gw-accent) 80%, transparent);
+}
+
+/* main topics: a pill tinted with the branch colour */
+.map-container me-main > me-wrapper > me-parent > me-tpc {
+  background: color-mix(in srgb, var(--accent) 13%, var(--gw-surface));
+  color: var(--gw-fg);
+  border: 1.5px solid color-mix(in srgb, var(--accent) 62%, transparent);
+  border-radius: 999px; padding: 8px 18px;
+  font-size: 15px; font-weight: 600;
+  box-shadow: var(--gw-shadow);
+}
+
+/* One icon family, an icon on every node (node-types.mjs, 24 x 24 line icons drawn as masks): a
+   node shows its status icon in the status colour; a document its page, a section its bookmark, a
+   component its type, in the branch colour; any other node the topic icon, in the branch colour on
+   a main topic, muted below it, and in the root's own colour on the root. */
+.map-container me-tpc::before {
+  content: ''; display: inline-block; flex: none; width: 15px; height: 15px; margin-right: 8px; vertical-align: -3px;
+  border-radius: 0; box-shadow: none;
+  background: var(--ico-c, var(--accent, var(--gw-fg-2)));
+  -webkit-mask: var(--ico, var(--i-topic)) center / contain no-repeat; mask: var(--ico, var(--i-topic)) center / contain no-repeat;
+}
+.map-container me-main > me-wrapper > me-parent > me-tpc::before { width: 16px; height: 16px; }
+.map-container me-children me-tpc { --ico-c: var(--gw-muted); }
+.map-container me-root me-tpc { --ico-c: var(--gw-accent-fg); }
+.map-container me-root me-tpc::before { width: 17px; height: 17px; margin-right: 10px; }
+
+/* everything deeper: cards */
+.map-container me-children me-tpc {
+  background: var(--gw-surface); color: var(--gw-fg);
+  border: 1px solid var(--gw-line); border-radius: var(--gw-radius);
+  padding: 6px 12px; font-size: 13.5px; font-weight: 500;
+  box-shadow: var(--gw-shadow);
+}
+.map-container me-tpc[data-status] { --ico: var(--icon); --ico-c: var(--st); }
+.map-container me-tpc[data-status="topic"]    { --st: var(--topic);    --icon: var(--i-topic); }
+.map-container me-tpc[data-status="decision"] { --st: var(--decision); --icon: var(--i-decision); }
+.map-container me-tpc[data-status="note"]     { --st: var(--gw-muted); --icon: var(--i-note); }
+.map-container me-tpc[data-status="excluded"] { --st: var(--gw-muted); --icon: var(--i-excluded); }
+.map-container me-tpc[data-status="parked"]   { --st: var(--parked);   --icon: var(--i-parked); }
+.map-container me-tpc[data-status="todo"]     { --st: var(--todo);     --icon: var(--i-todo); }
+.map-container me-tpc[data-status="inferred"] { --st: var(--inferred); --icon: var(--i-inferred); }
+.map-container me-children me-tpc[data-status="inferred"] {
+  border: 1.5px dashed color-mix(in srgb, var(--inferred) 70%, transparent);
+  background: color-mix(in srgb, var(--inferred) 7%, var(--gw-surface));
+}
+.map-container me-children me-tpc[data-status="topic"] { font-weight: 600; border-color: color-mix(in srgb, var(--topic) 45%, var(--gw-line)); }
+.map-container me-children me-tpc[data-status="decision"] {
+  border-color: color-mix(in srgb, var(--decision) 38%, var(--gw-line));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--decision) 10%, var(--gw-surface)), var(--gw-surface) 70%);
+}
+.map-container me-children me-tpc[data-status="note"] {
+  background: transparent; border-color: transparent; box-shadow: none;
+  color: var(--gw-fg-2); font-weight: 400; font-style: italic; padding-left: 6px;
+}
+.map-container me-children me-tpc[data-status="excluded"] {
+  background: transparent; box-shadow: none; border-style: dashed;
+  color: var(--gw-muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--gw-muted) 70%, transparent);
+}
+.map-container me-children me-tpc[data-status="parked"] { border: 1px dashed var(--parked); }
+.map-container me-children me-tpc[data-status="todo"] {
+  border: 1.5px dashed var(--todo);
+  background: color-mix(in srgb, var(--todo) 8%, var(--gw-surface));
+  animation: mm-todo 2.4s ease-in-out infinite;
+}
+@keyframes mm-todo { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--todo) 18%, transparent); } }
+
+/* a node with a note gets a subtle marker */
+.map-container me-tpc[data-has-note]::after {
+  content: ''; display: inline-block; width: 5px; height: 5px; margin-left: 7px; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent, var(--gw-muted)) 80%, transparent); vertical-align: 2px;
+}
+.map-container me-tpc .hyper-link { margin-left: 6px; opacity: .6; text-decoration: none; }
+
+/* Badges inside a node (implementation, component type, tickets): the theme's .gw-badge look,
+   inline in the pill, so the pill's edge (where the branch lines meet it) stays its edge. */
+.map-container me-tpc[data-impl][data-impl]::after,
+.map-container me-tpc[data-component]::after,
+.map-container me-tpc a.mm-tickets {
+  display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; vertical-align: 1px;
+  width: auto; height: auto; box-shadow: none;
+  font: 600 11px/1.45 var(--gw-font); letter-spacing: 0; text-transform: none; font-style: normal; text-decoration: none;
+  color: var(--ic-text); background: color-mix(in srgb, var(--ic) 14%, transparent);
+}
+.map-container me-tpc[data-impl][data-impl]::after { content: attr(data-impl-label); }
+.map-container me-tpc[data-impl="done"]    { --ic: var(--decision); --ic-text: var(--decision-text); }
+.map-container me-tpc[data-impl="partial"] { --ic: var(--parked);   --ic-text: var(--parked-text); }
+.map-container me-tpc[data-impl="missing"] { --ic: var(--missing);  --ic-text: var(--missing-text); }
+/* tickets: how many tickets name the item on their PRD line, and how many are done; opens Build */
+.map-container me-tpc a.mm-tickets { --ic: var(--gw-accent); --ic-text: var(--gw-accent-text); cursor: pointer; font-family: var(--gw-font-mono); font-weight: 500; }
+.map-container me-tpc a.mm-tickets[data-complete] { --ic: var(--decision); --ic-text: var(--decision-text); }
+.map-container me-tpc a.mm-tickets:hover { background: color-mix(in srgb, var(--ic) 26%, transparent); }
+/* components: a type badge after the name */
+.map-container me-tpc[data-component] { font-weight: 700; }
+.map-container me-tpc[data-component]::after { content: attr(data-component-label); --ic: var(--gw-fg-2); --ic-text: var(--gw-fg-2); background: color-mix(in srgb, var(--gw-fg) 8%, transparent); }
+.map-container me-root me-tpc[data-component]::after { color: var(--gw-accent-fg); background: color-mix(in srgb, var(--gw-accent-fg) 20%, transparent); }
+
+/* selection: the brand's "current" ring; new and linked nodes flash */
+.map-container me-tpc.selected {
+  outline: 2px solid var(--gw-accent) !important; outline-offset: 3px;
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--gw-accent-2) 22%, transparent), var(--gw-shadow) !important;
+}
+me-tpc.mm-new { animation: mm-flash 2.5s ease-out; }
+me-tpc.mm-linked { animation: mm-flash 1.2s ease-out 3; } /* reached by a deep link (?node=) */
+@keyframes mm-flash { 0%, 25% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent, var(--gw-accent)) 45%, transparent); } 100% { box-shadow: var(--gw-shadow); } }
+
+/* sections inside a document layer: pills tinted with their own colour */
+.map-container me-children me-tpc[data-section] {
+  background: color-mix(in srgb, var(--accent) 13%, var(--gw-surface)); color: var(--gw-fg);
+  border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 14px;
+}
+/* the structure's icons win over a status: they say what the node is */
+.map-container me-tpc[data-section] { --ico: var(--i-section); --ico-c: var(--accent); }
+/* document layers (product / technical) */
+.map-container me-tpc[data-layer] { font-weight: 650; --ico: var(--i-doc); --ico-c: var(--accent, var(--topic)); }
+.map-container me-tpc[data-component] { --ico: var(--i-c-shared); --ico-c: var(--accent, var(--gw-fg-2)); }
+.map-container me-tpc[data-component="software"] { --ico: var(--i-c-software); }
+.map-container me-tpc[data-component="service"]  { --ico: var(--i-c-service); }
+.map-container me-tpc[data-component="infra"]    { --ico: var(--i-c-infra); }
+.map-container me-root me-tpc:is([data-layer], [data-component], [data-status]) { --ico-c: var(--gw-accent-fg); }
+.map-container me-main > me-wrapper > me-parent > me-tpc[data-layer] { font-size: 16px; padding: 9px 20px; }
+
+/* narrow windows (after the rules above, which they override) */
+@media (max-width: 760px) {
+  .mind-elixir-toolbar.rb { right: 8px !important; }
+  body[data-mode="edit"] .mind-elixir-toolbar.rb { bottom: 66px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-container me-children me-tpc[data-status="todo"], me-tpc.mm-new, me-tpc.mm-linked { animation: none; }
+}

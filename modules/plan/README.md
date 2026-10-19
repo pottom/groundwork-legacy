@@ -75,11 +75,25 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `module.mjs` | a modul a mag szerver számára: manifest, nézet, végpontok `/api/plan/` alatt |
 | `map-store.mjs` | a térkép olvasása, írása és összefésülése; a CLI, a hook és a szerver is ezt használja |
 | `plan.mjs` | CLI (`init`, `apply`, `show`, `kinds`, `hook`), futtatva: `npx @pottom/groundwork plan <parancs>` (a manifest `cli` mezője) |
-| `index.html` | a térkép és a dokumentum panel ([Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1, [marked](https://marked.js.org) 12.0.2; a csomagban, a mag szolgálja ki a `/vendor/` alól, hálózat nélkül is működik) |
+| `index.html` | az oldal vékony váza: a stíluslapok, a konténerek és a `view/main.mjs` betöltése; minden más a `view/` mappában van |
+| `view/` | a térkép és a dokumentum panel kis ES modulokban, build lépés nélkül. A térképet a [Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1 rajzolja; az eszköztár, a jelmagyarázat, az állapotsáv, az értesítés és a dokumentum panel [lit-html](https://lit.dev) 3.2.1 sablonokkal készül, a [marked](https://marked.js.org) 12.0.2 Markdown-kimenete `unsafeHTML`-lel kerül bele. Mind a csomagban, a mag szolgálja ki a `/vendor/` alól, hálózat nélkül is működik. Minden fájlnak szerepelnie kell a manifest `view.files` listájában (a szerver csak ezeket szolgálja ki; a `view.test.mjs` ellenőrzi) |
+| `view/main.mjs` | belépési pont: összeköti a részeket, nyelvváltáskor mindent újrafeliratoz |
+| `view/state.mjs` | az oldal állapota egy objektumban (mód, nézet, fókusz, megnyitott dokumentum, szerkesztő…) és a térkép-lekérdezések |
+| `view/strings.mjs` | a felület nyelve: a mag fordítója a `ui-strings.mjs` szövegeivel |
+| `view/data.mjs` | a térkép betöltése, mentése és összefésülése, a szószedet, a jegyszámok; az élő frissítések (`subscribe`) |
+| `view/map.mjs` | a térkép: ágvonalak (a pill széléig érnek minden nagyításon), téma, a csomópontok díszítése (ikon minden csomóponton, jelvény a pillen belül), húzás, illesztés, kijelölés |
+| `view/focus.mjs` | mit mutat a térkép (egész, összetevő, dokumentum), a dokumentumválasztóval együtt; a közvetlen link |
+| `view/chrome.mjs` | a térkép körüli felület kirajzolása az állapotból: eszköztár, jelmagyarázat, értesítés, a panel széle, állapotsáv, `.gw-toast`-ok, üres állapot |
+| `view/toolbar.mjs`, `view/dock.mjs`, `view/legend.mjs` | az eszköztár (fókusz, nézet, mód) és a panel széle; az alsó állapotsáv; a jelmagyarázat (`.gw-popover`) |
+| `view/document.mjs`, `view/editor.mjs` | a dokumentum panel (a változás felvillan, a kijelölt sor kiemelve); a bekezdésszerkesztő |
+| `view/icons.mjs` | a felület ikonjai lit-html sablonként, a csomópont-ikonok CSS maszkként |
+| `view/plan.css`, `view/map.css` | a felület és a térkép kinézete, csak a shell tokenjeivel (`/shell/theme.css`; a „kérdezz rá” színe a `--gw-pink`) |
 | `documents.mjs` | dokumentum-modell a térképből (összetevők, dokumentumok, fejezetek) + Markdown export (közös a szerverrel) |
 | `doc-strings.mjs` | a dokumentumok állandó szövegei nyelvenként (közös a szerverrel) |
 | `ui-strings.mjs` | a felület szövegei nyelvenként (angol alapértelmezés, magyar fordítás), a mag fordítójához (`/shell/i18n.mjs`) |
-| `node-types.mjs` | csomópont-típusok ([Lucide](https://lucide.dev) ikon) és megvalósítási szintek kulcsai; a címkék a `ui-strings.mjs`-ben |
+| `node-types.mjs` | csomópont-típusok, dokumentum- és fejezetikon, összetevőtípus-ikonok (egy [Lucide](https://lucide.dev) ikoncsalád) és megvalósítási szintek kulcsai; a címkék a `ui-strings.mjs`-ben |
+| `view-rules.mjs` | a képernyő böngésző nélkül tesztelhető szabályai: melyik nézet fér el (keskeny ablakban nincs „mindkettő”), a térkép illesztésének legkisebb olvasható nagyítása, a dokumentumfejléc összesítő jelvényei, frame-enként egy rajzolás |
+| `markdown.mjs` | a dokumentumpanel Markdownja (marked): a nyers HTML szövegként látszik, link és kép csak http(s), mailto vagy relatív címre mutathat |
 | `map-theme.mjs` | a térkép világos és sötét témája a shell színeiből, és az operációs rendszer váltásának követése |
 | `deep-link.mjs` | a közvetlen link (`?node=<azonosító>`): `planLink(id)` elkészíti, `linkTarget(search, map)` megkeresi a csomópontot; `buildLink(id)` a Buildbe visz, az elem jegyeire szűrve |
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
@@ -88,6 +102,25 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `skills/groundwork-prd-maker/SKILL.md` | a munkamenet Claude-nak; az `npx @pottom/groundwork init` a projekt `.claude/skills/` mappájába másolja (a `{{groundwork}}` helyére a csomag verziójára rögzített `npx -y --prefer-offline @pottom/groundwork@<verzió>` kerül; a repó saját példánya ugyanez `node core/groundwork.mjs`-sel) |
 | `.claude/settings.json` | `UserPromptSubmit` hook (`npx -y --prefer-offline @pottom/groundwork@<verzió> plan hook`, az `init` teszi be, a hálózatot csak az első futás éri el; a repóban `node modules/plan/plan.mjs hook`): továbbítja a kézi szerkesztéseket, és grill promptnál emlékeztet a skillre |
 | `.claude/launch.json` | `groundwork` preview szerver: a mag szerver (port 4477), a Plan a `/plan/` alatt |
+
+## Végpontok
+
+| Végpont | Válasz |
+|---|---|
+| `GET /api/plan/map[?v=<verzió>]` | a térkép, vagy `{ same: true }`, ha a böngészőnél már ez a verzió van |
+| `PUT /api/plan/map` | `{ base, data }`: a böngésző mentése, összefésülve; ismeretlen `base` esetén `409` a mostani térképpel |
+| `GET /api/plan/ids[?v=<verzió>]` | `{ v, ids }`: a térkép csomópontjainak azonosítói, a térkép nélkül |
+| `GET /api/plan/glossary` | `{ text }`: a projekt `GLOSSARY.md`-je |
+
+### Nyilvános végpontok
+
+Más modul csak ezeket olvashatja (a manifest `public` mezője, lásd [`modules/README.md`](../README.md#reading-another-module)):
+
+| Végpont | Ki olvassa |
+|---|---|
+| `GET /api/plan/ids` | a Build, a jegyek `**PRD:**` sorainak ellenőrzéséhez |
+
+A Plan maga csak a Build `GET /api/build/prd` végpontját olvassa. Build nélkül a térképen nincsenek jegyszámok, hibaüzenet sincs: a Plan minden mással ugyanúgy működik.
 
 ## Kézi használat
 
@@ -102,7 +135,7 @@ Más mappában lévő projekthez: `npx @pottom/groundwork --root <mappa>`.
 
 ## Szinkron
 
-- **Claude → térkép és dokumentumok:** az `apply` közvetlenül a fájlba ír, a mag élő frissítése (`/api/events`, Server-Sent Events) szól az oldalnak, és az azonnal újratölti a térképet; lekérdezgetés (polling) nincs. Az új vagy megváltozott elemek felvillannak, és az összecsukott ágak kinyílnak, ha új elem került beléjük.
+- **Claude → térkép és dokumentumok:** az `apply` közvetlenül a fájlba ír, a mag élő frissítése (`/api/events`, Server-Sent Events, a shell egyetlen kapcsolatán át: `subscribe` a `/shell/live.mjs`-ből) szól az oldalnak, és az azonnal újratölti a térképet; lekérdezgetés (polling) nincs, és az első betöltés is a kapcsolat `hello` jelére történik. Hogy az oldal élő-e, azt csak a shell fejléce mutatja; a Plan a saját pillanatnyi teendőit (mentve, nem sikerült menteni, a térkép frissült) mutatja `.gw-toast`-ban. Az új vagy megváltozott elemek felvillannak, és az összecsukott ágak kinyílnak, ha új elem került beléjük.
 - **Ember → Claude:** minden szerkesztés után az oldal visszaküldi a térképet a betöltött verzió azonosítójával. Ha közben Claude is írt, a szerver csak a te változásaidat játssza rá a friss fájlra.
 - **Ismert korlátok:**
   - Ütközéskor a testvér-csomópontok sorrendjének változása elveszhet.

@@ -44,22 +44,42 @@ test('the map round-trips through /api/plan/map and a browser save is merged', a
   }
 })
 
-// Plan's own colours: its node types and implementation states. Everything else
-// (page, panels, text, lines, accent, fonts) comes from the shell's theme.
-const PLAN_COLOURS = ['--topic', '--inferred', '--missing', '--decision', '--parked', '--todo']
+test('/api/plan/ids gives the ids of the nodes of the map, for Build to check PRD lines against, without the map', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-ids-'))
+  const srv = await startServer({ root, modules: [plan], port: 0 })
+  try {
+    const base = `http://127.0.0.1:${srv.port}`
+    assert.equal((await fetch(`${base}/api/plan/ids`)).status, 404, 'no map yet')
+    const store = open(root)
+    store.init('Product')
+    store.apply([{ op: 'add', id: 'doc', parent: 'root', topic: 'Product', doc: 'prd' }, { op: 'add', id: 'goal', parent: 'doc', topic: 'Goal' }])
+    const { v, ids } = await (await fetch(`${base}/api/plan/ids`)).json()
+    assert.equal(v, store.read().v)
+    assert.deepEqual(ids, ['root', 'doc', 'goal'])
+    assert.deepEqual(await (await fetch(`${base}/api/plan/ids?v=${v}`)).json(), { v, same: true })
+    store.apply([{ op: 'add', id: 'more', parent: 'goal', topic: 'More' }])
+    assert.deepEqual((await (await fetch(`${base}/api/plan/ids?v=${v}`)).json()).ids, ['root', 'doc', 'goal', 'more'])
+  } finally {
+    await srv.close()
+  }
+})
 
+// Plan's colours are aliases of the theme's tokens: its node types use the status hues, "ask about it"
+// the theme's pink. Everything (page, panels, text, lines, accent, fonts) comes from the shell's theme.
 test('the Plan view uses the shell theme and defines no base colours of its own', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-look-'))
   const srv = await startServer({ root, modules: [plan], port: 0 })
   try {
-    const html = await (await fetch(`http://127.0.0.1:${srv.port}/plan/`)).text()
+    const get = async (p) => { const r = await fetch(`http://127.0.0.1:${srv.port}/plan/${p}`); assert.equal(r.status, 200, p); return r.text() }
+    const html = await get('')
     assert.match(html, /<link rel="stylesheet" href="\/shell\/theme\.css">/)
-    const css = html.match(/<style>([\s\S]*?)<\/style>/)[1]
+    const sheets = [...html.matchAll(/<link rel="stylesheet" href="\.\/([^"]+)">/g)].map((m) => m[1])
+    assert.deepEqual(sheets, ['view/plan.css', 'view/map.css'])
+    const css = (await Promise.all(sheets.map(get))).join('\n')
     for (const name of ['--bg', '--surface', '--fg', '--muted', '--line', '--font', '--font-doc', '--shadow'])
-      assert.doesNotMatch(css, new RegExp(`${name}:`), `Plan defines ${name}`)
-    // a colour literal may only be the value of one of Plan's own colours
-    const stray = css.split(/[;{}]/).map((d) => d.trim())
-      .filter((d) => /#[0-9a-f]{3,8}\b|rgba?\(/i.test(d) && !PLAN_COLOURS.includes(d.split(':')[0].trim()))
+      assert.doesNotMatch(css, new RegExp(`(^|[\\s;{])${name}:`), `Plan defines ${name}`)
+    // no colour literal: every colour is a theme token
+    const stray = css.split(/[;{}]/).map((d) => d.trim()).filter((d) => /#[0-9a-f]{3,8}\b|rgba?\(/i.test(d))
     assert.deepEqual(stray, [])
   } finally {
     await srv.close()

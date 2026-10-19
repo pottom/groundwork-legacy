@@ -3,6 +3,8 @@
 //   GET /api/plan/map[?v=<version>]  the map, or { same: true } when the browser already has that version
 //   PUT /api/plan/map                { base, data }: a browser save made on version `base`, merged;
 //                                    409 with the current map when `base` is unknown (nothing saved)
+//   GET /api/plan/ids[?v=<version>]  { v, ids }: the ids of the map's nodes, or { v, same: true } as above;
+//                                    what Build checks the tickets' PRD lines against, without the map
 //   GET /api/plan/glossary           { text } of the project's GLOSSARY.md
 //
 // Live updates (core/events.mjs): the map file changing is the topic "plan.map", the glossary
@@ -11,18 +13,39 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { send, readJson } from '../../core/http.mjs'
-import { openMap } from './map-store.mjs'
+import { openMap, nodeIds } from './map-store.mjs'
 import { VERSION } from '../../core/version.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
+// A GET of the map, or of what is made from it: 404 without a map; { v, same: true } when the
+// browser already has version ?v=; else answer({ v, data }). The version and the answer come from
+// one read of the file, so they always belong together.
+function sendFromMap(store, root, res, url, answer) {
+  if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` })
+  const map = store.read()
+  if (url.searchParams.get('v') === map.v) return send(res, 200, { v: map.v, same: true })
+  send(res, 200, answer(map))
+}
+
 export default {
   id: 'plan',
   name: 'Plan',
+  tagline: { en: 'Mind map & product docs', hu: 'Gondolattérkép és termékdokumentumok' },
+  icon: '<circle cx="12" cy="12" r="2.6"/><circle cx="4.5" cy="6" r="1.8"/><circle cx="19.5" cy="6" r="1.8"/><circle cx="4.5" cy="18" r="1.8"/><circle cx="19.5" cy="18" r="1.8"/><path d="M6 7l3.9 3.2M18 7l-3.9 3.2M6 17l3.9-3.2M18 17l-3.9-3.2"/>',   // a map: a centre and four branches
   version: VERSION,   // the package's: one version for Groundwork and its modules
-  view: { dir: HERE, files: ['index.html', 'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs'] },
+  // The page: a thin index.html, its own modules under view/ (lit-html templates; view/main.mjs is the
+  // entry), and the modules it shares with the server and the tests.
+  view: { dir: HERE, files: [
+    'index.html', 'view/plan.css', 'view/map.css',
+    'view/main.mjs', 'view/state.mjs', 'view/strings.mjs', 'view/icons.mjs', 'view/data.mjs', 'view/map.mjs', 'view/focus.mjs',
+    'view/chrome.mjs', 'view/toolbar.mjs', 'view/legend.mjs', 'view/dock.mjs', 'view/document.mjs', 'view/editor.mjs',
+    'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs', 'view-rules.mjs', 'markdown.mjs',
+  ] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],
+  // What another module may read (modules/README.md): the map's ids, for Build's PRD checks.
+  public: ['GET /api/plan/ids'],
   // Local state from before the move to .groundwork/plan/ (the prd-maker prototype).
   moves: { '.prd-maker': '.groundwork/plan' },
   // `groundwork plan <command>` runs plan.mjs: the skill's tool and the hook.
@@ -37,13 +60,9 @@ export default {
     const store = openMap(root, files)
     return async (req, res, sub, url) => {
       if (sub === '/glossary' && req.method === 'GET') return send(res, 200, { text: store.glossary() }), true
+      if (sub === '/ids' && req.method === 'GET') return sendFromMap(store, root, res, url, ({ v, data }) => ({ v, ids: nodeIds(data) })), true
       if (sub !== '/map') return false
-      if (req.method === 'GET') {
-        if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` }), true
-        const cur = store.read()
-        if (url.searchParams.get('v') === cur.v) return send(res, 200, { v: cur.v, same: true }), true
-        return send(res, 200, cur), true
-      }
+      if (req.method === 'GET') return sendFromMap(store, root, res, url, (map) => map), true
       if (req.method === 'PUT') {
         try {
           const { base, data } = await readJson(req)

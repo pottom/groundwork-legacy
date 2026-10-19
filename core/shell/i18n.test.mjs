@@ -102,3 +102,23 @@ test('the shell tells its module frames by message, and a frame takes it only fr
   win.dispatchEvent(message('http://localhost:4477'))
   assert.equal(view.lang, 'hu')
 })
+
+test('the language switch reaches every module frame, the hidden ones too', () => {
+  const posted = []
+  const frame = (name) => ({ postMessage: (data) => posted.push([name, data.lang]) })
+  createI18n(STRINGS, { storage: memoryStorage(), win: fakeWindow([frame('plan'), frame('build')]) }).set('hu')
+  assert.deepEqual(posted, [['plan', 'hu'], ['build', 'hu']])
+})
+
+test('Hungarian "a(z)" before a filled name becomes "a" or "az" by how the name sounds', () => {
+  const i18n = createI18n({ en: { x: 'x' }, hu: { ahead: '{n} commit nincs a(z) {base} ágon', start: 'A(z) {base} lezárva', bare: 'a(z) ág' } },
+    { storage: memoryStorage({ [LANG_KEY]: 'hu' }), win: null })
+  assert.equal(i18n.t('ahead', { n: 30, base: 'main' }), '30 commit nincs a main ágon')
+  assert.equal(i18n.t('ahead', { n: 2, base: 'origin/main' }), '2 commit nincs az origin/main ágon')
+  assert.equal(i18n.t('ahead', { n: 2, base: 'Ügyfél' }), '2 commit nincs az Ügyfél ágon')
+  assert.equal(i18n.t('ahead', { n: 2, base: '5-release' }), '2 commit nincs az 5-release ágon', 'öt: a vowel sound')
+  assert.equal(i18n.t('ahead', { n: 2, base: '2-release' }), '2 commit nincs a 2-release ágon', 'kettő')
+  assert.equal(i18n.t('ahead', { n: 2, base: '_tmp' }), '2 commit nincs a(z) _tmp ágon', 'unsure: the generic form stays')
+  assert.equal(i18n.t('start', { base: 'epic' }), 'Az epic lezárva')
+  assert.equal(i18n.t('bare'), 'a(z) ág', 'no name after it: left alone')
+})
