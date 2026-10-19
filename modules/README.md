@@ -21,7 +21,7 @@ In code, a module exports its manifest from `module.mjs`, and `core/modules.mjs`
 
 ```js
 export default {
-  id: 'plan', name: 'Plan', version: '0.1.0',
+  id: 'plan', name: 'Plan', version: VERSION,           // the package's (core/version.mjs): one version for all
   view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
   writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
   moves: { '.prd-maker': '.groundwork/plan' },           // optional: old state the core moves over once

@@ -4,7 +4,7 @@
     {
       "name": "groundwork",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["core/groundwork.mjs", "--root", ".", "--port", "4477"],
+      "runtimeArgs": ["core/groundwork.mjs", "--root", ".", "--port", "4477", "--no-open"],
       "port": 4477
     }
   ]

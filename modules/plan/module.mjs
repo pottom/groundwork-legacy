@@ -12,13 +12,14 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { send, readJson } from '../../core/http.mjs'
 import { openMap } from './map-store.mjs'
+import { VERSION } from '../../core/version.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 export default {
   id: 'plan',
   name: 'Plan',
-  version: '0.1.0',
+  version: VERSION,   // the package's: one version for Groundwork and its modules
   view: { dir: HERE, files: ['index.html', 'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs'] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],
