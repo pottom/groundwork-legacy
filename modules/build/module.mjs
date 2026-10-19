@@ -51,6 +51,17 @@ const MARKDOWN = /\.(md|markdown)$/i;
 const NEVER = /(^|\/)(node_modules|\.git|\.hg|\.svn)\//;
 const GIT_REF = /^\.git\/(HEAD|packed-refs|refs\/.+)$/;
 
+// The page's files, the only ones served under /build/: the skeleton and its styles, the classic
+// scripts it shares (translation, strings, ticket reader), its ES modules (page/), and the same
+// modules as one classic script for file:// (page.bundle.js, file-bundle.mjs).
+const VIEW_FILES = [
+  'index.html', 'build.css', 'i18n.js', 'ui-strings.js', 'ticket-reader.js', 'page.bundle.js',
+  'page/main.mjs', 'page/config.mjs', 'page/text.mjs', 'page/state.mjs', 'page/folder.mjs', 'page/server.mjs',
+  'page/refresh.mjs', 'page/render.mjs', 'page/markdown.mjs', 'page/parts.mjs',
+  'page/views/chrome.mjs', 'page/views/overview.mjs', 'page/views/tickets.mjs', 'page/views/deps.mjs',
+  'page/views/activity.mjs', 'page/views/docs.mjs', 'page/views/git.mjs', 'page/views/drawer.mjs',
+];
+
 const GIT_LIMIT = 400;
 const GIT_MAX_LIMIT = 5000;
 
@@ -97,7 +108,7 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
     tagline: { en: 'Tickets, progress & branches', hu: 'Jegyek, haladás és ágak' },
     icon: '<rect x="3.5" y="4" width="7" height="7" rx="1.6"/><rect x="13.5" y="4" width="7" height="7" rx="1.6"/><rect x="3.5" y="14" width="7" height="6" rx="1.6"/><path d="M14 17.5l2 2 4-4.5"/>',   // a board with a ticked card
     version: VERSION,
-    view: { dir: HERE, files: ['index.html', 'i18n.js', 'ui-strings.js', 'ticket-reader.js'] },
+    view: { dir: HERE, files: VIEW_FILES },
     watch,
     api({ root, events }) {
       const project = openProject(root, { stamp: events?.stamp });

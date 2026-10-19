@@ -122,6 +122,18 @@
    .gw-toasts         the fixed bottom-right stack for .gw-toast; give it aria-live="polite"
    .gw-toast          a transient message (Saved 18:49, Could not save); dismiss it after a few
                       seconds; tones .gw-toast--ok .gw-toast--bad .gw-toast--info (a dot in the tone)
+
+   Added for Build (#20):
+   .gw-pill           a filter in force, removable: <span class="gw-pill">Status <b>Ready</b>
+                      <button type="button" aria-label="Remove the filter Status"><svg/></button></span>
+   .gw-stat           one number of an overview strip: <div class="gw-stat"><span class="gw-stat__label">
+                      <span class="gw-dot gw-dot--warn"></span>Waiting for a human</span>
+                      <span class="gw-stat__value">3</span><span class="gw-stat__sub">to decide</span></div>;
+                      an <a class="gw-stat"> is a link (tinted on hover); parts .gw-stat__label
+                      .gw-stat__value .gw-stat__sub; .gw-stat--zero mutes the number, .gw-stat--good
+                      shows the sub line in --gw-ok-text. The strip around the stats is the module's layout.
+   An <svg> inside .gw-btn--icon or .gw-empty__icon takes that component's icon size even when it
+   carries a class of its own (such as a module's svg.i).
 */
 
 @import url('/vendor/fonts.css');
@@ -628,6 +640,68 @@ select.gw-field {
   .gw-dot--pulse, .gw-toast { animation: none; }
   .gw-progress::before { transition: none; }
 }
+
+/* ---- added for Build (#20) ---- */
+
+/* .gw-pill: a filter in force, with its remove button */
+.gw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 4px 0 10px;
+  border-radius: var(--gw-radius-pill);
+  background: var(--gw-accent-soft);
+  color: var(--gw-accent-text);
+  font: 500 var(--gw-text-xs) var(--gw-font);
+  white-space: nowrap;
+}
+.gw-pill b { font-weight: 650; }
+.gw-pill button {
+  display: grid;
+  place-items: center;
+  width: 20px; height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.gw-pill button:hover { background: color-mix(in srgb, var(--gw-accent) 18%, transparent); }
+.gw-pill button:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 1px; }
+.gw-pill button svg, .gw-pill button svg[class] { width: 12px; height: 12px; }
+
+/* .gw-stat: one number of an overview strip */
+.gw-stat {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 14px 18px;
+  color: inherit;
+}
+.gw-stat__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--gw-fg-2);
+  font: 500 var(--gw-text-small) var(--gw-font);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.gw-stat__value { margin-top: 4px; font: var(--gw-display) var(--gw-font); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.gw-stat__sub { min-height: 16px; color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); }
+.gw-stat--zero .gw-stat__value { color: var(--gw-muted); }
+.gw-stat--good .gw-stat__sub { color: var(--gw-ok-text); font-weight: 600; }
+a.gw-stat { text-decoration: none; transition: background .15s; }
+a.gw-stat:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-sunken) 55%, transparent); }
+a.gw-stat:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: -2px; }
+
+/* an icon keeps the component's size even with a class of its own (svg.i of a module) */
+.gw-btn--icon svg[class] { width: 18px; height: 18px; }
+.gw-empty__icon svg[class] { width: 28px; height: 28px; }
 
 /* ---- added for Plan (#20) ---- */
 

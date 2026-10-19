@@ -10,6 +10,7 @@ import path from 'node:path';
 import { startServer } from '../../core/server.mjs';
 import build, { buildModule } from './module.mjs';
 import { listen } from '../../core/sse-client.test-helper.mjs';
+import { pageModules, pageSource, readBuild } from './page-files.test-helper.mjs';
 
 const hasGit = (() => { try { execFileSync('git', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
 
@@ -217,9 +218,9 @@ test('the page reads tickets with the ticket reader, a classic script beside it'
     assert.doesNotMatch(await reader.text(), /^\s*(import|export)\s/m, 'not an ES module: the page works from file:// too');
     const page = await (await fetch(`${base}/build/`)).text();
     assert.match(page, /<script src="ticket-reader\.js"><\/script>/);
-    assert.match(page, /\} = GroundworkTickets;/);
-    assert.match(page, /readTickets\(\{/);
-    assert.doesNotMatch(page, /function parseTicket|function buildModel/, 'no copy of the reader left in the page');
+    assert.match(PAGE, /= globalThis\.GroundworkTickets;/);
+    assert.match(PAGE, /readTickets\(\{/);
+    assert.doesNotMatch(PAGE, /function parseTicket|function buildModel/, 'no copy of the reader left in the page');
   });
 });
 
@@ -236,7 +237,8 @@ test('reading the project writes nothing into it', async () => {
 // Opened by double click there is no shell and no theme, so the page carries the same values as a
 // fallback, in light and dark.
 const THEME = fs.readFileSync(new URL('../../core/shell/theme.css', import.meta.url), 'utf8');
-const PAGE = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+const PAGE = pageSource();
+const STYLES = readBuild('build.css');
 const usedShellVariables = (page) => new Set([...page.matchAll(/var\((--gw-[\w-]+)/g)].map((m) => m[1]));
 
 // The --gw-* declarations of the first block that `opener` (ending in its "{") starts, as { name: value }.
@@ -251,7 +253,7 @@ function declarations(css, opener) {
 
 test('the view links the shell theme and uses its variables', async () => {
   await withServer(project(), async (base) => {
-    const page = await (await fetch(`${base}/build/`)).text();
+    const page = await (await fetch(`${base}/build/`)).text() + await (await fetch(`${base}/build/build.css`)).text();
     assert.match(page, /<link rel="stylesheet" href="\/shell\/theme\.css">/);
     const theme = await (await fetch(`${base}/shell/theme.css`)).text();
     const used = usedShellVariables(page);
@@ -265,12 +267,12 @@ test('the view links the shell theme and uses its variables', async () => {
 });
 
 test('without the shell the view falls back to the same light and dark values', () => {
-  const light = declarations(PAGE, /:where\(:root\)\s*\{/);
-  const dark = declarations(PAGE, /prefers-color-scheme:\s*dark\)\s*\{\s*:where\(:root\)\s*\{/);
+  const light = declarations(STYLES, /:where\(:root\)\s*\{/);
+  const dark = declarations(STYLES, /prefers-color-scheme:\s*dark\)\s*\{\s*:where\(:root\)\s*\{/);
   assert.ok(light && dark, 'a :where(:root) fallback, light and dark');
   const themeLight = declarations(THEME, /:root\s*\{/);
   const themeDark = declarations(THEME, /prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{/);
-  for (const v of usedShellVariables(PAGE)) {
+  for (const v of usedShellVariables(STYLES)) {
     assert.equal(light[v], themeLight[v], `light ${v}`);
     if (v in themeDark) assert.equal(dark[v], themeDark[v], `dark ${v}`);
   }
@@ -371,4 +373,43 @@ test('the view follows the shell\'s one stream (subscribe from /shell/live.mjs) 
   assert.match(PAGE, /subscribe\(\{/);
   assert.match(PAGE, /'\/api\/plan\/ids'/);
   assert.doesNotMatch(PAGE, /'\/api\/plan\/map/);
+});
+
+// ───────── The page's files ─────────
+
+test('index.html is a thin skeleton: the styles, the views and the code live in files of their own', () => {
+  const page = readBuild('index.html');
+  assert.doesNotMatch(page, /<style/);
+  const inline = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  assert.ok(inline.every((code) => code.split('\n').length < 12), 'only the few lines that pick the theme and the script');
+  assert.match(page, /<link rel="stylesheet" href="build\.css">/);
+  assert.match(page, /page\/main\.mjs/);
+  assert.match(page, /page\.bundle\.js/);
+});
+
+test('no file of the page is a giant: each stays under about 400 lines', () => {
+  for (const f of ['index.html', 'build.css', ...pageModules()]) {
+    const lines = readBuild(f).split('\n').length;
+    assert.ok(lines <= 420, `${f}: ${lines} lines`);
+  }
+});
+
+test('the views render through lit-html templates: no HTML strings into innerHTML', () => {
+  for (const f of pageModules()) assert.doesNotMatch(readBuild(f), /\.innerHTML\s*=|insertAdjacentHTML|outerHTML\s*=/, f);
+  // The one exception: the Markdown renderer's output, escaped piece by piece, shown in the drawer.
+  const unsafe = pageModules().filter((f) => /unsafeHTML\(/.test(readBuild(f)));
+  assert.deepEqual(unsafe, ['page/text.mjs', 'page/views/drawer.mjs']);
+});
+
+test('every file of the page is served under /build/, and only those', async () => {
+  for (const f of pageModules()) assert.ok(build.view.files.includes(f), `${f} is in view.files`);
+  for (const f of build.view.files) assert.ok(fs.existsSync(path.join(build.view.dir, f)), `${f} exists`);
+  await withServer(project(), async (base) => {
+    for (const f of ['page/main.mjs', 'page/views/git.mjs', 'build.css', 'page.bundle.js']) {
+      const res = await fetch(`${base}/build/${f}`);
+      assert.equal(res.status, 200, f);
+      assert.match(res.headers.get('content-type'), f.endsWith('.css') ? /text\/css/ : /text\/javascript/);
+    }
+    assert.equal((await fetch(`${base}/build/file-bundle.mjs`)).status, 404, 'the bundler is not part of the page');
+  });
 });
