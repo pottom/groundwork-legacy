@@ -128,6 +128,17 @@ test('a store opened later (the CLI, the hook) sees the edits the server logged'
   assert.equal(open(dir).takeHumanEdits().length, 1)
 })
 
+test('version() is the version read() gives, and follows a write made by another store (the CLI)', () => {
+  const { dir, store } = fresh()
+  const v = store.version()
+  assert.equal(v, store.read().v)
+  assert.equal(store.version(), v, 'unchanged file, same version')
+  open(dir).apply([{ op: 'add', id: 'b', parent: 'goal', topic: 'Second' }])
+  assert.notEqual(store.version(), v)
+  assert.equal(store.version(), store.read().v)
+  assert.equal(find(store.read().data, 'b').topic, 'Second')
+})
+
 test('init refuses to overwrite an existing map unless forced', () => {
   const { store } = fresh()
   assert.throws(() => store.init('Again'), /already exists/)

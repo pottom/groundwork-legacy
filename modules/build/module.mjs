@@ -34,6 +34,7 @@ import { openProject } from './project-reader.mjs';
 import { githubRepo, openGitHub } from './github-source.mjs';
 import { openTickets, prdProgress } from './project-tickets.mjs';
 import { VERSION } from '../../core/version.mjs';
+import { send, TYPES } from '../../core/http.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -53,18 +54,9 @@ const GIT_REF = /^\.git\/(HEAD|packed-refs|refs\/.+)$/;
 const GIT_LIMIT = 400;
 const GIT_MAX_LIMIT = 5000;
 
-function send(res, status, type, body, head) {
-  const data = Buffer.isBuffer(body) ? body : Buffer.from(body, 'utf8');
-  res.writeHead(status, {
-    'Content-Type': type,
-    'Content-Length': data.length,
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff',
-  });
-  res.end(head ? undefined : data);
-}
-const sendText = (res, status, text, head) => send(res, status, 'text/plain; charset=utf-8', text + '\n', head);
-const sendJson = (res, value, head) => send(res, 200, 'application/json; charset=utf-8', JSON.stringify({ server: SERVER_ID, api: API_VERSION, ...value }), head);
+// The core's send (core/http.mjs): no-store, nosniff, and to a HEAD request Node sends the headers only.
+const sendText = (res, status, text) => send(res, status, text + '\n', TYPES['.txt']);
+const sendJson = (res, value) => send(res, 200, { server: SERVER_ID, api: API_VERSION, ...value });
 
 async function git(project, url) {
   if (!(await project.gitAvailable())) return { available: false };
@@ -108,7 +100,7 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
     view: { dir: HERE, files: ['index.html', 'i18n.js', 'ui-strings.js', 'ticket-reader.js'] },
     watch,
     api({ root, events }) {
-      const project = openProject(root);
+      const project = openProject(root, { stamp: events?.stamp });
       const name = path.basename(project.root);
       const issues = issuesOf(project, githubRequest, githubTtlMs);
       const tickets = openTickets(project);
@@ -120,24 +112,23 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
         lastIssues = now;
       });
       return async (req, res, sub, url) => {
-        const head = req.method === 'HEAD';
-        if (req.method !== 'GET' && !head) return sendText(res, 405, 'Method not allowed'), true;
-        if (sub === '/hello') return sendJson(res, { version: VERSION, git: true, github: true, name, launcher: 'npx @pottom/groundwork' }, head), true;
-        if (sub === '/list') return sendJson(res, { name, ...project.list() }, head), true;
+        if (req.method !== 'GET' && req.method !== 'HEAD') return sendText(res, 405, 'Method not allowed'), true;
+        if (sub === '/hello') return sendJson(res, { version: VERSION, git: true, github: true, name, launcher: 'npx @pottom/groundwork' }), true;
+        if (sub === '/list') return sendJson(res, { name, ...project.list() }), true;
         if (sub === '/file') {
           const body = project.readFile(url.searchParams.get('path') || '');
-          return (body ? send(res, 200, 'text/plain; charset=utf-8', body, head) : sendText(res, 404, 'Not found', head)), true;
+          return (body ? send(res, 200, body, TYPES['.txt']) : sendText(res, 404, 'Not found')), true;
         }
-        if (sub === '/git') return sendJson(res, await git(project, url), head), true;
+        if (sub === '/git') return sendJson(res, await git(project, url)), true;
         if (sub === '/issues') {
           const answer = await issues();
           const known = url.searchParams.get('known');
-          return sendJson(res, known && answer.fingerprint === known ? { available: true, unchanged: true, fingerprint: known } : answer, head), true;
+          return sendJson(res, known && answer.fingerprint === known ? { available: true, unchanged: true, fingerprint: known } : answer), true;
         }
         if (sub === '/prd') {
           const gh = await issues();
           const model = tickets.read(gh.available ? { repo: gh.repo, issues: gh.issues } : null);
-          return sendJson(res, { items: prdProgress(model) }, head), true;
+          return sendJson(res, { items: prdProgress(model) }), true;
         }
         return false;
       };
