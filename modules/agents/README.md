@@ -14,6 +14,10 @@ The log holds a summary only: the event, session and agent ids, the tool's name,
 
 Opening an agent (`#agent=<session>/<agent>`, or a session: `#agent=<session>`) shows its timeline: its tool calls grouped into steps (files read, files changed, commands, tools; test runs, commits, skills and subagents as steps of their own), from `timeline.mjs`. Once a subagent stops, its final report shows below as Markdown. The report is SubagentStop's `last_assistant_message`, which the hook keeps apart from the log in `.groundwork/agents/reports/<agent>.md`: redacted (keys, tokens, passwords, a URL's credentials and query), capped at 40 000 characters, the newest 200 kept. The page renders it with raw HTML shown as text, safe links only and no images (`view/markdown.mjs`). No transcript is read or stored.
 
+## Worktrees and branches
+
+Below the sessions, the page lists the project's git worktrees and local branches (`GET /api/agents/worktrees`, `git-worktrees.mjs`): each against the integration branch it was cut from (guessed from the graph), commits ahead and behind, merged or not, uncommitted changes, locked (Claude Code locks an agent's worktree while it runs), and the agent working in it and its ticket when known. A merged, clean, unlocked one is ready to clean up: the page shows the `git worktree remove` / `git branch -d` lines to copy and runs nothing. The server only reads git (`GIT_OPTIONAL_LOCKS=0`). A ref or a worktree changing is the topic `agents.git`; the page also reads the list again on `agents.events`.
+
 ## Files
 
 | File | What it is |
@@ -32,6 +36,8 @@ Opening an agent (`#agent=<session>/<agent>`, or a session: `#agent=<session>`) 
 | `view/markdown.mjs` | the safe marked options for the report |
 | `view/strings.mjs` | the translation (`ui`) |
 | `view/time.mjs` | `duration(ms)` and `clock(iso)` |
+| `git-worktrees.mjs` | `openWorktrees(root).read()`: the worktrees and branches; `withAgents(answer, sessions)` adds agent and ticket from the linked sessions |
+| `view/worktrees.mjs` | the worktrees and branches as rows, with the clean-up commands to copy (lit-html) |
 
 ## Tickets and branches
 

@@ -14,6 +14,10 @@
 //                             { steps, report }: the agent's timeline (timeline.mjs; without
 //                             `agent`, the main session's) and its final report (Markdown from
 //                             reports/<agent>.md, or null until it stopped); 400 for a bad id
+//   GET /api/agents/worktrees { available, base, items: [{ branch, worktree, base, ahead, behind, merged,
+//                             ready, commands, agent, ticket }] }: the worktrees and local branches
+//                             (git-worktrees.mjs); git is only asked to read, the commands are text
+//                             to copy. A ref or a worktree changing is the topic "agents.git".
 //   All: GET and HEAD only, 405 otherwise.
 //
 // The hook (hook.mjs) is a Claude Code command hook that `groundwork init` copies into the project
@@ -29,6 +33,7 @@ import { send } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { readAgents } from './agents-log.mjs'
 import { readTimeline } from './timeline.mjs'
+import { openWorktrees, withAgents } from './git-worktrees.mjs'
 import { linkTickets } from './agent-tickets.mjs'
 import { readGit } from './agent-git.mjs'
 
@@ -42,7 +47,11 @@ const ID = /^[\w-]{1,60}$/   // a session or agent id, as the hook keeps it in a
 // subagent; `Task` is its older name): every other tool call runs the hook once, after it.
 const EVENTS = ['SessionStart', 'SubagentStart', 'SubagentStop', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Notification', 'Stop', 'SessionEnd']
 
-const VIEW_FILES = ['index.html', 'agents.css', 'ui-strings.mjs', 'view/main.mjs', 'view/list.mjs', 'view/strings.mjs', 'view/time.mjs', 'view/detail.mjs', 'view/markdown.mjs']
+const VIEW_FILES = ['index.html', 'agents.css', 'ui-strings.mjs', 'view/main.mjs', 'view/list.mjs', 'view/strings.mjs', 'view/time.mjs', 'view/worktrees.mjs', 'view/detail.mjs', 'view/markdown.mjs']
+
+// The worktrees and branches (git-worktrees.mjs). A ref, HEAD or a linked worktree's HEAD or lock
+// changing is the topic "agents.git".
+const GIT_REFS = /^\.git\/(HEAD|packed-refs|refs\/heads\/.+|worktrees\/[^/]+\/(HEAD|locked|gitdir))$/
 
 export default {
   id: 'agents',
@@ -54,7 +63,7 @@ export default {
   view: { dir: HERE, files: VIEW_FILES },
   writes: [DIR],
   public: ['GET /api/agents/tickets'],
-  watch: (p) => (LOGS.includes(p) ? 'agents.events' : null),
+  watch: (p) => (LOGS.includes(p) ? 'agents.events' : GIT_REFS.test(p) ? 'agents.git' : null),
   claude: {
     hooks: EVENTS.map((event) => (event === 'PreToolUse' ? { event, matcher: 'Agent|Task', script: HOOK } : { event, script: HOOK })),
   },
@@ -67,9 +76,17 @@ export default {
       const since = sessions.map((s) => s.start).sort()[0]
       return linkTickets(sessions, await readGit(root, since))
     }
+    const repo = openWorktrees(root)
     return async (req, res, sub, url) => {
-      if (sub !== '/list' && sub !== '/tickets' && sub !== '/agent') return false
+      if (sub !== '/list' && sub !== '/tickets' && sub !== '/worktrees' && sub !== '/agent') return false
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'Method not allowed' }), true
+      if (sub === '/worktrees') {
+        try {
+          const answer = await repo.read()
+          send(res, 200, answer.available ? withAgents(answer, await list()) : answer)
+        } catch (e) { send(res, 200, { available: false, error: String(e.message).split('\n')[0] }) }
+        return true
+      }
       try {
         if (sub === '/agent') {
           const session = url.searchParams.get('session'), agent = url.searchParams.get('agent')

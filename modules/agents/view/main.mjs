@@ -3,23 +3,25 @@
 // (#agent=<session>/<agent>, #agent=<session>); its timeline and report come from
 // GET /api/agents/agent. Both are read again when the shell says the event log changed (topic
 // "agents.events") or the connection came back. While something runs, a clock redraws the page
-// each second so the running durations count up; it never asks the server.
+// each second so the running durations count up; it never asks the server. Below, the worktrees
+// and branches (GET /api/agents/worktrees, worktrees.mjs), read again on "agents.git" and "agents.events".
 // The language follows the shell (strings.mjs).
 
-import { render } from '/vendor/lit-html/lit-html.js'
+import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
 import { i18n } from './strings.mjs'
 import { agentList } from './list.mjs'
+import { worktreeList } from './worktrees.mjs'
 
 const root = document.getElementById('agents')
 // The session or agent a link asked for (Build's "being worked on": ?agent=<id>), shown once it is read.
 let focus = null
 try { focus = new URLSearchParams(location.search).get('agent') } catch { /* no query */ }
-const state = { sessions: null, error: null, focus, open: null, detail: null, detailError: null }
+const state = { sessions: null, error: null, focus, open: null, detail: null, detailError: null, worktrees: null, copied: null }
 let ticker = null
 
 function draw() {
-  render(agentList(state, Date.now()), root)
+  render(html`${agentList(state, Date.now())}${worktreeList(state, copy)}`, root)
   document.body.dataset.state = state.error ? 'error' : state.sessions ? 'ready' : 'loading'
   const asked = focus && document.getElementById('agent-' + focus)
   if (asked) { asked.scrollIntoView({ block: 'center' }); focus = null }
@@ -64,10 +66,34 @@ function readHash() {
   loadDetail()
 }
 
+// The worktrees and branches (worktrees.mjs), read again when a ref changes (topic "agents.git")
+// and when the log does (an agent's edit may have changed a worktree); one read at a time.
+let reading = null, again = false
+async function loadWorktrees() {
+  if (reading) { again = true; return }
+  reading = fetch('/api/agents/worktrees', { cache: 'no-store' })
+    .then((res) => (res.ok ? res.json() : null)).catch(() => null)
+    .then((answer) => { state.worktrees = answer; draw() })
+  await reading
+  reading = null
+  if (again) { again = false; loadWorktrees() }
+}
+
+function copy(key, text) {
+  navigator.clipboard?.writeText(text).then(() => {
+    state.copied = key
+    draw()
+    setTimeout(() => { if (state.copied === key) { state.copied = null; draw() } }, 1500)
+  }, () => {})
+}
+
 i18n.onChange(draw)
 window.addEventListener('hashchange', readHash)
 subscribe({
-  onHello: () => { load(); loadDetail() },
-  onChange: (topics) => { if (topics.includes('agents.events')) { load(); loadDetail() } },
+  onHello: () => { load(); loadDetail(); loadWorktrees() },
+  onChange: (topics) => {
+    if (topics.includes('agents.events')) { load(); loadDetail() }
+    if (topics.includes('agents.git') || topics.includes('agents.events')) loadWorktrees()
+  },
 })
 readHash()
