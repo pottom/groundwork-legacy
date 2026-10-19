@@ -137,6 +137,37 @@ test('the page opens the sketch the shell deep-links to (/?module=sketch&sketch=
   assert.match(read('index.html'), /<nav[^>]*id="sketches"/)
 })
 
+test('a pin marks each shape with a thread, at its top right corner on screen; an orphaned thread has no pin', async () => {
+  const { pinPlaces } = await import('./view/pins.mjs')
+  const threads = [
+    { element: 'a', closed: false, orphaned: false, comments: [{}, {}] },
+    { element: 'b', closed: true, orphaned: false, comments: [{}] },
+    { element: 'gone', closed: false, orphaned: true, comments: [{}] },
+  ]
+  const elements = [
+    { id: 'a', x: 10, y: 20, width: 100, height: 50 },
+    { id: 'b', x: -40, y: 0, width: 20, height: 20 },
+    { id: 'c', x: 0, y: 0, width: 5, height: 5 },
+  ]
+  // Excalidraw's viewport: a scene point p shows at (p + scroll) * zoom inside the board.
+  assert.deepEqual(pinPlaces(threads, elements, { scrollX: 5, scrollY: -10, zoom: { value: 2 } }), [
+    { element: 'a', left: 230, top: 20, closed: false, count: 2 },
+    { element: 'b', left: -30, top: -20, closed: true, count: 1 },
+  ])
+  assert.deepEqual(pinPlaces(threads, [{ ...elements[0], isDeleted: true }], { scrollX: 0, scrollY: 0, zoom: { value: 1 } }), [], 'a deleted shape has no pin, even before the server says it is orphaned')
+})
+
+test('the page shows the threads and follows them live: read on load and on sketch.files, comment and close through the API', () => {
+  const main = read('view/main.mjs')
+  const pins = read('view/pins.mjs')
+  for (const api of ['/api/sketch/threads', '/api/sketch/comment', '/api/sketch/close']) assert.ok((main + pins).includes(api), api)
+  assert.match(main, /mountPins\(/)
+  assert.match(main, /refreshThreads\(\)/)
+  assert.match(pins, /'content-type': 'application\/json'/, 'every write is JSON')
+  assert.match(read('index.html'), /id="pins"/)
+  assert.match(read('index.html'), /id="thread"/)
+})
+
 test('the strings: same keys in English and Hungarian, translated, and every one used', () => {
   const { en, hu } = STRINGS
   assert.deepEqual(Object.keys(hu).sort(), Object.keys(en).sort())

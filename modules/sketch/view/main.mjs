@@ -2,7 +2,8 @@
 // saves it when the drawing changes (saver.mjs). It follows the file live: when the sketch changes
 // on disk (Claude drew with `groundwork sketch apply`, topic sketch.files) it reads it again and
 // merges it into the board (follow.mjs), so Claude's drawing appears at once and the developer's own
-// drawing stays. The board follows the shell: light or dark from the OS, the UI language chosen in
+// drawing stays. The threads pinned to its shapes (thread-panel.mjs) are read with it and again on
+// every sketch.files, so a comment from Claude (`groundwork sketch comment`) shows at once. The board follows the shell: light or dark from the OS, the UI language chosen in
 // the shell's header. A failed read or save shows as a .gw-toast.
 //
 // A save sends the elements as Excalidraw keeps them, the deleted ones too (isDeleted: true), which
@@ -23,6 +24,8 @@ import { createSaver } from './saver.mjs'
 import { followDisk } from './follow.mjs'
 import { followTheme } from './theme.mjs'
 import { chooseSketch, mountSketchBar, postSketch } from './sketches.mjs'
+import { readThreads, commentOn, closeThread } from './pins.mjs'
+import { mountPins } from './thread-panel.mjs'
 
 const LAST_KEY = 'groundwork-sketch:last'
 const TOAST_MS = 4000
@@ -102,8 +105,29 @@ async function start() {
   }
   const saver = createSaver({ save })
   saver.loaded(scene.elements, scene.files)
-  const board = mountBoard(document.getElementById('board'), { scene, onChange: saver.change })
+
+  // The threads pinned to its shapes: read with the sketch, again on every change of the files.
+  // A comment saves the drawing first, so a shape drawn a moment ago is on disk to pin it to.
+  const fail = (key) => (e) => { toast(key); throw e }
+  const pins = mountPins({
+    layer: document.getElementById('pins'),
+    panel: document.getElementById('thread'),
+    toggle: document.getElementById('thread-toggle'),
+    i18n,
+    onComment: (element, text) => saver.flush().then(() => commentOn(current, element, text)).then(refreshThreads, fail('toast.commentFailed')),
+    onClose: (element, closed) => closeThread(current, element, closed).then(refreshThreads, fail('toast.commentFailed')),
+  })
+  async function refreshThreads() {
+    try { pins.setThreads(await readThreads(current)) } catch { toast('toast.threadsFailed') }
+  }
+
+  const onChange = (elements, appState, files) => {
+    saver.change(elements, appState, files)
+    pins.setView(elements, appState)
+  }
+  const board = mountBoard(document.getElementById('board'), { scene, onChange })
   addEventListener('pagehide', () => saver.flush())
+  refreshThreads()
 
   // The file changed on disk: what it has is saved already; what is newer on the board stays.
   async function refresh() {
@@ -119,8 +143,8 @@ async function start() {
     if (elements) excalidraw.updateScene({ elements })
   }
   subscribe({
-    onHello: refresh,
-    onChange: (topics) => { if (topics.includes('sketch.files')) refresh() },
+    onHello: () => { refresh(); refreshThreads() },
+    onChange: (topics) => { if (topics.includes('sketch.files')) { refresh(); refreshThreads() } },
   })
 
   // Leaves for another sketch once this one is saved; a save still to come goes to the new name.
@@ -145,6 +169,7 @@ async function start() {
     i18n.apply(document)
     showToasts()
     bar.redraw()
+    pins.redraw()
     board.set({ lang })
   })
 }

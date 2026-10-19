@@ -191,3 +191,84 @@ test('what Claude draws reaches the open page as a sketch.files event', async ()
     await sse.change('sketch.files')
   } finally { sse.close(); await srv.close() }
 })
+
+// Threads pinned to shapes (f-board-threads): <name>.threads.json beside the sketch, keyed by element id.
+const THREADS = (root, name = 'main') => path.join(root, 'docs', 'product', 'sketches', `${name}.threads.json`)
+const threadsOf = async (base, name = 'main') => (await (await fetch(`${base}/api/sketch/threads?name=${name}`)).json()).threads
+const comment = (base, body, name = 'main') => post(base, `comment?name=${name}`, body)
+
+test('a thread pinned to a shape: comments with author and time, closed when resolved, in <name>.threads.json', async () => {
+  await withServer(async ({ root, base }) => {
+    await put(base, scene())
+    const before = fs.readFileSync(path.join(root, FILE), 'utf8')
+    assert.deepEqual(await threadsOf(base), [], 'no threads yet')
+    const r = await comment(base, { element: 'r1', text: 'Should this be a queue?', author: 'Ann' })
+    assert.equal(r.status, 200)
+    assert.equal((await comment(base, { element: 'r1', text: 'Yes, later.', author: 'Claude' })).status, 200)
+    const [thread] = await threadsOf(base)
+    assert.equal(thread.element, 'r1')
+    assert.equal(thread.closed, false)
+    assert.equal(thread.orphaned, false)
+    assert.deepEqual(thread.comments.map((c) => [c.author, c.text]), [['Ann', 'Should this be a queue?'], ['Claude', 'Yes, later.']])
+    assert.ok(thread.comments.every((c) => !Number.isNaN(Date.parse(c.at))), 'every comment has its time')
+    assert.equal((await post(base, 'close?name=main', { element: 'r1' })).status, 200)
+    assert.equal((await threadsOf(base))[0].closed, true)
+    assert.equal((await post(base, 'close?name=main', { element: 'r1', closed: false })).status, 200, 'and reopened')
+    assert.equal((await threadsOf(base))[0].closed, false)
+    const file = JSON.parse(fs.readFileSync(THREADS(root), 'utf8'))
+    assert.deepEqual(Object.keys(file.threads), ['r1'], 'keyed by element id')
+    assert.equal(fs.readFileSync(path.join(root, FILE), 'utf8'), before, 'the .excalidraw file stays standard: no thread in it')
+  })
+})
+
+test('a comment from the page without an author is the developer\'s: the server names one', async () => {
+  await withServer(async ({ base }) => {
+    await put(base, scene())
+    await comment(base, { element: 'r1', text: 'Hi' })
+    const [c] = (await threadsOf(base))[0].comments
+    assert.equal(typeof c.author, 'string')
+    assert.ok(c.author.length > 0)
+  })
+})
+
+test('a deleted shape keeps its thread, orphaned, not lost', async () => {
+  await withServer(async ({ base }) => {
+    await put(base, scene())
+    await comment(base, { element: 'r1', text: 'Why here?', author: 'Ann' })
+    await put(base, scene({ elements: [{ ...rect, isDeleted: true, version: 9 }] }))
+    const [thread] = await threadsOf(base)
+    assert.equal(thread.orphaned, true)
+    assert.equal(thread.comments[0].text, 'Why here?')
+    assert.equal((await comment(base, { element: 'r1', text: 'It went.', author: 'Claude' })).status, 200, 'an orphaned thread can still be answered')
+  })
+})
+
+test('a thread needs a shape that is there, a text, and JSON; nothing is written otherwise', async () => {
+  await withServer(async ({ root, base }) => {
+    await put(base, scene())
+    assert.equal((await comment(base, { element: 'nope', text: 'Hi' })).status, 404, 'no such shape')
+    assert.equal((await comment(base, { element: 'r1', text: '  ' })).status, 400, 'no text')
+    assert.equal((await comment(base, { element: 'r1', text: 'x'.repeat(5000) })).status, 400, 'too long')
+    assert.equal((await comment(base, { text: 'Hi' })).status, 400, 'no element')
+    assert.equal((await post(base, 'close?name=main', { element: 'r1' })).status, 404, 'no thread to close')
+    assert.equal((await comment(base, { element: 'r1', text: 'Hi' }, '..%2Fx')).status, 400)
+    const form = await fetch(`${base}/api/sketch/comment?name=main`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ element: 'r1', text: 'Hi' }) })
+    assert.equal(form.status, 415)
+    assert.equal(fs.existsSync(THREADS(root)), false)
+  })
+})
+
+test('a renamed sketch takes its threads along', async () => {
+  await withServer(async ({ root, base }) => {
+    await put(base, scene())
+    await comment(base, { element: 'r1', text: 'Keep me', author: 'Ann' })
+    assert.equal((await post(base, 'rename', { from: 'main', to: 'flow' })).status, 200)
+    assert.equal(fs.existsSync(THREADS(root, 'main')), false)
+    assert.equal((await threadsOf(base, 'flow'))[0].comments[0].text, 'Keep me')
+    assert.deepEqual(await names(base), ['flow'], 'a threads file is not a sketch')
+  })
+})
+
+test('a change of a threads file is sketch.files too, so a comment from Claude shows on the open page', () => {
+  assert.equal(sketch.watch('docs/product/sketches/main.threads.json'), 'sketch.files')
+})
