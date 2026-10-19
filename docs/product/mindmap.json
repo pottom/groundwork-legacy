@@ -1480,7 +1480,7 @@
                   },
                   {
                     "id": "f-board-list",
-                    "topic": "Több tábla névvel: lista, létrehozás, átnevezés",
+                    "topic": "Tetszőleges számú tábla névvel: lista, létrehozás, átnevezés",
                     "metadata": {
                       "status": "decision",
                       "impl": "missing"
@@ -1521,6 +1521,16 @@
                   {
                     "id": "f-board-links",
                     "topic": "Hivatkozás ötletre, térképcsomópontra és jegyre, és vissza",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    },
+                    "note": "Jó, ha van, de nem feltétlenül szükséges."
+                  },
+                  {
+                    "id": "f-board-shape-links",
+                    "topic": "Egy alakzat is hivatkozhat ötletre, térképcsomópontra, jegyre vagy másik táblára",
+                    "note": "Az Excalidraw saját elem-hivatkozásával; jó, ha van, de nem feltétlenül szükséges.",
                     "metadata": {
                       "status": "decision",
                       "impl": "missing"
