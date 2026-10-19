@@ -28,6 +28,8 @@ const NUMBERED = /^I-(\d+)-.*\.md$/
 const ORDER = ['title', 'author', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'reason', 'created']
 // What an edit may change: everything but the number, the author and the date.
 const EDITABLE = ['title', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'reason']
+// A value as one line: whitespace and line breaks collapse to single spaces.
+const line = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
 
 // "Gyors tabváltás!" -> "gyors-tabvaltas": ASCII, short, safe in a file name.
 export function slugOf(title) {
@@ -99,7 +101,7 @@ export function openIdeas(root, files) {
     if (base != null && base !== version) throw Object.assign(new Error(`${id} changed since it was read`), { code: 'stale' })
     const next = { ...old }
     for (const k of EDITABLE) if (changes[k] !== undefined) next[k] = changes[k]
-    for (const k of ['title', 'source', 'rationale', 'reason', 'impact', 'effort']) next[k] = String(next[k] ?? '').replace(/\s+/g, ' ').trim()
+    for (const k of ['title', 'source', 'rationale', 'reason', 'impact', 'effort']) next[k] = line(next[k])
     if (!next.title) throw new Error('an idea needs a title')
     check('status', next.status, STATUSES)
     if (next.kind) check('kind', next.kind, KINDS)
@@ -114,7 +116,7 @@ export function openIdeas(root, files) {
   }
 
   function add({ title, body = '', author = 'human', source = '', kind = 'product', impact, effort, rationale, links = [] } = {}) {
-    title = String(title ?? '').replace(/\s+/g, ' ').trim()
+    title = line(title)
     if (!title) throw new Error('an idea needs a title')
     check('author', author, AUTHORS)
     check('kind', kind, KINDS)
@@ -124,7 +126,6 @@ export function openIdeas(root, files) {
     for (const id of links) if (!known.has(id)) throw new Error(`no idea ${id} to link to`)
     const n = Math.max(0, ...names().map((f) => Number(NUMBERED.exec(f)[1]))) + 1
     const file = `${ITEMS}/${fileName(n, slugOf(title))}`
-    const line = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
     const fields = { title, author, source: line(source), kind, impact, effort, rationale: line(rationale), links: links.length ? [...links] : undefined, status: 'new', created: new Date().toISOString().slice(0, 10) }
     files.write(file, serialize(fields, String(body)))
     return read(path.posix.basename(file))
