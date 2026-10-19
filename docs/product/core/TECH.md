@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Tábla modul: Termék](../board/PRD.md), [Tábla modul: Műszaki terv](../board/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 19 kész, 2 részben, 1 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 20 kész, 1 részben, 1 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -31,7 +31,7 @@ Az első verzióban minden modul a csomagon belül él, de a szerződés úgy k�
   - Nézet a közös keretben `kész` — A nézetet a Mag szolgálja ki a /<module>/ alatt, a közös keretben (fejléc, navigáció). ([core/shell/shell.mjs](../../../core/shell/shell.mjs))
   - Opcionális skillek és hookok (az init telepíti)
   - Mappák, ahová írhat (a Mag ellenőrzi) `kész` ([core/files.mjs](../../../core/files.mjs))
-- A modulok egymás kis, deklarált végpontjait olvassák `részben` — Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót.
+- A modulok egymás kis, deklarált végpontjait olvassák `kész` — Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót. ([modules/README.md](../../../modules/README.md))
 
 ## 3. Közös keret (fejléc, navigáció, téma)
 
