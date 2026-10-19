@@ -1,6 +1,6 @@
-// Shared by the server (plan.mjs) and the browser (index.html).
+// Shared by the server (plan.mjs) and the browser (the page, view/).
 // The map holds outcomes only (topics, decisions, facts), never the questions
-// that led to them. The data stores just the status; index.html styles it.
+// that led to them. The data stores just the status; the page styles it (view/map.css).
 // The labels are UI text, translated in ui-strings.mjs (status.<key>, impl.<key>).
 //
 // `svg` is the inner markup of a 24×24 Lucide icon (https://lucide.dev, ISC license).
