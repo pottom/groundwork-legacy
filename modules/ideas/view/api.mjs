@@ -1,6 +1,8 @@
 // The page's two calls to the Ideas server (module.mjs).
 //
 //   listIdeas()                 the ideas, as GET /api/ideas/list gives them; throws when it cannot
+//   sketchLinks()               the sketches that link to each idea: { 'I-12': ['flow'] }, from the
+//                               Sketch module's public GET /api/sketch/links; {} without Sketch
 //   saveIdea(idea, changes)     PUT /api/ideas/item/<id> on the version the page saw (idea.version):
 //                               { ok: true, idea } | { stale: true, idea } (saved elsewhere meanwhile)
 //                               | { error } (a wrong value, or no answer)
@@ -9,6 +11,15 @@ export async function listIdeas() {
   const res = await fetch('/api/ideas/list', { cache: 'no-store' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return (await res.json()).ideas
+}
+
+export async function sketchLinks() {
+  try {
+    const res = await fetch('/api/sketch/links', { cache: 'no-store' })
+    return res.ok ? (await res.json()).linked?.idea ?? {} : {}
+  } catch {
+    return {}
+  }
 }
 
 export async function saveIdea(idea, changes) {

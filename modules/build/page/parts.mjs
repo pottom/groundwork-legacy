@@ -6,7 +6,7 @@ import { reader } from './config.mjs';
 import { ui, statusName, statusTitle, statusTone } from './text.mjs';
 import { app, docHref, isFree } from './state.mjs';
 
-const { isClosed, planLink } = reader;
+const { isClosed, planLink, sketchLink } = reader;
 
 export const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 
@@ -42,6 +42,10 @@ export const ticketLinks = (list) => list.map((t, i) => [i ? ' ' : '', ticketLin
 export const prdLinks = (t) => t.prd.map((id, i) => [i ? ' ' : '', app.map.ids
   ? html`<a class="gw-tag" href=${planLink(id)} target="_top" title=${ui('prd.open', { id })}>${id}</a>`
   : html`<span class="gw-tag">${id}</span>`]);
+
+// The sketches a ticket links to (its "**Sketch:**" line): each opens in Sketch, in the whole window.
+export const sketchLinks = (t) => t.sketches.map((name, i) => [i ? ' ' : '',
+  html`<a class="gw-tag" href=${sketchLink(name)} target="_top" title=${ui('sketch.open', { name })}>${name}</a>`]);
 
 export const progress = (value, title) => html`<span class="gw-progress" style="--value:${value}%" title=${title || nothing}></span>`;
 export const meter = (c) => (c.total

@@ -35,6 +35,8 @@ Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-li
 | `view/strings.mjs`, `ui-strings.mjs` | the UI text, English and Hungarian |
 | `view/ideas.css` | the layout of the board, the menu and the dialogs |
 
+A card shows the sketches that link to its idea ("Sketch: <name>"), each opening that sketch in the shell; Ideas reads them from Sketch's public `GET /api/sketch/links` and follows them live (topic `sketch.links`). Without Sketch the cards show none, with no error. A link to an idea, `/?module=ideas&idea=I-12` (a sketch's or a shape's), opens it in the drawer.
+
 ## Public endpoints
 
 None yet.

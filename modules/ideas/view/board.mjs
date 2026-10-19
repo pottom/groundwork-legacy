@@ -6,7 +6,8 @@
 //
 //   board(state, act)   the template
 //     state  { ideas, error, fresh: Set of ids that just arrived, menu: the id whose move menu is open,
-//              over: the column a card is dragged over }
+//              over: the column a card is dragged over, sketches: { id: [names of the sketches
+//              that link to it] } }
 //     act    { open(idea), move(idea, status), menu(id | null), over(status | null) }
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js'
@@ -61,6 +62,8 @@ const card = (idea, state, act) => html`
     ${idea.impact || idea.effort ? html`<p class="idea__estimate">
       ${idea.impact ? html`<span class="gw-badge">${ui('card.impact', { level: ui(`level.${idea.impact}`) })}</span>` : nothing}
       ${idea.effort ? html`<span class="gw-badge">${ui('card.effort', { level: ui(`level.${idea.effort}`) })}</span>` : nothing}</p>` : nothing}
+    ${state.sketches?.[idea.id]?.length ? html`<p class="idea__sketches">${state.sketches[idea.id].map((name) => html`<a class="gw-tag"
+      href=${'/?module=sketch&sketch=' + encodeURIComponent(name)} target="_top" title=${ui('card.sketch-open', { name })}>${ui('card.sketch', { name })}</a>`)}</p>` : nothing}
     ${idea.status === 'rejected' && idea.reason ? html`<p class="idea__reason"><span class="idea__reason-label">${ui('card.reason')}</span> ${idea.reason}</p>` : nothing}
   </li>`
 

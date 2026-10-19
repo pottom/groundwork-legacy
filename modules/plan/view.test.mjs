@@ -88,3 +88,12 @@ test('Plan\'s colours come from the design system: "ask about it" is the theme\'
   assert.doesNotMatch(src, /#d6336c|#f472b6/i)
   assert.match(src, /class="gw-popover"/)
 })
+
+test('a map node shows the sketches that link to it (Sketch\'s public GET /api/sketch/links), each opening in the shell', () => {
+  const src = viewSource()
+  assert.match(src, /fetch\('\/api\/sketch\/links'/)
+  assert.match(src, /'sketch\.links'/, 'follows the links live')
+  const map = read('view/map.mjs')
+  assert.match(map, /sketchBadges\(tpc, state\.sketchLinks\[n\.id\]\)/)
+  assert.match(map, /\/\?module=sketch&sketch=/)
+})

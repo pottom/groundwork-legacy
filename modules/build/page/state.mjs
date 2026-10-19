@@ -4,16 +4,17 @@
 
 import { reader, FILTERS, GIT_PAGE, FRESH_MS } from './config.mjs';
 
-const { prdFilter, fold, isClosed } = reader;
+const { prdFilter, ticketFilter, fold, isClosed } = reader;
 
 // The view and the filters. prd: only the tickets naming this PRD item (Plan's link
-// "/?module=build&prd=<id>"), closed ones too. The filters are not kept across reloads: a
+// "/?module=build&prd=<id>"), closed ones too. ticket: the ticket a link asks to open (a sketch's
+// link, "/?module=build&ticket=#34"), opened in the drawer once the tickets are read. The filters are not kept across reloads: a
 // forgotten filter would contradict the overview.
 export const state = {
-  view: 'waiting', doc: null, q: '', status: '', area: '', prd: '', showClosed: false,
+  view: 'waiting', doc: null, q: '', status: '', area: '', prd: '', ticket: '', showClosed: false,
   activityDays: 14, githubEvents: null, filtersOpen: false,
 };
-try { state.prd = prdFilter(location.search); } catch (e) { /* no query */ }
+try { state.prd = prdFilter(location.search); state.ticket = ticketFilter(location.search); } catch (e) { /* no query */ }
 
 export const NO_GIT = () => ({ data: null, error: '', limit: GIT_PAGE, open: new Set(), hit: '' });
 export const NO_ISSUES = () => ({ fingerprint: '', repo: null, issues: [], byNumber: new Map() });

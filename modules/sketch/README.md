@@ -18,6 +18,9 @@ Sketch is a tool, not a step of the workflow: its tab comes after Plan and Build
 | `view/board.mjs` | Excalidraw mounted with React (`React.createElement`, no JSX); its own file and theme actions and embeds are off; offers Hungarian, which Excalidraw 0.17.6 hides as only 70% translated |
 | `view/theme.mjs` | `followTheme(apply)`: light or dark as the shell shows it (the switch in its header, `/shell/theme.js`, else the OS), now and on every switch |
 | `view/sketches.mjs` | which sketch opens (`chooseSketch`), the rule for a name (`isSketchName`, shared with the store), and the bar of sketches (plain DOM) |
+| `links-store.mjs` | the sketches' links, `docs/product/sketches/links.json`: what each sketch links to, and the old names of renamed sketches |
+| `view/targets.mjs` | a link's one form, `groundwork://idea/I-12` (`node/<map id>`, `ticket/#34`, `sketch/<name>`), and the shell's address that opens it; shared with the server |
+| `view/links.mjs` | the links button at the right of the bar: lists the sketch's links (each opens in the shell), adds and removes one |
 | `view/saver.mjs` | saves only when the drawing changed (an element's version, an image), once the changes rest for 0.7 s; a failed save is tried again with the next change |
 
 ## Endpoints
@@ -28,9 +31,26 @@ Sketch is a tool, not a step of the workflow: its tab comes after Plan and Build
 | `GET /api/sketch/list` | `{ sketches: [{ name }] }`: every `.excalidraw` file with a plain name, in name order |
 | `POST /api/sketch/create` | `{ name }`: a new empty sketch; 201, 409 when the name is taken, 400 when it is not a plain name |
 | `POST /api/sketch/rename` | `{ from, to }`: moves the file; 409 when `to` is taken; a sketch not drawn yet becomes an empty `to`; a change of case only works on Windows and macOS too |
+| `GET /api/sketch/links` | (public) `{ sketches: { name: [link] }, linked: { idea, node, ticket, sketch: { ref: [names] } }, renamed: { old: new } }` |
+| `POST /api/sketch/link` | `{ name, target }`: the sketch links to `target` (`groundwork://…`); 400 when it is not one |
+| `POST /api/sketch/unlink` | `{ name, target }`: the link goes again |
 | `PUT /api/sketch/scene?name=<name>` | the page's save, the scene as Excalidraw's `serializeAsJSON(…, 'local')` gives it; `content-type: application/json` required (415), 400 when it is not a scene or the name is not a plain name, 413 when an image is too large; nothing is written then |
 
-`<name>` is letters, digits, `-` and `_` (up to 64), and defaults to `main`. Every write (`PUT`, `POST`) must be `application/json` (415), so another site cannot post a form here. Sketch may write only under `docs/product/sketches/`. It has no public endpoints.
+`<name>` is letters, digits, `-` and `_` (up to 64), and defaults to `main`. Every write (`PUT`, `POST`) must be `application/json` (415), so another site cannot post a form here. Sketch may write only under `docs/product/sketches/`.
+
+## Links
+
+A sketch links to ideas, map nodes, tickets and other sketches (f-board-links): the Links button at the right of the bar lists them and adds one by its kind and reference. They are kept in `docs/product/sketches/links.json` (in git, topic `sketch.links`). The other side shows the sketch: an idea card and a map node carry "Sketch: <name>" (they read `GET /api/sketch/links`), and a ticket names its sketches on a `**Sketch:** <name>` line, which Build shows. Each opens the sketch in the shell.
+
+A single shape links too, with Excalidraw's own element link (select it, Ctrl+K): `groundwork://idea/I-12`, `groundwork://node/<map id>`, `groundwork://ticket/%2334` (or `core%203`), `groundwork://sketch/<name>`. Clicking it opens that in the shell: Ideas with the idea in its drawer, Plan on the node, Build with the ticket in its drawer, or the sketch (f-board-shape-links). Any other link Excalidraw opens itself.
+
+Links survive renaming a sketch: its own links move along, links to it from other sketches follow, and the old name is kept in `renamed`, so a ticket's `**Sketch:**` line or a shape's link with the old name still opens it (the page and `shellLink` resolve it). A new sketch made under an old name takes that name back.
+
+## Public endpoints
+
+| Endpoint | Who reads it |
+|---|---|
+| `GET /api/sketch/links` | Ideas (the sketches on a card) and Plan (the sketches on a map node) |
 
 ## Loading
 

@@ -16,6 +16,8 @@ A ticket may name the PRD items (the ids of Plan's map nodes) it came from, on a
 
 The Checks view lists an open ticket without a PRD line, and a ticket naming an id that is not on the map. The map's ids come from Plan (`GET /api/plan/ids`, only the ids, `?v=` answers "same" while the map is unchanged). Without a map no id counts as unknown, and a missing PRD line counts only once some ticket has one. Claude adds the line after `to-tickets` (see the groundwork-prd-maker skill).
 
+A ticket may also name the sketches it goes with, on a line of its own: `**Sketch:** checkout-flow, main` (Sketch's names; a remark in parentheses is not one). Build shows them on the ticket and in its details, each a link that opens the sketch in the shell (`/?module=sketch&sketch=<name>`; a name the sketch had before a rename still finds it). The ticket reader keeps them as `ticket.sketches`. The other way, a sketch's link to a ticket opens Build with that ticket in the drawer: `/?module=build&ticket=<ref>`, the ref `#34`, an area and number (`core 3`) or the ticket's path (`findTicket(model, ref)`).
+
 Plan shows, on each map item, how many tickets name it and how many of them are done; it gets the counts from `/api/build/prd`, which reads the tickets on the server with the same `ticket-reader.mjs` (`project-tickets.mjs`). Clicking the count opens Build with only that item's tickets, closed ones too (`/?module=build&prd=<id>`; the filter shows above the list and can be cleared).
 
 ## The page
@@ -79,7 +81,7 @@ Other modules may read only these (the manifest's `public`, see [`modules/README
 |---|---|
 | `GET /api/build/prd` | Plan, for the ticket counts on the map |
 
-Build itself reads only Plan's `GET /api/plan/ids`. Without Plan (or without a map) the Checks view counts no PRD id as unknown and the ids on a ticket show as plain tags instead of links into Plan.
+Build itself reads only Plan's `GET /api/plan/ids`. A ticket's sketches come from its own `**Sketch:**` line, so Build reads nothing of Sketch. Without Plan (or without a map) the Checks view counts no PRD id as unknown and the ids on a ticket show as plain tags instead of links into Plan.
 
 It never writes. It serves only the page, the project's Markdown files inside the root, in a git repository the branch history, and the GitHub issues of its origin; git and GitHub are only asked to read.
 

@@ -3,8 +3,10 @@
 // be tested in Node and the store (sketch-store.mjs) shares the rule for a name.
 //
 //   isSketchName(name)                           a plain name: letters, digits, "-" and "_"
-//   chooseSketch({ asked, remembered, names })   the deep link's sketch, else the one opened last
-//                                                (if it is still there), else the first, else main
+//   chooseSketch({ asked, remembered, names, renamed })   the deep link's sketch, else the one
+//                                                opened last (if it is still there), else the first,
+//                                                else main; an old name (renamed: old → new, from
+//                                                GET /api/sketch/links) leads to the sketch now
 //   mountSketchBar(nav, { current, names, i18n, onOpen, onCreate, onRename })
 //       onOpen(name); onCreate(name) and onRename(to) return a promise that rejects with
 //       { status } when the server refuses (409 taken, 400 not a plain name)
@@ -16,9 +18,11 @@ const NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 export const isSketchName = (name) => typeof name === 'string' && NAME.test(name)
 export const DEFAULT_SKETCH = 'main'
 
-export function chooseSketch({ asked, remembered, names }) {
-  if (isSketchName(asked)) return asked
-  if (names.includes(remembered)) return remembered
+export function chooseSketch({ asked, remembered, names, renamed = {} }) {
+  // a name the sketch had before a rename leads to it, unless a new sketch has taken that name
+  const now = (name) => (!names.includes(name) && Object.hasOwn(renamed, name) ? renamed[name] : name)
+  if (isSketchName(asked)) return now(asked)
+  if (names.includes(now(remembered))) return now(remembered)
   return names[0] ?? DEFAULT_SKETCH
 }
 

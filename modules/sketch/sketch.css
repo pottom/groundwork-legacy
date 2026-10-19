@@ -13,4 +13,13 @@ html, body { height: 100%; margin: 0; background: var(--gw-bg); }
 .sk-bar__form { display: flex; align-items: center; gap: 8px; }
 .sk-bar__name { width: 14rem; max-width: 40vw; }
 .sk-bar__error { color: var(--gw-bad); font-size: 0.85em; white-space: nowrap; }
+.sk-links { position: fixed; top: 0; right: 12px; height: var(--sk-bar-height); display: flex; align-items: center; z-index: 5; font: var(--gw-text-small) var(--gw-font); color: var(--gw-fg); }
+.sk-links__panel { position: absolute; top: calc(var(--sk-bar-height) - 4px); right: 0; width: min(24rem, calc(100vw - 24px)); }
+.sk-links__row { display: flex; align-items: center; gap: 4px; }
+.sk-links__row .gw-popover__item { flex: 1; min-width: 0; }
+.sk-links__form { display: flex; gap: 6px; margin-top: 8px; }
+.sk-links__ref { flex: 1; min-width: 0; }
+.sk-links__none, .sk-links__hint { color: var(--gw-muted); font-size: 0.85em; margin: 6px 0; }
+.sk-links__error { color: var(--gw-bad); font-size: 0.85em; margin: 6px 0 0; }
+.sk-bar { padding-right: 9rem; }
 #board { position: fixed; inset: var(--sk-bar-height) 0 0 0; }

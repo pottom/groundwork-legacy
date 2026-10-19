@@ -7,17 +7,21 @@
 // (reject.mjs). Each save is made on the version the page saw; when the file changed meanwhile the
 // page says so and shows the newer one. Saving and errors are short toasts. The language follows the
 // shell (strings.mjs).
+//
+// A card shows the sketches that link to its idea (the Sketch module's links, topic "sketch.links"),
+// each opening that sketch. A link to an idea (/?module=ideas&idea=I-12) opens it in the drawer.
 
 import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
 import { i18n, ui } from './strings.mjs'
-import { listIdeas, saveIdea } from './api.mjs'
+import { listIdeas, saveIdea, sketchLinks } from './api.mjs'
 import { board } from './board.mjs'
 import { drawer, valuesOf, changesOf } from './drawer.mjs'
 import { rejectForm } from './reject.mjs'
 
 const $ = (id) => document.getElementById(id)
-const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null }
+const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null, sketches: {} }
+let linked = new URLSearchParams(location.search).get('idea')   // the idea a link asked for, opened once
 let draft = null    // the idea open in the drawer: { idea, values, saving, error }
 let ask = null      // the reason a move to Rejected asks for: { idea, reason, error }
 let toasts = []
@@ -55,6 +59,14 @@ async function read() {
     state.error = e.message
   }
   document.body.dataset.state = 'ready'
+  draw()
+  const idea = linked && state.ideas?.find((i) => i.id.toLowerCase() === linked.toLowerCase())
+  if (state.ideas) linked = null
+  if (idea) boardActs.open(idea)
+}
+
+async function readSketches() {
+  state.sketches = await sketchLinks()
   draw()
 }
 
@@ -134,6 +146,9 @@ document.addEventListener('click', (e) => {
 document.documentElement.lang = i18n.lang
 i18n.onChange(() => { document.documentElement.lang = i18n.lang; draw() })
 subscribe({
-  onHello: read,
-  onChange: (topics) => { if (topics.includes('ideas.items')) read() },
+  onHello: () => { read(); readSketches() },
+  onChange: (topics) => {
+    if (topics.includes('ideas.items')) read()
+    if (topics.includes('sketch.links')) readSketches()
+  },
 })

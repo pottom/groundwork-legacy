@@ -120,7 +120,9 @@ Más modul csak ezeket olvashatja (a manifest `public` mezője, lásd [`modules/
 |---|---|
 | `GET /api/plan/ids` | a Build, a jegyek `**PRD:**` sorainak ellenőrzéséhez |
 
-A Plan maga csak a Build `GET /api/build/prd` végpontját olvassa. Build nélkül a térképen nincsenek jegyszámok, hibaüzenet sincs: a Plan minden mással ugyanúgy működik.
+A Plan maga a Build `GET /api/build/prd` és a Sketch `GET /api/sketch/links` végpontját olvassa. Build nélkül a térképen nincsenek jegyszámok, Sketch nélkül vázlatcímkék, hibaüzenet sincs: a Plan minden mással ugyanúgy működik.
+
+- **Vázlatok a térképen:** ha egy vázlat hivatkozik egy elemre, az elemen „Vázlat: <név>” címke látszik; rákattintva a vázlat nyílik meg a keretben (`/?module=sketch&sketch=<név>`). Élőben frissül (`sketch.links` téma).
 
 ## Kézi használat
 

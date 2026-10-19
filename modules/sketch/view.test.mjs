@@ -111,6 +111,36 @@ test('which sketch opens: the deep link, else the one opened last, else the firs
   assert.equal(chooseSketch({ asked: null, remembered: null, names: [] }), 'main')
 })
 
+test('a link to a sketch\'s old name opens it under its new one, unless a new sketch took the name', async () => {
+  const { chooseSketch } = await import('./view/sketches.mjs')
+  const renamed = { flow: 'checkout' }
+  assert.equal(chooseSketch({ asked: 'flow', names: ['checkout'], renamed }), 'checkout')
+  assert.equal(chooseSketch({ asked: null, remembered: 'flow', names: ['a', 'checkout'], renamed }), 'checkout')
+  assert.equal(chooseSketch({ asked: 'flow', names: ['checkout', 'flow'], renamed }), 'flow')
+})
+
+test('a shape\'s link to an idea, a map node, a ticket or a sketch opens it in the shell; another link is Excalidraw\'s', async () => {
+  const { boardProps } = await import('./view/board.mjs')
+  const opened = []
+  const props = boardProps({ scene: { elements: [], appState: {}, files: {} }, renamed: { old: 'flow' }, openLink: (u) => opened.push(u) })
+  const click = (link) => {
+    let prevented = false
+    props.onLinkOpen({ id: 'r1', link }, { preventDefault: () => { prevented = true } })
+    return prevented
+  }
+  assert.equal(click('groundwork://idea/I-12'), true)
+  assert.equal(click('groundwork://sketch/old'), true)
+  assert.equal(click('https://example.com'), false)
+  assert.deepEqual(opened, ['/?module=ideas&idea=I-12', '/?module=sketch&sketch=flow'])
+})
+
+test('the page lists the sketch\'s links and adds or removes one (links.mjs)', () => {
+  const page = read('view/main.mjs') + read('view/links.mjs')
+  for (const api of ['/api/sketch/links', '/api/sketch/link', '/api/sketch/unlink']) assert.ok(page.includes(api), api)
+  assert.match(page, /'sketch\.links'/, 'and follows them live')
+  assert.match(read('index.html'), /id="links"/)
+})
+
 test('the page opens the sketch the shell deep-links to (/?module=sketch&sketch=<name>) and remembers it', () => {
   const main = read('view/main.mjs')
   assert.match(main, /new URLSearchParams\(location\.search\)\.get\('sketch'\)/)
