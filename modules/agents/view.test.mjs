@@ -86,9 +86,10 @@ test('an agent shows its ticket, linking to it in Build, and its branch; Build\'
   const list = read('view/list.mjs')
   assert.match(list, /'\/\?module=build&ticket=' \+ encodeURIComponent\(/)
   assert.match(list, /target="_top"/, 'the ticket opens in the whole window')
-  assert.match(list, /\.branch/)
+  assert.match(list, /href=\$\{branchHash\(item\.branch\)\}/, 'the branch links to its row in the worktrees')
+  assert.match(read('view/worktrees.mjs'), /id=\$\{i\.branch \? 'branch-' \+ i\.branch/)
   const main = read('view/main.mjs')
-  assert.match(main, /new URLSearchParams\(location\.search\)\.get\('agent'\)/)
+  assert.match(main, /readAddress\(location\)/, 'Build\'s ?agent=<session>/<agent> opens that agent (address.mjs)')
   assert.match(main, /scrollIntoView\(/)
 })
 

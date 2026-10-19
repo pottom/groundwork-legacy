@@ -14,6 +14,7 @@ import { ui } from './strings.mjs'
 import { duration, clock } from './time.mjs'
 import { agentDetail } from './detail.mjs'
 import { attentionOf } from '../attention.mjs'
+import { branchHash } from './address.mjs'
 
 const TONE = { running: 'info', done: 'ok', failed: 'bad' }
 
@@ -33,12 +34,13 @@ function times(item, now) {
   </span>`
 }
 
-// Its ticket ('#37'), which opens in Build in the whole window, and its branch.
+// Its ticket ('#37'), which opens in Build in the whole window, and its branch, which links to its
+// row in the worktrees below.
 const ticketLink = (ref) => '/?module=build&ticket=' + encodeURIComponent(ref)
 function links(item) {
   return [
     item.ticket ? html`<a class="gw-tag agents-ticket" href=${ticketLink(item.ticket)} target="_top" title=${ui(`ticket.from.${item.ticketFrom}`, { ticket: item.ticket })}>${item.ticket}</a>` : nothing,
-    item.branch ? html`<span class="gw-tag agents-branch" title=${ui('branch', { branch: item.branch })}>${item.branch}</span>` : nothing,
+    item.branch ? html`<a class="gw-tag agents-branch" href=${branchHash(item.branch)} title=${ui('branch', { branch: item.branch })}>${item.branch}</a>` : nothing,
   ]
 }
 

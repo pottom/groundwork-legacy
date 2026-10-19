@@ -26,22 +26,38 @@ Anything older than 12 hours is old news and no longer counts. The page judges i
 
 ## Worktrees and branches
 
-Below the sessions, the page lists the project's git worktrees and local branches (`GET /api/agents/worktrees`, `git-worktrees.mjs`): each against the integration branch it was cut from (guessed from the graph), commits ahead and behind, merged or not, uncommitted changes, locked (Claude Code locks an agent's worktree while it runs), and the agent working in it and its ticket when known. A merged, clean, unlocked one is ready to clean up: the page shows the `git worktree remove` / `git branch -d` lines to copy and runs nothing. The server only reads git (`GIT_OPTIONAL_LOCKS=0`). A ref or a worktree changing is the topic `agents.git`; the page also reads the list again on `agents.events`.
+Below the sessions, the page lists the project's git worktrees and local branches (`GET /api/agents/worktrees`, `git-worktrees.mjs`): each against the integration branch it was cut from (guessed from the graph), commits ahead and behind, merged or not, uncommitted changes, locked (Claude Code locks an agent's worktree while it runs), and the agent working in it and its ticket when known. A branch with no commits of its own yet (freshly cut: its tip on its base's first-parent line, and no commit made on it in its reflog) shows "No commits yet": it is neither merged nor ready. A merged, clean, unlocked one is ready to clean up: the page shows the `git worktree remove` / `git branch -d` lines to copy and runs nothing. Every branch checked out in a worktree is listed; the other branches, newest first, up to 100 in all. The server only reads git, through one runner (`git-read.mjs`, `GIT_OPTIONAL_LOCKS=0`). A ref or a worktree changing is the topic `agents.git`; the page also reads the list again on `agents.events`.
+
+## Endpoints
+
+| Endpoint | Answer |
+|---|---|
+| `GET /api/agents/list` | `{ sessions: [{ id, cwd, state, start, end, branch, ticket, ticketFrom, agents: [{ id, type, description, state, start, end, cwd, branch, ticket, ticketFrom }] }] }`: the sessions of the event log, newest first, each agent with the branch of the worktree it works in and its ticket |
+| `GET /api/agents/agent?session=<id>[&agent=<id>]` | `{ steps, report }`: the agent's timeline (without `agent`, the main session's) and its redacted final report (Markdown, or `null` until it stopped); 400 for a bad id |
+| `GET /api/agents/worktrees` | `{ available, base, items: [{ branch, head, date, worktree, base, ahead, behind, fresh, merged, ready, commands, agent, ticket }] }`: the worktrees and local branches; `{ available: false }` outside a git repository |
+| `GET /api/agents/attention` | `{ items: [{ key, session, agent, reason, since, label, text: { en, hu } }], recheck }`: who needs attention, for the shell (the manifest's `attention`) |
+| `GET /api/agents/tickets` | (public) `{ tickets: { '#37': [{ id, session, label, branch, start }] } }`: the running agents per ticket |
+
+All are `GET` (and `HEAD`), 405 otherwise; the module answers nothing that writes. Its only writer is the hook, a separate process (see "How it works"). A change of the event log is the live topic `agents.events`, of a git ref or worktree the topic `agents.git`.
 
 ## Files
 
 | File | What it is |
 |---|---|
-| `module.mjs` | the manifest (hooks, `writes: ['.groundwork/agents']`, `attention`), `GET /api/agents/list`, `GET /api/agents/agent?session=&agent=` (timeline and report), `GET /api/agents/attention` (for the shell) and the public `GET /api/agents/tickets` |
+| `module.mjs` | the manifest (hooks, `writes: ['.groundwork/agents']`, `attention`) and the endpoints above, one route table |
 | `hook.mjs` | the hook: one file needing only Node; `summarize(input)` is the line, with the schema at its top; `redact(text)` for the report |
 | `agents-log.mjs` | `readAgents(text)`: the sessions and agents the log tells of, with their states, times and cwd |
+| `log-lines.mjs` | `logEvents(text)`: the log's lines as objects, the broken ones skipped; read by `agents-log.mjs` and `timeline.mjs` |
+| `agent-names.mjs` | `isAgentTool(name)` (`Agent`, `Task`) and `agentLabel(agent)` (its description, else its type), shared by the server and the page |
 | `attention.mjs` | `attentionOf(item, now)`, `needingAttention(sessions, now)`: who needs attention and why; shared by the server and the page |
 | `timeline.mjs` | `readTimeline(text, { session, agent })`: one agent's steps |
 | `agent-tickets.mjs` | `linkTickets(sessions, git)`: each one's branch and ticket; `ticketIn`, `branchTicket` |
-| `agent-git.mjs` | `readGit(root, since)`: the worktrees and their branches' own commits (read-only `git`) |
+| `agent-git.mjs` | `readGit(root, since)`: the worktrees and their branches' own commits |
+| `git-read.mjs` | `readGitIn(root)`: the one read-only `git` runner (`GIT_OPTIONAL_LOCKS=0`, no prompts); `listWorktrees(git)`: `git worktree list --porcelain` read |
 | `index.html`, `agents.css` | the page |
 | `ui-strings.mjs` | the page's text in English and Hungarian |
 | `view/main.mjs` | the entry: reads the list and the open agent (from the address), again on `agents.events`; a 1 s clock redraws running durations |
+| `view/address.mjs` | `readAddress(location)`: the open agent (`#agent=`, or Build's `?agent=<session>/<agent>`), the one a link marks, the branch row `#branch=<name>` points to |
 | `view/list.mjs` | the sessions as cards, their agents as rows (lit-html) |
 | `view/detail.mjs` | an open agent's timeline and final report |
 | `view/markdown.mjs` | the safe marked options for the report |
@@ -52,8 +68,8 @@ Below the sessions, the page lists the project's git worktrees and local branche
 
 ## Tickets and branches
 
-Each session and agent shows its branch and its ticket (f-agents-ticket-link). The branch is that of the git worktree its latest event's `cwd` lies in (`git worktree list`; a worktree agent works in its own). The ticket (`#37`) comes, in this order, from its task (the Agent call's description: `#37`, `issue 37`, `ticket 37`), from its branch name (a leading number of a part, `37-links` or `feature/37-x`, or `issue-37` / `gh-37`; never any number, so `milestone-7-agents` names none), or from the commits on its branch made while it ran. Commits on the main checkout's branch are not read, since every agent there shares it, and a branch's own commits are those not on that branch (so after a merge, none). The server runs `git` read-only on each list; the hook never does. The ticket opens in Build (`/?module=build&ticket=%2337`).
+Each session and agent shows its branch and its ticket (f-agents-ticket-link). The branch is that of the git worktree its latest event's `cwd` lies in (`git worktree list`; a worktree agent works in its own). The ticket (`#37`) comes, in this order, from its task (the Agent call's description: `#37`, `issue 37`, `ticket 37`), from its branch name (a leading number of a part, `37-links` or `feature/37-x`, or `issue-37` / `gh-37`; never any number, so `milestone-7-agents` names none), or from the commits on its branch made while it ran. Commits on the main checkout's branch are not read, since every agent there shares it, and a branch's own commits are those not on that branch (so after a merge, none). The server runs `git` read-only on each list; the hook never does. The ticket opens in Build (`/?module=build&ticket=%2337`); the branch links to its row in the worktrees below (`#branch=<name>`), which keeps the open agent open.
 
 ## Public endpoints
 
-- `GET /api/agents/tickets`: `{ tickets: { '#37': [{ id, session, label, branch, start }] } }`, the running agents (and sessions) per ticket and nothing more. Build shows them as a "Being worked on" badge on the ticket, which opens the agent here (`/?module=agents&agent=<id>`), and reads it again on `agents.events`. Without Agents, Build gets a 404 and shows no badge.
+- `GET /api/agents/tickets`: `{ tickets: { '#37': [{ id, session, label, branch, start }] } }`, the running agents (and sessions) per ticket and nothing more. Build shows them as a "Being worked on" badge on the ticket, which opens that agent's timeline here (`/?module=agents&agent=<session>/<agent>`, or `<session>` for a session; the shell passes a deep link's query on, not its hash, so the page turns it into its `#agent=` address), and reads it again on `agents.events`. Without Agents, Build gets a 404 and shows no badge.

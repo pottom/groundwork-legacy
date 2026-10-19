@@ -56,10 +56,10 @@ export const sketchLinks = (t) => sketchesOf(t).map((name, i) => [i ? ' ' : '',
   html`<a class="gw-tag" href=${sketchLink(name)} target="_top" title=${ui('sketch.open', { name })}>${name}</a>`]);
 
 // The agents working on a ticket now, from Agents' side (GET /api/agents/tickets, refresh.mjs): a
-// badge for each, which opens that agent in Agents, in the whole window. Without Agents: none.
+// badge for each, which opens that agent's timeline in Agents, in the whole window. Without Agents: none.
 export const agentsOf = (t) => app.agents.byTicket.get(t) || [];
 export const agentLinks = (t) => agentsOf(t).map((a, i) => [i ? ' ' : '',
-  html`<a class="gw-badge gw-badge--dot gw-badge--info" href=${agentLink(a.id)} target="_top" title=${ui('agent.open', { label: a.label || a.id, branch: a.branch || '–' })}>${ui('agent.working')}</a>`]);
+  html`<a class="gw-badge gw-badge--dot gw-badge--info" href=${agentLink(a)} target="_top" title=${ui('agent.open', { label: a.label || a.id, branch: a.branch || '–' })}>${ui('agent.working')}</a>`]);
 
 export const progress = (value, title) => html`<span class="gw-progress" style="--value:${value}%" title=${title || nothing}></span>`;
 export const meter = (c) => (c.total

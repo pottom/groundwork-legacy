@@ -13,14 +13,20 @@
 //     Agent call that started it failed (PostToolUseFailure), or when its session ended first.
 // An agent's label is the `description` of the Agent call that started it. SubagentStart does not
 // name that call, so a start takes the oldest open call of its session for the same agent type;
-// the call's result (PostToolUse, `agentId`) then confirms which agent it started.
+// the call's result (PostToolUse, `agentId`) then confirms which agent it started. Parallel
+// agents of one type may start in another order than their calls: when a result names an agent
+// that had taken another call, the two swap, so the agent the result's call had been given takes
+// the other's call (and its label).
 // `last` is the time of its latest event (a session's counts its agents' events too): what
 // attention.mjs measures a stall by. `waiting` is the time a prompt that asks the user (a
 // Notification of a WAITS type, e.g. permission_prompt) came, until the next event of the same
 // agent (or, for the session, any next event of it): null when nothing waits. A Notification
 // carries the subagent's agent_id only if Claude Code sends one (the docs show none): without it,
 // the session waits, which is where the user answers anyway.
-// A line that is not JSON is skipped.
+// A line that is not JSON is skipped (log-lines.mjs).
+
+import { logEvents } from './log-lines.mjs'
+import { isAgentTool } from './agent-names.mjs'
 
 export const WAITS = new Set(['permission_prompt', 'elicitation_dialog', 'elicitation_url_dialog'])
 
@@ -44,10 +50,8 @@ export function readAgents(text) {
   }
   const finish = (a, state, at) => { if (a.state === 'running') Object.assign(a, { state, end: at, waiting: null }) }
 
-  for (const line of String(text).split('\n')) {
-    let e
-    try { e = JSON.parse(line) } catch { continue }
-    if (!e || typeof e !== 'object' || !e.session || !e.event) continue
+  for (const e of logEvents(text)) {
+    if (!e.session || !e.event) continue
     const s = session(e)
     s.last = e.at
     const asks = e.event === 'Notification' && WAITS.has(e.notification)
@@ -70,12 +74,20 @@ export function readAgents(text) {
       if (e.event === 'SubagentStop') finish(a, 'done', e.at)
       continue
     }
-    if (e.tool !== 'Agent' && e.tool !== 'Task') continue
-    if (e.event === 'PreToolUse') s.calls.push({ id: e.toolUse, type: e.subagentType ?? null, description: e.description ?? null, agent: null })
+    if (!isAgentTool(e.tool)) continue
+    if (e.event === 'PreToolUse') s.calls.push({ id: e.toolUse, type: e.subagentType ?? null, description: e.description ?? null, agent: null, confirmed: false })
     const call = s.calls.find((c) => c.id === e.toolUse)
     if (!call) continue
     if (e.event === 'PostToolUse' && e.agentId) {
-      call.agent = e.agentId
+      // The agent the start gave this call, and the call the start gave the named agent, swap.
+      const guessed = call.agent
+      const taken = s.calls.find((c) => c !== call && c.agent === e.agentId && !c.confirmed)
+      if (taken) {
+        taken.agent = guessed
+        const other = guessed && s.agents.get(guessed)
+        if (other) other.description = taken.description
+      }
+      Object.assign(call, { agent: e.agentId, confirmed: true })
       const a = s.agents.get(e.agentId)
       if (a) a.description = call.description
     }

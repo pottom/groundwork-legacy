@@ -201,7 +201,8 @@ test('a ticket shows the agents working on it, from Agents\' side; without Agent
   assert.equal(working.has(byLabel(m, '#35')), false, 'an answer that is no list is nothing');
   assert.equal(working.size, 1, 'a ref that is no ticket is left out');
   assert.equal(reader.linkedAgents(m, null).size, 0);
-  assert.equal(reader.agentLink('a-1'), '/?module=agents&agent=a-1');
+  assert.equal(reader.agentLink(a1), '/?module=agents&agent=s-1%2Fa-1', 'opens that agent\'s timeline');
+  assert.equal(reader.agentLink({ id: 's-1', session: 's-1', label: null }), '/?module=agents&agent=s-1', 'a session working on it opens the session');
 });
 
 test('a ticket a link names (?ticket=): an issue number, an area and number, or its path', () => {

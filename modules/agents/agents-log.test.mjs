@@ -46,6 +46,18 @@ test('two agents of one type each get their own call\'s label, in order; the res
   assert.deepEqual(s.agents.map((a) => [a.id, a.description]), [['a-2', 'second'], ['a-1', 'first']])
 })
 
+test('parallel agents of one type started out of order: the first result to name its agent puts the other one right too', () => {
+  const s = readAgents(log(
+    { at: T(0), event: 'PreToolUse', tool: 'Agent', toolUse: 't1', subagentType: 'Explore', description: 'first' },
+    { at: T(0), event: 'PreToolUse', tool: 'Agent', toolUse: 't2', subagentType: 'Explore', description: 'second' },
+    { at: T(1), event: 'SubagentStart', agent: 'a-2', agentType: 'Explore' },
+    { at: T(1), event: 'SubagentStart', agent: 'a-1', agentType: 'Explore' },
+    { at: T(4), event: 'PostToolUse', tool: 'Agent', toolUse: 't1', agentId: 'a-1', status: 'completed' },
+    { at: T(5), event: 'PostToolUseFailure', tool: 'Agent', toolUse: 't2', interrupted: true },
+  )).sessions[0]
+  assert.deepEqual(s.agents.map((a) => [a.id, a.description, a.state]), [['a-2', 'second', 'failed'], ['a-1', 'first', 'running']])
+})
+
 test('an Agent call that fails marks its agent failed; an agent never stopped when its session ended failed too', () => {
   const s = readAgents(log(
     { at: T(0), event: 'PreToolUse', tool: 'Agent', toolUse: 't1', subagentType: 'Explore', description: 'look' },

@@ -16,7 +16,10 @@
 //   - waiting  a notification, e.g. a permission prompt                notification
 // Calls of the first four kinds in a row make one step; the others stand alone. `start` and `end`
 // are the times of its first and last call, `count` its calls, `failed` how many failed. A step
-// names at most 12 files; `more` counts the rest. A line that is not JSON is skipped.
+// names at most 12 files; `more` counts the rest. A line that is not JSON is skipped (log-lines.mjs).
+
+import { logEvents } from './log-lines.mjs'
+import { isAgentTool } from './agent-names.mjs'
 
 const READ = new Set(['Read', 'Grep', 'Glob', 'LS', 'NotebookRead'])
 const EDIT = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit'])
@@ -31,7 +34,7 @@ function stepOf(e, calls) {
   if (e.test) return { kind: 'test', outcome: e.test, commands: e.commands ?? [] }
   if (e.commit) return { kind: 'commit', commit: e.commit }
   if (e.skill) return { kind: 'skill', skill: e.skill }
-  if (e.tool === 'Agent' || e.tool === 'Task') return { kind: 'agent', description: calls.get(e.toolUse) ?? null, agentId: e.agentId ?? null }
+  if (isAgentTool(e.tool)) return { kind: 'agent', description: calls.get(e.toolUse) ?? null, agentId: e.agentId ?? null }
   if (READ.has(e.tool)) return { kind: 'read', files: e.file ? [e.file] : [] }
   if (EDIT.has(e.tool)) return { kind: 'edit', files: e.file ? [e.file] : [] }
   if (SHELL.has(e.tool)) return { kind: 'command', commands: e.commands ?? [] }
@@ -43,10 +46,8 @@ const union = (a, b) => [...a, ...b.filter((x) => !a.includes(x))]
 export function readTimeline(text, { session, agent } = {}) {
   const steps = []
   const calls = new Map()   // the Agent calls' labels, by tool_use_id
-  for (const line of String(text).split('\n')) {
-    let e
-    try { e = JSON.parse(line) } catch { continue }
-    if (!e || typeof e !== 'object' || e.session !== session || (e.agent ?? null) !== (agent ?? null)) continue
+  for (const e of logEvents(text)) {
+    if (e.session !== session || (e.agent ?? null) !== (agent ?? null)) continue
     if (e.event === 'PreToolUse' && e.toolUse && e.description) calls.set(e.toolUse, e.description)
     const s = stepOf(e, calls)
     if (!s) continue

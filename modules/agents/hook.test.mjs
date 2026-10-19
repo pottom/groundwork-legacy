@@ -110,12 +110,12 @@ test('a large log moves aside to events.1.jsonl, so it never grows without end',
   assert.ok(fs.statSync(path.join(dir, 'events.1.jsonl')).size > 2_000_000)
 })
 
-test('a hook call adds under 100 ms (the best of five, measured as Claude Code runs it)', () => {
+test('a hook call adds under 100 ms (the median of seven runs, measured as Claude Code runs it)', () => {
   const root = project()
   const times = []
-  for (let i = 0; i < 5; i++) times.push(run(root, { ...base, cwd: root, hook_event_name: 'PostToolUse', tool_name: 'Read', tool_use_id: `t${i}`, tool_input: { file_path: 'a.md' } }).ms)
-  const best = Math.min(...times)
-  assert.ok(best < 100, `best of five: ${Math.round(best)} ms (${times.map(Math.round).join(', ')})`)
+  for (let i = 0; i < 7; i++) times.push(run(root, { ...base, cwd: root, hook_event_name: 'PostToolUse', tool_name: 'Read', tool_use_id: `t${i}`, tool_input: { file_path: 'a.md' } }).ms)
+  const median = [...times].sort((a, b) => a - b)[3]
+  assert.ok(median < 100, `median of seven: ${Math.round(median)} ms (${times.map(Math.round).join(', ')})`)
 })
 
 test('the hook is one file that needs only Node: groundwork init copies it into the project', () => {

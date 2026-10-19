@@ -3,7 +3,8 @@
 // ticket when known, and for one that is ready to clean up the commands to copy. The page runs
 // nothing: the copy button only puts the commands on the clipboard.
 //
-//   worktreeList({ worktrees, copied }, copy)   copy(key, text) copies; `copied` is the key last copied
+//   worktreeList({ worktrees, copied, branch }, copy)   copy(key, text) copies; `copied` is the key last
+//     copied; `branch` the one a link points to (#branch=<name>): its row, `branch-<name>`, is marked
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js'
 import { repeat } from '/vendor/lit-html/directives/repeat.js'
@@ -18,7 +19,7 @@ function standing(i) {
     <span>${ui('wt.ahead', { n: i.ahead })}</span><span>${ui('wt.behind', { n: i.behind })}</span>
     <span class="agents-wt__base">${ui('wt.against')} <span class="gw-tag">${i.base}</span></span>
   </span>`
-  const badge = i.ahead === 0 && i.behind === 0 && i.worktree && !i.worktree.main
+  const badge = i.fresh
     ? html`<span class="gw-badge gw-badge--neutral">${ui('wt.nothing-new')}</span>`
     : i.merged ? html`<span class="gw-badge gw-badge--dot gw-badge--ok">${ui('wt.merged')}</span>`
       : html`<span class="gw-badge gw-badge--dot gw-badge--info">${ui('wt.not-merged')}</span>`
@@ -54,8 +55,8 @@ function cleanUp(i, copied, copy) {
   </div>`
 }
 
-function row(i, copied, copy) {
-  return html`<li class="agents-wt" data-ready=${i.ready ? 'yes' : 'no'}>
+function row(i, copied, copy, focus) {
+  return html`<li class="agents-wt" id=${i.branch ? 'branch-' + i.branch : nothing} data-ready=${i.ready ? 'yes' : 'no'} ?data-focus=${!!i.branch && i.branch === focus}>
     <div class="agents-wt__head">
       <span class="gw-tag agents-wt__branch" title=${i.worktree?.path ?? ''}>${i.branch ?? ui('wt.detached', { head: i.head })}</span>
       ${where(i.worktree)}
@@ -66,7 +67,7 @@ function row(i, copied, copy) {
   </li>`
 }
 
-export function worktreeList({ worktrees, copied }, copy) {
+export function worktreeList({ worktrees, copied, branch }, copy) {
   if (!worktrees?.available) return nothing
   const ready = worktrees.items.filter((i) => i.ready).length
   return html`<section class="agents-worktrees">
@@ -76,6 +77,6 @@ export function worktreeList({ worktrees, copied }, copy) {
       ${ready ? html`<span class="gw-badge gw-badge--ok">${ui('wt.ready-count', { n: ready })}</span>` : nothing}
       <span class="gw-section-head__hint">${ui('wt.hint')}</span>
     </div>
-    <ul class="gw-card agents-wts">${repeat(worktrees.items, (i) => i.branch ?? i.worktree.path, (i) => row(i, copied, copy))}</ul>
+    <ul class="gw-card agents-wts">${repeat(worktrees.items, (i) => i.branch ?? i.worktree.path, (i) => row(i, copied, copy, branch))}</ul>
   </section>`
 }

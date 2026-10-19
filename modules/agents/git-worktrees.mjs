@@ -1,11 +1,13 @@
 // The project's git worktrees and local branches, as the Agents page shows them (f-agents-worktrees,
-// d-agents-git). Git is only asked to read: GIT_OPTIONAL_LOCKS=0 keeps `git status` from
-// refreshing the index on the side, and the clean-up commands are only text to copy.
+// d-agents-git). Git is only asked to read (git-read.mjs), and the clean-up commands are only
+// text to copy.
 //
 //   const repo = openWorktrees(root)
 //   await repo.read() -> { available: false }
 //                      | { available: true, base, items: [{ branch, head, date, worktree, base, ahead, behind,
-//                                                           merged, ready, commands }] }
+//                                                           fresh, merged, ready, commands }] }
+//
+// Every branch checked out in a worktree is listed; of the others, the newest, up to 100 in all.
 //
 // `base` (top level) is the default branch: what origin/HEAD names, else main, master, trunk or
 // develop. Each branch is measured against the integration branch it was cut from, guessed from the
@@ -17,17 +19,20 @@
 // this one is not where it was cut from. One at the same commit counts only for a branch in a
 // linked worktree (an agent's branch with nothing of its own yet). The default branch has no base.
 //
-// `merged`: nothing of its own beyond its base (`ahead` 0). `worktree` is null for a branch no
+// `fresh`: no commits of its own yet (freshly cut): `ahead` 0 and its tip on its base's first-parent
+// line (or the base's tip itself), with no commit made on it in its reflog (a branch merged with
+// a fast-forward has one). `merged`: nothing of its own beyond its base (`ahead` 0), and not fresh.
+// `worktree` is null for a branch no
 // worktree has checked out, else { path, main, locked, missing, dirty } with `dirty` the number of
 // changed or untracked files. `ready`: merged, not the default branch, and either in no worktree or
 // in a linked worktree that is there, unlocked (Claude Code locks an agent's worktree while it runs)
 // and clean; `commands` are then the `git worktree remove` / `git branch -d` lines to copy. A
 // worktree on a detached HEAD has `branch` null and is never ready.
 
-import { execFile } from 'node:child_process'
-import { existsSync, realpathSync } from 'node:fs'
+import { realpathSync } from 'node:fs'
 import path from 'node:path'
 import { branchTicket } from './agent-tickets.mjs'
+import { readGitIn, listWorktrees } from './git-read.mjs'
 
 const MAX_BRANCHES = 100
 const US = '\x1f'
@@ -36,38 +41,13 @@ export function openWorktrees(root) {
   let ROOT = root
   try { ROOT = realpathSync(root) } catch { /* not there: not a repository below */ }
 
-  const git = (args, cwd = ROOT) => new Promise((resolve, reject) => {
-    execFile('git', ['--no-pager', '-c', 'core.quotepath=off', ...args], {
-      cwd, timeout: 10000, maxBuffer: 16 * 1024 * 1024, windowsHide: true,
-      env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' },
-    }, (error, stdout) => (error ? reject(error) : resolve(stdout)))
-  })
+  const git = readGitIn(ROOT)
   const gitOr = (args, fallback, cwd) => git(args, cwd).catch(() => fallback)
 
   // Only when the root is itself the top of a repository (path.relative: the drive letter's case may differ).
   async function available() {
     const top = (await gitOr(['rev-parse', '--show-toplevel'], '')).trim()
     try { return Boolean(top) && path.relative(ROOT, realpathSync(top)) === '' } catch { return false }
-  }
-
-  // `git worktree list --porcelain`: blocks of "worktree <path>", "HEAD <hash>", "branch <ref>" or
-  // "detached", "locked [reason]", "prunable [reason]"; the first block is the main worktree.
-  async function worktrees() {
-    const blocks = (await git(['worktree', 'list', '--porcelain'])).replace(/\r/g, '').split('\n\n').filter((b) => b.trim())
-    return blocks.map((block, i) => {
-      const w = { path: '', head: '', branch: null, main: i === 0, locked: false, missing: false }
-      for (const line of block.split('\n')) {
-        const [key, ...rest] = line.split(' ')
-        const value = rest.join(' ')
-        if (key === 'worktree') w.path = path.resolve(value)
-        else if (key === 'HEAD') w.head = value
-        else if (key === 'branch') w.branch = value.replace(/^refs\/heads\//, '')
-        else if (key === 'locked') w.locked = true
-        else if (key === 'prunable') w.missing = true
-      }
-      if (!existsSync(w.path)) w.missing = true
-      return w
-    })
   }
 
   // The changed and untracked files of a worktree, or null when git could not tell.
@@ -107,6 +87,13 @@ export function openWorktrees(root) {
     return counts
   }
 
+  // Did the branch get a commit of its own, by its reflog (a commit, a cherry-pick, a rebase ...;
+  // not its creation, a rename or a reset)? No reflog: no.
+  async function committedOn(branch) {
+    const out = await gitOr(['reflog', 'show', '--format=%gs', `refs/heads/${branch}`, '--'], '')
+    return out.split('\n').some((line) => line && !/^(branch|reset):/.test(line))
+  }
+
   // Is `tip` on the first-parent line of `branch` (below it)?
   async function onFirstParentLine(branch, tip) {
     const out = await gitOr(['rev-list', '--first-parent', '--parents', `${tip}..refs/heads/${branch}`], '')
@@ -116,14 +103,18 @@ export function openWorktrees(root) {
   async function read() {
     if (!(await available())) return { available: false }
     const refLines = (await git(['for-each-ref', '--sort=-committerdate', `--format=%(refname:lstrip=2)${US}%(objectname)${US}%(committerdate:unix)${US}%(upstream)`, 'refs/heads'])).split('\n').filter(Boolean)
-    const branches = refLines.slice(0, MAX_BRANCHES).map((line) => {
+    const trees = await listWorktrees(git)
+    await Promise.all(trees.map(async (w) => { w.dirty = await dirty(w) }))
+    const treeOf = new Map(trees.filter((w) => w.branch).map((w) => [w.branch, w]))
+    // Every branch in a worktree, then the newest others up to MAX_BRANCHES.
+    const all = refLines.map((line) => {
       const [name, hash, date, upstream] = line.split(US)
       return { name, hash, date: Number(date) || 0, upstream: Boolean(upstream) }
     })
+    const room = Math.max(0, MAX_BRANCHES - all.filter((b) => treeOf.has(b.name)).length)
+    const others = new Set(all.filter((b) => !treeOf.has(b.name)).slice(0, room))
+    const branches = all.filter((b) => treeOf.has(b.name) || others.has(b))
     const names = new Set(branches.map((b) => b.name))
-    const trees = await worktrees()
-    await Promise.all(trees.map(async (w) => { w.dirty = await dirty(w) }))
-    const treeOf = new Map(trees.filter((w) => w.branch).map((w) => [w.branch, w]))
     const base = await defaultBranch(names)
 
     const unlinked = branches.filter((b) => !treeOf.get(b.name) || treeOf.get(b.name).main)
@@ -149,17 +140,19 @@ export function openWorktrees(root) {
     const items = await Promise.all(branches.map(async (b) => {
       const w = treeOf.get(b.name) ?? null
       const o = await baseOf(b)
-      const merged = Boolean(o) && o.ahead === 0
+      const fresh = Boolean(o) && o.ahead === 0
+        && (o.behind === 0 || await onFirstParentLine(o.c.name, b.hash)) && !(await committedOn(b.name))
+      const merged = Boolean(o) && o.ahead === 0 && !fresh
       const ready = merged && (!w || (!w.main && !w.missing && !w.locked && w.dirty === 0))
       const commands = !ready ? [] : w ? [`git worktree remove ${quote(w.path)}`, `git branch -d ${b.name}`] : [`git branch -d ${b.name}`]
       return {
         branch: b.name, head: b.hash.slice(0, 7), date: b.date,
         worktree: w && { path: w.path, main: w.main, locked: w.locked, missing: w.missing, dirty: w.dirty },
-        base: o ? o.c.name : null, ahead: o ? o.ahead : null, behind: o ? o.behind : null, merged, ready, commands,
+        base: o ? o.c.name : null, ahead: o ? o.ahead : null, behind: o ? o.behind : null, fresh, merged, ready, commands,
       }
     }))
     for (const w of trees.filter((t) => !t.branch)) {
-      items.push({ branch: null, head: w.head.slice(0, 7), date: 0, worktree: { path: w.path, main: w.main, locked: w.locked, missing: w.missing, dirty: w.dirty }, base: null, ahead: null, behind: null, merged: false, ready: false, commands: [] })
+      items.push({ branch: null, head: w.head.slice(0, 7), date: 0, worktree: { path: w.path, main: w.main, locked: w.locked, missing: w.missing, dirty: w.dirty }, base: null, ahead: null, behind: null, fresh: false, merged: false, ready: false, commands: [] })
     }
     // Worktrees first (the main one at the top), then the other branches, newest first.
     const rank = (i) => (i.worktree?.main ? 0 : i.worktree ? 1 : 2)

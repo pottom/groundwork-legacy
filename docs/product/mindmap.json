@@ -1846,7 +1846,7 @@
                       "status": "decision",
                       "impl": "done"
                     },
-                    "note": "Minden munkamenet és agent mutatja a branchét és a jegyét; a jegy a Buildben nyílik meg. A Build jegyein (táblázat és fiók) „Dolgoznak rajta” jelvény jelenik meg agentenként, élőben (agents.events), amely az Agents modulban nyitja meg az agentet (/?module=agents&agent=<id>).",
+                    "note": "Minden munkamenet és agent mutatja a branchét és a jegyét; a jegy a Buildben nyílik meg, a branch a worktree-k listájában a saját sorára visz. A Build jegyein (táblázat és fiók) „Dolgoznak rajta” jelvény jelenik meg agentenként, élőben (agents.events), amely az Agents modulban az agent idővonalát nyitja meg (/?module=agents&agent=<session>/<agent>, az oldal #agent= címe).",
                     "hyperLink": "modules/agents/agent-tickets.mjs"
                   },
                   {
@@ -1856,7 +1856,7 @@
                       "status": "decision",
                       "impl": "done"
                     },
-                    "note": "Minden worktree és helyi branch: előnyben/lemaradva az integrációs ághoz képest, összefésülve, nem commitolt változások, zárolt (futó agent), és ha ismert, a benne dolgozó agent és a jegy. Az eltakarítható (összefésült, tiszta, nem zárolt) worktree-hez és branchhez a git worktree remove / git branch -d parancs másolható; a modul semmit nem futtat. Élő: a refek változása az agents.git téma.",
+                    "note": "Minden worktree és helyi branch: előnyben/lemaradva az integrációs ághoz képest, összefésülve, nem commitolt változások, zárolt (futó agent), és ha ismert, a benne dolgozó agent és a jegy. A worktree-ben lévő branch mindig látszik (a 100-as korlát csak a többire vonatkozik). Egy frissen leágaztatott branch, amelynek még nincs saját commitja, nem számít összefésültnek és nem takarítható. Az eltakarítható (összefésült, tiszta, nem zárolt) worktree-hez és branchhez a git worktree remove / git branch -d parancs másolható; a modul semmit nem futtat. Élő: a refek változása az agents.git téma.",
                     "hyperLink": "modules/agents/view/worktrees.mjs"
                   },
                   {
@@ -2003,7 +2003,7 @@
                     "metadata": {
                       "status": "decision"
                     },
-                    "note": "A szerver csak olvas (GIT_OPTIONAL_LOCKS=0). Az integrációs ágat a gráfból becsüli: a linkelt worktree-ben ki nem vett, máshová még nem beolvadt branchek közül az, amelyhez képest a legkevesebb saját commitja van; döntetlennél az alapértelmezett ág, aztán a legkevésbé lemaradt. Egy beolvasztott branch nem alapja annak, amibe beolvadt (first-parent ellenőrzés). Egy-egy hívás branchenként a for-each-ref %(ahead-behind)-del (git 2.41+), régebbin rev-list.",
+                    "note": "A szerver csak olvas (GIT_OPTIONAL_LOCKS=0, minden git-hívás egy közös olvasón át: modules/agents/git-read.mjs). Az integrációs ágat a gráfból becsüli: a linkelt worktree-ben ki nem vett, máshová még nem beolvadt branchek közül az, amelyhez képest a legkevesebb saját commitja van; döntetlennél az alapértelmezett ág, aztán a legkevésbé lemaradt. Egy beolvasztott branch nem alapja annak, amibe beolvadt (first-parent ellenőrzés). Összefésült az, aminek nincs saját commitja az alapjához képest, kivéve a frissen leágaztatottat: a tippje az alap first-parent vonalán van, és a reflogja szerint nem kapott saját commitot (egy fast-forwarddal beolvasztott kapott). Egy-egy hívás branchenként a for-each-ref %(ahead-behind)-del (git 2.41+), régebbin rev-list.",
                     "hyperLink": "modules/agents/git-worktrees.mjs"
                   },
                   {

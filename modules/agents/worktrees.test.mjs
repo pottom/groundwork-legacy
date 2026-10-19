@@ -160,3 +160,43 @@ test('a worktree with uncommitted changes is flagged; merged, clean worktrees ar
     assert.deepEqual([items.main.ready, items.milestone.ready], [false, false])
   })
 })
+
+test('a branch with no commits of its own yet (freshly cut) is neither merged nor ready to clean up', { skip: !hasGit }, async () => {
+  const { dir, root } = repo()
+  git(root, 'worktree', 'add', '-q', '-b', 'fresh', path.join(dir, 'wt-fresh'), 'milestone')
+  git(root, 'branch', 'fresh-branch', 'milestone')
+  git(root, 'worktree', 'add', '-q', '-b', 'behind', path.join(dir, 'wt-behind'), 'milestone')
+  git(root, 'switch', '-q', 'milestone'); commit(root, 'n.txt'); git(root, 'switch', '-q', 'main')
+  // Work merged with a fast-forward: its commits are on the base's line, but they are its own.
+  const ff = path.join(dir, 'wt-ff')
+  git(root, 'worktree', 'add', '-q', '-b', 'ff', ff, 'milestone')
+  commit(ff, 'ff.txt')
+  git(root, 'switch', '-q', 'milestone'); git(root, 'merge', '-q', '--ff-only', 'ff'); git(root, 'switch', '-q', 'main')
+
+  await withServer(root, async ({ get }) => {
+    const items = byBranch((await get('/api/agents/worktrees')).items)
+    for (const b of ['fresh', 'fresh-branch', 'behind']) {
+      assert.deepEqual([items[b].base, items[b].ahead, items[b].fresh, items[b].merged, items[b].ready, items[b].commands], ['milestone', 0, true, false, false, []], b)
+    }
+    assert.equal(items.behind.behind, 2)
+    assert.deepEqual([items.ff.ahead, items.ff.fresh, items.ff.merged, items.ff.ready], [0, false, true, true], 'merged with a fast-forward')
+  })
+})
+
+test('a branch checked out in a worktree is listed however many newer branches there are', { skip: !hasGit }, async () => {
+  const { dir, root } = repo()
+  const wt = path.join(dir, 'wt-old')
+  git(root, 'worktree', 'add', '-q', '-b', 'old-work', wt, 'milestone')
+  commit(wt, 'old.txt')
+  // 105 newer branches, all at one commit newer than old-work's.
+  const date = { GIT_COMMITTER_DATE: '2030-01-01T00:00:00Z', GIT_AUTHOR_DATE: '2030-01-01T00:00:00Z' }
+  execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-q', '--allow-empty', '-m', 'newer'], { cwd: root, stdio: 'pipe', env: { ...process.env, ...date } })
+  const hash = git(root, 'rev-parse', 'HEAD').trim()
+  git(root, 'reset', '-q', '--hard', 'HEAD~1')
+  for (let i = 0; i < 105; i++) fs.writeFileSync(path.join(root, '.git', 'refs', 'heads', `newer-${i}`), hash + '\n')
+  await withServer(root, async ({ get }) => {
+    const items = byBranch((await get('/api/agents/worktrees')).items)
+    assert.ok(items['old-work'], 'the worktree\'s branch is not cut off')
+    assert.equal(path.resolve(items['old-work'].worktree.path), fs.realpathSync(wt))
+  })
+})

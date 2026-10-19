@@ -104,9 +104,9 @@ function commits(line) {
 
 // A test run's outcome: failed when the call failed or the output counts failures, passed when it
 // counts none, else only that it ran. Only the word is kept, never the output.
-function outcome(i, tr) {
-  if (i.hook_event_name === 'PostToolUseFailure') return 'failed'
-  const out = [tr.stdout, tr.stderr].filter((x) => typeof x === 'string').join('\n').slice(-8000)
+function outcome(input, response) {
+  if (input.hook_event_name === 'PostToolUseFailure') return 'failed'
+  const out = [response.stdout, response.stderr].filter((x) => typeof x === 'string').join('\n').slice(-8000)
   const fails = [...out.matchAll(/\b(\d+)\s+(?:failed|failing|failures?)\b|\b(?:fail|failed|failures?)\b[ \t:=]+(\d+)/gi)].map((m) => +(m[1] ?? m[2]))
   if (fails.some((n) => n > 0) || /^FAIL\b/m.test(out)) return 'failed'
   if (fails.length || /\b\d+\s+pass(?:ed|ing)?\b|\bpass(?:ed)?\b[ \t:=]+\d+|^ok\s/im.test(out)) return 'passed'
@@ -114,17 +114,20 @@ function outcome(i, tr) {
 }
 
 // The commit a `git commit` made, from its first output line "[branch abc1234] ...", else true.
-function commitOf(tr) {
-  const m = typeof tr.stdout === 'string' && /^\[[^\]\s]+(?: \([^)]*\))? ([0-9a-f]{7,40})\]/m.exec(tr.stdout)
+function commitOf(response) {
+  const m = typeof response.stdout === 'string' && /^\[[^\]\s]+(?: \([^)]*\))? ([0-9a-f]{7,40})\]/m.exec(response.stdout)
   return m ? m[1] : true
 }
 
+// The tools that start a subagent (agent-names.mjs has the server's copy; this file stays one file).
+const AGENT_TOOLS = ['Agent', 'Task']
+
 // The line for one hook input: only what the module needs to show agents and their steps.
 export function summarize(i, now = new Date()) {
-  const ti = i.tool_input && typeof i.tool_input === 'object' ? i.tool_input : {}
-  const tr = i.tool_response && typeof i.tool_response === 'object' ? i.tool_response : {}
-  const isAgent = i.tool_name === 'Agent' || i.tool_name === 'Task'
-  const ran = typeof ti.command === 'string' && /^Post/.test(i.hook_event_name)
+  const toolInput = i.tool_input && typeof i.tool_input === 'object' ? i.tool_input : {}
+  const toolResponse = i.tool_response && typeof i.tool_response === 'object' ? i.tool_response : {}
+  const isAgent = AGENT_TOOLS.includes(i.tool_name)
+  const ran = typeof toolInput.command === 'string' && /^Post/.test(i.hook_event_name)
   const e = {
     v: 1,
     at: now.toISOString(),
@@ -135,16 +138,16 @@ export function summarize(i, now = new Date()) {
     cwd: typeof i.cwd === 'string' ? i.cwd : undefined,
     tool: word(i.tool_name),
     toolUse: word(i.tool_use_id),
-    file: fileOf(ti, i.cwd),
-    commands: typeof ti.command === 'string' ? commandNames(ti.command) : undefined,
-    skill: i.tool_name === 'Skill' ? word(ti.skill) : undefined,
-    test: ran && runsTests(ti.command) ? outcome(i, tr) : undefined,
-    commit: ran && commits(ti.command) && i.hook_event_name === 'PostToolUse' ? commitOf(tr) : undefined,
+    file: fileOf(toolInput, i.cwd),
+    commands: typeof toolInput.command === 'string' ? commandNames(toolInput.command) : undefined,
+    skill: i.tool_name === 'Skill' ? word(toolInput.skill) : undefined,
+    test: ran && runsTests(toolInput.command) ? outcome(i, toolResponse) : undefined,
+    commit: ran && commits(toolInput.command) && i.hook_event_name === 'PostToolUse' ? commitOf(toolResponse) : undefined,
     ms: Number.isFinite(i.duration_ms) ? Math.round(i.duration_ms) : undefined,
-    subagentType: isAgent ? word(ti.subagent_type) : undefined,
-    description: isAgent && i.hook_event_name === 'PreToolUse' ? label(ti.description) : undefined,
-    agentId: isAgent ? word(tr.agentId) : undefined,
-    status: isAgent ? word(tr.status) : undefined,
+    subagentType: isAgent ? word(toolInput.subagent_type) : undefined,
+    description: isAgent && i.hook_event_name === 'PreToolUse' ? label(toolInput.description) : undefined,
+    agentId: isAgent ? word(toolResponse.agentId) : undefined,
+    status: isAgent ? word(toolResponse.status) : undefined,
     interrupted: typeof i.is_interrupt === 'boolean' ? i.is_interrupt : undefined,
     notification: word(i.notification_type),
     source: word(i.source),

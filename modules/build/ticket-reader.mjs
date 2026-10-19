@@ -66,7 +66,7 @@
 // had before a rename still finds it). ticketFilter(location.search) is the ticket a link names
 // (?ticket=#34), findTicket(model, ref) that ticket. linkedSketches(model, linked) and
 // ticketSketches(t, map) add the sketches that link to a ticket from Sketch's side; linkedAgents(model,
-// tickets) the agents working on it, from Agents' side, and agentLink(id) opens one.
+// tickets) the agents working on it, from Agents' side, and agentLink(agent) opens one's timeline.
 //
 // An ES module, shared by the page (page/config.mjs) and the server (project-tickets.mjs).
 
@@ -626,7 +626,8 @@ const ticketSketches = (t, linked) => [...new Set([...t.sketches, ...((linked &&
 // The agents working on a ticket: Agents' public GET /api/agents/tickets answers tickets,
 // { '#37': [{ id, session, label, branch, start }] }, the running agents per ticket ref.
 // linkedAgents(model, tickets) -> Map(ticket -> [agents]); a ref that is no ticket is left out, and
-// without Agents (null) the map is empty. agentLink(id) opens that agent in Agents.
+// without Agents (null) the map is empty. agentLink({ id, session }) opens that agent's timeline in
+// Agents (?agent=<session>/<agent>, its #agent= address; the session's own when it is the session).
 function linkedAgents(model, tickets) {
   const out = new Map();
   for (const [ref, list] of Object.entries(tickets || {})) {
@@ -635,7 +636,7 @@ function linkedAgents(model, tickets) {
   }
   return out;
 }
-const agentLink = (id) => '/?module=agents&agent=' + encodeURIComponent(id);
+const agentLink = (a) => '/?module=agents&agent=' + encodeURIComponent(a.session && a.session !== a.id ? `${a.session}/${a.id}` : a.id);
 
 export {
   readTickets, locateProject, ticketPath, keepsFolder, planLink, sketchLink, prdFilter, ticketFilter, findTicket, linkedSketches, ticketSketches, linkedAgents, agentLink,
