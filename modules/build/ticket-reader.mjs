@@ -65,7 +65,8 @@
 // sketchLink(name) opens a sketch in the shell (/?module=sketch&sketch=<name>; a name the sketch
 // had before a rename still finds it). ticketFilter(location.search) is the ticket a link names
 // (?ticket=#34), findTicket(model, ref) that ticket. linkedSketches(model, linked) and
-// ticketSketches(t, map) add the sketches that link to a ticket from Sketch's side.
+// ticketSketches(t, map) add the sketches that link to a ticket from Sketch's side; linkedAgents(model,
+// tickets) the agents working on it, from Agents' side, and agentLink(id) opens one.
 //
 // An ES module, shared by the page (page/config.mjs) and the server (project-tickets.mjs).
 
@@ -622,8 +623,22 @@ function linkedSketches(model, linked) {
 }
 const ticketSketches = (t, linked) => [...new Set([...t.sketches, ...((linked && linked.get(t)) || [])])];
 
+// The agents working on a ticket: Agents' public GET /api/agents/tickets answers tickets,
+// { '#37': [{ id, session, label, branch, start }] }, the running agents per ticket ref.
+// linkedAgents(model, tickets) -> Map(ticket -> [agents]); a ref that is no ticket is left out, and
+// without Agents (null) the map is empty. agentLink(id) opens that agent in Agents.
+function linkedAgents(model, tickets) {
+  const out = new Map();
+  for (const [ref, list] of Object.entries(tickets || {})) {
+    const t = Array.isArray(list) ? findTicket(model, ref) : null;
+    if (t) out.set(t, [...(out.get(t) || []), ...list.filter((a) => a && a.id)]);
+  }
+  return out;
+}
+const agentLink = (id) => '/?module=agents&agent=' + encodeURIComponent(id);
+
 export {
-  readTickets, locateProject, ticketPath, keepsFolder, planLink, sketchLink, prdFilter, ticketFilter, findTicket, linkedSketches, ticketSketches,
+  readTickets, locateProject, ticketPath, keepsFolder, planLink, sketchLink, prdFilter, ticketFilter, findTicket, linkedSketches, ticketSketches, linkedAgents, agentLink,
   DONE, DROPPED, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH,
   fold, plainInline, isClosed, isDone, isDropped, waitingOn, WAITING, HUMAN, TEST,
 };

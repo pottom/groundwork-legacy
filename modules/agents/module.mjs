@@ -2,13 +2,19 @@
 // as the module's hook logged them, live. It only observes (d-agents-observe).
 //
 //   GET /agents/              the list (index.html)
-//   GET /api/agents/list      { sessions: [{ id, cwd, state, start, end,
-//                                            agents: [{ id, type, description, state, start, end }] }] }
-//                             newest session first (agents-log.mjs); GET and HEAD only, 405 otherwise
+//   GET /api/agents/list      { sessions: [{ id, cwd, state, start, end, branch, ticket, ticketFrom,
+//                                            agents: [{ id, type, description, state, start, end, cwd,
+//                                                       branch, ticket, ticketFrom }] }] }
+//                             newest session first (agents-log.mjs); the branch is that of the git
+//                             worktree it works in, the ticket ('#37') from its task, branch name or
+//                             commits (agent-tickets.mjs, agent-git.mjs)
+//   GET /api/agents/tickets   public, for Build: { tickets: { '#37': [{ id, session, label, branch, start }] } }
+//                             the running agents (and sessions) per ticket, nothing more
 //   GET /api/agents/worktrees { available, base, items: [{ branch, worktree, base, ahead, behind, merged,
 //                             ready, commands, agent, ticket }] }: the worktrees and local branches
 //                             (git-worktrees.mjs); git is only asked to read, the commands are text
 //                             to copy. A ref or a worktree changing is the topic "agents.git".
+//   All: GET and HEAD only, 405 otherwise.
 //
 // The hook (hook.mjs) is a Claude Code command hook that `groundwork init` copies into the project
 // and runs with `node` (claude.hooks below, `script`): it appends one redacted line per event to
@@ -22,6 +28,8 @@ import { send } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { readAgents } from './agents-log.mjs'
 import { openWorktrees, withAgents } from './git-worktrees.mjs'
+import { linkTickets } from './agent-tickets.mjs'
+import { readGit } from './agent-git.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 export const HOOK = path.join(HERE, 'hook.mjs')
@@ -37,11 +45,6 @@ const VIEW_FILES = ['index.html', 'agents.css', 'ui-strings.mjs', 'view/main.mjs
 // The worktrees and branches (git-worktrees.mjs). A ref, HEAD or a linked worktree's HEAD or lock
 // changing is the topic "agents.git".
 const GIT_REFS = /^\.git\/(HEAD|packed-refs|refs\/heads\/.+|worktrees\/[^/]+\/(HEAD|locked|gitdir))$/
-async function worktrees(repo, files) {
-  const text = readLog(files)
-  return withAgents(await repo.read(), text, readAgents(text))
-}
-const readLog = (files) => LOGS.filter((f) => files.exists(f)).map((f) => files.read(f)).join('\n')
 
 export default {
   id: 'agents',
@@ -52,26 +55,52 @@ export default {
   tool: true,
   view: { dir: HERE, files: VIEW_FILES },
   writes: [DIR],
-  public: [],
+  public: ['GET /api/agents/tickets'],
   watch: (p) => (LOGS.includes(p) ? 'agents.events' : GIT_REFS.test(p) ? 'agents.git' : null),
   claude: {
     hooks: EVENTS.map((event) => (event === 'PreToolUse' ? { event, matcher: 'Agent|Task', script: HOOK } : { event, script: HOOK })),
   },
   api({ root, files }) {
+    // The sessions and agents of the log, each with its branch and ticket.
+    const list = async () => {
+      const { sessions } = readAgents(LOGS.filter((f) => files.exists(f)).map((f) => files.read(f)).join('\n'))
+      if (!sessions.length) return []
+      const since = sessions.map((s) => s.start).sort()[0]
+      return linkTickets(sessions, await readGit(root, since))
+    }
     const repo = openWorktrees(root)
     return async (req, res, sub) => {
-      if (sub !== '/list' && sub !== '/worktrees') return false
+      if (sub !== '/list' && sub !== '/tickets' && sub !== '/worktrees') return false
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'Method not allowed' }), true
       if (sub === '/worktrees') {
-        try { send(res, 200, await worktrees(repo, files)) } catch (e) { send(res, 200, { available: false, error: String(e.message).split('\n')[0] }) }
+        try {
+          const answer = await repo.read()
+          send(res, 200, answer.available ? withAgents(answer, await list()) : answer)
+        } catch (e) { send(res, 200, { available: false, error: String(e.message).split('\n')[0] }) }
         return true
       }
       try {
-        send(res, 200, readAgents(LOGS.filter((f) => files.exists(f)).map((f) => files.read(f)).join('\n')))
+        const sessions = await list()
+        send(res, 200, sub === '/list' ? { sessions } : { tickets: runningByTicket(sessions) })
       } catch (e) {
         send(res, 500, { error: e.message })
       }
       return true
     }
   },
+}
+
+// The running sessions and agents that work on a ticket, per ticket: what Build shows as
+// "being worked on", with what it needs to link to the agent.
+function runningByTicket(sessions) {
+  const tickets = {}
+  const add = (item, session, label) => {
+    if (item.state !== 'running' || !item.ticket) return
+    ;(tickets[item.ticket] ??= []).push({ id: item.id, session, label, branch: item.branch, start: item.start })
+  }
+  for (const s of sessions) {
+    add(s, s.id, null)
+    for (const a of s.agents) add(a, s.id, a.description || a.type)
+  }
+  return tickets
 }

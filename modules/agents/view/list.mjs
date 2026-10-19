@@ -1,6 +1,7 @@
 // The list of sessions and their agents (lit-html), as GET /api/agents/list gives them.
 //
-//   agentList({ sessions, error }, now)   the page's content; `now` (ms) times what still runs
+//   agentList({ sessions, error, focus }, now)   the page's content; `now` (ms) times what still runs;
+//                                                `focus`: the session or agent a link opened (?agent=<id>)
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js'
 import { repeat } from '/vendor/lit-html/directives/repeat.js'
@@ -20,32 +21,43 @@ function times(item, now) {
   </span>`
 }
 
-function agentRow(a, now) {
-  return html`<li class="agents-agent" data-state=${a.state}>
+// Its ticket ('#37'), which opens in Build in the whole window, and its branch.
+const ticketLink = (ref) => '/?module=build&ticket=' + encodeURIComponent(ref)
+function links(item) {
+  return [
+    item.ticket ? html`<a class="gw-tag agents-ticket" href=${ticketLink(item.ticket)} target="_top" title=${ui(`ticket.from.${item.ticketFrom}`, { ticket: item.ticket })}>${item.ticket}</a>` : nothing,
+    item.branch ? html`<span class="gw-tag agents-branch" title=${ui('branch', { branch: item.branch })}>${item.branch}</span>` : nothing,
+  ]
+}
+
+function agentRow(a, now, focus) {
+  return html`<li class="agents-agent" id=${'agent-' + a.id} data-state=${a.state} ?data-focus=${focus === a.id}>
     ${badge(a.state)}
     <span class="agents-name">${a.description || ui('agent.unnamed')}</span>
     ${a.type ? html`<span class="gw-tag">${a.type}</span>` : nothing}
+    ${links(a)}
     ${times(a, now)}
   </li>`
 }
 
-function sessionCard(s, now) {
-  return html`<section class="gw-card agents-session" data-state=${s.state}>
+function sessionCard(s, now, focus) {
+  return html`<section class="gw-card agents-session" id=${'agent-' + s.id} data-state=${s.state} ?data-focus=${focus === s.id}>
     <header class="gw-card__head agents-session__head">
       ${badge(s.state)}
       <h2 class="agents-session__title">${ui('session', { id: s.id.slice(0, 8) })}</h2>
       ${s.cwd ? html`<span class="gw-tag agents-cwd" title=${s.cwd}>${s.cwd}</span>` : nothing}
+      ${links(s)}
       ${times(s, now)}
     </header>
     <div class="gw-card__body">
       ${s.agents.length
-        ? html`<ul class="agents-agents">${repeat(s.agents, (a) => a.id, (a) => agentRow(a, now))}</ul>`
+        ? html`<ul class="agents-agents">${repeat(s.agents, (a) => a.id, (a) => agentRow(a, now, focus))}</ul>`
         : html`<p class="agents-none">${ui('no-agents')}</p>`}
     </div>
   </section>`
 }
 
-export function agentList({ sessions, error }, now) {
+export function agentList({ sessions, error, focus }, now) {
   if (error) return html`<div class="gw-callout gw-callout--bad"><div class="gw-callout__body">${ui('error')}</div></div>`
   if (!sessions) return nothing
   if (!sessions.length) {
@@ -60,5 +72,5 @@ export function agentList({ sessions, error }, now) {
       <span class="gw-badge gw-badge--count">${sessions.length}</span>
       <span class="gw-section-head__hint">${ui('hint')}</span>
     </div>
-    ${repeat(sessions, (s) => s.id, (s) => sessionCard(s, now))}`
+    ${repeat(sessions, (s) => s.id, (s) => sessionCard(s, now, focus))}`
 }

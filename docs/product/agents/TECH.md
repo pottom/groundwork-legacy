@@ -27,8 +27,8 @@ Az események egy csak hozzáírható JSON Lines naplóba kerülnek a .groundwor
 
 Egy agent jegyét a feladatleírásában szereplő jegyszám, a branch neve vagy a commit-üzenet adja. A Build egy kis, deklarált végponton kérdezi meg az Agents modult, dolgozik-e valaki egy jegyen, és ha az Agents nincs jelen, ugyanúgy működik.
 
-- A jegyszám az agent feladatából, a branch nevéből vagy a commit-üzenetből jön
-- A Build egy kis nyilvános végponton kérdezi, ki dolgozik egy jegyen — A d-module-endpoints szerint; Agents nélkül a Build ugyanúgy működik.
+- A jegyszám az agent feladatából, a branch nevéből vagy a commit-üzenetből jön — Sorrendben: a feladat (az Agent-hívás leírása: #37, issue 37, ticket 37), a branch neve (egy rész elején álló szám, pl. 37-links, vagy issue-37 / gh-37; tetszőleges szám nem, így a milestone-7-agents nem jegy), végül a branch saját commitjai az agent futása alatt. A branch annak a git worktree-nek a branche, amelyben az agent legutóbbi eseményének cwd-je van. A fő checkout branchének commitjait nem olvassuk (ott minden agent osztozik rajta); a branch saját commitjai azok, amelyek nincsenek a fő checkout branchén. Csak GitHub-stílusú (#N) hivatkozás. A git-et a szerver futtatja, csak olvasva; a hook soha. ([modules/agents/agent-tickets.mjs](../../../modules/agents/agent-tickets.mjs))
+- A Build egy kis nyilvános végponton kérdezi, ki dolgozik egy jegyen — GET /api/agents/tickets (public): { tickets: { '#37': [{ id, session, label, branch, start }] } }, csak a futó agentek és munkamenetek jegyenként. A d-module-endpoints szerint; Agents nélkül 404, és a Build nem mutat jelvényt (tesztelve: modules/alone.test.mjs). ([modules/agents/module.mjs](../../../modules/agents/module.mjs))
 
 ## 4. Biztonság
 

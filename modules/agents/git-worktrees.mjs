@@ -27,6 +27,7 @@
 import { execFile } from 'node:child_process'
 import { existsSync, realpathSync } from 'node:fs'
 import path from 'node:path'
+import { branchTicket } from './agent-tickets.mjs'
 
 const MAX_BRANCHES = 100
 const US = '\x1f'
@@ -169,50 +170,30 @@ export function openWorktrees(root) {
   return { read }
 }
 
-// The agent working in each worktree and the ticket of each branch, when known, added to read()'s
-// answer from the event log (the lines hook.mjs writes, oldest first) and readAgents(text)'s
-// sessions:
-//   - agent: the last session or subagent whose event's cwd is inside the worktree (the deepest
-//     worktree when they nest), as { session, id, type, description, state }; id and type are
-//     null for a session itself;
-//   - ticket: "#38" in that agent's task, else a number the branch name gives as a ticket
-//     ("issue-12-x", "gh-12", "12-x", "feature/12-x"), else null.
-export function withAgents(answer, text, { sessions }) {
+// The agent working on each branch and its ticket, when known, added to read()'s answer from the
+// sessions as linkTickets (agent-tickets.mjs) gives them, each with its `branch` and `ticket`:
+//   - agent: of the sessions and subagents on the branch, a running one first, a subagent before
+//     its session, then the latest to start, as { session, id, type, description, state }; id and
+//     type are null for a session itself;
+//   - ticket: that agent's ticket ('#38'), else the one the branch name gives (branchTicket), else null.
+export function withAgents(answer, sessions) {
   if (!answer.available) return answer
-  const trees = answer.items.filter((i) => i.worktree).map((i) => ({ item: i, at: key(i.worktree.path) })).sort((a, b) => b.at.length - a.at.length)
-  const last = new Map()   // item -> { session, agent }
-  const treeAt = new Map() // cwd -> the worktree it is in, or undefined
-  for (const line of String(text).split('\n')) {
-    let e
-    try { e = JSON.parse(line) } catch { continue }
-    if (!e || !e.session || typeof e.cwd !== 'string') continue
-    if (!treeAt.has(e.cwd)) {
-      const cwd = key(e.cwd)
-      treeAt.set(e.cwd, trees.find((t) => cwd === t.at || cwd.startsWith(t.at + '/')))
+  const on = new Map()   // branch -> [{ session, item, sub }]
+  for (const s of sessions) {
+    for (const [item, sub] of [[s, false], ...s.agents.map((a) => [a, true])]) {
+      if (item.branch) (on.get(item.branch) ?? on.set(item.branch, []).get(item.branch)).push({ session: s, item, sub })
     }
-    const tree = treeAt.get(e.cwd)
-    if (tree) last.set(tree.item, { session: e.session, agent: e.agent ?? null })
   }
-  for (const item of answer.items) {
-    const who = last.get(item)
-    const s = who && sessions.find((x) => x.id === who.session)
-    const a = who?.agent ? s?.agents.find((x) => x.id === who.agent) : null
-    item.agent = !s ? null : a
-      ? { session: s.id, id: a.id, type: a.type, description: a.description, state: a.state }
-      : { session: s.id, id: null, type: null, description: null, state: s.state }
-    item.ticket = /#(\d+)\b/.exec(item.agent?.description ?? '')?.[1] ?? (item.branch && ticketOf(item.branch)) ?? null
+  const rank = (x) => [x.item.state === 'running' ? 0 : 1, x.sub ? 0 : 1]
+  const first = (a, b) => { const [p, q] = [rank(a), rank(b)]; return p[0] - q[0] || p[1] - q[1] || (a.item.start < b.item.start ? 1 : -1) }
+  for (const i of answer.items) {
+    const who = i.branch ? (on.get(i.branch) ?? []).sort(first)[0] : null
+    i.agent = !who ? null : who.sub
+      ? { session: who.session.id, id: who.item.id, type: who.item.type, description: who.item.description, state: who.item.state }
+      : { session: who.session.id, id: null, type: null, description: null, state: who.session.state }
+    i.ticket = who?.item.ticket ?? (i.branch && branchTicket(i.branch)) ?? null
   }
   return answer
-}
-
-const ticketOf = (branch) => (/(?:^|[/_.-])(?:issues?|tickets?|gh|bug|fix|feat|feature)[-_]?(\d+)(?=$|[/_.-])/i.exec(branch) ?? /(?:^|\/)(\d+)(?=$|[-_.])/.exec(branch))?.[1] ?? null
-
-// A path to compare: "/" separators, no trailing one, case-folded where the file system folds it.
-function key(p) {
-  let k = path.resolve(p)
-  try { k = realpathSync(k) } catch { /* gone: as it was named */ }
-  k = k.replace(/\\/g, '/').replace(/\/+$/, '')
-  return process.platform === 'win32' || process.platform === 'darwin' ? k.toLowerCase() : k
 }
 
 // A path as a shell word to copy: quoted when it holds anything but plain characters.

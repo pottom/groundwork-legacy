@@ -64,6 +64,8 @@ test('with only Build, its page and endpoints work, and Plan\'s endpoint is simp
     const ids = await get('/api/plan/ids')
     assert.equal(ids.status, 404, 'Build reads a non-ok answer as "no map": no PRD id counts as unknown')
     assert.equal((await get('/plan/')).status, 404)
+    const working = await get('/api/agents/tickets')
+    assert.equal(working.status, 404, 'Build reads a non-ok answer as "no agent on any ticket"')
   })
 })
 
@@ -96,6 +98,7 @@ test('with only Agents, its page and list work, and it needs no other module', a
     assert.deepEqual(tabs(await (await get('/')).text()), ['agents'])
     assert.match(await (await get('/agents/')).text(), /<html/i)
     assert.deepEqual(await (await get('/api/agents/list')).json(), { sessions: [] })
+    assert.deepEqual(await (await get('/api/agents/tickets')).json(), { tickets: {} })
     for (const p of ['/api/ideas/list', '/api/plan/ids', '/api/build/prd', '/api/sketch/links']) assert.equal((await get(p)).status, 404, p)
   })
 })

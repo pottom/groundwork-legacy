@@ -37,7 +37,7 @@ function where(w) {
 function who(i) {
   if (!i.agent && !i.ticket) return nothing
   return html`<span class="agents-wt__who">
-    ${i.ticket ? html`<span class="gw-tag">#${i.ticket}</span>` : nothing}
+    ${i.ticket ? html`<span class="gw-tag">${i.ticket}</span>` : nothing}
     ${i.agent ? html`<span class="gw-dot gw-dot--${AGENT_TONE[i.agent.state] ?? 'neutral'}${i.agent.state === 'running' ? ' gw-dot--pulse' : ''}"></span>
       <span>${i.agent.description || (i.agent.id ? ui('agent.unnamed') : ui('session', { id: i.agent.session.slice(0, 8) }))}</span>` : nothing}
   </span>`

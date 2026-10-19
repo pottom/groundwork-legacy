@@ -112,8 +112,8 @@ test('a worktree shows the agent working in it and its ticket, when known', { sk
   await withServer(root, async ({ get }) => {
     const items = byBranch((await get('/api/agents/worktrees')).items)
     assert.deepEqual(items['worktree-agent-a1b2'].agent, { session: 's-1', id: 'a-1', type: 'general-purpose', description: 'Build #38 worktrees', state: 'running' })
-    assert.equal(items['worktree-agent-a1b2'].ticket, '38', 'from the agent\'s task')
-    assert.equal(items['issue-12-login'].ticket, '12', 'from the branch name')
+    assert.equal(items['worktree-agent-a1b2'].ticket, '#38', 'from the agent\'s task')
+    assert.equal(items['issue-12-login'].ticket, '#12', 'from the branch name')
     assert.deepEqual([items['issue-12-login'].agent, items.milestone.ticket, items.milestone.agent], [null, null, null])
   })
 })
