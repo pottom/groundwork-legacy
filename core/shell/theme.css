@@ -17,6 +17,7 @@
      --gw-line          borders and dividers
      --gw-line-strong   borders that must stand out (inputs, hover)
      --gw-accent        links, the current item, primary buttons
+     --gw-accent-2      the second stop of the accent gradient (the logo, the current tab)
      --gw-accent-fg     text on an --gw-accent background
      --gw-focus         focus ring
      --gw-ok            done, success
@@ -48,6 +49,7 @@
   --gw-line: #e4e0d7;
   --gw-line-strong: #cfcac0;
   --gw-accent: #2f5bd3;
+  --gw-accent-2: #8b5cf6;
   --gw-accent-fg: #ffffff;
   --gw-focus: #2f5bd3;
   --gw-ok: #1f8a4c;
@@ -76,6 +78,7 @@
     --gw-line: #2f3238;
     --gw-line-strong: #464a52;
     --gw-accent: #7d9cf0;
+    --gw-accent-2: #b48cf8;
     --gw-accent-fg: #15161a;
     --gw-focus: #7d9cf0;
     --gw-ok: #5cc58a;
