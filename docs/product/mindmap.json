@@ -206,7 +206,7 @@
                 "topic": "Helyi szerver",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Egyetlen helyi szerver szolgálja ki az összes modult, mindegyiket a saját API-jával. A szerver Node.js-en fut, csak beépített modulokkal, telepítendő függőség nélkül.\n\nAz írási jog modulonként adható: a Plan a saját dokumentumait írja, a Build csak olvas.",
+                  "prose": "Egyetlen helyi szerver szolgálja ki az összes modult, mindegyiket a saját API-jával. A szerver Node.js-en fut, csak beépített modulokkal, telepítendő függőség nélkül.\n\nAz írási jog modulonként adható: a Plan a saját dokumentumait írja, a Build csak olvas.\n\nA változásokról a szerver szól az oldalaknak (Server-Sent Events a `/api/events` alatt): a térkép, a helyi jegyek, a git és a GitHub-issue-k változása után az oldalak újraolvasnak, lekérdezgetés nélkül.",
                   "progress": "done"
                 },
                 "children": [
@@ -232,6 +232,24 @@
                   {
                     "id": "x-two-servers",
                     "topic": "Modulonként külön szerver",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-live-sse",
+                    "topic": "Élő frissítés Server-Sent Events-szel (/api/events)",
+                    "note": "A mag figyeli a projektmappát; a modul manifestje mondja meg, melyik fájl melyik témához tartozik, és maga is küldhet értesítést (a Build percenként frissen megkérdezi a GitHubot, így a GitHubon történt változás egy percen belül látszik). Az oldalak csak értesítésre kérdeznek újra; újracsatlakozáskor mindent újraolvasnak.",
+                    "hyperLink": "core/events.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
+                    }
+                  },
+                  {
+                    "id": "x-polling",
+                    "topic": "Lekérdezgetés (polling) az oldalakból",
+                    "note": "A szerver nélkül, fájlból (file://) megnyitott Build továbbra is 3 mp-enként olvassa újra a mappát.",
                     "metadata": {
                       "status": "excluded"
                     }
@@ -442,7 +460,7 @@
                 "topic": "Biztonság",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Egyetlen szerver ír és olvas, ezért a hozzáférés szűk: csak a helyi gépről (`127.0.0.1`) érhető el, és idegen `Host` fejlécű kérést elutasít. Írni csak a projekt dokumentációs mappájába (`docs/product/`) és a saját helyi állapotába (`.groundwork/`) tud. Tokent vagy jelszót nem használ, mert csak helyben fut.",
+                  "prose": "Egyetlen szerver ír és olvas, ezért a hozzáférés szűk: csak a helyi gépről (`127.0.0.1`) érhető el, és idegen `Host` fejlécű kérést elutasít. Írni csak a projekt dokumentációs mappájába (`docs/product/`) és a saját helyi állapotába (`.groundwork/`) tud.\n\nSaját tokent vagy jelszót nem kér és nem tárol. A GitHub olvasásához a felhasználó meglévő `gh`-bejelentkezését vagy a `GITHUB_TOKEN` / `GH_TOKEN` környezeti változót használhatja; ezt sehova nem menti, és az oldalakhoz soha nem jut el: az oldal csak az issue-kat kapja meg.",
                   "progress": "done"
                 },
                 "children": [
@@ -466,9 +484,19 @@
                   },
                   {
                     "id": "x-sec-token",
-                    "topic": "Token vagy jelszó",
+                    "topic": "Saját token- vagy jelszókezelés (bekérés, tárolás)",
                     "metadata": {
                       "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-sec-github",
+                    "topic": "GitHub olvasása a meglévő gh-bejelentkezéssel vagy GITHUB_TOKEN / GH_TOKEN változóval",
+                    "note": "A szerver nem tárolja a tokent, és nem küldi az oldalnak; a hibaüzenetből is kivágja a tokennek látszó részt. Token nélkül a nyilvános repók olvashatók.",
+                    "hyperLink": "modules/build/github-source.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
                     }
                   }
                 ]
@@ -642,8 +670,9 @@
                     "topic": "Döntésenként látszik, hány jegy lett és mennyi kész",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "hyperLink": "modules/build/project-tickets.mjs"
                   },
                   {
                     "id": "d-trace-how",
@@ -938,6 +967,16 @@
                     "topic": "GitLab-issue-k",
                     "metadata": {
                       "status": "parked"
+                    }
+                  },
+                  {
+                    "id": "d-prd-counts",
+                    "topic": "A Plan jegyszámai a Build jegyolvasójából (/api/build/prd)",
+                    "note": "A szerver ugyanazzal a ticket-reader.js-szel olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed.",
+                    "hyperLink": "modules/build/project-tickets.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
                     }
                   }
                 ]

@@ -34,11 +34,11 @@ test('the page carries the shell\'s translation mechanism unchanged', () => {
 
 test('the translation and the strings load as classic scripts beside the page, before its own script', () => {
   const srcs = [...PAGE.matchAll(/<script\b([^>]*)>/g)].map((m) => /src="([^"]+)"/.exec(m[1])?.[1] ?? null)
-  assert.deepEqual(srcs.filter(Boolean), ['i18n.js', 'ui-strings.js'])
-  assert.ok(srcs.indexOf('ui-strings.js') < srcs.lastIndexOf(null), 'loaded before the page script')
+  assert.deepEqual(srcs.filter(Boolean), ['i18n.js', 'ui-strings.js', 'ticket-reader.js'])
+  assert.ok(srcs.indexOf('ticket-reader.js') < srcs.lastIndexOf(null), 'loaded before the page script')
   assert.doesNotMatch(PAGE, /type="module"/)
   assert.doesNotMatch(PAGE, /const BUILD_STRINGS|function createI18n/, 'no inline copy left')
-  for (const f of ['i18n.js', 'ui-strings.js']) assert.ok(build.view.files.includes(f), `${f} is served`)
+  for (const f of ['i18n.js', 'ui-strings.js', 'ticket-reader.js']) assert.ok(build.view.files.includes(f), `${f} is served`)
 })
 
 test('the page has no Hungarian text outside its strings', () => {
@@ -58,7 +58,7 @@ test('the English and the Hungarian set have the same keys, and the Hungarian on
 })
 
 test('every key the page uses has a text, and every text is used', () => {
-  const rest = PAGE
+  const rest = PAGE + read('./ticket-reader.js')   // the reader names the problems' strings
   const spaces = new Set(Object.keys(en).map((k) => k.split('.')[0]))
   const used = new Set()
   for (const m of rest.matchAll(/['"`]([a-z][\w-]*)\.([\w.-]*[\w-])['"`]/g)) if (spaces.has(m[1])) used.add(`${m[1]}.${m[2]}`)

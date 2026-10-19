@@ -2,6 +2,7 @@
 //
 //   GET  /[?module=<id>]       the shell: header, navigation, the module's view (shell/shell.mjs)
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
+//   GET  /api/events           live updates: what changed, as Server-Sent Events (events.mjs)
 //   *    /api/<module>/...     the module's endpoints
 //   GET  /shell/...            the shared look (theme.css, shell.css) and the UI translation (i18n.mjs, strings.mjs)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
@@ -14,9 +15,12 @@
 //   { id, name, version,
 //     view: { dir, files: ['index.html', ...] },           served under /<id>/, index.html at /<id>/
 //     writes: ['docs/product', '.groundwork/<id>'],         the folders it may write to
-//     api: ({ root, files }) => (req, res, subpath, url) => handled }   subpath: the path after /api/<id>
+//     watch: (path) => topic | [topic] | null,              optional: the live-update topic of a changed
+//                                                          file (path relative to the root, "/"-separated)
+//     api: ({ root, files, events }) => (req, res, subpath, url) => handled }   subpath: the path after /api/<id>
 // The handler returns (or resolves to) true when it answered, anything else means 404.
 // `files` is the module's only way to write: it writes only under `writes` (see files.mjs).
+// `events` lets it push a live-update topic itself: events.publish(topic), events.every(ms, fn).
 
 import http from 'node:http'
 import fs from 'node:fs'
@@ -25,6 +29,7 @@ import { fileURLToPath } from 'node:url'
 import { send, TYPES } from './http.mjs'
 import { moduleFiles } from './files.mjs'
 import { shellPage } from './shell/shell.mjs'
+import { createEvents } from './events.mjs'
 
 export const HOST = '127.0.0.1'
 const LOCAL_NAMES = new Set(['127.0.0.1', 'localhost'])
@@ -61,7 +66,8 @@ const RESERVED = new Set(['api', 'shell', 'vendor'])
 
 export async function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR }) {
   for (const m of modules) if (RESERVED.has(m.id)) throw new Error(`module id "${m.id}" is reserved by the core`)
-  const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m) }) : null }))
+  const events = createEvents({ root: path.resolve(root), modules })
+  const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m), events: events.api }) : null }))
   const byId = new Map(mods.map((m) => [m.id, m]))
   const project = path.basename(path.resolve(root))
 
@@ -71,11 +77,12 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       const url = new URL(req.url, 'http://localhost')
       const parts = url.pathname.split('/') // ['', first, ...rest]
       if (url.pathname === '/') {
-        return send(res, 200, shellPage({ project, modules: mods, active: url.searchParams.get('module') }), TYPES['.html'])
+        return send(res, 200, shellPage({ project, modules: mods, active: url.searchParams.get('module'), params: url.searchParams }), TYPES['.html'])
       }
       if (url.pathname === '/api/modules') {
         return send(res, 200, mods.map(({ id, name, version }) => ({ id, name, version, path: `/${id}/` })))
       }
+      if (url.pathname === '/api/events' && req.method === 'GET') return events.stream(req, res)
       if (parts[1] === 'api') {
         const mod = byId.get(parts[2])
         const sub = '/' + parts.slice(3).join('/')
@@ -115,7 +122,7 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       const address = server.address()
       resolve({
         server, address, port: address.port, url: `http://localhost:${address.port}/`,
-        close: () => new Promise((r) => { server.closeAllConnections?.(); server.close(r) }),
+        close: () => new Promise((r) => { events.close(); server.closeAllConnections?.(); server.close(r) }),
       })
     })
   })

@@ -1,6 +1,6 @@
 ---
 name: groundwork-prd-maker
-description: Turns a grilling interview into product documentation: a PRD, a technical design, and for systems and services also overview, service, process, operations and rollout documents. While you talk, it draws a live mind map and writes the documents under docs/product/, all visible and editable in the browser pane. Works for new and for half-finished projects. Load it alongside grilling, grill-me or grill-with-docs, and whenever the user wants a PRD, a spec of a system or service, or mentions the mind map.
+description: Turns a grilling interview into product documentation: a PRD, a technical design, and for systems and services also overview, service, process, operations and rollout documents. While you talk, it draws a live mind map and writes the documents under docs/product/, all visible and editable in the browser pane. Works for new and for half-finished projects. Load it alongside grilling, grill-me or grill-with-docs, whenever the user wants a PRD, a spec of a system or service, or mentions the mind map, and after to-tickets has made tickets from the PRD.
 ---
 
 The deliverables are Markdown documents under **`docs/product/`**. The mind map is how the human follows along: at any moment it shows where the interview stands and what has been covered. Everything is a view of one file, `docs/product/mindmap.json`.
@@ -126,6 +126,22 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
    - Reread every section's prose so each document reads as one coherent whole, and the documents agree with each other.
    - Mark every section `done`.
    - Tell the human the documents are ready under `docs/product/`, and offer to publish them as shareable documents.
+
+## After to-tickets: the PRD reference
+
+The `to-tickets` skill turns the PRD into tickets; use it as it is. Every ticket it creates then gets a **PRD reference**: the ids of the map items it came from, so Build can link the ticket to Plan and Plan can count the tickets per item. In the same turn as `to-tickets`:
+
+1. Run `show` for the map's ids.
+2. For each new ticket, pick the items it builds or must respect: features, decisions, notes, `excluded` items. A ticket that matches no item is a gap in the PRD: add the item to the map first (as `todo` when the human has not settled it), then name it.
+3. Add the line, written exactly so:
+
+   ```
+   **PRD:** f-build-trace, d-trace
+   ```
+
+   Ids exactly as `show` prints them, separated by commas. In a GitHub issue it is the first line of the body (`gh issue edit <n> --body-file <file>`). In a local ticket file (`.scratch/<area>/issues/`) it is a line of its own under the title, before the first `##` section.
+
+Done when every ticket `to-tickets` created carries a PRD line and every id on it appears in `show`. Build's Checks view lists the tickets that miss either.
 
 ## Human edits are authoritative
 

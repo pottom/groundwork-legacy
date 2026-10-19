@@ -29,6 +29,7 @@ const BUILD_STRINGS = {
     'live.lost': 'The browser no longer lets the page read the folder; showing the last known state.',
     'live.renew': 'Renew permission',
     'live.on': 'Live{server}: reads every {sec} seconds · checked {at}',
+    'live.push': 'Live{server}: reads again when something changes · read {at}',
     'live.server': ' · local server ({host})',
     'live.snapshot': 'Snapshot: read at {at}, does not refresh by itself',
     'live.reread': 'Read again (choose the folder)',
@@ -63,6 +64,8 @@ const BUILD_STRINGS = {
     'filter.hidden': 'closed hidden: {n}',
     'filter.show': 'show',
     'filter.clear': 'clear filters',
+    'filter.prd': 'Tickets of {id}',
+    'filter.prd-clear': 'Show every ticket, not only this PRD item\'s',
 
     'status.unparsed': 'unreadable',
 
@@ -86,6 +89,9 @@ const BUILD_STRINGS = {
     'table.checks': 'Checklist',
     'table.blocked-by': 'Blocked by',
     'table.blocked-by-sub': 'blocked by: {list}',
+    'table.prd-sub': 'PRD: {list}',
+    'prd.open': 'Open {id} in Plan',
+    'prd.no-plan': 'A PRD item on the map; Plan opens it when Groundwork runs as a server',
     'table.last-comment': 'Last comment',
     'table.empty': 'No such ticket.',
     'table.no-such-ticket': 'There is no such ticket',
@@ -157,6 +163,8 @@ const BUILD_STRINGS = {
 
     'activity.tickets': 'tickets: {n}',
     'activity.untitled': '(untitled)',
+    'activity.opened': 'Opened on GitHub',
+    'activity.closed': 'Closed on GitHub',
     'activity.lead': 'The tickets\' comments (the headings that start with a date), by day, newest first, closed tickets included.',
     'activity.empty': 'No dated comment in the tickets that match the filters.',
     'activity.more': 'Earlier days ({n})',
@@ -185,6 +193,10 @@ const BUILD_STRINGS = {
     'problem.mismatch.text': 'The file name\'s number is {file}, the Issue line\'s is #{field}.',
     'problem.no-number': 'Ticket without a number',
     'problem.no-number.text': 'There is no number in the file name or in the heading.',
+    'problem.no-prd': 'Ticket without a PRD reference',
+    'problem.no-prd.text': 'There is no "**PRD:**" line naming the map items it came from.',
+    'problem.unknown-prd': 'Ticket pointing to an id that is not on the map',
+    'problem.unknown-prd.text': 'Not on the PRD map: {list}.',
 
     'docs.empty': 'No such document.',
     'docs.own': 'The project\'s description and glossary',
@@ -208,6 +220,9 @@ const BUILD_STRINGS = {
     'drawer.unlocks': 'Unlocks',
     'drawer.earlier': 'Earlier name',
     'drawer.type': 'Type',
+    'drawer.labels': 'Labels',
+    'drawer.prd': 'PRD items',
+    'drawer.github': 'GitHub issue',
     'drawer.comments': 'comments: {n}',
 
     'md.done': 'done',
@@ -287,6 +302,7 @@ const BUILD_STRINGS = {
     'live.lost': 'A böngésző már nem engedi olvasni a mappát; az utolsó ismert állás látszik.',
     'live.renew': 'Engedély megújítása',
     'live.on': 'Élő{server}: {sec} másodpercenként olvas · ellenőrizve {at}',
+    'live.push': 'Élő{server}: ha valami változik, újraolvas · beolvasva {at}',
     'live.server': ' · helyi szerver ({host})',
     'live.snapshot': 'Pillanatkép: beolvasva {at}, magától nem frissül',
     'live.reread': 'Újraolvasás (mappa kiválasztása)',
@@ -321,6 +337,8 @@ const BUILD_STRINGS = {
     'filter.hidden': '{n} zárt rejtve',
     'filter.show': 'mutasd',
     'filter.clear': 'szűrők törlése',
+    'filter.prd': '{id} jegyei',
+    'filter.prd-clear': 'Minden jegy látsszon, ne csak ennek a PRD-elemnek a jegyei',
 
     'status.unparsed': 'nem értelmezhető',
 
@@ -344,6 +362,9 @@ const BUILD_STRINGS = {
     'table.checks': 'Pontok',
     'table.blocked-by': 'Blokkolja',
     'table.blocked-by-sub': 'blokkolja: {list}',
+    'table.prd-sub': 'PRD-elem: {list}',
+    'prd.open': '{id} megnyitása a Plan modulban',
+    'prd.no-plan': 'PRD-elem a térképen; a Plan akkor nyitja meg, ha a Groundwork szerverként fut',
     'table.last-comment': 'Utolsó megjegyzés',
     'table.empty': 'Nincs ilyen jegy.',
     'table.no-such-ticket': 'Nincs ilyen jegy',
@@ -415,6 +436,8 @@ const BUILD_STRINGS = {
 
     'activity.tickets': '{n} jegy',
     'activity.untitled': '(cím nélkül)',
+    'activity.opened': 'Megnyitva a GitHubon',
+    'activity.closed': 'Lezárva a GitHubon',
     'activity.lead': 'A jegyek megjegyzései (a dátummal kezdődő címsorok) napok szerint visszafelé, a zárt jegyekéi is.',
     'activity.empty': 'Nincs dátumozott megjegyzés a szűrőknek megfelelő jegyekben.',
     'activity.more': 'Korábbi napok ({n})',
@@ -443,6 +466,10 @@ const BUILD_STRINGS = {
     'problem.mismatch.text': 'A fájlnév száma {file}, az Issue soré #{field}.',
     'problem.no-number': 'Jegy szám nélkül',
     'problem.no-number.text': 'Sem a fájlnévben, sem a címsorban nincs szám.',
+    'problem.no-prd': 'Jegy PRD-hivatkozás nélkül',
+    'problem.no-prd.text': 'Nincs "**PRD:**" sora, amely megnevezné, mely térképelemekből készült.',
+    'problem.unknown-prd': 'Jegy, amely a térképen nem szereplő azonosítóra mutat',
+    'problem.unknown-prd.text': 'Nincs a PRD-térképen: {list}.',
 
     'docs.empty': 'Nincs ilyen dokumentum.',
     'docs.own': 'A projekt leírása és szószedete',
@@ -466,6 +493,9 @@ const BUILD_STRINGS = {
     'drawer.unlocks': 'Feloldja',
     'drawer.earlier': 'Korábbi név',
     'drawer.type': 'Típus',
+    'drawer.labels': 'Címkék',
+    'drawer.prd': 'PRD-elemek',
+    'drawer.github': 'Issue a GitHubon',
     'drawer.comments': '{n} megjegyzés',
 
     'md.done': 'kész',

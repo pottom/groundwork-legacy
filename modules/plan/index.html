@@ -161,6 +161,15 @@
   .map-container me-tpc[data-impl="done"]    { --ic: var(--decision); }
   .map-container me-tpc[data-impl="partial"] { --ic: var(--parked); }
   .map-container me-tpc[data-impl="missing"] { --ic: var(--missing); }
+  /* tickets: how many tickets name the item on their PRD line, and how many are done; opens Build */
+  .map-container me-tpc a.mm-tickets {
+    display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; vertical-align: 1px;
+    font: 600 10px var(--gw-font-mono, var(--gw-font)); letter-spacing: .02em; text-decoration: none; cursor: pointer;
+    color: var(--tc); background: color-mix(in srgb, var(--tc) 14%, transparent); border: 1px solid color-mix(in srgb, var(--tc) 35%, transparent);
+    --tc: var(--gw-accent);
+  }
+  .map-container me-tpc a.mm-tickets[data-complete] { --tc: var(--decision); }
+  .map-container me-tpc a.mm-tickets:hover { background: color-mix(in srgb, var(--tc) 26%, transparent); }
   /* Status badges match the dock exactly: same icon, same status color.
      The branch color only marks which branch a node belongs to (lines, main pills). */
   .map-container me-children me-tpc[data-status="topic"] {
@@ -201,6 +210,16 @@
   /* selection + new-node flash */
   .map-container me-tpc.selected { outline: 2px solid var(--accent, var(--gw-accent)) !important; outline-offset: 3px; }
   me-tpc.mm-new { animation: mm-flash 2.5s ease-out; }
+  me-tpc.mm-linked { animation: mm-flash 1.2s ease-out 3; } /* reached by a deep link (?node=) */
+
+  /* deep link to an id the map does not have */
+  #notice {
+    position: fixed; z-index: 25; top: 64px; left: 64px; max-width: min(440px, calc(100vw - 80px));
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 14px; border-radius: 10px;
+    font-size: 13.5px; color: var(--gw-fg); border-left: 3px solid var(--gw-bad);
+  }
+  #notice[hidden] { display: none; }
+  #notice button { font: 500 16px/1 var(--gw-font); color: var(--gw-muted); background: none; border: 0; cursor: pointer; padding: 2px 6px; }
   @keyframes mm-flash { 0%, 25% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent, var(--gw-accent)) 45%, transparent); transform: scale(1.04); } 100% { box-shadow: var(--gw-shadow); transform: none; } }
 
   /* note tooltip */
@@ -388,12 +407,14 @@
 <button id="prd-toggle" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg><span>PRD</span></button>
 <div id="dock" class="glass"><span class="hint"></span></div>
 <div id="tip" class="glass"></div>
+<div id="notice" class="glass" role="alert" hidden><span></span><button type="button" title="Close" data-i18n-title="notice.close" aria-label="Close" data-i18n-aria-label="notice.close">×</button></div>
 
 <script type="module">
 import MindElixir from '/vendor/mind-elixir/MindElixir.js'
 import { STATUSES, IMPL, iconUrl } from './node-types.mjs'
 import { mapTheme, followColorScheme } from './map-theme.mjs'
 import { buildPrd, progressSummary, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from './documents.mjs'
+import { linkTarget, buildLink } from './deep-link.mjs'
 import { marked } from '/vendor/marked/marked.esm.js'
 import { createI18n } from '/shell/i18n.mjs'
 import { UI_STRINGS } from './ui-strings.mjs'
@@ -435,6 +456,9 @@ const setSync = (cls, key, vars) => {
 }
 
 let mind, version = null, dirty = false, saving = false, timer = null
+// Per map item, the tickets naming it on their PRD line: { id: { total, done, tickets } } from
+// /api/build/prd (the Build module reads them with its ticket reader). {} without Build.
+let ticketCounts = {}
 // Light or dark follows the OS, also when it switches while the page is open:
 // the map gets the matching theme and the branches their palette again.
 let THEME, PALETTE
@@ -452,6 +476,7 @@ const editing = () => !!document.getElementById('input-box') || prdEditing
 
 // ---- decoration: status, branch color, notes ----
 function decorate() {
+  let resized = false
   const data = { nodeData: fullTree() }
   const structured = listDocs(data).some((d) => !d.legacy)
   const setAccent = (n, i) => {
@@ -478,9 +503,33 @@ function decorate() {
     if (n.note) tpc.dataset.hasNote = ''; else delete tpc.dataset.hasNote
     const impl = n.metadata?.impl
     if (impl) { tpc.dataset.impl = impl; tpc.dataset.implLabel = ui(`impl.${impl}`) } else { delete tpc.dataset.impl; delete tpc.dataset.implLabel }
+    if (ticketBadge(tpc, ticketCounts[n.id])) resized = true
   }
+  // a badge came, went or changed width: the branch lines are drawn again (this runs decorate once more)
+  if (resized) mind.linkDiv()
   refreshDock()
   renderPrd()
+}
+
+// The ticket count of a map item, a link that opens Build on its tickets; true when it changed.
+function ticketBadge(tpc, count) {
+  let a = tpc.querySelector(':scope > a.mm-tickets')
+  if (!count) { if (a) { a.remove(); return true } return false }
+  const text = `${count.done}/${count.total}`
+  const changed = !a || a.textContent !== text
+  if (!a) {
+    a = document.createElement('a')
+    a.className = 'mm-tickets'
+    a.target = '_top'
+    // the map must not take the click (select, drag, edit): the link opens Build
+    for (const ev of ['mousedown', 'pointerdown', 'dblclick']) a.addEventListener(ev, (e) => e.stopPropagation())
+    tpc.appendChild(a)
+  }
+  a.href = buildLink(tpc.nodeObj.id)
+  a.textContent = text
+  a.title = ui('tickets.title', { done: count.done, total: count.total })
+  if (count.total && count.done === count.total) a.dataset.complete = ''; else delete a.dataset.complete
+  return changed
 }
 
 // ---- status dock ----
@@ -791,6 +840,35 @@ function reveal(id) {
   for (const n of path) if (n.expanded === false) { const el = ele(n.id); if (el) mind.expandNode(el, true) }
 }
 
+// ---- deep link: ?node=<id> focuses that node (see deep-link.mjs) ----
+// The node is brought into the map's focus layer, selected, flashed and shown in the
+// document; an id the map does not have is said so in a notice.
+let linkNotice = null
+function showNotice(key, vars) {
+  linkNotice = key ? { key, vars } : null
+  const box = document.getElementById('notice')
+  box.hidden = !key
+  if (key) box.querySelector('span').textContent = ui(key, vars)
+}
+document.querySelector('#notice button').onclick = () => showNotice(null)
+
+function focusLinked() {
+  const target = linkTarget(location.search, { nodeData: fullTree() })
+  if (!target) return
+  if (!target.found) { showNotice('link.unknown', { id: target.id }); return }
+  showNotice(null)
+  const layer = currentFocus !== 'all' ? findNode(currentFocus) : null
+  const inLayer = (n) => n.id === target.id || (n.children || []).some(inLayer)
+  if (layer && !inLayer(layer)) setFocus(target.doc || 'all')
+  selectOnMap(target.id)
+  const el = ele(target.id)
+  if (el) {
+    el.classList.remove('mm-linked'); void el.offsetWidth; el.classList.add('mm-linked')
+    requestAnimationFrame(() => requestAnimationFrame(() => mind.scrollIntoView(el, true))) // after setFocus's fit: centre it
+  }
+  highlightInPrd(target.id)
+}
+
 function selectOnMap(id) {
   reveal(id)
   const el = ele(id)
@@ -975,8 +1053,12 @@ async function save() {
   }
 }
 
-async function poll() {
-  if (saving || dirty || editing()) return
+// Asks for the map again (the live updates said it changed, or the page reconnected). While an
+// edit or a save is under way it asks again a moment later, so a change on disk is never lost.
+let reloadMapLater = null
+async function reloadMap() {
+  clearTimeout(reloadMapLater)
+  if (saving || dirty || editing()) { reloadMapLater = setTimeout(reloadMap, 1000); return }
   try {
     const r = await fetch('/api/plan/map?v=' + encodeURIComponent(version))
     const j = await r.json()
@@ -985,10 +1067,38 @@ async function poll() {
       version = j.v
       show(j.data, { flashNew: true })
       setSync('', 'sync.updated', { time: new Date().toLocaleTimeString() })
-    }
+    } else if (syncState.key === 'sync.offline') setSync('', 'sync.live')
   } catch (e) {
     setSync('err', 'sync.offline')
   }
+}
+
+// The ticket counts on the map (see ticketCounts).
+async function loadTickets() {
+  try {
+    const r = await fetch('/api/build/prd', { cache: 'no-store' })
+    const next = r.ok ? (await r.json()).items || {} : {}
+    if (JSON.stringify(next) === JSON.stringify(ticketCounts)) return
+    ticketCounts = next
+    if (mind) decorate()
+  } catch { /* no connection: the live updates say when it is back */ }
+}
+
+// The core's live updates (Server-Sent Events): the map file changed ("plan.map"), the glossary
+// ("plan.glossary"), or the tickets or GitHub issues Build reads ("build.files", "build.issues").
+// No polling: the page asks again only when told. EventSource reconnects by itself, and each
+// (re)connect starts with "hello", when everything is asked for again.
+function subscribe() {
+  const events = new EventSource('/api/events')
+  events.addEventListener('hello', () => { reloadMap(); loadTickets() })
+  events.addEventListener('change', (e) => {
+    let topics = []
+    try { topics = JSON.parse(e.data).topics || [] } catch { /* not ours */ }
+    if (topics.includes('plan.map')) reloadMap()
+    if (topics.includes('plan.glossary')) loadGlossary().then(() => { lastSnapshot = null; renderPrd() })
+    if (topics.includes('build.files') || topics.includes('build.issues')) loadTickets()
+  })
+  events.addEventListener('error', () => setSync('err', 'sync.offline'))
 }
 
 async function start() {
@@ -1031,9 +1141,9 @@ async function start() {
     refreshDock()
     highlightInPrd(mind.currentNode?.nodeObj?.id)
   }))
-  loadGlossary().then(renderPrd)
+  loadGlossary().then(() => { renderPrd(); focusLinked() }) // the document is drawn: the linked node can be shown in it
   setSync('', 'sync.live')
-  setInterval(poll, 1000)
+  subscribe()
 }
 
 // ---- UI language ----
@@ -1060,6 +1170,7 @@ function relabel() {
   setView(document.body.dataset.view, { fit: false })
   labelDock()
   labelMenu()
+  if (linkNotice) showNotice(linkNotice.key, linkNotice.vars)
   if (!mind) return
   mind.newTopicName = ui('map.newTopic')
   fillFocusPicker(listDocs({ nodeData: fullTree() }).filter((d) => !d.legacy))

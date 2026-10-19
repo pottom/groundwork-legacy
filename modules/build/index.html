@@ -27,7 +27,7 @@
     README.md                                    the project's name (first heading)
     GLOSSARY.md (or the older CONTEXT.md), GLOSSARY-MAP.md
                                                  the domain glossary, listed under Documents
-  <tracker> is ".scratch" by default (DEFAULT_TRACKER_DIR below); without it,
+  <tracker> is ".scratch" by default (DEFAULT_TRACKER_DIR in ticket-reader.js); without it,
   the first folder whose subfolders hold "issues/" folders.
 
   A ticket's fields are read near the top of the file, in any of these forms:
@@ -39,6 +39,12 @@
   ("01-some-slug") or by title; "None (can start immediately)" means none.
   Comments go under "## Comments"; a heading with a date (### 2026-10-14 …)
   is one comment.
+
+  Reading the tickets is ticket-reader.js beside this page (a classic script:
+  GroundworkTickets.readTickets(source) → the model every view draws). On the
+  core server the page also gets the project's GitHub issues (/api/build/issues;
+  the server asks GitHub, no token reaches the page): each is a ticket with its
+  state, labels, milestone (its area) and "Blocked by" links.
 
   The Branches view draws the git history: every branch and tag, the
   commits in date order, and where each branch was merged. Git is asked by the
@@ -62,6 +68,16 @@
                        i18n.mjs, inline below, kept equal by ui-strings.test.mjs);
                        it follows the shell's language, and alone it has its own
                        language picker
+    2.3.0  2026-10-19  GitHub issues as tickets (/api/build/issues); reading the
+                       tickets moved into ticket-reader.js
+    2.4.0  2026-10-19  a ticket's "**PRD:**" line shows as links that open Plan on
+                       those map nodes (Plan's deep link /?module=plan&node=<id>)
+    2.5.0  2026-10-19  checks: a ticket without a PRD line, or naming an id that is
+                       not on Plan's map (docs/product/mindmap.json)
+    2.6.0  2026-10-19  from the server the page follows the core's live updates
+                       (Server-Sent Events, /api/events) instead of polling;
+                       ?prd=<id> shows only the tickets of that PRD item (Plan
+                       links here); /api/build/prd counts them for Plan
 -->
 <link rel="stylesheet" href="/shell/theme.css">
 <script>try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }</script>
@@ -282,6 +298,7 @@ td.c-num { white-space: nowrap; font-family: var(--gw-font-mono); font-variant-n
 td.c-title { overflow-wrap: anywhere; min-width: 220px; }
 td.c-title a.open { color: var(--gw-fg); font-weight: 580; }
 td.c-title .note { color: var(--gw-muted); font-size: 12.5px; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+td.c-title .prd { color: var(--gw-muted); font-size: 12px; margin-top: 3px; line-height: 1.7; }
 td.c-title .sub { display: none; color: var(--gw-muted); font-size: 12px; margin-top: 3px; }
 td.c-title .sub-st { display: none; }
 td.c-area, td.c-last, td.c-st, td.c-chk { white-space: nowrap; }
@@ -292,6 +309,9 @@ td.c-last { font-family: var(--gw-font-mono); font-size: 12.5px; color: var(--gw
 .tref { font-family: var(--gw-font-mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--gw-accent) 8%, transparent); }
 .tref:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-accent) 16%, transparent); }
 .tref.is-closed { color: var(--gw-muted); background: var(--gw-sunken); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--gw-muted) 60%, transparent); }
+.prd-ref { font-family: var(--gw-font-mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; color: var(--gw-fg-2); border: 1px solid var(--gw-line); }
+a.prd-ref { color: var(--gw-accent); }
+a.prd-ref:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-accent) 10%, transparent); }
 .tref.is-missing { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 9%, transparent); }
 .flag { display: inline-block; font: 650 10.5px/1.6 var(--gw-font-mono); padding: 0 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; vertical-align: 1px; text-transform: lowercase; }
 .flag.blocked { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 8%, transparent); }
@@ -539,6 +559,7 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; }
      Do not edit i18n.js: change core/shell/i18n.mjs and copy it (ui-strings.test.mjs checks). -->
 <script src="i18n.js"></script>
 <script src="ui-strings.js"></script>
+<script src="ticket-reader.js"></script>
 <script>
 (() => {
 'use strict';
@@ -554,25 +575,18 @@ const ui = i18n.t;
 const SERVER_ID = 'development-status';
 const SERVER_API = '/api/build';
 const SERVER_TIMEOUT_MS = 8000;
-const VERSION = '2.2.0';   // the same in module.mjs; the header comment lists the versions
+const VERSION = '2.6.0';   // the same in module.mjs; the header comment lists the versions
 
-const DEFAULT_TRACKER_DIR = '.scratch';
-const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
-// Never descended into while looking for the tracker, nor below an area.
-// The server (project-reader.mjs) keeps the same two sets out of
-// its file list: change them together.
-const SKIP_DIRS = new Set(['node_modules', '.git', '.hg', '.svn', 'target', 'dist', 'build', 'out', 'vendor', 'worktrees', '.cache', '.next', '.venv', '__pycache__']);
-const ALWAYS_SKIP = new Set(['node_modules', '.git', '.hg', '.svn']);
-// The project's own top-level documents: the README names the project; the
-// domain glossary is GLOSSARY.md (CONTEXT.md before v1.3 of the skills).
-const README_FILE = /^readme\.(md|markdown)$/i;
-const GLOSSARY_FILE = /^(glossary|glossary-map|context)\.(md|markdown)$/i;
 const POLL_MS = 3000;
 const FRESH_MS = 90000;
-const MAX_DEPTH = 8;
 
-const CLOSED = new Set(['done', 'closed', 'wontfix', 'resolved', 'legacy']);
-const UNPARSED = '?';
+// What a ticket is and how it is read (the model every view draws), where the tracker is and
+// which folders are walked, the states and the links to Plan: ticket-reader.js, beside the page.
+// The server reads the tickets for Plan's counts by the same rules (project-tickets.mjs).
+const {
+  readTickets, locateProject, keepsFolder, planLink, prdFilter, CLOSED, DONE, DROPPED, UNPARSED, README_FILE, GLOSSARY_FILE,
+  DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH, fold, isClosed,
+} = GroundworkTickets;
 const GROUPS = [
   { id: 'agent', title: 'group.agent', hint: 'group.agent.hint', has: (s) => s === 'ready-for-agent' },
   { id: 'human', title: 'group.human', hint: 'group.human.hint', has: (s) => s === 'ready-for-human' || s === 'needs-info' || s === 'needs-triage' },
@@ -593,11 +607,9 @@ const NO_REPO = 'no-repo'; // gitState.error when the folder is not the top of a
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fold = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const joinPath = (a, b) => (a ? a + '/' + b : b);
 const clock = (d) => d.toLocaleTimeString(i18n.lang, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
-const plainInline = (s) => s.replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/(\*\*|__)(.*?)\1/g, '$2').replace(/(^|[^\w\\])_([^_\s][^_]*?)_(?!\w)/g, '$1$2').trim();
 
 function statusTone(status) {
   if (status === UNPARSED) return 'bad';
@@ -605,12 +617,13 @@ function statusTone(status) {
   if (status === 'ready-for-human' || status === 'needs-info' || status === 'needs-triage') return 'human';
   if (/^needs-.*test$/.test(status)) return 'test';
   if (status === 'claimed') return 'claimed';
-  if (status === 'done' || status === 'resolved' || status === 'closed') return 'done';
-  if (CLOSED.has(status)) return 'dropped';
+  if (DONE.has(status)) return 'done';
+  if (DROPPED.has(status)) return 'dropped';
   return 'neutral';
 }
 const statusName = (status) => (status === UNPARSED ? ui('status.unparsed') : status);
-const isClosed = (t) => CLOSED.has(t.status);
+// A dated entry of a ticket: a heading of its own, or a GitHub issue's opening or closing.
+const commentTitle = (c) => (c.event ? ui(c.event === 'closed' ? 'activity.closed' : 'activity.opened') : c.title || ui('activity.untitled'));
 const chip = (status, extra = '') => `<span class="chip t-${statusTone(status)}${CLOSED.has(status) ? ' closed' : ''}">${esc(statusName(status))}${extra}</span>`;
 
 // ───────────────────────── Reading the folder ─────────────────────────
@@ -731,7 +744,7 @@ async function findServer() {
 }
 
 function serverSource(hello) {
-  const src = { adapter: treeAdapter, root: { children: new Map() }, name: hello.name || '', live: true, server: location.host, launcher: hello.launcher || '', version: hello.version || '', git: !!hello.git };
+  const src = { adapter: treeAdapter, root: { children: new Map() }, name: hello.name || '', live: true, server: location.host, launcher: hello.launcher || '', version: hello.version || '', git: !!hello.git, github: !!hello.github };
   src.reload = async () => {
     const listing = await serverJson('/list');
     src.root = treeFromListing(listing);
@@ -740,8 +753,6 @@ function serverSource(hello) {
   };
   return src;
 }
-
-const childDirs = async (A, dir, skip) => (await A.children(dir)).filter((c) => c.isDir && !skip.has(c.name));
 
 async function findChild(A, dir, path) {
   let node = dir;
@@ -753,40 +764,30 @@ async function findChild(A, dir, path) {
   return node;
 }
 
-// A tracker is a folder whose subfolders (the areas) hold an "issues" folder.
-async function looksLikeTracker(A, dir) {
-  for (const area of await childDirs(A, dir, ALWAYS_SKIP)) {
-    if ((await A.children(area.node)).some((c) => c.isDir && c.name.toLowerCase() === 'issues')) return true;
-  }
-  return false;
+// The folders the reader's locateProject decides by, with their nodes: LOCATE_DEPTH levels
+// down; a heavy folder (SKIP_DIRS) only with its own subfolders, as it may be an area.
+async function listFolders(A, root) {
+  const nodes = new Map([['', root]]);
+  const visit = async (dir, path, depth, heavy) => {
+    await Promise.all((await A.children(dir)).map(async (c) => {
+      if (!c.isDir || ALWAYS_SKIP.has(c.name)) return;
+      const p = joinPath(path, c.name);
+      nodes.set(p, c.node);
+      if (!heavy && depth + 1 < LOCATE_DEPTH) await visit(c.node, p, depth + 1, SKIP_DIRS.has(c.name));
+    }));
+  };
+  await visit(root, '', 0, false);
+  return nodes;
 }
 
+// The tracker and the ADR folder: the same rule as the server's (ticket-reader.js).
 async function locate(src) {
-  const A = src.adapter;
-  const roots = { tracker: null, adr: null };
-  const preferred = await findChild(A, src.root, DEFAULT_TRACKER_DIR);
-  if (preferred && await looksLikeTracker(A, preferred)) roots.tracker = { node: preferred, path: DEFAULT_TRACKER_DIR };
-  else if (await looksLikeTracker(A, src.root)) roots.tracker = { node: src.root, path: '' };
-  else {
-    let level = [{ node: src.root, path: '' }];
-    search: for (let depth = 0; depth < 3; depth++) {
-      const next = [];
-      for (const at of level) {
-        for (const c of await childDirs(A, at.node, SKIP_DIRS)) {
-          const here = { node: c.node, path: joinPath(at.path, c.name) };
-          if (await looksLikeTracker(A, c.node)) { roots.tracker = here; break search; }
-          next.push(here);
-        }
-      }
-      level = next;
-    }
-    if (!roots.tracker && preferred) roots.tracker = { node: preferred, path: DEFAULT_TRACKER_DIR };
-  }
-  for (const path of ADR_DIRS) {
-    const node = await findChild(A, src.root, path);
-    if (node) { roots.adr = { node, path }; break; }
-  }
-  return roots;
+  const nodes = await listFolders(src.adapter, src.root);
+  const { trackerPath, adrPath } = locateProject([...nodes.keys()]);
+  return {
+    tracker: trackerPath == null ? null : { node: nodes.get(trackerPath), path: trackerPath },
+    adr: adrPath == null ? null : { node: nodes.get(adrPath), path: adrPath },
+  };
 }
 
 async function walk(A, dir, path, depth, skipFrom, out) {
@@ -794,8 +795,7 @@ async function walk(A, dir, path, depth, skipFrom, out) {
   await Promise.all(kids.map(async (c) => {
     const p = joinPath(path, c.name);
     if (c.isDir) {
-      const skip = depth >= skipFrom ? SKIP_DIRS : ALWAYS_SKIP;
-      if (skip.has(c.name) || depth >= MAX_DEPTH) return;
+      if (!keepsFolder(c.name, depth, skipFrom === 0)) return;
       await walk(A, c.node, p, depth + 1, skipFrom, out);
     } else if (/\.(md|markdown)$/i.test(c.name)) {
       const f = await A.file(c.node);
@@ -832,312 +832,6 @@ async function scan(src) {
   return out;
 }
 
-// ───────────────────────── Parsing ─────────────────────────
-
-const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
-const COMMENTS_HEADING = /^##\s+(comments?|megjegyzések|hozzászólások)\s*$/i;   // reads Hungarian files too
-const NO_BLOCKER = /^(none|nincs|semmi|nothing|n\/a|[—–-]+)(?![\p{L}\p{N}])/iu;
-
-function firstHeading(lines) {
-  for (const l of lines) {
-    const m = /^#{1,6}\s+(.*?)\s*#*$/.exec(l);
-    if (m) return plainInline(m[1]);
-  }
-  return '';
-}
-
-// "#41, 12 (#30), [other-area 3](…)" → references; free text is kept as a note.
-function parseBlockedBy(raw) {
-  let s = raw.replace(/`/g, '').trim();
-  if (!s || NO_BLOCKER.test(s)) return { none: true, refs: [], raw };
-  s = s.replace(/\[([^\]]*)\]\([^)]*\)/g, (m, text) => {
-    const list = /^([\w.-]+)\s+(\d+(?:\s*,\s*\d+)+)$/.exec(text.trim());
-    return list ? list[2].split(/\s*,\s*/).map((n) => list[1] + ' ' + n).join(', ') : text;
-  });
-  // Split on top-level commas; stop at the first top-level ";" or ": ".
-  const items = [];
-  let depth = 0, cur = '';
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    if (ch === '(') depth++;
-    else if (ch === ')') depth = Math.max(0, depth - 1);
-    if (depth === 0 && (ch === ';' || (ch === ':' && /\s/.test(s[i + 1] || ' ')) || (/[—–]/.test(ch) && /\s/.test(s[i - 1] || '')))) break;
-    if (depth === 0 && ch === ',') { items.push(cur); cur = ''; } else cur += ch;
-  }
-  items.push(cur);
-  const refs = [];
-  for (const item of items) {
-    const outside = item.replace(/\([^()]*(?:\([^()]*\)[^()]*)*\)/g, ' ').trim();
-    const inside = (item.match(/\(([^()]*)\)/) || [])[1] || '';
-    const hashes = [...outside.matchAll(/#(\d+)/g)].map((m) => ({ kind: 'issue', num: +m[1], raw: '#' + m[1] }));
-    if (hashes.length) { refs.push(...hashes); continue; }
-    const m = /^(?:([\w.-]*[A-Za-z][\w.-]*)\s+)?(\d+)\b/.exec(outside);
-    const alt = /^#(\d+)$/.exec(inside.trim());
-    if (m) refs.push({ kind: 'local', area: m[1] || null, num: +m[2], raw: (m[1] ? m[1] + ' ' : '') + m[2], alt: alt ? +alt[1] : null });
-    else if (alt) refs.push({ kind: 'issue', num: +alt[1], raw: '#' + alt[1] });
-    else if (outside) refs.push({ kind: 'text', raw: outside });
-  }
-  return { none: false, refs, raw };
-}
-
-function parseTicket(path, area, fileName, text) {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n');
-  const t = { kind: 'ticket', path, area, fileName, text, fields: {} };
-
-  let headEnd = lines.findIndex((l, i) => i > 0 && /^##\s/.test(l));
-  if (headEnd < 0 || headEnd > 40) headEnd = Math.min(lines.length, 40);
-  for (let i = 0; i < headEnd; i++) {
-    const m = FIELD.exec(lines[i]);
-    if (m && !(m[1].toLowerCase() in t.fields)) t.fields[m[1].toLowerCase()] = m[2].trim();
-  }
-
-  const h1 = (lines.find((l) => /^#\s+/.test(l)) || '').replace(/^#\s+/, '').trim();
-  const h1m = /^(#?)(\d+)\s*[:.–—-]\s*(.*)$/.exec(h1);
-  t.title = plainInline(h1m ? h1m[3] : h1) || fileName;
-  const fm = /^(\d+)/.exec(fileName);
-  const issueField = /#?(\d+)/.exec(t.fields.issue || '');
-  t.fileNum = fm ? fm[1] : null;
-  t.issue = issueField ? +issueField[1] : h1m && h1m[1] ? +h1m[2] : fm && fm[1].length >= 3 ? +fm[1] : null;
-  t.local = t.issue == null ? (fm ? fm[1] : h1m ? h1m[2] : null) : null;
-  t.label = t.issue != null ? '#' + t.issue : t.local != null ? area + ' ' + t.local : fileName;
-  t.mismatch = issueField && fm && fm[1].length >= 3 && +fm[1] !== +issueField[1] ? { file: +fm[1], field: +issueField[1] } : null;
-  t.earlier = t.fields['earlier name'] || '';
-  t.type = t.fields.type || '';
-
-  const headingsEnd = (() => { const c = lines.findIndex((l) => COMMENTS_HEADING.test(l)); return c < 0 ? lines.length : c; })();
-  // The issue template's form: a "## Blocked by" (or "## Status") heading with
-  // the value, or a list of values, under it.
-  const section = (name) => {
-    const at = lines.findIndex((l, i) => i < headingsEnd && new RegExp('^#{2,4}\\s+' + name + '\\s*:?\\s*$', 'i').test(l));
-    if (at < 0) return null;
-    const items = [];
-    for (let j = at + 1; j < lines.length && !/^#{1,6}\s/.test(lines[j]); j++) {
-      const l = lines[j].trim();
-      if (!l) { if (items.length) break; continue; }
-      items.push(l.replace(/^(?:[-*+]|\d+[.)])\s+/, ''));
-    }
-    return items.length ? items : null;
-  };
-  if (!('status' in t.fields)) {
-    const st = section('status');
-    if (st) t.fields.status = st[0];
-  }
-
-  // Status: the first word is the state, the rest is the free-text note.
-  t.statusLine = 'status' in t.fields;
-  const sv = (t.fields.status || '').replace(/^[`*_\s]+/, '');
-  const sm = /^([\p{L}][\p{L}\p{N}_-]*)[`*_]*\s*(.*)$/u.exec(sv);
-  if (sm) {
-    t.status = sm[1].toLowerCase();
-    let note = sm[2].trim().replace(/^[—–\-:;,.]+\s*/, '');
-    if (/^\(.*\)\.?$/.test(note) && balanced(note.replace(/\.$/, '').slice(1, -1))) note = note.replace(/\.$/, '').slice(1, -1);
-    t.statusNote = note;
-  } else {
-    t.status = UNPARSED;
-    t.statusNote = t.statusLine ? (t.fields.status || '') : '';
-  }
-
-  if ('blocked by' in t.fields) t.blockedBy = parseBlockedBy(t.fields['blocked by']);
-  else {
-    const list = section('blocked by');
-    if (list) {
-      t.fields['blocked by'] = list.join(', ');
-      const parts = list.map(parseBlockedBy);
-      const refs = parts.flatMap((p) => p.refs);
-      t.blockedBy = { none: !refs.length, refs, raw: t.fields['blocked by'] };
-    } else t.blockedBy = { none: true, refs: [], raw: '' };
-  }
-
-  // Checkboxes count in the whole file: a collector ticket (#45) adds its open items in dated
-  // sections under the comments. Dated headings are the comments.
-  let commentsAt = lines.findIndex((l) => COMMENTS_HEADING.test(l));
-  const bodyEnd = commentsAt < 0 ? lines.length : commentsAt;
-  let done = 0, total = 0, fence = false;
-  for (let i = 0; i < lines.length; i++) {
-    if (/^\s*(```|~~~)/.test(lines[i])) { fence = !fence; continue; }
-    if (fence) continue;
-    const m = /^\s*(?:[-*+]|\d+[.)])\s+\[( |x|X)\]\s/.exec(lines[i]);
-    if (m) { total++; if (m[1] !== ' ') done++; }
-  }
-  t.checks = { done, total };
-  t.comments = [];
-  for (let i = 0; i < lines.length; i++) {
-    const m = /^#{3,5}\s+(.*?)(\d{4}-\d{2}-\d{2})(.*)$/.exec(lines[i]) || (i > bodyEnd ? /^\*\*()(\d{4}-\d{2}-\d{2})([^*]*)\*\*\s*$/.exec(lines[i]) : null);
-    if (!m) continue;
-    const title = plainInline((m[1] + ' ' + m[3]).replace(/^[\s,:.–—-]+/, '').replace(/\s+/g, ' '));
-    t.comments.push({ date: m[2], title, order: i });
-  }
-  t.lastComment = t.comments.reduce((max, c) => (c.date > max ? c.date : max), '');
-  t.hay = fold(t.label + ' ' + (t.issue != null ? t.issue + ' ' : '') + t.title + '\n' + text);
-  return t;
-}
-
-function balanced(s) {
-  let d = 0;
-  for (const ch of s) { if (ch === '(') d++; else if (ch === ')' && --d < 0) return false; }
-  return d === 0;
-}
-
-function parseAdr(path, text) {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n');
-  const name = path.split('/').pop();
-  const num = (/^(\d+)/.exec(name) || [])[1] || '';
-  let status = '';
-  const head = lines.slice(0, 30);
-  for (let i = 0; i < head.length && !status; i++) {
-    const l = head[i];
-    let m = /^\s*(?:[-*]\s+)?\*{0,2}(?:status|státusz|állapot)\*{0,2}\s*:\*{0,2}\s*(.+)$/i.exec(l);   // reads Hungarian files too
-    if (m) status = m[1];
-    else if (/^##\s+(status|státusz|állapot)\s*$/i.test(l)) status = head.slice(i + 1).find((x) => x.trim()) || '';   // reads Hungarian files too
-    else if ((m = /^>\s*\*\*([^*]+?)[.:]?\*\*/.exec(l))) status = m[1];
-  }
-  return { kind: 'adr', path, num, title: firstHeading(lines) || name, status: plainInline(status).slice(0, 60), text, hay: fold(name + ' ' + text) };
-}
-
-// Everything the views need, from the texts alone.
-function buildModel(folderName, files, others, trackerPath, adrPath) {
-  const m = {
-    folderName, trackerPath, adrPath, tickets: [], docs: [], adrs: [], glossaries: [], areas: new Map(),
-    byPath: new Map(), byIssue: new Map(), byLocal: new Map(), problems: [],
-  };
-  const area = (name) => {
-    if (!m.areas.has(name)) m.areas.set(name, { name, spec: null, tickets: [], docs: [], extras: 0 });
-    return m.areas.get(name);
-  };
-  const prefix = trackerPath ? trackerPath + '/' : '';
-
-  for (const [path, file] of files) {
-    const topDoc = !path.includes('/') && (README_FILE.test(path) || GLOSSARY_FILE.test(path));
-    const inTracker = trackerPath != null && path.startsWith(prefix) && (prefix || !topDoc);
-    if (adrPath && path.startsWith(adrPath + '/')) {
-      const adr = parseAdr(path, file.text);
-      m.adrs.push(adr);
-      m.byPath.set(path, adr);
-    } else if (inTracker) {
-      const rel = path.slice(prefix.length);
-      const tm = /^(.+)\/issues\/([^/]+)\.(?:md|markdown)$/i.exec(rel);
-      if (tm) {
-        const t = parseTicket(path, tm[1], tm[2], file.text);
-        m.tickets.push(t);
-        area(tm[1]).tickets.push(t);
-        m.byPath.set(path, t);
-        continue;
-      }
-      const seg = rel.includes('/') ? rel.slice(0, rel.indexOf('/')) : '';
-      const lines = file.text.split('\n', 60);
-      const isSpec = /^spec\.(md|markdown)$/i.test(rel.slice(seg.length + 1)) && seg !== '';
-      // The /to-spec template has no title line: it starts at "## Problem Statement".
-      const h1 = lines.find((l) => /^#\s+\S/.test(l));
-      const title = isSpec ? (h1 ? plainInline(h1.replace(/^#\s+/, '').replace(/\s*#*\s*$/, '')) : seg + ' – spec') : firstHeading(lines) || rel;
-      const doc = { kind: isSpec ? 'spec' : 'doc', path, area: seg, rel: seg ? rel.slice(seg.length + 1) : rel, title, text: file.text };
-      doc.hay = fold(doc.path + ' ' + doc.title);
-      m.docs.push(doc);
-      m.byPath.set(path, doc);
-      if (isSpec) area(seg).spec = doc; else area(seg).docs.push(doc);
-    } else {
-      const isReadme = README_FILE.test(path);
-      const doc = { kind: isReadme ? 'readme' : 'glossary', path, area: '', rel: path, title: firstHeading(file.text.split('\n', 60)) || path, text: file.text };
-      doc.hay = fold(doc.path + ' ' + doc.title);
-      if (isReadme) m.readme = doc; else m.glossaries.push(doc);
-      m.byPath.set(path, doc);
-    }
-  }
-  for (const p of others) {
-    if (trackerPath == null || !p.startsWith(prefix)) continue;
-    const rel = p.slice(prefix.length);
-    if (rel.includes('/') && m.areas.has(rel.slice(0, rel.indexOf('/')))) m.areas.get(rel.slice(0, rel.indexOf('/'))).extras++;
-  }
-  m.projectName = (m.readme && m.readme.title) || folderName || '';
-
-  // Numbering: an issue number is global; an older ticket is "<area> <number>".
-  const push = (map, key, t) => { if (!map.has(key)) map.set(key, []); map.get(key).push(t); };
-  for (const t of m.tickets) {
-    if (t.issue != null) push(m.byIssue, t.issue, t);
-    else if (t.local != null) push(m.byLocal, t.area + '/' + +t.local, t);
-  }
-  const alias = new Map();
-  for (const t of m.tickets) {
-    const e = /^(.+?)\s+(\d+)$/.exec(t.earlier);
-    if (e) alias.set(e[1] + '/' + +e[2], t);
-  }
-  const local = (areaName, num) => (m.byLocal.get(areaName + '/' + num) || [])[0] || alias.get(areaName + '/' + num) || null;
-  const issue = (num) => (m.byIssue.get(num) || [])[0] || null;
-  m.resolveIssue = issue;
-  m.resolveLocal = local;
-  // A blocker named by its title or its file name ("Blocked by: Store the
-  // label", or "01-store-the-label"): /to-tickets allows "numbers/titles".
-  const nameKey = (s) => fold(plainInline(s)).replace(/^["'„“]+|["'”.]+$/g, '').replace(/[\s_-]+/g, ' ').trim();
-  const byName = new Map();
-  for (const t of m.tickets) {
-    for (const key of new Set([nameKey(t.title), nameKey(t.fileName), nameKey(t.fileName.replace(/^\d+[\s_-]*/, ''))])) if (key) push(byName, key, t);
-  }
-  const named = (areaName, raw) => {
-    const list = byName.get(nameKey(raw)) || [];
-    const here = list.filter((x) => x.area === areaName);
-    return here.length === 1 ? here[0] : list.length === 1 ? list[0] : null;
-  };
-
-  for (const t of m.tickets) {
-    t.blockers = [];
-    t.notes = [];
-    for (const r of t.blockedBy.refs) {
-      let hit = null;
-      if (r.kind === 'text') {
-        hit = named(t.area, r.raw);
-        if (!hit) { t.notes.push(r.raw); continue; }
-      } else if (r.kind === 'issue') hit = issue(r.num) || (t.issue == null ? local(t.area, r.num) : null);
-      else if (r.area) hit = local(r.area, r.num);
-      else hit = local(t.area, r.num) || (r.alt != null ? issue(r.alt) : null) || issue(r.num);
-      if (hit === t) continue;
-      if (!t.blockers.some((b) => b.ticket && b.ticket === hit)) t.blockers.push({ raw: r.raw, ticket: hit });
-    }
-    t.dependents = [];
-  }
-  for (const t of m.tickets) for (const b of t.blockers) if (b.ticket) b.ticket.dependents.push(t);
-  for (const t of m.tickets) t.blocked = !isClosed(t) && t.blockers.some((b) => b.ticket && !isClosed(b.ticket));
-
-  const order = (t) => (t.issue != null ? [0, t.issue, ''] : [1, +t.local || 0, t.area]);
-  m.tickets.sort((a, b) => {
-    const x = order(a), y = order(b);
-    return x[0] - y[0] || (x[0] ? x[2].localeCompare(y[2]) : 0) || x[1] - y[1] || a.path.localeCompare(b.path);
-  });
-  m.adrs.sort((a, b) => a.path.localeCompare(b.path));
-  m.docs.sort((a, b) => a.path.localeCompare(b.path));
-  for (const a of m.areas.values()) {
-    a.open = a.tickets.filter((t) => !isClosed(t)).length;
-    a.closed = a.tickets.length - a.open;
-  }
-  m.areaList = [...m.areas.values()].sort((a, b) => (b.open > 0) - (a.open > 0) || a.name.localeCompare(b.name));
-  m.statusCounts = new Map();
-  for (const t of m.tickets) m.statusCounts.set(t.status, (m.statusCounts.get(t.status) || 0) + 1);
-  m.open = m.tickets.filter((t) => !isClosed(t));
-  const names = [...m.areas.keys()].filter(Boolean).sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  m.areaRef = names.length ? new RegExp('(^|[^\\w/.-])((' + names.join('|') + ')\\s(\\d{1,4}))(?![\\w-])', 'g') : null;
-
-  m.comments = [];
-  for (const t of m.tickets) for (const c of t.comments) m.comments.push({ ...c, ticket: t });
-  m.comments.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0) || b.order - a.order);
-
-  findProblems(m);
-  return m;
-}
-
-function findProblems(m) {
-  const add = (kind, tickets, text) => m.problems.push({ kind, tickets, text });
-  for (const t of m.tickets) {
-    if (!t.statusLine) add('no-status', [t], () => ui('problem.no-status.text'));
-    else if (t.status === UNPARSED) add('bad-status', [t], () => (t.statusNote ? ui('problem.bad-status.text', { line: t.statusNote }) : ui('problem.bad-status.empty')));
-    if (t.status === 'ready-for-agent' && t.checks.total > 0 && t.checks.done === t.checks.total) add('all-checked', [t], () => ui('problem.all-checked.text', { n: t.checks.total }));
-    const missing = t.blockers.filter((b) => !b.ticket);
-    if (missing.length) add('missing-blocker', [t], () => ui('problem.missing-blocker.text', { list: missing.map((b) => b.raw).join(', ') }));
-    if (!isClosed(t) && t.blockers.length && t.blockers.every((b) => b.ticket && isClosed(b.ticket))) add('released', [t], () => ui('problem.released.text', { list: t.blockers.map((b) => b.ticket.label).join(', ') }));
-    if (t.mismatch) add('mismatch', [t], () => ui('problem.mismatch.text', { file: t.mismatch.file, field: t.mismatch.field }));
-    if (t.issue == null && t.local == null) add('no-number', [t], () => ui('problem.no-number.text'));
-  }
-  for (const [num, list] of m.byIssue) if (list.length > 1) add('duplicate', list, () => ui('problem.duplicate.issue', { n: list.length, num }));
-  for (const [key, list] of m.byLocal) if (list.length > 1) add('duplicate', list, () => ui('problem.duplicate.local', { n: list.length, key: key.replace('/', ' ') }));
-}
-
 const PROBLEM_KINDS = [
   ['duplicate', 'problem.duplicate'],
   ['no-status', 'problem.no-status'],
@@ -1147,6 +841,8 @@ const PROBLEM_KINDS = [
   ['released', 'problem.released', true],
   ['mismatch', 'problem.mismatch'],
   ['no-number', 'problem.no-number'],
+  ['no-prd', 'problem.no-prd'],
+  ['unknown-prd', 'problem.unknown-prd'],
 ];
 
 // Kinds that are worth knowing but are not a contradiction: not counted as a warning.
@@ -1339,7 +1035,9 @@ function renderInline(src, ctx, noLinks) {
 // ───────────────────────── State ─────────────────────────
 
 const STORE_KEY = 'development-status:' + location.pathname;
-const state = { view: 'waiting', doc: null, q: '', status: '', area: '', showClosed: false, activityDays: 14 };
+// prd: only the tickets naming this PRD item (Plan's link "/?module=build&prd=<id>"), closed ones too.
+const state = { view: 'waiting', doc: null, q: '', status: '', area: '', prd: '', showClosed: false, activityDays: 14 };
+try { state.prd = prdFilter(location.search); } catch (e) { /* no query */ }
 const openDetails = new Set();
 let source = null;       // { adapter, root, name, live, roots }; from the launcher's server also { server, launcher, reload }
 let cache = new Map();   // path → { size, mtime, text }
@@ -1349,11 +1047,16 @@ let recent = new Map();  // path → time of the last change seen in this sessio
 let lastChecked = null;
 let busy = false;
 let timer = null;
+let events = null;       // the server's live updates (EventSource on /api/events)
+let again = false;       // a refresh was asked for while one ran
 let lostAccess = false;
 let serverDown = false;
 let lastOpener = null;
 // The git history from the launcher: { data, error, limit, open: Set of hashes, hit }.
 let gitState = { data: null, error: '', limit: GIT_PAGE, open: new Set(), hit: '' };
+// The GitHub issues the server sent: the source of the GitHub tickets.
+const NO_ISSUES = () => ({ fingerprint: '', repo: null, issues: [], byNumber: new Map() });
+let issueState = NO_ISSUES();
 
 try {
   const saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
@@ -1391,7 +1094,7 @@ function describeChange(path, before, after) {
     const parts = [];
     if (before.status !== after.status) parts.push(() => ui('change.status', { from: statusName(before.status), to: statusName(after.status) }));
     if (before.checks.done !== after.checks.done || before.checks.total !== after.checks.total) parts.push(() => ui('change.checks', { from: `${before.checks.done}/${before.checks.total}`, to: `${after.checks.done}/${after.checks.total}` }));
-    if (after.comments.length > before.comments.length) { const c = after.comments[after.comments.length - 1]; parts.push(() => ui('change.comment', { title: c.title || ui('activity.untitled') })); }
+    if (after.comments.length > before.comments.length) { const c = after.comments[after.comments.length - 1]; parts.push(() => ui('change.comment', { title: commentTitle(c) })); }
     if (before.title !== after.title) parts.push(() => ui('change.title', { title: after.title }));
     if (before.fields['blocked by'] !== after.fields['blocked by']) parts.push(() => 'Blocked by: ' + (after.fields['blocked by'] || ui('change.none')));
     return { label: after.label, text: () => parts.map((f) => f()).join('; ') || ui('change.text') };
@@ -1402,7 +1105,8 @@ function describeChange(path, before, after) {
 }
 
 async function refresh() {
-  if (busy || !source) return;
+  if (!source) return;
+  if (busy) { again = true; return; }
   busy = true;
   try {
     const listing = await scan(source);
@@ -1416,11 +1120,18 @@ async function refresh() {
       try { cache.set(e.path, { size: e.size, mtime: e.mtime, text: await e.file.text() }); touched.push(e.path); } catch (err) { if (err.name === 'NotAllowedError' || err.name === 'ServerDownError') throw err; }
     }
     for (const path of [...cache.keys()]) if (!seen.has(path)) { cache.delete(path); touched.push(path); }
-    const shape = listing.trackerPath + '|' + listing.adrPath + '|' + listing.others.length;
+    touched.push(...await refreshIssues());
+    await refreshMap();
+    const shape = listing.trackerPath + '|' + listing.adrPath + '|' + listing.others.length + '|' + (mapState.ids ? mapState.key : '-');
     const first = !model;
     if (first || touched.length || shape !== source.shape) {
       source.shape = shape;
-      const next = buildModel(source.name, cache, listing.others, listing.trackerPath, listing.adrPath);
+      const next = readTickets({
+        name: source.name,
+        files: { entries: cache, others: listing.others, trackerPath: listing.trackerPath, adrPath: listing.adrPath },
+        github: issueState.repo ? { repo: issueState.repo, issues: issueState.issues } : null,
+        mapIds: mapState.ids,
+      });
       if (!first && touched.length) {
         const now = Date.now();
         const items = touched.map((path) => ({ path, ...describeChange(path, model.byPath.get(path), next.byPath.get(path)) }));
@@ -1446,6 +1157,60 @@ async function refresh() {
   } finally {
     busy = false;
     renderLive(true);
+    if (again) { again = false; refresh(); }
+  }
+}
+
+// The project's GitHub issues, which the server fetches (the page never talks to GitHub);
+// the paths of the tickets that changed. The server is told what the page has, and answers
+// "unchanged" while the issues are the same.
+async function refreshIssues() {
+  if (!source || !source.server || !source.github) return [];
+  const known = issueState.fingerprint ? '?known=' + encodeURIComponent(issueState.fingerprint) : '';
+  let data;
+  try { data = await serverJson('/issues' + known); } catch (err) { if (err.name === 'ServerDownError') throw err; return []; }
+  if (data.unchanged) return [];
+  const issues = data.available ? data.issues : [];
+  const repo = data.available ? data.repo : null;
+  const next = new Map(issues.map((i) => [i.number, JSON.stringify(i)]));
+  const touched = [];
+  const path = (r, n) => r + '#' + n;
+  for (const [n, json] of next) if (issueState.byNumber.get(n) !== json) touched.push(path(repo, n));
+  for (const n of issueState.byNumber.keys()) if (!next.has(n)) touched.push(path(issueState.repo, n));
+  issueState = { fingerprint: data.fingerprint || '', repo, issues, byNumber: next };
+  return touched;
+}
+
+// The ids of Plan's map (docs/product/mindmap.json), which the reader checks the tickets'
+// PRD lines against. On the server Plan sends it (GET /api/plan/map, "same" while unchanged);
+// from a picked folder the file is read when its size or time changed. No map (none in the
+// project, Plan not running, an unreadable file): ids null, and no PRD id counts as unknown.
+const MAP_PATH = 'docs/product/mindmap.json';
+let mapState = { key: '', ids: null };
+
+async function refreshMap() {
+  if (!source) return;
+  try {
+    if (source.server) {
+      const known = mapState.key ? '?v=' + encodeURIComponent(mapState.key) : '';
+      const res = await fetch('/api/plan/map' + known, { cache: 'no-store' });
+      const data = res.ok ? await res.json() : null;
+      if (data && data.same) return;
+      const ids = GroundworkTickets.mapIds(data && data.data);   // { v, data: the map }
+      mapState = { key: ids && data.v ? String(data.v) : '', ids };
+      return;
+    }
+    const A = source.adapter;
+    const dir = await findChild(A, source.root, MAP_PATH.split('/').slice(0, -1).join('/'));
+    const hit = dir && (await A.children(dir)).find((c) => !c.isDir && c.name === MAP_PATH.split('/').pop());
+    if (!hit) { mapState = { key: '', ids: null }; return; }
+    const f = await A.file(hit.node);
+    const key = f.size + '@' + f.lastModified;
+    if (key === mapState.key) return;
+    mapState = { key, ids: GroundworkTickets.mapIds(JSON.parse(await f.text())) };
+  } catch (err) {
+    if (err && (err.name === 'NotAllowedError' || err.name === 'NotFoundError')) throw err;
+    mapState = { key: '', ids: null };   // a map caught mid-write, or no Plan: try again next round
   }
 }
 
@@ -1469,13 +1234,35 @@ async function refreshGit() {
   return true;
 }
 
-function startPolling() {
+// How the page follows the project. From the core server: its live updates (Server-Sent
+// Events on /api/events) say when a markdown file, a git ref or the GitHub issues changed, and
+// the page reads again; EventSource reconnects by itself, and every (re)connect reads again,
+// so nothing missed meanwhile is lost. A folder chosen in the browser (file://) is read again
+// every POLL_MS instead.
+function startLive() {
+  stopLive();
+  if (!source || !source.live) return;
+  if (source.server && typeof EventSource === 'function') {
+    events = new EventSource('/api/events');
+    events.addEventListener('hello', () => refresh());
+    events.addEventListener('change', (e) => {
+      let topics = [];
+      try { topics = JSON.parse(e.data).topics || []; } catch (err) { /* not ours */ }
+      if (topics.some((t) => t.startsWith('build.') || t === 'plan.map')) refresh();   // plan.map: the ids the PRD lines are checked against
+    });
+    events.addEventListener('error', () => { if (!serverDown) { serverDown = true; renderLive(false); } });
+    return;
+  }
+  timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
+}
+
+function stopLive() {
   clearInterval(timer);
-  if (source && source.live) timer = setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
+  if (events) { events.close(); events = null; }
 }
 
 async function start(src) {
-  clearInterval(timer);
+  stopLive();
   source = src;
   cache = new Map();
   model = null;
@@ -1484,13 +1271,15 @@ async function start(src) {
   lostAccess = false;
   serverDown = false;
   gitState = { data: null, error: '', limit: GIT_PAGE, open: new Set(), hit: '' };
+  issueState = NO_ISSUES();
+  mapState = { key: '', ids: null };
   $('start-error').hidden = true;
   await refresh();
-  if (model) startPolling();
+  if (model) startLive();
 }
 
 function showStart(error) {
-  clearInterval(timer);
+  stopLive();
   source = null;
   model = null;
   $('app').hidden = true;
@@ -1505,10 +1294,11 @@ function showStart(error) {
 // ───────────────────────── Filtering ─────────────────────────
 
 function matches(t, ignoreClosed) {
+  if (state.prd && !t.prd.includes(state.prd)) return false;
   if (state.area && t.area !== state.area) return false;
   if (state.status && t.status !== state.status) return false;
   if (state.q && !t.hay.includes(fold(state.q.trim()))) return false;
-  if (!ignoreClosed && !state.showClosed && !state.status && isClosed(t)) return false;
+  if (!ignoreClosed && !state.showClosed && !state.status && !state.prd && isClosed(t)) return false;
   return true;
 }
 const visibleTickets = () => model.tickets.filter((t) => matches(t, false));
@@ -1520,6 +1310,12 @@ function ticketLink(t, text) {
   return `<a class="tref${isClosed(t) ? ' is-closed' : ''}" href="${docHref(t.path)}" data-doc="${esc(t.path)}" title="${esc(t.title + ' (' + statusName(t.status) + ')')}">${esc(text || t.label)}</a>`;
 }
 const blockerLinks = (t) => t.blockers.map((b) => (b.ticket ? ticketLink(b.ticket) : `<span class="tref is-missing" title="${esc(ui('table.no-such-ticket'))}">${esc(b.raw)}?</span>`)).join(' ');
+// The PRD items a ticket came from (its "**PRD:**" line): each opens Plan focused on that map
+// node (Plan's deep link, planLink in ticket-reader.js, in the whole window). Opened as a file
+// (file://) there is no Plan to open: the ids show as text.
+const prdLinks = (t) => t.prd.map((id) => (source && source.live
+  ? `<a class="prd-ref" href="${esc(planLink(id))}" target="_top" title="${esc(ui('prd.open', { id }))}">${esc(id)}</a>`
+  : `<span class="prd-ref" title="${esc(ui('prd.no-plan'))}">${esc(id)}</span>`)).join(' ');
 const meter = (c) => (c.total ? `<span class="meter" title="${esc(ui('table.meter', { done: c.done, total: c.total }))}"><i style="--p:${pct(c.done, c.total)}%"></i>${c.done}/${c.total}</span>` : '<span class="muted">–</span>');
 
 // Blocked by an open ticket, or freed: every blocker it names is closed.
@@ -1533,7 +1329,7 @@ function ticketRow(t) {
   return `<tr data-doc="${esc(t.path)}"${t.blocked ? ' class="is-blocked"' : ''}>
 <td class="c-num">${esc(t.label)}</td>
 <td class="c-title"><a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a>${flags(t)}${fresh ? ` <span class="flag fresh">${ui('flag.fresh')}</span>` : ''}
-${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusNote)}</div>` : ''}<div class="sub"><span class="sub-st">${chip(t.status)}</span>${sub}</div></td>
+${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusNote)}</div>` : ''}${t.prd.length ? `<div class="prd">${ui('table.prd-sub', { list: prdLinks(t) })}</div>` : ''}<div class="sub"><span class="sub-st">${chip(t.status)}</span>${sub}</div></td>
 <td class="c-area">${esc(t.area)}</td>
 <td class="c-st">${chip(t.status)}</td>
 <td class="c-chk">${meter(t.checks)}</td>
@@ -1564,7 +1360,9 @@ function renderLive(ticked) {
   } else if (source.live) {
     dot.className = 'dot on';
     if (ticked) { dot.classList.remove('tick'); void dot.offsetWidth; dot.classList.add('tick'); }
-    text = ui('live.on', { server: source.server ? ui('live.server', { host: source.server }) : '', sec: POLL_MS / 1000, at: lastChecked ? clock(lastChecked) : '–' });
+    text = source.server && typeof EventSource === 'function'
+      ? ui('live.push', { server: ui('live.server', { host: source.server }), at: lastChecked ? clock(lastChecked) : '–' })
+      : ui('live.on', { server: source.server ? ui('live.server', { host: source.server }) : '', sec: POLL_MS / 1000, at: lastChecked ? clock(lastChecked) : '–' });
     $('refresh').textContent = ui('live.refresh');
   } else {
     dot.className = 'dot';
@@ -1624,7 +1422,7 @@ ${kpi('done', total ? pct(done, total) + '<small>%</small>' : '–', ui('kpi.don
 ${total ? `<div class="progress"><div class="head"><span><b>${ui('overview.progress')}</b></span><span>${ui('overview.closed', { done, total })}${blocked ? ui('overview.blocked', { n: blocked }) : ''}</span></div>
 <div class="stack" role="img" aria-label="${esc(ui('overview.bar-label', { open, done }))}">${stack}</div>
 <div class="chips">${closedChips}${openChips && closedChips ? '<span class="sep"></span>' : ''}${openChips}</div></div>` : ''}
-${m.trackerPath == null ? `<div class="notice">${ui('overview.no-tracker', { dir: esc(DEFAULT_TRACKER_DIR) })}${source.live ? '' : ' ' + ui('overview.no-tracker-snapshot', { dir: esc(DEFAULT_TRACKER_DIR) })}</div>` : ''}
+${m.trackerPath == null && !m.repo ? `<div class="notice">${ui('overview.no-tracker', { dir: esc(DEFAULT_TRACKER_DIR) })}${source.live ? '' : ' ' + ui('overview.no-tracker-snapshot', { dir: esc(DEFAULT_TRACKER_DIR) })}</div>` : ''}
 ${changes}`;
 }
 
@@ -1658,7 +1456,8 @@ function renderFilters() {
 function renderSummary() {
   const shown = visibleTickets().length;
   const hidden = model.tickets.filter((t) => matches(t, true)).length - shown;
-  $('f-summary').innerHTML = ui('filter.shown', { n: shown }) + (hidden ? ` · ${ui('filter.hidden', { n: hidden })} <button type="button" class="quiet" data-act="show-closed">${ui('filter.show')}</button>` : '') + (state.q || state.status || state.area ? ` <button type="button" class="quiet" data-act="clear">${ui('filter.clear')}</button>` : '');
+  const prd = state.prd ? `<span class="prd-filter">${ui('filter.prd', { id: `<span class="prd-ref">${esc(state.prd)}</span>` })} <button type="button" class="quiet" data-act="clear-prd" title="${esc(ui('filter.prd-clear'))}" aria-label="${esc(ui('filter.prd-clear'))}">×</button></span> · ` : '';
+  $('f-summary').innerHTML = prd + ui('filter.shown', { n: shown }) + (hidden ? ` · ${ui('filter.hidden', { n: hidden })} <button type="button" class="quiet" data-act="show-closed">${ui('filter.show')}</button>` : '') + (state.q || state.status || state.area || state.prd ? ` <button type="button" class="quiet" data-act="clear">${ui('filter.clear')}</button>` : '');
 }
 
 const VIEW_RENDERERS = {
@@ -1737,7 +1536,7 @@ ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.leng
       byTicket.get(c.ticket).push(c);
     }
     const all = [...days.entries()];
-    const html = all.slice(0, state.activityDays).map(([date, byTicket]) => `<section class="day"><h3>${date} <span class="muted">· ${ui('activity.tickets', { n: byTicket.size })}</span></h3><ul>${[...byTicket.entries()].map(([t, list]) => `<li><div class="node">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)} <span class="rel">${esc(t.area)}</span></div><div class="notes">${list.map((c) => `<div>${esc(c.title || ui('activity.untitled'))}</div>`).join('')}</div></li>`).join('')}</ul></section>`).join('');
+    const html = all.slice(0, state.activityDays).map(([date, byTicket]) => `<section class="day"><h3>${date} <span class="muted">· ${ui('activity.tickets', { n: byTicket.size })}</span></h3><ul>${[...byTicket.entries()].map(([t, list]) => `<li><div class="node">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)} <span class="rel">${esc(t.area)}</span></div><div class="notes">${list.map((c) => `<div>${esc(commentTitle(c))}</div>`).join('')}</div></li>`).join('')}</ul></section>`).join('');
     return `<p class="lead">${ui('activity.lead')}</p>${html || `<div class="empty">${ui('activity.empty')}</div>`}${all.length > state.activityDays ? `<button type="button" data-act="more-days">${ui('activity.more', { n: all.length - state.activityDays })}</button>` : ''}`;
   },
 
@@ -1748,7 +1547,7 @@ ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.leng
       const items = list.filter((p) => p.kind === kind);
       if (!items.length) return '';
       const openOnes = items.filter((p) => p.tickets.some((t) => !isClosed(t))).length;
-      return `<section class="group${info ? ' info' : ''}"><h2>${ui(title)} <span class="count">${items.length}</span><span class="hint">${info ? ui('checks.info') + ' · ' : ''}${ui('checks.affects', { n: openOnes })}</span></h2><div class="tablewrap"><table class="grid"><thead><tr><th>${ui('table.ticket')}</th><th class="c-st">${ui('table.status')}</th><th>${ui('checks.problem')}</th></tr></thead><tbody>${items.map((p) => `<tr><td class="c-title">${p.tickets.map((t) => `${ticketLink(t)} <a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a><div class="note">${esc(t.path)}</div>`).join('')}</td><td class="c-st">${p.tickets.map((t) => chip(t.status)).join('<br>')}</td><td>${esc(p.text())}</td></tr>`).join('')}</tbody></table></div></section>`;
+      return `<section class="group${info ? ' info' : ''}"><h2>${ui(title)} <span class="count">${items.length}</span><span class="hint">${info ? ui('checks.info') + ' · ' : ''}${ui('checks.affects', { n: openOnes })}</span></h2><div class="tablewrap"><table class="grid"><thead><tr><th>${ui('table.ticket')}</th><th class="c-st">${ui('table.status')}</th><th>${ui('checks.problem')}</th></tr></thead><tbody>${items.map((p) => `<tr><td class="c-title">${p.tickets.map((t) => `${ticketLink(t)} <a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a><div class="note">${esc(t.path)}</div>`).join('')}</td><td class="c-st">${p.tickets.map((t) => chip(t.status)).join('<br>')}</td><td>${esc(ui(p.key, p.params))}</td></tr>`).join('')}</tbody></table></div></section>`;
     }).join('');
     return `<p class="lead">${ui('checks.lead')}</p>${html || `<div class="empty">${ui('checks.empty')}</div>`}`;
   },
@@ -1951,12 +1750,14 @@ function renderDrawer() {
     meta = `<dl class="meta">
 ${row(ui('table.status'), chip(t.status) + flags(t) + (t.statusNote ? ' ' + esc(t.statusNote) : ''))}
 ${row(ui('table.area'), esc(t.area) + (area && area.spec ? ` · <a href="${docHref(area.spec.path)}" data-doc="${esc(area.spec.path)}"><span class="kind">spec</span>${esc(area.spec.title)}</a>` : ''))}
+${row(ui('drawer.prd'), prdLinks(t))}
 ${row(ui('table.checks'), t.checks.total ? meter(t.checks) : '')}
 ${row(ui('table.blocked-by'), blockerLinks(t) + (t.notes.length ? ' <span class="muted">' + esc(t.notes.join('; ')) + '</span>' : ''))}
 ${row(ui('drawer.unlocks'), t.dependents.map((d) => ticketLink(d)).join(' '))}
 ${row(ui('drawer.earlier'), esc(t.earlier))}${row(ui('drawer.type'), esc(t.type))}
 ${row(ui('table.last-comment'), t.lastComment ? `<span class="mono">${t.lastComment}</span> · ${ui('drawer.comments', { n: t.comments.length })}` : '')}
-${row(ui('docs.file'), `<span class="mono">${esc(t.path)}</span>`)}</dl>`;
+${row(ui('drawer.labels'), (t.labels || []).map((l) => `<span class="kind">${esc(l)}</span>`).join(' '))}
+${t.source === 'github' ? row(ui('drawer.github'), `<a href="${esc(t.url)}" target="_blank" rel="noopener noreferrer" class="mono">${esc(t.path)}</a>`) : row(ui('docs.file'), `<span class="mono">${esc(t.path)}</span>`)}</dl>`;
     $('drawer-title').innerHTML = `<span class="num">${esc(t.label)}</span>${esc(t.title)}`;
   } else {
     meta = `<dl class="meta"><dt>${ui('docs.file')}</dt><dd><span class="mono">${esc(doc.path)}</span></dd>${doc.kind === 'adr' && doc.status ? `<dt>${ui('docs.adr-status')}</dt><dd>${esc(doc.status)}</dd>` : ''}</dl>`;
@@ -2022,6 +1823,16 @@ function readHash() {
 }
 window.addEventListener('hashchange', readHash);
 
+// The PRD filter came in the address (?prd=): it goes from there too, so a reload shows everything.
+function clearPrd() {
+  state.prd = '';
+  try {
+    const url = new URL(location.href);
+    url.searchParams.delete('prd');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  } catch (e) { /* the filter is gone anyway */ }
+}
+
 function filtersChanged() {
   saveState();
   renderOverview();
@@ -2043,7 +1854,8 @@ document.addEventListener('click', (e) => {
   const act = e.target.closest('[data-act]');
   if (act) {
     if (act.dataset.act === 'show-closed') state.showClosed = true;
-    if (act.dataset.act === 'clear') { state.q = ''; state.status = ''; state.area = ''; }
+    if (act.dataset.act === 'clear') { state.q = ''; state.status = ''; state.area = ''; clearPrd(); }
+    if (act.dataset.act === 'clear-prd') clearPrd();
     if (act.dataset.act === 'more-days') { state.activityDays += 30; renderView(); return; }
     if (act.dataset.act === 'more-commits') { gitState.limit += GIT_PAGE; act.disabled = true; refreshGit().then(() => renderView()); return; }
     filtersChanged();

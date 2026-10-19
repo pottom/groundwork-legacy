@@ -25,9 +25,12 @@ export default {
   view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
   writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
   moves: { '.prd-maker': '.groundwork/plan' },           // optional: old state the core moves over once
-  api: ({ root, files }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
+  watch: (path) => (path === 'docs/product/mindmap.json' ? 'plan.map' : null),  // optional: live-update topic of a changed file
+  api: ({ root, files, events }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
 }
 ```
+
+Live updates: the core watches the project and tells the pages what changed through `GET /api/events` (Server-Sent Events, [`core/events.mjs`](../core/events.mjs)). A module names the topic of the files it cares about with `watch(path)` (path relative to the root, with `/`), and can push a topic itself with `events.publish(topic)` or `events.every(ms, fn)`. Its page listens with `new EventSource('/api/events')`, asks its endpoints again on a `change` event whose `topics` it cares about, and reads everything again on each `hello` (every reconnect). No page polls the server.
 
 A module has no general file system access: it reads and writes the project through `files`, the writer the core hands it ([`core/files.mjs`](../core/files.mjs)). `files.write`, `append` and `remove` work only under the folders in `writes`, and those must lie under `docs/product/` or `.groundwork/`; a path that is absolute, climbs out with `..` or leads outside through a symlink or junction fails before anything is written. A module's local state goes in `.groundwork/<id>/`, which is gitignored.
 
