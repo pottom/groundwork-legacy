@@ -122,6 +122,63 @@ test('the git history of the project, read only', { skip: !hasGit && 'git is not
   assert.deepEqual(snapshot(root), before);
 });
 
+// With git out of reach (no PATH), only an answer that needs no git process can come back.
+async function withoutGit(fn) {
+  const saved = process.env.PATH;
+  process.env.PATH = '';
+  try { return await fn(); } finally { process.env.PATH = saved; }
+}
+
+for (const where of ['a repository', 'a linked worktree']) {
+  test(`in ${where}, "nothing moved" is answered without running git, and a new commit is seen`, { skip: !hasGit && 'git is not installed' }, async () => {
+    const repo = project();
+    const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args], { cwd, stdio: 'pipe' });
+    git(repo, 'init', '-q', '-b', 'main');
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '-m', 'First commit');
+    let root = repo;
+    if (where === 'a linked worktree') {
+      root = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gw-wt-')), 'wt');
+      git(repo, 'worktree', 'add', '-q', '-b', 'side', root);
+    }
+    await withServer(root, async (base) => {
+      const g = await (await fetch(`${base}/api/build/git?limit=10`)).json();
+      assert.equal(g.available, true);
+      const again = await withoutGit(async () => (await fetch(`${base}/api/build/git?limit=10&known=${g.fingerprint}`)).json());
+      assert.deepEqual(again, { server: 'development-status', api: 1, available: true, unchanged: true, fingerprint: g.fingerprint });
+      git(root, 'commit', '-q', '--allow-empty', '-m', 'Second commit');
+      const moved = await (await fetch(`${base}/api/build/git?limit=10&known=${g.fingerprint}`)).json();
+      assert.notEqual(moved.unchanged, true);
+      assert.equal(moved.commits[0].subject, 'Second commit');
+      git(root, 'tag', 'v1');
+      const tagged = await (await fetch(`${base}/api/build/git?limit=10&known=${moved.fingerprint}`)).json();
+      assert.deepEqual(tagged.refs.filter((r) => r.kind === 'tag').map((r) => r.name), ['v1']);
+    });
+  });
+}
+
+test('while a page listens the list is kept between changes, and still follows each of them', async () => {
+  const root = project();
+  const srv = await startServer({ root, modules: [buildModule()], port: 0 });
+  const sse = listen(srv.port);
+  try {
+    const base = `http://127.0.0.1:${srv.port}`;
+    const list = async () => (await fetch(`${base}/api/build/list`)).json();
+    await sse.next((e) => e.event === 'hello');
+    const first = await list();
+    assert.deepEqual(await list(), first);
+    fs.writeFileSync(path.join(root, '.scratch/core/issues/02-second.md'), '# Second\n');
+    await sse.change('build.files');
+    assert.ok((await list()).files.some((f) => f.path === '.scratch/core/issues/02-second.md'));
+    const others = (await list()).dirs['.scratch/core'];
+    fs.writeFileSync(path.join(root, '.scratch/core/more.txt'), 'not markdown, no topic');
+    const deadline = Date.now() + 3000;
+    let now;
+    while ((now = (await list()).dirs['.scratch/core']) === others && Date.now() < deadline) await new Promise((r) => setTimeout(r, 20));
+    assert.equal(now, others + 1);
+  } finally { sse.close(); await srv.close(); }
+});
+
 test('a project without a GitHub remote has no issues', async () => {
   const root = project();
   await withServer(root, async (base) => {

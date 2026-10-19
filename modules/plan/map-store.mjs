@@ -3,6 +3,7 @@
 //
 //   const store = openMap(projectDir, files)   files: the writer the core grants Plan (core/files.mjs)
 //   store.read()                     -> { v, data }       v: version id of the file
+//   store.version()                  -> v                 the same v, without parsing the map
 //   store.apply(ops, by?)            -> { errors, v, data } Claude's ops (see applyOps)
 //   store.saveFromBrowser(base, data) -> { v, data, changed } merge a browser save made on version `base`
 //                                       or { stale, v, data } when `base` is unknown: nothing written
@@ -40,10 +41,19 @@ export function openMap(dir, io) {
   }
   const warned = new Set()
 
-  function read() {
+  // The file's text and version; the version is hashed again only when the text changed.
+  let last = { text: null, v: null }
+  function current() {
     const text = io.read(MAP)
-    const v = hash(text)
-    remember(v, text)
+    if (text !== last.text) {
+      last = { text, v: hash(text) }
+      remember(last.v, text)
+    }
+    return last
+  }
+
+  function read() {
+    const { text, v } = current()
     return { v, data: JSON.parse(text) }
   }
 
@@ -91,6 +101,7 @@ export function openMap(dir, io) {
     file: path.join(dir, MAP),
     exists: () => io.exists(MAP),
     read,
+    version: () => current().v,
     glossary: () => (io.exists(GLOSSARY) ? io.read(GLOSSARY) : ''),
 
     init(title, { force = false } = {}) {

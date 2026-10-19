@@ -10,6 +10,8 @@ import path from 'node:path'
 import { startServer } from './server.mjs'
 import { shellPage } from './shell/shell.mjs'
 import { SHELL_STRINGS } from './shell/strings.mjs'
+import { VERSION } from './version.mjs'
+import zlib from 'node:zlib'
 
 function fakeModule(viewDir) {
   return {
@@ -43,13 +45,16 @@ async function withShell(fn) {
   try { await fn(srv) } finally { await srv.close() }
 }
 
-// A raw request, so the Host header can be anything.
-function get(port, pathname, host = `127.0.0.1:${port}`) {
+// A raw request, so the Host header can be anything; `headers` adds more.
+function get(port, pathname, host = `127.0.0.1:${port}`, headers = {}) {
   return new Promise((resolve, reject) => {
-    const req = http.request({ host: '127.0.0.1', port, path: pathname, headers: { host } }, (res) => {
-      let body = ''
-      res.on('data', (c) => (body += c))
-      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }))
+    const req = http.request({ host: '127.0.0.1', port, path: pathname, headers: { host, ...headers } }, (res) => {
+      const chunks = []
+      res.on('data', (c) => chunks.push(c))
+      res.on('end', () => {
+        const raw = Buffer.concat(chunks)
+        resolve({ status: res.statusCode, headers: res.headers, raw, body: raw.toString('utf8') })
+      })
     })
     req.on('error', reject)
     req.end()
@@ -70,10 +75,40 @@ test('a foreign Host header gets 403', async () => {
   })
 })
 
-test('localhost and 127.0.0.1 Host headers are accepted', async () => {
+test('localhost, 127.0.0.1 and [::1] Host headers are accepted', async () => {
   await withServer(async ({ port }) => {
     assert.equal((await get(port, '/api/demo/hello', `localhost:${port}`)).status, 200)
     assert.equal((await get(port, '/api/demo/hello', `127.0.0.1:${port}`)).status, 200)
+    assert.equal((await get(port, '/api/demo/hello', `[::1]:${port}`)).status, 200)
+  })
+})
+
+// A raw request to ::1, or null when this machine has no IPv6 loopback.
+function get6(port, pathname, host = `[::1]:${port}`) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ host: '::1', port, path: pathname, headers: { host } }, (res) => {
+      let body = ''
+      res.on('data', (c) => (body += c))
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }))
+    })
+    req.on('error', (e) => (['EADDRNOTAVAIL', 'EAFNOSUPPORT', 'ENETUNREACH'].includes(e.code) ? resolve(null) : reject(e)))
+    req.end()
+  })
+}
+
+test('"localhost" is fast: the server answers on ::1 too, where localhost resolves first', async () => {
+  await withServer(async ({ port }) => {
+    const r = await get6(port, '/api/demo/hello')
+    if (r === null) return // no IPv6 loopback here: localhost can only be 127.0.0.1
+    assert.equal(r.status, 200)
+    assert.equal((await get6(port, '/api/demo/hello', `localhost:${port}`)).status, 200)
+    assert.equal((await get6(port, '/api/demo/hello', 'evil.example.com')).status, 403)
+  })
+})
+
+test('connections are kept open long enough for a pause between clicks', async () => {
+  await withServer(async ({ server }) => {
+    assert.ok(server.keepAliveTimeout >= 60000, String(server.keepAliveTimeout))
   })
 })
 
@@ -83,6 +118,81 @@ test('module endpoints are under /api/<module>/ and get the project root', async
     assert.deepEqual(JSON.parse(r.body), { root: '/project', sub: '/hello' })
     assert.equal((await get(port, '/api/demo/missing')).status, 404)
     assert.equal((await get(port, '/api/nobody/hello')).status, 404)
+  })
+})
+
+test('every answer tells the browser not to guess its type, and says how long it is', async () => {
+  await withServer(async ({ port }) => {
+    for (const p of ['/api/modules', '/demo/', '/vendor/fonts.css', '/api/demo/missing']) {
+      const r = await get(port, p)
+      assert.equal(r.headers['x-content-type-options'], 'nosniff', p)
+      assert.equal(Number(r.headers['content-length']), Buffer.byteLength(r.body), p)
+    }
+  })
+})
+
+test('files are cached by the browser and asked again cheaply: an unchanged one is a 304 without a body', async () => {
+  await withServer(async ({ port }) => {
+    for (const p of ['/demo/', '/shell/theme.css', '/vendor/marked/marked.esm.js']) {
+      const first = await get(port, p)
+      assert.equal(first.status, 200, p)
+      assert.equal(first.headers['cache-control'], 'no-cache', p)
+      assert.ok(first.headers.etag, p)
+      const again = await get(port, p, undefined, { 'if-none-match': first.headers.etag })
+      assert.equal(again.status, 304, p)
+      assert.equal(again.body, '', p)
+      assert.equal(again.headers.etag, first.headers.etag, p)
+    }
+  })
+})
+
+test('a changed file gets a new ETag, so the browser never keeps an old one', async () => {
+  const viewDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-view-'))
+  fs.writeFileSync(path.join(viewDir, 'index.html'), '<h1>one</h1>')
+  const srv = await startServer({ root: '/project', modules: [fakeModule(viewDir)], port: 0 })
+  try {
+    const first = await get(srv.port, '/demo/')
+    fs.writeFileSync(path.join(viewDir, 'index.html'), '<h1>two, longer</h1>')
+    const again = await get(srv.port, '/demo/', undefined, { 'if-none-match': first.headers.etag })
+    assert.equal(again.status, 200)
+    assert.equal(again.body, '<h1>two, longer</h1>')
+    assert.notEqual(again.headers.etag, first.headers.etag)
+  } finally { await srv.close() }
+})
+
+test('fonts are kept a week; a file asked for with ?v=<version> is kept for good', async () => {
+  await withServer(async ({ port }) => {
+    assert.match((await get(port, '/vendor/fonts/inter/inter-latin-wght-normal.woff2')).headers['cache-control'], /max-age=604800/)
+    assert.equal((await get(port, `/shell/theme.css?v=${VERSION}`)).headers['cache-control'], 'max-age=31536000, immutable')
+    assert.equal((await get(port, '/shell/theme.css?v=0.0.0-old')).headers['cache-control'], 'no-cache', 'another version is not kept')
+  })
+})
+
+test('the start page may be cached too, but data from /api/ never is', async () => {
+  await withShell(async ({ port }) => {
+    const page = await get(port, '/')
+    assert.equal(page.headers['cache-control'], 'no-cache')
+    assert.equal((await get(port, '/', undefined, { 'if-none-match': page.headers.etag })).status, 304)
+    assert.equal((await get(port, '/api/modules')).headers['cache-control'], 'no-store')
+  })
+})
+
+test('text is sent compressed when the browser accepts it, and the same when it does not', async () => {
+  await withServer(async ({ port }) => {
+    const p = '/vendor/marked/marked.esm.js'
+    const plain = await get(port, p)
+    assert.equal(plain.headers['content-encoding'], undefined)
+    const br = await get(port, p, undefined, { 'accept-encoding': 'gzip, deflate, br' })
+    assert.equal(br.headers['content-encoding'], 'br')
+    assert.match(br.headers.vary, /accept-encoding/i)
+    assert.ok(br.raw.length < plain.raw.length / 2)
+    assert.equal(zlib.brotliDecompressSync(br.raw).toString('utf8'), plain.body)
+    const gz = await get(port, p, undefined, { 'accept-encoding': 'gzip' })
+    assert.equal(gz.headers['content-encoding'], 'gzip')
+    assert.equal(zlib.gunzipSync(gz.raw).toString('utf8'), plain.body)
+    assert.equal(Number(gz.headers['content-length']), gz.raw.length)
+    const font = await get(port, '/vendor/fonts/inter/inter-latin-wght-normal.woff2', undefined, { 'accept-encoding': 'br' })
+    assert.equal(font.headers['content-encoding'], undefined, 'woff2 is compressed already')
   })
 })
 

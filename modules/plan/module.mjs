@@ -3,6 +3,8 @@
 //   GET /api/plan/map[?v=<version>]  the map, or { same: true } when the browser already has that version
 //   PUT /api/plan/map                { base, data }: a browser save made on version `base`, merged;
 //                                    409 with the current map when `base` is unknown (nothing saved)
+//   GET /api/plan/ids[?v=<version>]  { v, ids }: the ids of the map's nodes, or { v, same: true } as above;
+//                                    what Build checks the tickets' PRD lines against, without the map
 //   GET /api/plan/glossary           { text } of the project's GLOSSARY.md
 //
 // Live updates (core/events.mjs): the map file changing is the topic "plan.map", the glossary
@@ -15,6 +17,17 @@ import { openMap } from './map-store.mjs'
 import { VERSION } from '../../core/version.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
+
+// The ids of the map's nodes, the root first, each before its children.
+function nodeIds(map) {
+  const ids = []
+  const walk = (node) => {
+    if (node.id != null) ids.push(String(node.id))
+    for (const c of node.children || []) walk(c)
+  }
+  if (map?.nodeData) walk(map.nodeData)
+  return ids
+}
 
 export default {
   id: 'plan',
@@ -39,12 +52,18 @@ export default {
     const store = openMap(root, files)
     return async (req, res, sub, url) => {
       if (sub === '/glossary' && req.method === 'GET') return send(res, 200, { text: store.glossary() }), true
+      if (sub === '/ids' && req.method === 'GET') {
+        if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` }), true
+        const v = store.version()
+        if (url.searchParams.get('v') === v) return send(res, 200, { v, same: true }), true
+        return send(res, 200, { v, ids: nodeIds(store.read().data) }), true
+      }
       if (sub !== '/map') return false
       if (req.method === 'GET') {
         if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` }), true
-        const cur = store.read()
-        if (url.searchParams.get('v') === cur.v) return send(res, 200, { v: cur.v, same: true }), true
-        return send(res, 200, cur), true
+        const v = store.version()
+        if (url.searchParams.get('v') === v) return send(res, 200, { v, same: true }), true
+        return send(res, 200, store.read()), true
       }
       if (req.method === 'PUT') {
         try {
