@@ -4,19 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Groundwork Plan</title>
-<link rel="stylesheet" href="/vendor/fonts.css">
+<link rel="stylesheet" href="/shell/theme.css">
 <link rel="stylesheet" href="/vendor/mind-elixir/MindElixir.css">
 <style>
+  /* Base colours, fonts and dark mode come from the shell (/shell/theme.css, --gw-*).
+     Plan's own colours are its node types and implementation states (node-types.mjs). */
   :root {
-    --font: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
-    --bg: #f6f7fb;
-    --dot: #d9dce7;
-    --surface: #ffffff;
-    --fg: #1d2333;
-    --muted: #7a8195;
-    --line: #e4e7ef;
-    --glass: rgba(255, 255, 255, .78);
-    --shadow: 0 1px 2px rgba(20, 24, 40, .06), 0 4px 14px -6px rgba(20, 24, 40, .12);
+    --dot: var(--gw-line);
+    --glass: color-mix(in srgb, var(--gw-surface) 80%, transparent);
     --topic: #7c3aed;
     --inferred: #0284c7;
     --missing: #dc2626;
@@ -26,14 +21,6 @@
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0d1117;
-      --dot: #1f2633;
-      --surface: #161c27;
-      --fg: #e6e9f2;
-      --muted: #8a93a8;
-      --line: #252d3c;
-      --glass: rgba(22, 28, 39, .78);
-      --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 18px -8px rgba(0, 0, 0, .6);
       --topic: #a78bfa;
       --inferred: #38bdf8;
       --missing: #f87171;
@@ -43,44 +30,45 @@
     }
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.4 var(--font); }
+  html, body { margin: 0; height: 100%; background: var(--gw-bg); color: var(--gw-fg); font: 14px/1.4 var(--gw-font); }
   body { overflow: hidden; }
 
   #map {
     position: fixed !important; inset: 0; width: auto !important; height: auto !important; /* Mind Elixir sets position: relative inline */
-    background: radial-gradient(circle, var(--dot) 1.2px, transparent 1.3px) 0 0 / 22px 22px, var(--bg);
+    background: radial-gradient(circle, var(--dot) 1.2px, transparent 1.3px) 0 0 / 22px 22px, var(--gw-bg);
   }
-  #empty { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; color: var(--muted); gap: 8px; }
-  #empty code { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; }
+  #empty { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; color: var(--gw-muted); gap: 8px; }
+  #empty code { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: 6px; padding: 2px 8px; }
 
   /* ---- floating chrome ---- */
   .glass {
     background: var(--glass);
     backdrop-filter: blur(12px) saturate(1.4);
     -webkit-backdrop-filter: blur(12px) saturate(1.4);
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
+    border: 1px solid var(--gw-line);
+    box-shadow: var(--gw-shadow);
   }
-  #title {
+  /* the map's controls; the shell header above the view names the project */
+  #toolbar {
     position: fixed; top: 14px; left: 14px; z-index: 20;
     display: flex; align-items: center; gap: 10px;
-    padding: 7px 14px 7px 12px; border-radius: 999px;
-    font-weight: 600; font-size: 13px; letter-spacing: .01em;
+    padding: 5px 6px 5px 14px; border-radius: 999px;
+    font-size: 13px;
   }
-  #sync { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 500; font-size: 12px; }
+  #sync { display: inline-flex; align-items: center; gap: 6px; color: var(--gw-muted); font-weight: 500; font-size: 12px; }
   #sync i { width: 7px; height: 7px; border-radius: 50%; background: var(--decision); box-shadow: 0 0 0 3px color-mix(in srgb, var(--decision) 22%, transparent); }
   #sync.busy i { background: var(--parked); box-shadow: 0 0 0 3px color-mix(in srgb, var(--parked) 22%, transparent); }
-  #sync.err i { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, .22); }
+  #sync.err i { background: var(--gw-bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gw-bad) 22%, transparent); }
 
   #dock {
     position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20;
     display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 14px;
     max-width: calc(100vw - 32px); overflow-x: auto;
   }
-  #dock .hint { color: var(--muted); font-size: 12px; padding: 0 8px; white-space: nowrap; }
+  #dock .hint { color: var(--gw-muted); font-size: 12px; padding: 0 8px; white-space: nowrap; }
   #dock button {
     display: inline-flex; align-items: center; gap: 6px;
-    font: 500 12.5px var(--font); color: var(--fg);
+    font: 500 12.5px var(--gw-font); color: var(--gw-fg);
     background: transparent; border: 0; border-radius: 9px; padding: 6px 10px; cursor: pointer; white-space: nowrap;
   }
   #dock button i {
@@ -91,49 +79,49 @@
   #dock button.on { background: color-mix(in srgb, var(--c) 20%, transparent); }
   #dock button:disabled { opacity: .4; cursor: default; }
   #dock button.impl em { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
-  #dock .sep { width: 1px; align-self: stretch; margin: 4px 2px; background: var(--line); }
+  #dock .sep { width: 1px; align-self: stretch; margin: 4px 2px; background: var(--gw-line); }
 
   /* Mind Elixir's own toolbars */
-  .mind-elixir-toolbar { background: var(--glass) !important; border: 1px solid var(--line); border-radius: 12px !important; box-shadow: var(--shadow) !important; backdrop-filter: blur(12px); }
+  .mind-elixir-toolbar { background: var(--glass) !important; border: 1px solid var(--gw-line); border-radius: 12px !important; box-shadow: var(--gw-shadow) !important; backdrop-filter: blur(12px); }
   .mind-elixir-toolbar.lt { top: 64px !important; }
-  .mind-elixir-toolbar svg { color: var(--muted); }
+  .mind-elixir-toolbar svg { color: var(--gw-muted); }
 
   .map-container .context-menu .menu-list {
     background: var(--glass) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 4px; overflow: hidden;
+    border: 1px solid var(--gw-line); border-radius: 12px; box-shadow: var(--gw-shadow); padding: 4px; overflow: hidden;
   }
   .map-container .context-menu .menu-list li {
-    background: transparent !important; color: var(--fg) !important; border: 0 !important;
-    border-radius: 8px; font: 500 13px var(--font); margin: 1px 0;
+    background: transparent !important; color: var(--gw-fg) !important; border: 0 !important;
+    border-radius: 8px; font: 500 13px var(--gw-font); margin: 1px 0;
   }
-  .map-container .context-menu .menu-list li:hover { background: color-mix(in srgb, #8b5cf6 16%, transparent) !important; }
-  .map-container .context-menu .key { background: var(--surface) !important; color: var(--muted) !important; border: 1px solid var(--line); border-radius: 5px; }
+  .map-container .context-menu .menu-list li:hover { background: color-mix(in srgb, var(--gw-accent) 16%, transparent) !important; }
+  .map-container .context-menu .key { background: var(--gw-surface) !important; color: var(--gw-muted) !important; border: 1px solid var(--gw-line); border-radius: 5px; }
 
   /* ---- the map ---- */
-  .map-container { font-family: var(--font) !important; cursor: grab; }
+  .map-container { font-family: var(--gw-font) !important; cursor: grab; }
   .map-container.panning, .map-container.panning * { cursor: grabbing !important; }
   .map-container me-tpc { cursor: pointer; }
   .map-container .lines path { stroke-width: 3px; stroke-linecap: round; }
   .map-container .subLines path { stroke-width: 2px; stroke-linecap: round; opacity: .75; }
-  .map-container me-tpc { font-family: var(--font); transition: box-shadow .2s, transform .2s; }
+  .map-container me-tpc { font-family: var(--gw-font); transition: box-shadow .2s, transform .2s; }
   .map-container me-tpc .tags { display: none; }
 
   /* root */
   .map-container me-root me-tpc {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #d946ef 100%);
-    color: #fff; font-size: 19px; font-weight: 700; letter-spacing: -.01em;
+    background: var(--gw-accent);
+    color: var(--gw-accent-fg); font-size: 19px; font-weight: 700; letter-spacing: -.01em;
     padding: 14px 26px; border: 0; border-radius: 999px;
-    box-shadow: 0 12px 32px -12px rgba(139, 92, 246, .75), inset 0 1px 0 rgba(255, 255, 255, .25);
+    box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--gw-accent) 75%, transparent);
   }
 
   /* main topics: pill tinted with the branch color */
   .map-container me-main > me-wrapper > me-parent > me-tpc {
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-    color: var(--fg);
+    background: color-mix(in srgb, var(--accent) 14%, var(--gw-surface));
+    color: var(--gw-fg);
     border: 1.5px solid color-mix(in srgb, var(--accent) 65%, transparent);
     border-radius: 999px; padding: 8px 18px;
     font-size: 15px; font-weight: 600;
-    box-shadow: var(--shadow);
+    box-shadow: var(--gw-shadow);
   }
   .map-container me-main > me-wrapper > me-parent > me-tpc::before {
     content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 9px; border-radius: 50%;
@@ -142,10 +130,10 @@
 
   /* everything deeper: cards */
   .map-container me-children me-tpc {
-    background: var(--surface); color: var(--fg);
-    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--gw-surface); color: var(--gw-fg);
+    border: 1px solid var(--gw-line); border-radius: 10px;
     padding: 6px 12px; font-size: 13.5px; font-weight: 500;
-    box-shadow: var(--shadow);
+    box-shadow: var(--gw-shadow);
   }
   .map-container me-children me-tpc[data-status]::before {
     content: ''; display: inline-block; width: 15px; height: 15px; margin-right: 7px; vertical-align: -3px;
@@ -154,20 +142,20 @@
   }
   .map-container me-tpc[data-status="topic"]    { --st: var(--topic);    --icon: var(--i-topic); }
   .map-container me-tpc[data-status="decision"] { --st: var(--decision); --icon: var(--i-decision); }
-  .map-container me-tpc[data-status="note"]     { --st: var(--muted);    --icon: var(--i-note); }
-  .map-container me-tpc[data-status="excluded"] { --st: var(--muted);    --icon: var(--i-excluded); }
+  .map-container me-tpc[data-status="note"]     { --st: var(--gw-muted);    --icon: var(--i-note); }
+  .map-container me-tpc[data-status="excluded"] { --st: var(--gw-muted);    --icon: var(--i-excluded); }
   .map-container me-tpc[data-status="parked"]   { --st: var(--parked);   --icon: var(--i-parked); }
   .map-container me-tpc[data-status="todo"]     { --st: var(--todo);     --icon: var(--i-todo); }
   .map-container me-tpc[data-status="inferred"] { --st: var(--inferred); --icon: var(--i-inferred); }
   .map-container me-children me-tpc[data-status="inferred"] {
     border: 1.5px dashed color-mix(in srgb, var(--inferred) 70%, transparent);
-    background: color-mix(in srgb, var(--inferred) 7%, var(--surface));
+    background: color-mix(in srgb, var(--inferred) 7%, var(--gw-surface));
   }
 
   /* implementation layer: a small pill after the text (replaces the note dot) */
   .map-container me-tpc[data-impl][data-impl]::after { /* beats the note dot */
     content: attr(data-impl-label); display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px;
-    font: 600 10px var(--font); letter-spacing: .02em; vertical-align: 1px; width: auto; height: auto;
+    font: 600 10px var(--gw-font); letter-spacing: .02em; vertical-align: 1px; width: auto; height: auto;
     color: var(--ic); background: color-mix(in srgb, var(--ic) 16%, transparent);
   }
   .map-container me-tpc[data-impl="done"]    { --ic: var(--decision); }
@@ -176,29 +164,29 @@
   /* Status badges match the dock exactly: same icon, same status color.
      The branch color only marks which branch a node belongs to (lines, main pills). */
   .map-container me-children me-tpc[data-status="topic"] {
-    font-weight: 600; border-color: color-mix(in srgb, var(--topic) 45%, var(--line));
+    font-weight: 600; border-color: color-mix(in srgb, var(--topic) 45%, var(--gw-line));
   }
 
   .map-container me-children me-tpc[data-status="decision"] {
-    border-color: color-mix(in srgb, var(--decision) 35%, var(--line));
-    background: linear-gradient(90deg, color-mix(in srgb, var(--decision) 10%, var(--surface)), var(--surface) 70%);
+    border-color: color-mix(in srgb, var(--decision) 35%, var(--gw-line));
+    background: linear-gradient(90deg, color-mix(in srgb, var(--decision) 10%, var(--gw-surface)), var(--gw-surface) 70%);
   }
 
   .map-container me-children me-tpc[data-status="note"] {
     background: transparent; border-color: transparent; box-shadow: none;
-    color: var(--muted); font-weight: 400; font-style: italic; padding-left: 6px;
+    color: var(--gw-muted); font-weight: 400; font-style: italic; padding-left: 6px;
   }
 
   .map-container me-children me-tpc[data-status="excluded"] {
     background: transparent; box-shadow: none; border-style: dashed;
-    color: var(--muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 70%, transparent);
+    color: var(--gw-muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--gw-muted) 70%, transparent);
   }
 
   .map-container me-children me-tpc[data-status="parked"] { border: 1px dashed var(--parked); }
 
   .map-container me-children me-tpc[data-status="todo"] {
     border: 1.5px dashed var(--todo);
-    background: color-mix(in srgb, var(--todo) 9%, var(--surface));
+    background: color-mix(in srgb, var(--todo) 9%, var(--gw-surface));
     animation: mm-todo 2.4s ease-in-out infinite;
   }
   @keyframes mm-todo { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--todo) 18%, transparent); } }
@@ -206,25 +194,25 @@
   /* a node with a note gets a subtle marker */
   .map-container me-tpc[data-has-note]::after {
     content: ''; display: inline-block; width: 5px; height: 5px; margin-left: 7px; border-radius: 50%;
-    background: color-mix(in srgb, var(--accent, var(--muted)) 80%, transparent); vertical-align: 2px;
+    background: color-mix(in srgb, var(--accent, var(--gw-muted)) 80%, transparent); vertical-align: 2px;
   }
   .map-container me-tpc .hyper-link { margin-left: 6px; opacity: .6; text-decoration: none; }
 
   /* selection + new-node flash */
-  .map-container me-tpc.selected { outline: 2px solid var(--accent, #8b5cf6) !important; outline-offset: 3px; }
+  .map-container me-tpc.selected { outline: 2px solid var(--accent, var(--gw-accent)) !important; outline-offset: 3px; }
   me-tpc.mm-new { animation: mm-flash 2.5s ease-out; }
-  @keyframes mm-flash { 0%, 25% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent, #8b5cf6) 45%, transparent); transform: scale(1.04); } 100% { box-shadow: var(--shadow); transform: none; } }
+  @keyframes mm-flash { 0%, 25% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent, var(--gw-accent)) 45%, transparent); transform: scale(1.04); } 100% { box-shadow: var(--gw-shadow); transform: none; } }
 
   /* note tooltip */
   #tip {
     position: fixed; z-index: 30; max-width: 280px; pointer-events: none;
-    padding: 8px 11px; border-radius: 10px; font-size: 12.5px; color: var(--fg);
+    padding: 8px 11px; border-radius: 10px; font-size: 12.5px; color: var(--gw-fg);
     opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s;
   }
   #tip.show { opacity: 1; transform: none; }
 
   /* ---- views: map | split | prd ---- */
-  :root { --prd-w: min(46vw, 640px); --font-doc: 'Source Serif 4', Georgia, serif; }
+  :root { --prd-w: min(46vw, 640px); }
   body[data-view="split"] #map { right: var(--prd-w) !important; }
   body[data-view="prd"] #map { visibility: hidden; }
   body[data-view="map"] #prd { display: none; }
@@ -234,24 +222,24 @@
   body[data-view="split"] .mind-elixir-toolbar.rb { right: 16px !important; }
 
   .picker {
-    font: 600 12px var(--font); color: var(--fg); background: color-mix(in srgb, var(--fg) 7%, transparent);
+    font: 600 12px var(--gw-font); color: var(--gw-fg); background: color-mix(in srgb, var(--gw-fg) 7%, transparent);
     border: 0; border-radius: 999px; padding: 4px 10px; cursor: pointer; max-width: 240px;
   }
-  .picker option, .picker optgroup { background: var(--surface); color: var(--fg); }
+  .picker option, .picker optgroup { background: var(--gw-surface); color: var(--gw-fg); }
   body[data-layered="no"] #focus { display: none; }
-  #views { display: inline-flex; gap: 2px; padding: 2px; margin-left: 4px; border-radius: 999px; background: color-mix(in srgb, var(--fg) 7%, transparent); }
-  #views button { font: 500 12px var(--font); color: var(--muted); background: transparent; border: 0; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
-  #views button.on { background: var(--surface); color: var(--fg); box-shadow: var(--shadow); }
+  #views { display: inline-flex; gap: 2px; padding: 2px; margin-left: 4px; border-radius: 999px; background: color-mix(in srgb, var(--gw-fg) 7%, transparent); }
+  #views button { font: 500 12px var(--gw-font); color: var(--gw-muted); background: transparent; border: 0; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+  #views button.on { background: var(--gw-surface); color: var(--gw-fg); box-shadow: var(--gw-shadow); }
 
   /* collapse / reopen handle on the PRD panel's edge */
   #prd-toggle {
     position: fixed; top: 50%; z-index: 15; transform: translateY(-50%);
     display: flex; align-items: center; gap: 6px; cursor: pointer;
-    font: 600 12px var(--font); color: var(--muted);
-    background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+    font: 600 12px var(--gw-font); color: var(--gw-muted);
+    background: var(--gw-surface); border: 1px solid var(--gw-line); box-shadow: var(--gw-shadow);
     transition: color .15s, background .15s;
   }
-  #prd-toggle:hover { color: var(--fg); background: color-mix(in srgb, var(--topic) 10%, var(--surface)); }
+  #prd-toggle:hover { color: var(--gw-fg); background: color-mix(in srgb, var(--topic) 10%, var(--gw-surface)); }
   #prd-toggle svg { width: 14px; height: 14px; }
   body[data-view="split"] #prd-toggle { right: var(--prd-w); border-right: 0; border-radius: 10px 0 0 10px; padding: 14px 4px; }
   body[data-view="split"] #prd-toggle span { display: none; }
@@ -260,9 +248,9 @@
   body[data-view="prd"] #prd-toggle { display: none; }
 
   /* view / edit mode */
-  #mode { display: inline-flex; align-items: center; gap: 6px; font: 500 12px var(--font); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px 3px 8px; cursor: pointer; }
+  #mode { display: inline-flex; align-items: center; gap: 6px; font: 500 12px var(--gw-font); color: var(--gw-muted); background: transparent; border: 1px solid var(--gw-line); border-radius: 999px; padding: 3px 10px 3px 8px; cursor: pointer; }
   #mode svg { width: 13px; height: 13px; }
-  #mode:hover { color: var(--fg); }
+  #mode:hover { color: var(--gw-fg); }
   body[data-mode="edit"] #mode { color: var(--topic); border-color: color-mix(in srgb, var(--topic) 55%, transparent); background: color-mix(in srgb, var(--topic) 12%, transparent); }
   body[data-mode="view"] #dock { display: none; }
   body[data-mode="view"] #prd .edit, body[data-mode="view"] #prd .add { display: none; }
@@ -270,13 +258,13 @@
   body[data-mode="view"] #prd .prose.human:hover { background: color-mix(in srgb, var(--parked) 9%, transparent); }
 
   /* document switcher in the panel */
-  #prd .docpick { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
-  #prd .docpick span { font-size: 12px; color: var(--muted); }
+  #prd .docpick { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px solid var(--gw-line); }
+  #prd .docpick span { font-size: 12px; color: var(--gw-muted); }
   #prd .docpick .picker { font-size: 13px; max-width: 100%; }
 
   /* sections inside a document layer: pills tinted with their own color */
   .map-container me-children me-tpc[data-section] {
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--fg);
+    background: color-mix(in srgb, var(--accent) 14%, var(--gw-surface)); color: var(--gw-fg);
     border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
     border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 14px;
   }
@@ -295,95 +283,95 @@
   .map-container me-tpc[data-component] { font-weight: 700; }
   .map-container me-tpc[data-component]::after {
     content: attr(data-component-label); display: inline-block; margin-left: 9px; padding: 1px 8px; border-radius: 999px; vertical-align: 2px;
-    font: 600 10px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: color-mix(in srgb, var(--fg) 9%, transparent);
+    font: 600 10px var(--gw-font); letter-spacing: .04em; text-transform: uppercase; color: var(--gw-muted); background: color-mix(in srgb, var(--gw-fg) 9%, transparent);
   }
-  .map-container me-root me-tpc[data-component]::after { color: rgba(255, 255, 255, .9); background: rgba(255, 255, 255, .2); }
+  .map-container me-root me-tpc[data-component]::after { color: var(--gw-accent-fg); background: color-mix(in srgb, var(--gw-accent-fg) 20%, transparent); }
 
   /* ---- PRD panel ---- */
   #prd {
     position: fixed; top: 0; right: 0; bottom: 0; width: var(--prd-w); z-index: 10;
-    overflow-y: auto; background: var(--surface); border-left: 1px solid var(--line);
+    overflow-y: auto; background: var(--gw-surface); border-left: 1px solid var(--gw-line);
   }
   #prd .doc { max-width: 720px; margin: 0 auto; padding: 72px 40px 120px; }
-  #prd h1 { font: 700 26px/1.25 var(--font); letter-spacing: -.02em; margin: 0 0 6px; }
-  #prd .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  #prd h1 { font: 700 26px/1.25 var(--gw-font); letter-spacing: -.02em; margin: 0 0 6px; }
+  #prd .sub { color: var(--gw-muted); font-size: 12.5px; margin-bottom: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   #prd .bar { display: flex; gap: 4px; margin: 0 0 6px; }
-  #prd .bar span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); cursor: pointer; transition: transform .15s; }
+  #prd .bar span { flex: 1; height: 6px; border-radius: 3px; background: var(--gw-line); cursor: pointer; transition: transform .15s; }
   #prd .bar span:hover { transform: scaleY(1.6); }
   #prd .bar span.done { background: var(--decision); }
   #prd .bar span.active { background: var(--parked); }
-  #prd .counts { font-size: 12px; color: var(--muted); margin-bottom: 34px; }
+  #prd .counts { font-size: 12px; color: var(--gw-muted); margin-bottom: 34px; }
 
   #prd section { margin: 0 0 34px; scroll-margin-top: 24px; }
   #prd h2 {
-    font: 650 19px/1.3 var(--font); letter-spacing: -.01em; margin: 0 0 10px;
+    font: 650 19px/1.3 var(--gw-font); letter-spacing: -.01em; margin: 0 0 10px;
     display: flex; align-items: center; gap: 10px; cursor: pointer;
   }
-  #prd h2 .num { color: var(--muted); font-weight: 500; min-width: 1.4em; }
-  #prd .chip { font: 600 10.5px var(--font); letter-spacing: .03em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+  #prd h2 .num { color: var(--gw-muted); font-weight: 500; min-width: 1.4em; }
+  #prd .chip { font: 600 10.5px var(--gw-font); letter-spacing: .03em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
   #prd .chip.done { color: var(--decision); background: color-mix(in srgb, var(--decision) 14%, transparent); }
   #prd .chip.active { color: var(--parked); background: color-mix(in srgb, var(--parked) 14%, transparent); }
-  #prd .chip.untouched { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+  #prd .chip.untouched { color: var(--gw-muted); background: color-mix(in srgb, var(--gw-muted) 14%, transparent); }
 
-  #prd .prose { position: relative; font: 400 16.5px/1.65 var(--font-doc); margin: 0 0 12px; border-radius: 8px; padding: 2px 8px; margin-left: -8px; }
+  #prd .prose { position: relative; font: 400 16.5px/1.65 var(--gw-font-serif); margin: 0 0 12px; border-radius: 8px; padding: 2px 8px; margin-left: -8px; }
   #prd .prose p { margin: 0 0 10px; }
   #prd .prose p:last-child { margin-bottom: 0; }
-  #prd .prose:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+  #prd .prose:hover { background: color-mix(in srgb, var(--gw-fg) 4%, transparent); }
   #prd .prose.human { background: color-mix(in srgb, var(--parked) 9%, transparent); padding: 8px 10px; margin-left: -10px; }
-  #prd .who { display: block; font: 500 11px var(--font); color: var(--muted); margin-bottom: 3px; }
+  #prd .who { display: block; font: 500 11px var(--gw-font); color: var(--gw-muted); margin-bottom: 3px; }
   #prd .prose .edit {
     position: absolute; top: 4px; right: 4px; opacity: 0; transition: opacity .12s;
-    font: 500 11.5px var(--font); color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer;
+    font: 500 11.5px var(--gw-font); color: var(--gw-muted); background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: 6px; padding: 2px 8px; cursor: pointer;
   }
   #prd .prose:hover .edit { opacity: 1; }
-  #prd .placeholder { font: italic 400 15px var(--font-doc); color: var(--muted); margin: 0 0 12px; }
+  #prd .placeholder { font: italic 400 15px var(--gw-font-serif); color: var(--gw-muted); margin: 0 0 12px; }
 
-  #prd ul.items { list-style: none; margin: 4px 0 10px; padding: 0 0 0 2px; border-left: 2px solid var(--line); }
+  #prd ul.items { list-style: none; margin: 4px 0 10px; padding: 0 0 0 2px; border-left: 2px solid var(--gw-line); }
   #prd ul.items li {
     display: flex; align-items: baseline; gap: 8px; padding: 3px 8px 3px 12px; margin-left: calc(var(--d, 0) * 18px);
     font-size: 14px; border-radius: 0 6px 6px 0; cursor: pointer;
   }
-  #prd ul.items li:hover { background: color-mix(in srgb, var(--fg) 5%, transparent); }
-  #prd li i { flex: none; width: 14px; height: 14px; align-self: flex-start; margin-top: 3px; background: var(--st, var(--muted)); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+  #prd ul.items li:hover { background: color-mix(in srgb, var(--gw-fg) 5%, transparent); }
+  #prd li i { flex: none; width: 14px; height: 14px; align-self: flex-start; margin-top: 3px; background: var(--st, var(--gw-muted)); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
   #prd li .c { flex: 1; min-width: 0; }
   #prd li .t { font-weight: 500; }
   #prd li[data-status="topic"] .t { font-weight: 650; }
-  #prd li[data-status="note"] .t { font-weight: 400; font-style: italic; color: var(--muted); }
-  #prd li[data-status="excluded"] .t { text-decoration: line-through; color: var(--muted); font-weight: 400; }
-  #prd li .n { color: var(--muted); font-size: 13px; }
-  #prd li .s { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; }
+  #prd li[data-status="note"] .t { font-weight: 400; font-style: italic; color: var(--gw-muted); }
+  #prd li[data-status="excluded"] .t { text-decoration: line-through; color: var(--gw-muted); font-weight: 400; }
+  #prd li .n { color: var(--gw-muted); font-size: 13px; }
+  #prd li .s { color: var(--gw-muted); font-size: 12px; margin-left: auto; white-space: nowrap; }
   #prd li a { font-size: 12px; color: var(--topic); }
   #prd li[data-status="topic"]    { --st: var(--topic);    --icon: var(--i-topic); }
   #prd li[data-status="decision"] { --st: var(--decision); --icon: var(--i-decision); }
-  #prd li[data-status="note"]     { --st: var(--muted);    --icon: var(--i-note); }
-  #prd li[data-status="excluded"] { --st: var(--muted);    --icon: var(--i-excluded); }
+  #prd li[data-status="note"]     { --st: var(--gw-muted);    --icon: var(--i-note); }
+  #prd li[data-status="excluded"] { --st: var(--gw-muted);    --icon: var(--i-excluded); }
   #prd li[data-status="parked"]   { --st: var(--parked);   --icon: var(--i-parked); }
   #prd li[data-status="todo"]     { --st: var(--todo);     --icon: var(--i-todo); }
   #prd li[data-status="inferred"] { --st: var(--inferred); --icon: var(--i-inferred); }
   #prd li[data-status="inferred"] .t { font-weight: 400; }
   #prd li .inf { font-size: 11.5px; color: var(--inferred); white-space: nowrap; }
-  #prd li .impl { font: 600 10px var(--font); letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; white-space: nowrap; color: var(--ic); background: color-mix(in srgb, var(--ic) 16%, transparent); }
+  #prd li .impl { font: 600 10px var(--gw-font); letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; white-space: nowrap; color: var(--ic); background: color-mix(in srgb, var(--ic) 16%, transparent); }
   #prd li .impl.done { --ic: var(--decision); }
   #prd li .impl.partial { --ic: var(--parked); }
   #prd li .impl.missing { --ic: var(--missing); }
   #prd .counts b { font-weight: 600; }
   #prd li:not([data-status]) i    { --icon: var(--i-note); }
 
-  #prd .add { font: 500 12.5px var(--font); color: var(--muted); background: none; border: 1px dashed var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
-  #prd .add:hover { color: var(--fg); border-color: var(--muted); }
+  #prd .add { font: 500 12.5px var(--gw-font); color: var(--gw-muted); background: none; border: 1px dashed var(--gw-line); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  #prd .add:hover { color: var(--gw-fg); border-color: var(--gw-muted); }
   #prd .cross h2 { font-size: 16px; }
-  #prd .glossary { font: 400 15px/1.6 var(--font-doc); }
+  #prd .glossary { font: 400 15px/1.6 var(--gw-font-serif); }
   #prd .glossary h1, #prd .glossary h2 { display: none; }
 
   #prd .editor textarea {
-    width: 100%; min-height: 110px; resize: vertical; font: 400 15.5px/1.6 var(--font-doc); color: var(--fg);
-    background: var(--bg); border: 1px solid var(--topic); border-radius: 8px; padding: 10px 12px; outline: none;
+    width: 100%; min-height: 110px; resize: vertical; font: 400 15.5px/1.6 var(--gw-font-serif); color: var(--gw-fg);
+    background: var(--gw-sunken); border: 1px solid var(--gw-accent); border-radius: 8px; padding: 10px 12px; outline: none;
   }
   #prd .editor .row { display: flex; gap: 6px; margin-top: 6px; }
-  #prd .editor button { font: 500 12.5px var(--font); border-radius: 7px; padding: 5px 12px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
-  #prd .editor button.primary { background: var(--topic); border-color: var(--topic); color: #fff; }
-  #prd .editor button.danger { margin-left: auto; color: #ef4444; }
-  #prd .editor .tip { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  #prd .editor button { font: 500 12.5px var(--gw-font); border-radius: 7px; padding: 5px 12px; cursor: pointer; border: 1px solid var(--gw-line); background: var(--gw-surface); color: var(--gw-fg); }
+  #prd .editor button.primary { background: var(--gw-accent); border-color: var(--gw-accent); color: var(--gw-accent-fg); }
+  #prd .editor button.danger { margin-left: auto; color: var(--gw-bad); }
+  #prd .editor .tip { font-size: 11.5px; color: var(--gw-muted); margin-top: 4px; }
 
   #prd .active-row { background: color-mix(in srgb, var(--topic) 14%, transparent) !important; }
   #prd .fresh { animation: prd-fresh 3s ease-out; }
@@ -392,7 +380,7 @@
 </head>
 <body>
 <div id="map"></div>
-<div id="title" class="glass"><span id="name">Plan</span><span id="sync"><i></i><b>betöltés…</b></span>
+<div id="toolbar" class="glass"><span id="sync"><i></i><b>betöltés…</b></span>
   <select id="focus" class="picker" title="Mit mutasson a térkép"></select>
   <span id="views"><button data-v="map">Térkép</button><button data-v="split">Mindkettő</button><button data-v="prd">Dokumentum</button></span>
   <button id="mode" type="button"></button></div>
@@ -404,7 +392,7 @@
 <script type="module">
 import MindElixir from '/vendor/mind-elixir/MindElixir.js'
 import { STATUSES, IMPL, iconUrl } from './node-types.mjs'
-import { buildPrd, progressSummary, PROGRESS_LABEL, IMPL_LABEL, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from './documents.mjs'
+import { buildPrd, progressSummary, BASE_DIR, COMPONENT_TYPES, listDocs, docOf, isSection } from './documents.mjs'
 import { marked } from '/vendor/marked/marked.esm.js'
 
 for (const key of Object.keys(STATUSES)) document.documentElement.style.setProperty(`--i-${key}`, iconUrl(key))
@@ -441,12 +429,12 @@ const THEME = {
   generateSubBranch: subBranch,
   cssVar: {
     '--bgcolor': 'transparent',
-    '--color': css('--fg'),
-    '--main-color': css('--fg'),
-    '--main-bgcolor': css('--surface'),
+    '--color': css('--gw-fg'),
+    '--main-color': css('--gw-fg'),
+    '--main-bgcolor': css('--gw-surface'),
     '--main-bgcolor-transparent': 'transparent',
-    '--root-color': '#ffffff',
-    '--root-bgcolor': '#7c3aed',
+    '--root-color': css('--gw-accent-fg'),
+    '--root-bgcolor': css('--gw-accent'),
     '--root-border-color': 'transparent',
     '--root-radius': '999px',
     '--main-radius': '999px',
@@ -455,11 +443,11 @@ const THEME = {
     '--node-gap-y': '9px',
     '--main-gap-x': '70px',
     '--main-gap-y': '22px',
-    '--selected': '#8b5cf6',
-    '--accent-color': '#8b5cf6',
-    '--panel-color': css('--fg'),
-    '--panel-bgcolor': css('--surface'),
-    '--panel-border-color': css('--line'),
+    '--selected': css('--gw-accent'),
+    '--accent-color': css('--gw-accent'),
+    '--panel-color': css('--gw-fg'),
+    '--panel-bgcolor': css('--gw-surface'),
+    '--panel-border-color': css('--gw-line'),
     '--map-padding': '60px 80px',
   },
 }
@@ -511,7 +499,7 @@ function decorate() {
 // ---- status dock ----
 const dock = document.getElementById('dock')
 const hint = dock.querySelector('.hint')
-const COLORS = { inferred: 'var(--inferred)', topic: 'var(--topic)', decision: 'var(--decision)', note: 'var(--muted)', excluded: 'var(--muted)', parked: 'var(--parked)', todo: 'var(--todo)' }
+const COLORS = { inferred: 'var(--inferred)', topic: 'var(--topic)', decision: 'var(--decision)', note: 'var(--gw-muted)', excluded: 'var(--gw-muted)', parked: 'var(--parked)', todo: 'var(--todo)' }
 const buttons = {}
 for (const [key, s] of Object.entries(STATUSES)) {
   const b = document.createElement('button')
@@ -716,13 +704,14 @@ async function loadGlossary() {
   try { glossary = (await (await fetch('/api/plan/glossary')).json()).text || '' } catch { glossary = '' }
 }
 
-function itemHtml(it, { showSection = false } = {}) {
+// t: the document strings of the map's language (doc-strings.mjs)
+function itemHtml(it, t, { showSection = false } = {}) {
   const link = it.link ? ` <a href="#" data-link="${esc(it.link)}" title="${esc(it.link)}">↗ ${esc(it.link)}</a>` : ''
   const note = it.note ? `<span class="n">— ${esc(it.note)}</span>` : ''
-  const sec = showSection ? `<span class="s">${esc(it.untouched ? 'érintetlen fejezet' : it.section)}</span>` : ''
+  const sec = showSection ? `<span class="s">${esc(it.untouched ? t.untouchedSection : it.section)}</span>` : ''
   const st = it.status ? ` data-status="${it.status}"` : ''
-  const impl = it.impl ? ` <span class="impl ${it.impl}">${IMPL_LABEL[it.impl]}</span>` : ''
-  const inf = it.status === 'inferred' ? ' <span class="inf">kódból · megerősítésre vár</span>' : ''
+  const impl = it.impl ? ` <span class="impl ${it.impl}">${t.impl[it.impl]}</span>` : ''
+  const inf = it.status === 'inferred' ? ` <span class="inf">${t.inferred}</span>` : ''
   return `<li data-id="${it.id}"${st} style="--d:${showSection ? 0 : it.depth}"><i></i><span class="c"><span class="t">${esc(it.topic)}</span>${impl}${inf} ${note}${link}</span>${sec}</li>`
 }
 
@@ -734,6 +723,7 @@ function renderPrd() {
   if (!docs.some((d) => d.id === currentDoc)) currentDoc = docs[0].id
   const prd = buildPrd(data, currentDoc)
   const D = { subtitle: prd.subtitle, cross: prd.cross, file: `${BASE_DIR}/${prd.doc.file}` }
+  const t = prd.text
   const count = progressSummary(prd)
   const parts = []
   if (docs.length > 1) {
@@ -745,20 +735,20 @@ function renderPrd() {
   }
   parts.push(`<h1>${esc(prd.title)}</h1>`)
   parts.push(`<div class="sub"><span>${D.subtitle} · élő</span><span>${D.file} automatikusan frissül</span></div>`)
-  parts.push(`<div class="bar">${prd.sections.map((s) => `<span class="${s.progress}" data-jump="${s.id}" title="${esc(s.title)}: ${PROGRESS_LABEL[s.progress]}"></span>`).join('')}</div>`)
+  parts.push(`<div class="bar">${prd.sections.map((s) => `<span class="${s.progress}" data-jump="${s.id}" title="${esc(s.title)}: ${t.progress[s.progress]}"></span>`).join('')}</div>`)
   const implTotal = count.impl.done + count.impl.partial + count.impl.missing
-  parts.push(`<div class="counts">${count.done} kész · ${count.active} folyamatban · ${count.untouched} érintetlen fejezet` +
-    (count.inferred ? ` · <b style="color:var(--inferred)">${count.inferred} kódból, megerősítésre vár</b>` : '') +
-    (implTotal ? `<br>Megvalósítás: <b style="color:var(--decision)">${count.impl.done} kész</b> · <b style="color:var(--parked)">${count.impl.partial} részben</b> · <b style="color:var(--missing)">${count.impl.missing} hiányzik</b>` : '') +
+  parts.push(`<div class="counts">${t.sectionCounts(count, ' · ')}` +
+    (count.inferred ? ` · <b style="color:var(--inferred)">${count.inferred} ${t.inferred}</b>` : '') +
+    (implTotal ? `<br>${t.implementation}: <b style="color:var(--decision)">${count.impl.done} ${t.impl.done}</b> · <b style="color:var(--parked)">${count.impl.partial} ${t.impl.partial}</b> · <b style="color:var(--missing)">${count.impl.missing} ${t.impl.missing}</b>` : '') +
     '</div>')
 
   prd.sections.forEach((s, i) => {
     parts.push(`<section id="sec-${s.id}" data-section="${s.id}">`)
-    parts.push(`<h2 data-id="${s.id}"><span class="num">${i + 1}.</span><span>${esc(s.title)}</span><span class="chip ${s.progress}">${PROGRESS_LABEL[s.progress]}</span></h2>`)
+    parts.push(`<h2 data-id="${s.id}"><span class="num">${i + 1}.</span><span>${esc(s.title)}</span><span class="chip ${s.progress}">${t.progress[s.progress]}</span></h2>`)
     if (s.prose) parts.push(`<div class="prose claude" data-key="${s.id}:claude"><button class="edit" data-edit="claude">Szerkesztés</button>${md(s.prose)}</div>`)
     for (const h of s.human) parts.push(`<div class="prose human" data-key="${s.id}:${h.id}"><span class="who">Te írtad · Claude nem írja felül</span><button class="edit" data-edit="${h.id}">Szerkesztés</button>${md(h.text)}</div>`)
-    if (!s.prose && !s.human.length && !s.items.length) parts.push('<p class="placeholder">Még nem beszéltük át.</p>')
-    if (s.items.length) parts.push(`<ul class="items">${s.items.map((it) => itemHtml(it)).join('')}</ul>`)
+    if (!s.prose && !s.human.length && !s.items.length) parts.push(`<p class="placeholder">${t.notDiscussed}</p>`)
+    if (s.items.length) parts.push(`<ul class="items">${s.items.map((it) => itemHtml(it, t)).join('')}</ul>`)
     parts.push(`<button class="add" data-add="${s.id}">+ Saját bekezdés</button>`)
     parts.push('</section>')
   })
@@ -766,9 +756,9 @@ function renderPrd() {
   const cross = [[D.cross.nonGoals, prd.nonGoals], [D.cross.later, prd.later], [D.cross.open, prd.open]]
   for (const [title, list] of cross) {
     if (!list.length) continue
-    parts.push(`<section class="cross"><h2>${title}</h2><ul class="items">${list.map((it) => itemHtml(it, { showSection: true })).join('')}</ul></section>`)
+    parts.push(`<section class="cross"><h2>${title}</h2><ul class="items">${list.map((it) => itemHtml(it, t, { showSection: true })).join('')}</ul></section>`)
   }
-  if ((prd.kind === 'prd' || prd.kind === 'system') && glossary.trim()) parts.push(`<section class="cross"><h2>Fogalmak</h2><div class="glossary">${md(glossary)}</div></section>`)
+  if ((prd.kind === 'prd' || prd.kind === 'system') && glossary.trim()) parts.push(`<section class="cross"><h2>${t.glossary}</h2><div class="glossary">${md(glossary)}</div></section>`)
 
   doc.innerHTML = parts.join('')
   const pick = doc.querySelector('[data-docpick]')
@@ -948,7 +938,6 @@ function show(data, { flashNew = false } = {}) {
   mind.refresh(content(keepExpanded(data)))
   applyFocus({ keepView: true })
   loadGlossary().then(renderPrd)
-  document.getElementById('name').textContent = data.nodeData.topic
   if (selected) { const el = ele(selected); if (el) mind.selectNode(el) }
   decorate()
   if (before) for (const id of ids(data)) if (!before.has(id)) { reveal(id); ele(id)?.classList.add('mm-new') } // open collapsed branches so new items show
@@ -1037,7 +1026,6 @@ async function start() {
     currentDoc = (docs.find((d) => d.id === currentFocus) || docs.find((d) => d.component?.id === currentFocus) || docs[0]).id
   }
   applyFocus({ keepView: false })
-  document.getElementById('name').textContent = j.data.nodeData.topic
   decorate()
   enableBackgroundPan()
   mind.scaleFit()
