@@ -47,6 +47,17 @@ test('the modules stay alive: the frames are kept per module, and the server\'s 
   assert.doesNotMatch(js, /location\.replace/, 'a switch does not reload the frame')
 })
 
+test('the tools come after the workflow, behind one separator: Plan → Build | Sketch', () => {
+  const sketch = { ...view('sketch', 'Sketch'), tool: true }
+  const nav = (modules) => /<nav class="gw-nav"[^>]*>([\s\S]*?)<\/nav>/.exec(page({ modules }))[1]
+  const order = (html) => [...html.matchAll(/<a href="\/\?module=(\w+)"|<span class="gw-nav-sep"/g)].map((m) => m[1] ?? '|')
+  assert.deepEqual(order(nav([view('plan', 'Plan'), view('build', 'Build'), sketch])), ['plan', 'build', '|', 'sketch'])
+  assert.deepEqual(order(nav([view('plan', 'Plan'), view('build', 'Build')])), ['plan', 'build'], 'no tools, no separator')
+  assert.deepEqual(order(nav([sketch])), ['sketch'], 'nothing before the tools, no separator')
+  assert.match(nav([view('plan', 'Plan'), sketch]), /<span class="gw-nav-sep" aria-hidden="true"><\/span>/)
+  assert.match(SHELL_CSS, /\.gw-nav-sep\s*\{/)
+})
+
 test('the project name needs no extra font: no italic, and not the serif', () => {
   const rule = /\.gw-project\s*\{([^}]*)\}/.exec(SHELL_CSS)[1]
   assert.doesNotMatch(rule, /italic|--gw-font-serif/)

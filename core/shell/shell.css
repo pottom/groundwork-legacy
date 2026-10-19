@@ -151,6 +151,9 @@ body.gw-shell {
 
 .gw-nav a:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; }
 
+/* the tools (Sketch, …) come after the workflow's tabs, behind a thin rule */
+.gw-nav-sep { flex: none; align-self: center; width: 1px; height: 24px; margin: 0 calc(var(--gw-space) * .75); background: var(--gw-line); }
+
 /* ---- the module's view ---- */
 
 .gw-main { position: relative; flex: 1; min-height: 0; }
@@ -173,6 +176,7 @@ body.gw-shell {
   .gw-nav a[aria-current="page"]::after { display: none; }
   .gw-nav a[aria-current="page"]::before { top: auto; bottom: 2px; left: 10px; right: 10px; }
   .gw-icon { width: 16px; height: 16px; }
+  .gw-nav-sep { height: 18px; margin: 0 3px; }
   .gw-live { order: 3; margin: 0 2px; }
   .gw-lang { order: 4; }
   .gw-theme { order: 5; }

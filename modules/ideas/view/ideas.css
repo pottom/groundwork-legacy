@@ -1,6 +1,7 @@
 /* The Ideas page (index.html). The look is the shell's design system (/shell/theme.css): the --gw-*
    tokens and the .gw-* components (card, tag, badge, dot, section header, empty state). This sheet
-   only lays out the board with them: four columns side by side, one under the other when narrow. */
+   only lays out the board with them: four columns side by side, one under the other when narrow,
+   the move menu and drop target, and the two dialogs (the drawer, the reason for a rejection). */
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -24,9 +25,51 @@ h2, h3, p { margin: 0; }
 .idea { transition: background-color .6s; }
 .idea.is-fresh { background: var(--gw-accent-soft); }
 
+/* moving: a card is picked up by drag and drop; the column under it shows the gradient outline */
+.idea[draggable="true"] { cursor: grab; }
+.column { outline: 1.5px solid transparent; outline-offset: -1.5px; transition: outline-color .15s; }
+.column.is-over { outline-color: var(--gw-accent); }
+.idea { position: relative; }
+.idea__spacer { flex: 1; }
+.idea__move { margin: -4px -6px -4px 0; }
+.move-menu { position: absolute; top: 36px; right: 8px; z-index: 5; min-width: 180px; }
+.move-menu .gw-popover__item { width: 100%; }
+.idea__open { all: unset; display: block; width: 100%; cursor: pointer; border-radius: var(--gw-radius-sm); }
+.idea__open:hover { color: var(--gw-accent); }
+.idea__open:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; }
+.idea__estimate { display: flex; gap: 6px; flex-wrap: wrap; }
+.idea__reason { color: var(--gw-fg-2); font: var(--gw-text-xs) var(--gw-font); overflow-wrap: anywhere; }
+.idea__reason-label { font-weight: 600; }
+
+/* the drawer (an idea opened to edit) and the reason a rejection asks for: native dialogs */
+dialog { padding: 0; border: 1px solid var(--gw-line); background: var(--gw-surface); color: var(--gw-fg); box-shadow: var(--gw-shadow-lg); }
+dialog::backdrop { background: color-mix(in srgb, var(--gw-fg) 24%, transparent); }
+#drawer { margin: 0 0 0 auto; height: 100vh; max-height: 100vh; width: min(520px, 100vw); max-width: 100vw; border-radius: var(--gw-radius-lg) 0 0 var(--gw-radius-lg); }
+#reject { width: min(440px, calc(100vw - 32px)); border-radius: var(--gw-radius-lg); }
+.drawer { display: flex; flex-direction: column; height: 100%; }
+.drawer__head { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: calc(var(--gw-space) * 2) calc(var(--gw-space) * 2) calc(var(--gw-space) * 1.5) calc(var(--gw-space) * 3); border-bottom: 1px solid var(--gw-line); }
+.drawer__head > button { grid-column: 2; grid-row: 1 / span 2; }
+.drawer__kicker { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.drawer__muted { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); }
+.drawer__title, .reject__title { font: var(--gw-title) var(--gw-font); }
+.drawer__body { flex: 1; overflow: auto; overscroll-behavior: contain; padding: calc(var(--gw-space) * 2) calc(var(--gw-space) * 3); display: flex; flex-direction: column; gap: calc(var(--gw-space) * 2); }
+.drawer__foot, .reject__foot { display: flex; justify-content: flex-end; gap: var(--gw-space); }
+.drawer__foot { padding: calc(var(--gw-space) * 1.5) calc(var(--gw-space) * 3); border-top: 1px solid var(--gw-line); }
+.reject { display: flex; flex-direction: column; gap: calc(var(--gw-space) * 1.5); padding: calc(var(--gw-space) * 3); }
+.reject__idea { color: var(--gw-fg-2); overflow-wrap: anywhere; }
+.form__row { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--gw-space) * 2); }
+.form__field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.form__label { font-weight: 600; color: var(--gw-fg-2); }
+.form__hint { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); }
+.form__field .gw-field { width: 100%; }
+textarea.gw-field { resize: vertical; font: var(--gw-text) var(--gw-font); }
+
 @media (max-width: 900px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) {
   #board { padding: var(--gw-space); }
   .board { grid-template-columns: minmax(0, 1fr); }
+  #drawer { width: 100vw; border-radius: 0; }
+  .drawer__head, .drawer__body, .drawer__foot { padding-left: calc(var(--gw-space) * 2); padding-right: calc(var(--gw-space) * 2); }
+  .form__row { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .idea.is-fresh { transition: none; } }
