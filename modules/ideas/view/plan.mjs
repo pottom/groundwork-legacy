@@ -11,6 +11,16 @@
 //   mapLinks(idea)  [{ id, href }] the idea's links that are map nodes, with Plan's deep link: a link
 //                   that is not an idea (I-3), a ticket (#42) or an address
 //   planLink(id)    the address that opens Plan with that node focused
+//   mapStep(before, idea, { nonGoal }?)  what a change of status sends to the map, wherever it was
+//                   made (move, drawer, reject dialog): { status: 'todo' } for a product idea that
+//                   became To develop, { status: 'excluded', reason } for a rejected one when the human
+//                   asked (nonGoal), else null. before: the status the idea had.
+
+export const mapStep = (before, idea, { nonGoal = false } = {}) => {
+  if (idea.status === 'rejected') return nonGoal ? { status: 'excluded', reason: idea.reason } : null
+  if (idea.status === 'to-develop' && before !== 'to-develop' && (idea.kind || 'product') === 'product') return { status: 'todo' }
+  return null
+}
 
 export const planLink = (id) => '/?module=plan&node=' + encodeURIComponent(id)
 

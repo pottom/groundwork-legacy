@@ -15,7 +15,7 @@ import plan from '../plan/module.mjs'
 import ideas from './module.mjs'
 import { openIdeas } from './store.mjs'
 import { saveIdea } from './view/api.mjs'
-import { toMap, mapLinks } from './view/plan.mjs'
+import { toMap, mapLinks, mapStep } from './view/plan.mjs'
 
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-ideas-plan-'))
 
@@ -73,6 +73,18 @@ test('without Plan, or without a map, Ideas says the map is unavailable and the 
       assert.deepEqual(store.list()[0], moved)
     })
   }
+})
+
+test('a change of status, wherever it is made (move, drawer, reject dialog), says what goes to the map', () => {
+  const idea = (status, extra = {}) => ({ id: 'I-1', title: 'Tabs', status, kind: 'product', ...extra })
+  assert.deepEqual(mapStep('new', idea('to-develop')), { status: 'todo' }, 'a product idea to develop is a todo')
+  assert.deepEqual(mapStep('new', idea('to-develop', { kind: undefined })), { status: 'todo' }, 'an idea without a kind is a product idea')
+  assert.equal(mapStep('new', idea('to-develop', { kind: 'engineering' })), null, 'an engineering idea becomes a ticket, not a node')
+  assert.equal(mapStep('to-develop', idea('to-develop')), null, 'no change of status, nothing new on the map')
+  assert.equal(mapStep('new', idea('considering')), null)
+  assert.equal(mapStep('new', idea('rejected', { reason: 'No' })), null, 'a rejection goes to the map only when asked')
+  assert.deepEqual(mapStep('new', idea('rejected', { reason: 'No' }), { nonGoal: true }), { status: 'excluded', reason: 'No' })
+  assert.deepEqual(mapStep('rejected', idea('rejected', { reason: 'No' }), { nonGoal: true }), { status: 'excluded', reason: 'No' }, 'asked again, it is sent again')
 })
 
 test('only links that are not ideas, tickets or addresses are map nodes', () => {

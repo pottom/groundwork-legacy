@@ -1,16 +1,18 @@
 // The drawer: one idea opened from the board, every field editable (d-ideas-edit). The page keeps
 // what is typed in a draft, so a live re-read of the board does not wipe it; Save sends the draft
 // on the version the drawer opened (api.mjs), and a newer save made elsewhere is reported, not lost.
-// Rejected needs a reason (f-ideas-reject). Number, author and date are facts, shown, not edited.
+// Rejected needs a reason (f-ideas-reject) and offers, like the reject dialog, to add the idea to the
+// map as a non-goal (toMap). Number, author and date are facts, shown, not edited.
 //
 //   drawer(draft, act)   the dialog's content; null draft -> nothing
 //     draft  { idea: as listed, values: { title, body, source, kind, impact, effort, rationale, status, reason,
-//              links: 'a, b' }, saving, error }
-//     act    { edit(name, value), save(), close() }
+//              links: 'a, b' }, toMap, saving, error }
+//     act    { edit(name, value), toMap(on), save(), close() }
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js'
 import { STATUSES, KINDS, LEVELS } from '../fields.mjs'
 import { ui } from './strings.mjs'
+import { toMapCheck } from './reject.mjs'
 
 const CLOSE = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`
 
@@ -52,7 +54,8 @@ export function drawer(draft, act) {
         ${field('status', ui('field.status'), html`<select class="gw-field" id="f-status" name="status" @change=${on(act, 'status')}>${options(STATUSES, v.status, 'status')}</select>`)}
         ${field('kind', ui('field.kind'), html`<select class="gw-field" id="f-kind" name="kind" @change=${on(act, 'kind')}>${options(KINDS, v.kind, 'kind', v.kind ? null : ui('level.none'))}</select>`)}
       </div>
-      ${rejected ? field('reason', ui('field.reason'), html`<textarea class="gw-field" id="f-reason" name="reason" rows="3" required .value=${v.reason} @input=${on(act, 'reason')}></textarea>`, ui('field.reason-hint')) : nothing}
+      ${rejected ? html`${field('reason', ui('field.reason'), html`<textarea class="gw-field" id="f-reason" name="reason" rows="3" required .value=${v.reason} @input=${on(act, 'reason')}></textarea>`, ui('field.reason-hint'))}
+        ${toMapCheck(draft.toMap, act)}` : nothing}
       <div class="form__row">
         ${field('impact', ui('field.impact'), html`<select class="gw-field" id="f-impact" name="impact" @change=${on(act, 'impact')}>${options(LEVELS, v.impact, 'level', ui('level.none'))}</select>`)}
         ${field('effort', ui('field.effort'), html`<select class="gw-field" id="f-effort" name="effort" @change=${on(act, 'effort')}>${options(LEVELS, v.effort, 'level', ui('level.none'))}</select>`)}

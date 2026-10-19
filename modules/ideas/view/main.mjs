@@ -16,7 +16,8 @@
 // a ticket, or the link on the idea's node on Plan's map) opens that idea in the drawer.
 //
 // A product idea moved to To develop goes to Plan's map as a todo node, and a rejected one, when the
-// human asks, as a non-goal (plan.mjs); without Plan a toast says the map is unavailable.
+// human asks, as a non-goal (plan.mjs); without Plan a toast says the map is unavailable. Every change
+// of status takes that one way (statusChanged), whether made by a move, the reject dialog or the drawer.
 //
 // A card shows the sketches that link to its idea (the Sketch module's GET /api/sketch/links, topic
 // "sketch.links"), each opening that sketch.
@@ -32,7 +33,7 @@ import { drawer, valuesOf, changesOf } from './drawer.mjs'
 import { rejectForm } from './reject.mjs'
 import { copyText } from './tickets.mjs'
 import { ticketPrompt } from '../ticket.mjs'
-import { toMap } from './plan.mjs'
+import { toMap, mapStep } from './plan.mjs'
 
 const $ = (id) => document.getElementById(id)
 // The view chosen (Kanban or Matrix), remembered by the browser when it may.
@@ -132,6 +133,13 @@ async function sendToMap(idea, status, reason) {
   draw()
 }
 
+// What a change of status does beyond the save, wherever it was made: a product idea to develop
+// becomes a todo on the map; a rejected one a non-goal when the human asked (nonGoal).
+async function statusChanged(before, idea, { nonGoal = false } = {}) {
+  const step = mapStep(before, idea, { nonGoal })
+  if (step) await sendToMap(idea, step.status, step.reason)
+}
+
 async function move(idea, status) {
   if (status === 'rejected') {
     ask = { idea, reason: '', toMap: false, error: null }
@@ -142,12 +150,12 @@ async function move(idea, status) {
   const r = answered(await saveIdea(idea, { status }), () => {})
   document.querySelector(`[data-idea="${idea.id}"] .idea__move`)?.focus()
   // A product idea to develop becomes a todo on the map (f-ideas-to-plan); an engineering one a ticket.
-  if (r.ok && status === 'to-develop' && (r.idea.kind ?? 'product') === 'product') await sendToMap(r.idea, 'todo')
+  if (r.ok) await statusChanged(idea.status, r.idea)
 }
 
 const boardActs = {
   open(idea) {
-    draft = { idea, values: valuesOf(idea), saving: false, error: null }
+    draft = { idea, values: valuesOf(idea), toMap: false, saving: false, error: null }
     state.menu = null
     draw()
     $('drawer').showModal()
@@ -178,16 +186,20 @@ const matrixActs = {
 
 const drawerActs = {
   edit(name, value) { draft.values = { ...draft.values, [name]: value }; draw() },
+  toMap(on) { draft.toMap = on; draw() },
   async save() {
+    const { idea: before, toMap: nonGoal } = draft
     draft = { ...draft, saving: true, error: null }
     draw()
-    const r = await saveIdea(draft.idea, changesOf(draft.values))
+    const r = await saveIdea(before, changesOf(draft.values))
     if (r.stale && r.idea) {
-      draft = { idea: r.idea, values: valuesOf(r.idea), saving: false, error: ui('drawer.stale') }
+      draft = { idea: r.idea, values: valuesOf(r.idea), toMap: nonGoal, saving: false, error: ui('drawer.stale') }
     } else if (r.error) {
       draft = { ...draft, saving: false, error: r.error }
     }
     answered(r, () => { draft = null; $('drawer').close() })
+    // The status select takes the same way as a move (f-ideas-to-plan, f-ideas-reject).
+    if (r.ok) await statusChanged(before.status, r.idea, { nonGoal })
   },
   close() { $('drawer').close() },
 }
@@ -196,13 +208,13 @@ const rejectActs = {
   edit(reason) { ask.reason = reason; draw() },
   toMap(on) { ask.toMap = on; draw() },
   async confirm() {
-    const nonGoal = ask.toMap
-    const r = await saveIdea(ask.idea, { status: 'rejected', reason: ask.reason })
+    const { idea: before, toMap: nonGoal } = ask
+    const r = await saveIdea(before, { status: 'rejected', reason: ask.reason })
     if (r.error) ask = { ...ask, error: r.error }
     answered(r, () => {})
     if (r.error) return
     $('reject').close()
-    if (r.ok && nonGoal) await sendToMap(r.idea, 'excluded', r.idea.reason)
+    if (r.ok) await statusChanged(before.status, r.idea, { nonGoal })
   },
   cancel() { $('reject').close() },
 }
