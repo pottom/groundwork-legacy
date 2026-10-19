@@ -12,11 +12,13 @@ import { runCommand } from '../../core/cli-process.test-helper.mjs'
 const BIN = fileURLToPath(new URL('../../core/groundwork.mjs', import.meta.url))
 const ITEMS = path.join('docs', 'product', 'ideas', 'items')
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-ideas-cli-'))
+// What Claude must add to an idea of its own: an estimate with its reason.
+const ESTIMATE = ['--impact', 'high', '--effort', 'low', '--rationale', 'Small change, often used.']
 const ideas = (cwd, ...args) => runCommand(process.execPath, [BIN, 'ideas', ...args], { cwd })
 
 test('ideas add creates the next numbered file and says its number', async () => {
   const dir = project()
-  const first = await ideas(dir, 'add', 'Quick tab switching', '--body', 'Ctrl+1..9.', '--author', 'claude', '--source', 'grilling', '--kind', 'engineering')
+  const first = await ideas(dir, 'add', 'Quick tab switching', '--body', 'Ctrl+1..9.', '--author', 'claude', '--source', 'grilling', '--kind', 'engineering', ...ESTIMATE)
   assert.equal(first.code, 0, first.stderr)
   assert.match(first.stdout, /I-1\b.*I-001-quick-tab-switching\.md/)
   const text = fs.readFileSync(path.join(dir, ITEMS, 'I-001-quick-tab-switching.md'), 'utf8')
@@ -32,7 +34,7 @@ test('ideas add creates the next numbered file and says its number', async () =>
 
 test('ideas list prints every idea with its number, column, title, author and source', async () => {
   const dir = project()
-  await ideas(dir, 'add', 'Quick tab switching', '--author', 'claude', '--source', 'grilling')
+  await ideas(dir, 'add', 'Quick tab switching', '--author', 'claude', '--source', 'grilling', ...ESTIMATE)
   const r = await ideas(dir, 'list')
   assert.equal(r.code, 0, r.stderr)
   assert.match(r.stdout, /I-1\s+new\s+Quick tab switching\s+\(claude, grilling\)/)
@@ -53,4 +55,57 @@ test('a wrong call stops with a message and exit code 1, writing nothing', async
     assert.match(r.stderr, /\S/)
   }
   assert.equal(fs.existsSync(path.join(dir, ITEMS)), false)
+})
+
+test('ideas similar lists likely duplicates with a score, the closest first, and nothing unrelated', async () => {
+  const dir = project()
+  await ideas(dir, 'add', 'Quick tab switching with keyboard shortcuts', '--body', 'Ctrl+1..9 switches between the module tabs.')
+  await ideas(dir, 'add', 'Dark mode for the print view')
+  await ideas(dir, 'add', 'Keyboard shortcut to switch tabs')
+  const r = await ideas(dir, 'similar', 'switch tabs with a keyboard shortcut')
+  assert.equal(r.code, 0, r.stderr)
+  const lines = r.stdout.trim().split('\n')
+  assert.deepEqual(lines.map((l) => l.split(/\s+/)[0]), ['I-3', 'I-1'])
+  for (const l of lines) assert.match(l, /^I-\d+\s+[01]\.\d\d\s+new\s+\S/)
+  assert.ok(Number(lines[0].split(/\s+/)[1]) > Number(lines[1].split(/\s+/)[1]), 'the closest has the higher score')
+})
+
+test('ideas similar says so when nothing is similar', async () => {
+  const dir = project()
+  await ideas(dir, 'add', 'Dark mode for the print view')
+  const r = await ideas(dir, 'similar', 'faster ticket search')
+  assert.equal(r.code, 0, r.stderr)
+  assert.match(r.stdout, /no similar ideas/i)
+})
+
+test('an idea Claude adds carries author claude, its source, an impact/effort estimate with its rationale, and links to similar ideas', async () => {
+  const dir = project()
+  await ideas(dir, 'add', 'Keyboard shortcut to switch tabs')
+  const r = await ideas(dir, 'add', 'Quick tab switching', '--author', 'claude', '--source', 'review of #24',
+    '--impact', 'medium', '--effort', 'low', '--rationale', 'Saves a click per switch; one key handler in the shell.', '--links', 'I-1')
+  assert.equal(r.code, 0, r.stderr)
+  const text = fs.readFileSync(path.join(dir, ITEMS, 'I-002-quick-tab-switching.md'), 'utf8')
+  assert.match(text, /\nauthor: claude\n/)
+  assert.match(text, /\nsource: "review of #24"\n/)
+  assert.match(text, /\nimpact: medium\n/)
+  assert.match(text, /\neffort: low\n/)
+  assert.match(text, /\nrationale: "?Saves a click per switch; one key handler in the shell\."?\n/)
+  assert.match(text, /\nlinks: I-1\n/)
+  const list = await ideas(dir, 'list')
+  assert.match(list.stdout, /I-2\s+new\s+Quick tab switching\s+\(claude, review of #24\)\s+impact medium, effort low\s+~ I-1/)
+})
+
+test('Claude cannot file an idea without its source and estimate, nor link an idea that does not exist', async () => {
+  const dir = project()
+  const full = ['--author', 'claude', '--source', 'chat', '--impact', 'high', '--effort', 'low', '--rationale', 'Why.']
+  const without = (opt) => { const a = [...full], i = a.indexOf(opt); a.splice(i, 2); return a }
+  for (const args of [without('--source'), without('--impact'), without('--effort'), without('--rationale'),
+    [...full.slice(0, 4), '--impact', 'huge', ...full.slice(6)], [...full, '--links', 'I-9']]) {
+    const r = await ideas(dir, 'add', 'Idea', ...args)
+    assert.equal(r.code, 1, args.join(' '))
+    assert.match(r.stderr, /\S/)
+  }
+  assert.equal(fs.existsSync(path.join(dir, ITEMS)), false)
+  const ok = await ideas(dir, 'add', 'Idea', ...full)
+  assert.equal(ok.code, 0, ok.stderr)
 })

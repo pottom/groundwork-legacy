@@ -4,7 +4,7 @@ Each folder here is one Groundwork module.
 
 | Module | What it does | State |
 |---|---|---|
-| [`ideas/`](ideas/) | Numbered ideas with author and source, as Markdown files under `docs/product/ideas/items/`, on a kanban; `groundwork ideas add` | tracer: board read-only |
+| [`ideas/`](ideas/) | Numbered ideas with author and source, as Markdown files under `docs/product/ideas/items/`, on a kanban; `groundwork ideas add` | tracer: board read-only (Claude skill: groundwork-ideas) |
 | [`plan/`](plan/) | Turns a grilling interview with Claude Code into a live mind map and product documents under `docs/product/` | working prototype (Claude skill: groundwork-prd-maker) |
 | [`build/`](build/) | Shows a project's Markdown tickets, specs, ADRs and git branches as a live dashboard | working prototype |
 | [`sketch/`](sketch/) | A drawing board (Excalidraw) whose sketches are standard `.excalidraw` files under `docs/product/sketches/` | first version: one sketch |

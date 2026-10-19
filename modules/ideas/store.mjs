@@ -3,21 +3,24 @@
 // It is in git, so the team sees it and decisions can be traced.
 //
 //   const store = openIdeas(root, files)   // files: the core's writer for this module (core/files.mjs)
-//   store.list()          [{ id: 'I-12', n: 12, file, title, body, author, source, kind, status, created }]
+//   store.list()          [{ id: 'I-12', n: 12, file, title, body, author, source, kind, status, created,
+//                            impact?, effort?, rationale?, links? ['I-3'] }]
 //                         in number order; [] without the folder
-//   store.add({ title, body?, author?, source?, kind? })   the new idea, as list() gives it
+//   store.add({ title, body?, author?, source?, kind?, impact?, effort?, rationale?, links? })
+//                         the new idea, as list() gives it. impact and effort: low|medium|high, with a
+//                         one-line rationale; links: numbers of existing ideas it is similar to.
 //
 // The next number is the highest one in the folder plus one: numbers are never reused, as an idea
 // is never deleted (a rejected one stays, in the Rejected column).
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { STATUSES, AUTHORS, KINDS, ideaId, fileName } from './fields.mjs'
+import { STATUSES, AUTHORS, KINDS, LEVELS, ideaId, fileName } from './fields.mjs'
 
 export const ITEMS = 'docs/product/ideas/items'
 const NUMBERED = /^I-(\d+)-.*\.md$/
 // The fields in the order they are written; the description is the body, not a field.
-const ORDER = ['title', 'author', 'source', 'kind', 'status', 'created']
+const ORDER = ['title', 'author', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'created']
 
 // "Gyors tabváltás!" -> "gyors-tabvaltas": ASCII, short, safe in a file name.
 export function slugOf(title) {
@@ -34,7 +37,8 @@ function value(v) {
 }
 
 export function serialize(fields, body) {
-  const lines = ORDER.filter((k) => fields[k] != null && fields[k] !== '').map((k) => `${k}: ${value(fields[k])}`)
+  const text = (v) => (Array.isArray(v) ? v.join(', ') : v)
+  const lines = ORDER.filter((k) => fields[k] != null && text(fields[k]) !== '').map((k) => `${k}: ${value(text(fields[k]))}`)
   return `---\n${lines.join('\n')}\n---\n${body ? `\n${body.trim()}\n` : ''}`
 }
 
@@ -66,18 +70,24 @@ export function openIdeas(root, files) {
     return names().map((f) => {
       const n = Number(NUMBERED.exec(f)[1])
       const { fields, body } = parse(files.read(`${ITEMS}/${f}`))
+      if (fields.links != null) fields.links = fields.links.split(',').map((s) => s.trim()).filter(Boolean)
       return { ...fields, id: ideaId(n), n, file: `${ITEMS}/${f}`, title: fields.title || f, status: STATUSES.includes(fields.status) ? fields.status : 'new', body }
     }).sort((a, b) => a.n - b.n)
   }
 
-  function add({ title, body = '', author = 'human', source = '', kind = 'product' } = {}) {
+  function add({ title, body = '', author = 'human', source = '', kind = 'product', impact, effort, rationale, links = [] } = {}) {
     title = String(title ?? '').replace(/\s+/g, ' ').trim()
     if (!title) throw new Error('an idea needs a title')
     check('author', author, AUTHORS)
     check('kind', kind, KINDS)
+    if (impact != null) check('impact', impact, LEVELS)
+    if (effort != null) check('effort', effort, LEVELS)
+    const known = new Set(list().map((i) => i.id))
+    for (const id of links) if (!known.has(id)) throw new Error(`no idea ${id} to link to`)
     const n = Math.max(0, ...names().map((f) => Number(NUMBERED.exec(f)[1]))) + 1
     const file = `${ITEMS}/${fileName(n, slugOf(title))}`
-    const fields = { title, author, source: String(source).replace(/\s+/g, ' ').trim(), kind, status: 'new', created: new Date().toISOString().slice(0, 10) }
+    const line = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
+    const fields = { title, author, source: line(source), kind, impact, effort, rationale: line(rationale), links: links.length ? [...links] : undefined, status: 'new', created: new Date().toISOString().slice(0, 10) }
     files.write(file, serialize(fields, String(body)))
     return { ...fields, id: ideaId(n), n, file, body: String(body).trim() }
   }
