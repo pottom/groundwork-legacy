@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import { UI_STRINGS } from './ui-strings.mjs'
 import { STATUSES, IMPL } from './node-types.mjs'
 import { COMPONENT_TYPES, buildPrd } from './documents.mjs'
+import { DEFAULT_DOC_LANG, langOf } from './doc-strings.mjs'
 import { LANG_KEY } from '../../core/shell/i18n.mjs'
 import plan from './module.mjs'
 
@@ -19,7 +20,6 @@ test('the view and the map labels carry no text of their own: no Hungarian left 
     const line = read(f).split('\n').findIndex((l) => HUNGARIAN_LETTERS.test(l))
     assert.equal(line, -1, `${f}:${line + 1}`)
   }
-  for (const v of Object.values(COMPONENT_TYPES)) assert.doesNotMatch(String(v), HUNGARIAN_LETTERS)
 })
 
 test('the English and the Hungarian set have the same keys, and the Hungarian one is translated', () => {
@@ -38,11 +38,16 @@ test('every key the view uses has a text', () => {
   for (const k of keys) assert.ok(UI_STRINGS.en[k], k)
 })
 
+test('implementation levels and component types are plain key lists; their labels live in the UI strings', () => {
+  assert.deepEqual(IMPL, ['done', 'partial', 'missing'])
+  assert.deepEqual(COMPONENT_TYPES, ['software', 'service', 'infra', 'shared'])
+})
+
 test('every status, implementation level and component type has a label in both languages', () => {
   const keys = [
     ...Object.keys(STATUSES).map((k) => `status.${k}`),
-    ...Object.keys(IMPL).map((k) => `impl.${k}`),
-    ...Object.keys(COMPONENT_TYPES).map((k) => `component.${k}`),
+    ...IMPL.map((k) => `impl.${k}`),
+    ...COMPONENT_TYPES.map((k) => `component.${k}`),
   ]
   for (const k of keys) for (const lang of ['en', 'hu']) assert.ok(UI_STRINGS[lang][k], `${lang} ${k}`)
   assert.equal(UI_STRINGS.en['status.decision'], 'decision')
@@ -67,4 +72,9 @@ test('the documents keep their own language whatever the UI language is', () => 
   } finally {
     if (saved) Object.defineProperty(globalThis, 'localStorage', saved); else delete globalThis.localStorage
   }
+})
+
+test('a map without a language gets the document-language default, which is not the UI default', () => {
+  assert.equal(DEFAULT_DOC_LANG, 'hu')
+  assert.equal(langOf({ nodeData: {} }), DEFAULT_DOC_LANG)
 })

@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 4 kész, 2 részben, 1 hiányzik.
+> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 4 kész, 3 részben, 1 hiányzik.
 
 ## 1. Hatókör és fő funkciók
 
@@ -18,7 +18,7 @@ A Plan modul a prd-maker prototípusból születik. Egy grilling-interjú közbe
 - Meglévő projekt feltöltése kódból `részben` — A skill leírja, nincs külön eszköz hozzá.
 - Nézet/szerkesztés mód, fókusz, összecsukás `kész`
 - groundwork-prd-maker skill + hook `részben` — A hook élesben még nem futott. ([.claude/skills/groundwork-prd-maker/SKILL.md](../../../.claude/skills/groundwork-prd-maker/SKILL.md))
-- Dokumentumok a beszélgetés nyelvén
+- Dokumentumok a beszélgetés nyelvén `részben` — Magyar és angol szövegkészlet van; más nyelvű beszélgetésnél a dokumentumok angolul készülnek. ([modules/plan/doc-strings.mjs](../../../modules/plan/doc-strings.mjs))
 - Döntésenként látszik, hány jegy lett és mennyi kész `hiányzik`
 - A to-tickets után Claude írja be a PRD-hivatkozást — A to-tickets változatlan marad.
 

@@ -47,12 +47,7 @@ export const KINDS = {
 }
 
 // Component types, shown as a label on the map; the label is UI text (ui-strings.mjs, component.<key>).
-export const COMPONENT_TYPES = {
-  software: 'software',
-  service: 'service',
-  infra: 'infrastructure',
-  shared: 'shared',
-}
+export const COMPONENT_TYPES = ['software', 'service', 'infra', 'shared']
 
 const kindOf = (kind) => KINDS[kind] || { file: null }
 // The titles of a kind in a language: subtitle and the closing sections.

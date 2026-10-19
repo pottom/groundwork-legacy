@@ -62,7 +62,7 @@ export default {
   id: 'build',
   name: 'Build',
   version: VERSION,
-  view: { dir: HERE, files: ['index.html'] },
+  view: { dir: HERE, files: ['index.html', 'i18n.js', 'ui-strings.js'] },
   api({ root }) {
     const project = openProject(root);
     const name = path.basename(project.root);

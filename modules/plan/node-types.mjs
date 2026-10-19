@@ -31,11 +31,7 @@ export const STATUSES = {
 }
 
 // Implementation layer, independent of the status: how far the code is.
-export const IMPL = {
-  done:    {},
-  partial: {},
-  missing: {},
-}
+export const IMPL = ['done', 'partial', 'missing']
 
 // A CSS url() for the icon, usable as a mask so it can take any color.
 export function iconUrl(status) {

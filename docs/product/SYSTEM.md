@@ -4,7 +4,7 @@
 
 _Rendszer-áttekintés. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Mag: Műszaki terv](core/TECH.md), [Plan modul: Termék](plan/PRD.md), [Plan modul: Műszaki terv](plan/TECH.md), [Build modul: Termék](build/PRD.md), [Build modul: Műszaki terv](build/TECH.md)._
 
-> Állapot: 4 kész, 0 folyamatban, 0 érintetlen fejezet.
+> Állapot: 4 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 1 kész, 0 részben, 0 hiányzik.
 
 ## 1. Cél és érintettek
 
@@ -27,7 +27,7 @@ Az első két modul a **Plan** (tervezés: interjú, térkép, dokumentumok) és
 
 - Később új modulokkal bővíthető
 - Mag + két modul: Plan és Build
-- A Mag: közös szerver és keret, felhasználói funkció nélkül
+- A Mag: közös szerver és keret, felhasználói funkció nélkül `kész` ([core/README.md](../../core/README.md))
 - Jegy ↔ PRD-elem kapcsolat stabil azonosítóval — A jegyben pl. **PRD:** d-npm sor.
 
 ## 3. Közös ütemterv

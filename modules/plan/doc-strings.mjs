@@ -85,10 +85,11 @@ export const DOC_STRINGS = {
   },
 }
 
-export const DEFAULT_LANG = 'hu'
+// The documents' default language; the UI's default is DEFAULT_LANG in core/shell/i18n.mjs.
+export const DEFAULT_DOC_LANG = 'hu'
 
 // The language a map's documents are written in.
-export const langOf = (data) => data.nodeData?.metadata?.lang || DEFAULT_LANG
+export const langOf = (data) => data.nodeData?.metadata?.lang || DEFAULT_DOC_LANG
 
 // The strings of a language; an unknown one falls back to the default.
-export const docStrings = (lang) => DOC_STRINGS[lang] || DOC_STRINGS[DEFAULT_LANG]
+export const docStrings = (lang) => DOC_STRINGS[lang] || DOC_STRINGS[DEFAULT_DOC_LANG]
