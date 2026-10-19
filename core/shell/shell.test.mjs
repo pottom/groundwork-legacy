@@ -36,7 +36,15 @@ test('switching modules keeps the page: the tab links are handled in place, with
   const js = script(html)
   assert.match(js, /history\.pushState/)
   assert.match(js, /addEventListener\('popstate'/)
-  assert.match(js, /location\.replace/, 'the frame is replaced, not stacked in history')
+})
+
+test('the modules stay alive: the frames are kept per module, and the server\'s frame says whose it is', () => {
+  const html = page({ params: new URLSearchParams('module=plan&node=d-trace') })
+  assert.match(html, /<iframe class="gw-view" data-module="plan" title="Plan" src="\/plan\/\?node=d-trace"><\/iframe>/)
+  const js = script(html)
+  assert.match(js, /import \{ moduleFrames \} from '\/shell\/frames\.mjs'/)
+  assert.match(js, /moduleFrames\(/)
+  assert.doesNotMatch(js, /location\.replace/, 'a switch does not reload the frame')
 })
 
 test('the project name needs no extra font: no italic, and not the serif', () => {
@@ -61,4 +69,13 @@ test('no file of the shell is longer than about 400 lines', () => {
     const lines = fs.readFileSync(new URL('./' + f, import.meta.url), 'utf8').split('\n').length
     assert.ok(lines <= 420, `core/shell/${f}: ${lines} lines`)
   }
+})
+
+test('a hidden module frame keeps its size and place: hidden by visibility, stacked under the shown one', () => {
+  assert.match(SHELL_CSS, /\.gw-main\s*\{[^}]*position:\s*relative/)
+  assert.match(SHELL_CSS, /\.gw-view\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0/)
+  const hidden = /\.gw-view\[hidden\]\s*\{([^}]*)\}/.exec(SHELL_CSS)?.[1]
+  assert.ok(hidden, 'a rule for the hidden frame')
+  assert.match(hidden, /display:\s*block/, 'not display: none, which would lay the module out again at 0×0')
+  assert.match(hidden, /visibility:\s*hidden/)
 })

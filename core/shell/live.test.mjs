@@ -1,5 +1,5 @@
-// The live connection: one update stream per browser tab, owned by the shell and relayed to the
-// module's frame; a module page opened on its own opens its own stream.
+// The live connection: one update stream per browser tab, owned by the shell and relayed to
+// every module frame; a module page opened on its own opens its own stream.
 // Run: node --test core/
 
 import { test } from 'node:test'
@@ -188,4 +188,22 @@ test('a change with a broken payload is passed on as no topics, not thrown', () 
   subscribe({ onChange: (t) => got.push(t) }, { win: page, EventSource: es.FakeEventSource })
   es.opened[0].emit('change', 'not json')
   assert.deepEqual(got, [[]])
+})
+
+test('every module frame hears the stream, the hidden ones too', async () => {
+  const shell = fakeWindow()
+  const frames = [fakeWindow({ parent: shell }), fakeWindow({ parent: shell })]
+  for (const frame of frames) {
+    const post = frame.postMessage
+    frame.postMessage = (data, target) => post.call(frame, data, target, shell)
+  }
+  shell.frames = frames
+  const es = fakeEventSourceClass()
+  relayEvents({ win: shell, EventSource: es.FakeEventSource })
+  const got = frames.map(() => [])
+  frames.forEach((frame, i) => subscribe({ onChange: (topics) => got[i].push(topics) }, { win: frame, EventSource: es.FakeEventSource }))
+  es.opened[0].emit('change', JSON.stringify({ topics: ['plan.map'] }))
+  await tick()
+  assert.equal(es.opened.length, 1, 'one stream for the tab')
+  assert.deepEqual(got, [[['plan.map']], [['plan.map']]])
 })

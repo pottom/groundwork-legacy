@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Tábla modul: Termék](../board/PRD.md), [Tábla modul: Műszaki terv](../board/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 20 kész, 1 részben, 1 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 21 kész, 1 részben, 0 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -41,7 +41,7 @@ Minden modul egy közös kinézetet használ, amelyet a Mag ad; ez követi az op
 - Közös kinézet a Magból, minden modul ehhez igazodik `kész` — A közös változók a /shell/theme.css-ben; a Plan és a Build is ezeket használja. ([core/shell/theme.css](../../../core/shell/theme.css))
 - Világos vagy sötét az OS beállítása szerint `kész` — Kapcsoló nincs; a nézetek újratöltés nélkül is követik a váltást. ([core/shell/theme.css](../../../core/shell/theme.css))
 - A keret birtokolja az élő kapcsolatot, a verziót, a nyelvet és a projekt nevét `kész` — Fülenként egy eseményfolyam; a modulok a /shell/live.mjs-en át kapják, és nem ismétlik a keret jelzéseit. ([core/shell/live.mjs](../../../core/shell/live.mjs))
-- Fülváltáskor a modulok életben maradnak `hiányzik` — A keret modulonként egy keretet tart meg, és csak elrejti; a térkép megtartja a nagyítást és kijelölést, a Build a görgetést és a szűrőket.
+- Fülváltáskor a modulok életben maradnak `kész` — A keret modulonként egy keretet tart meg, és csak elrejti; a térkép megtartja a nagyítást és kijelölést, a Build a görgetést és a szűrőket. ([core/shell/frames.mjs](../../../core/shell/frames.mjs))
 - A modulok eszköztára a modulban marad — A keret modulfüggetlen marad; harmadik modulnál újragondolható.
 
 ## 4. Csomagolás és terjesztés

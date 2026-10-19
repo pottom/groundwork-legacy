@@ -8,19 +8,21 @@
 //   /?module=<id>&…   a deep link: the rest of the query goes to the module's frame
 //                     (/?module=plan&node=d-trace shows /plan/?node=d-trace)
 //
-// In the browser the tabs switch the frame in place (no page load; history.pushState, and the
-// back button works); the links stay plain links for a page without the script.
+// In the browser the tabs switch modules in place (no page load; history.pushState, and the
+// back button works); the links stay plain links for a page without the script. Each visited
+// module keeps its frame, hidden while another is shown (frames.mjs), so a switch is instant and
+// a module keeps its state; a deep link with a new query opens it in that module's frame.
 //
 // The shell owns the tab's live connection: it opens the one stream of server events and relays
-// it to the module's frame (live.mjs here, served at /shell/live.mjs; a module calls its
-// subscribe()). The header's indicator is the only place that shows whether the page is live.
+// it to every module frame, hidden ones too (live.mjs here, served at /shell/live.mjs; a module
+// calls its subscribe()). The header's indicator is the only place that shows whether the page is live.
 //
 // The look (the tokens and the .gw-* components, light or dark) comes from theme.css next to this
 // file, served at /shell/theme.css; modules link the same file to share it (see README.md here).
 //
 // The UI text is English here and marked with data-i18n keys (strings.mjs, plus each module's
 // tagline as module.<id>.tagline); in the browser i18n.mjs switches it to the chosen language,
-// and the language control in the header changes it for the shell and the module's frame alike.
+// and the language control in the header changes it for the shell and every module frame alike.
 
 import { SHELL_STRINGS } from './strings.mjs'
 import { LANGS, DEFAULT_LANG } from './i18n.mjs'
@@ -64,7 +66,7 @@ export function shellPage({ project, version, modules, active, params }) {
   rest.delete('module')
   const query = rest.size ? '?' + rest : ''
   const main = current
-    ? `<iframe class="gw-view" title="${esc(current.name)}" src="/${esc(encodeURIComponent(current.id))}/${esc(query)}"></iframe>`
+    ? `<iframe class="gw-view" data-module="${esc(current.id)}" title="${esc(current.name)}" src="/${esc(encodeURIComponent(current.id))}/${esc(query)}"></iframe>`
     : `<div class="gw-empty"><span class="gw-empty__icon">${icon({})}</span><p class="gw-empty__title" data-i18n="noView">${esc(T.noView)}</p><p class="gw-empty__text" data-i18n="noViewText">${esc(T.noViewText)}</p></div>`
   const langs = Object.entries(LANGS).map(([code, name]) => `<button type="button" data-lang="${code}" title="${esc(name)}" aria-pressed="${code === DEFAULT_LANG}">${code.toUpperCase()}</button>`)
   // what the script needs to switch tabs in place: the page title's parts and each module's name
@@ -99,6 +101,7 @@ export function shellPage({ project, version, modules, active, params }) {
 <script type="module">
 import { createI18n } from '/shell/i18n.mjs'
 import { relayEvents } from '/shell/live.mjs'
+import { moduleFrames } from '/shell/frames.mjs'
 const i18n = createI18n(${scriptJson(pageStrings(views))})
 const NAV = ${scriptJson(nav)}
 const langs = [...document.querySelectorAll('.gw-lang [data-lang]')]
@@ -115,11 +118,13 @@ for (const b of langs) b.onclick = () => i18n.set(b.dataset.lang)
 i18n.onChange(show)
 show()
 
-// Live: the tab's one stream of server events, relayed to the module's frame (live.mjs).
+// Live: the tab's one stream of server events, relayed to every module frame (live.mjs).
 relayEvents({ onState: (state) => { live.dataset.state = state; show() } })
 
-// The tabs switch the frame in place: no page load, so the header stays and nothing reconnects.
+// The tabs switch modules in place: no page load, so the header stays and nothing reconnects.
+// Each visited module keeps its frame, only hidden (frames.mjs), so it keeps its state.
 const frame = document.querySelector('.gw-view')
+const frames = frame && moduleFrames(document.querySelector('.gw-main'))
 const tabs = [...document.querySelectorAll('.gw-nav a')]
 const idOf = (href) => new URL(href, location.href).searchParams.get('module')
 function open(url, push) {
@@ -131,8 +136,7 @@ function open(url, push) {
     if (idOf(a.href) === id) a.setAttribute('aria-current', 'page')
     else a.removeAttribute('aria-current')
   }
-  frame.title = NAV.modules[id]
-  frame.contentWindow.location.replace('/' + encodeURIComponent(id) + '/' + query)
+  frames.show(id, { title: NAV.modules[id], query })
   document.title = NAV.project + ' · ' + NAV.modules[id] + ' · Groundwork'
   if (push) history.pushState(null, '', url)
 }

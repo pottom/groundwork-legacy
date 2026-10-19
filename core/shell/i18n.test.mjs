@@ -102,3 +102,10 @@ test('the shell tells its module frames by message, and a frame takes it only fr
   win.dispatchEvent(message('http://localhost:4477'))
   assert.equal(view.lang, 'hu')
 })
+
+test('the language switch reaches every module frame, the hidden ones too', () => {
+  const posted = []
+  const frame = (name) => ({ postMessage: (data) => posted.push([name, data.lang]) })
+  createI18n(STRINGS, { storage: memoryStorage(), win: fakeWindow([frame('plan'), frame('build')]) }).set('hu')
+  assert.deepEqual(posted, [['plan', 'hu'], ['build', 'hu']])
+})
