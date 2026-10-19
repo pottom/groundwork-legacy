@@ -1,0 +1,32 @@
+/* The Ideas page (index.html). The look is the shell's design system (/shell/theme.css): the --gw-*
+   tokens and the .gw-* components (card, tag, badge, dot, section header, empty state). This sheet
+   only lays out the board with them: four columns side by side, one under the other when narrow. */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-text-small) var(--gw-font); overflow-x: hidden; }
+h2, h3, p { margin: 0; }
+
+#board { padding: calc(var(--gw-space) * 2); min-height: 100vh; }
+#board > .gw-empty { max-width: 520px; margin: calc(var(--gw-space) * 6) auto 0; }
+
+.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--gw-space) * 2); align-items: start; }
+.column { display: flex; flex-direction: column; gap: var(--gw-space); min-width: 0; padding: var(--gw-space); background: var(--gw-sunken); border-radius: var(--gw-radius-lg); }
+.column .gw-section-head { padding: 2px 4px; }
+.column__empty { color: var(--gw-muted); padding: var(--gw-space) 4px; }
+
+.cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gw-space); }
+.idea { padding: calc(var(--gw-space) * 1.5); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.idea__head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.idea__title { font: 600 var(--gw-text) var(--gw-font); overflow-wrap: anywhere; }
+.idea__source { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* an idea that just arrived: tinted for a moment */
+.idea { transition: background-color .6s; }
+.idea.is-fresh { background: var(--gw-accent-soft); }
+
+@media (max-width: 900px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  #board { padding: var(--gw-space); }
+  .board { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .idea.is-fresh { transition: none; } }

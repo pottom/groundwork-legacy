@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groundwork Ideas</title>
+<link rel="stylesheet" href="/shell/theme.css">
+<link rel="stylesheet" href="./view/ideas.css">
+<!-- every module the page imports, fetched side by side instead of one import level after another (a test keeps the list whole) -->
+<link rel="modulepreload" href="/vendor/lit-html/lit-html.js"><link rel="modulepreload" href="/vendor/lit-html/directive.js"><link rel="modulepreload" href="/vendor/lit-html/directive-helpers.js">
+<link rel="modulepreload" href="/vendor/lit-html/directives/repeat.js">
+<link rel="modulepreload" href="/shell/i18n.mjs"><link rel="modulepreload" href="/shell/live.mjs">
+<link rel="modulepreload" href="./view/board.mjs"><link rel="modulepreload" href="./view/strings.mjs">
+<link rel="modulepreload" href="./ui-strings.mjs"><link rel="modulepreload" href="./fields.mjs">
+</head>
+<body data-state="loading">
+<!-- view/main.mjs renders the board here with lit-html (view/board.mjs) -->
+<main id="board"></main>
+<script type="module" src="./view/main.mjs"></script>
+</body>
+</html>
