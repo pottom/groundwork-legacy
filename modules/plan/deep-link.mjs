@@ -4,10 +4,14 @@
 //   /plan/?node=<id>          Plan alone
 //
 // planLink(id) makes the first; linkTarget(location.search, map) reads either.
+//
+// The other way: buildLink(id) opens Build (through the shell) showing only the tickets that
+// name the item on their PRD line (/?module=build&prd=<id>, Build reads ?prd=).
 
 import { docOf } from './documents.mjs'
 
 export const planLink = (id) => '/?module=plan&node=' + encodeURIComponent(id)
+export const buildLink = (id) => '/?module=build&prd=' + encodeURIComponent(id)
 
 // The node the address names: null without one; else { id, found, path (the ids from the root
 // down to its parent), doc (the document it is in, or null) }.

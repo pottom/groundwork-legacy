@@ -10,6 +10,7 @@ import { startServer } from '../../core/server.mjs'
 import { openMap } from './map-store.mjs'
 import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'
+import { listen } from '../../core/sse-client.mjs'
 
 const open = (dir) => openMap(dir, moduleFiles(dir, plan))
 
@@ -63,4 +64,23 @@ test('the Plan view uses the shell theme and defines no base colours of its own'
   } finally {
     await srv.close()
   }
+})
+
+test('the map file is Plan\'s live-update topic; other files are not', () => {
+  assert.equal(plan.watch('docs/product/mindmap.json'), 'plan.map')
+  assert.equal(plan.watch('GLOSSARY.md'), 'plan.glossary')
+  assert.equal(plan.watch('docs/product/PRD.md'), null, 'the documents follow the map')
+  assert.equal(plan.watch('.groundwork/plan/edits.jsonl'), null)
+})
+
+test('a change to the map on disk reaches the page through /api/events', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-events-'))
+  open(root).init('Product')
+  const srv = await startServer({ root, modules: [plan], port: 0 })
+  const sse = listen(srv.port)
+  try {
+    await sse.next((e) => e.event === 'hello')
+    open(root).apply([{ op: 'add', parent: 'root', id: 'x', topic: 'From Claude' }])
+    await sse.change('plan.map')
+  } finally { sse.close(); await srv.close() }
 })

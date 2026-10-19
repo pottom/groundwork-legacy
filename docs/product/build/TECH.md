@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md)._
 
-> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 2 kész, 0 részben, 0 hiányzik.
+> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 3 kész, 0 részben, 0 hiányzik.
 
 ## 1. Biztonság
 
@@ -18,6 +18,7 @@ A Build a mattpocock-skillek konvencióit olvassa: a `.scratch/<terület>/issues
 
 - .scratch/<terület>/issues, spec.md, docs/adr, GLOSSARY `kész`
 - v1: helyi Markdown-jegyek (.scratch/) és GitHub-issue-k — A Groundwork saját jegyei a GitHubon vannak (pottom/groundwork).
+- A Plan jegyszámai a Build jegyolvasójából (/api/build/prd) `kész` — A szerver ugyanazzal a ticket-reader.js-szel olvassa a jegyeket, mint a Build oldala, így a két modul ugyanazt látja. Elvetett (wontfix, legacy) jegy nem számít; kész a done, resolved és closed. ([modules/build/project-tickets.mjs](../../../modules/build/project-tickets.mjs))
 
 ## Későbbre halasztva
 
