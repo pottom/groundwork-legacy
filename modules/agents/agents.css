@@ -16,6 +16,26 @@ body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-
 .agents-session[data-focus]::before, .agents-agent[data-focus]::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--gw-gradient); border-radius: var(--gw-radius-sm); }
 .agents-agent[data-focus] { padding-left: calc(var(--gw-space) * 1.5); }
 .agents-none { margin: 0; color: var(--gw-muted); font: var(--gw-text-small) var(--gw-font); }
+.agents-open { margin-left: 0; }
+
+/* An open agent: its timeline, then its final report. Test runs and commits stand out. */
+.agents-detail { flex-basis: 100%; display: grid; gap: calc(var(--gw-space) * 2); padding: var(--gw-space) 0 calc(var(--gw-space) * 2); }
+.agents-detail__title { margin: 0 0 var(--gw-space); font: var(--gw-text-small) var(--gw-font); font-weight: 600; color: var(--gw-fg-2); }
+.agents-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.agents-step { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); padding: calc(var(--gw-space) / 2) var(--gw-space); border-left: 3px solid var(--gw-line); font: var(--gw-text-small) var(--gw-font); }
+.agents-step__time { color: var(--gw-muted); font-variant-numeric: tabular-nums; min-width: 8ch; }
+.agents-step__label { font-weight: 550; }
+.agents-step__what { display: flex; flex-wrap: wrap; gap: calc(var(--gw-space) / 2); min-width: 0; }
+.agents-step__count, .agents-more { color: var(--gw-muted); }
+.agents-step[data-kind="test"], .agents-step[data-kind="commit"] { border-left-color: var(--gw-accent); background: var(--gw-sunken); }
+.agents-step[data-outcome="failed"] { border-left-color: var(--gw-bad); }
+.agents-step[data-outcome="passed"] { border-left-color: var(--gw-ok); }
+.agents-hash { font-family: var(--gw-font-mono); }
+.agents-report__body { max-width: 75ch; overflow-wrap: anywhere; }
+.agents-report__body > :first-child { margin-top: 0; }
+.agents-report__body pre { overflow-x: auto; }
+.agents-report__body table { border-collapse: collapse; }
+.agents-report__body th, .agents-report__body td { padding: calc(var(--gw-space) / 2) var(--gw-space); border: 1px solid var(--gw-line); text-align: left; }
 @media (max-width: 640px) { .agents-times { margin-left: 0; width: 100%; } }
 
 /* The worktrees and branches (view/worktrees.mjs): one row each in a card. */

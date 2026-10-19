@@ -13,7 +13,7 @@ A groundwork init a modul manifestjéből Claude Code hookokat telepít, amelyek
 Két kérdést az első jegy dönt el: milyen mezőkkel azonosítják a hookok a subagenteket, és hogyan lesz a hook elég gyors, mert az npx-es hívás eszközhívásonként túl lassú.
 
 - Claude Code hookok írják az eseményeket; a groundwork init telepíti őket — Pl. SessionStart, SubagentStart/Stop, PreToolUse/PostToolUse, Notification, Stop.
-- A subagentet az agent_id és az agent_type mező azonosítja — Dokumentáció (code.claude.com/docs/en/hooks) és egy valódi futás (Claude Code 2.1.302) alapján: minden hook kap session_id-t; a SubagentStart, a SubagentStop és a subagenten belül futó minden eszközhívás (PreToolUse/PostToolUse) agent_id-t és agent_type-ot is kap, a fő munkameneté nem. A subagentet indító eszköz neve Agent (régebben Task): a PreToolUse a tool_use_id-t és a description-t adja (ez az agent címkéje), a PostToolUse tool_response.agentId-ja köti a hívást az agent_id-hoz. A SubagentStop last_assistant_message mezője a záró jelentés; a naplóba ma nem kerül. ([modules/agents/hook.mjs](../../../modules/agents/hook.mjs))
+- A subagentet az agent_id és az agent_type mező azonosítja — Dokumentáció (code.claude.com/docs/en/hooks) és egy valódi futás (Claude Code 2.1.302) alapján: minden hook kap session_id-t; a SubagentStart, a SubagentStop és a subagenten belül futó minden eszközhívás (PreToolUse/PostToolUse) agent_id-t és agent_type-ot is kap, a fő munkameneté nem. A subagentet indító eszköz neve Agent (régebben Task): a PreToolUse a tool_use_id-t és a description-t adja (ez az agent címkéje), a PostToolUse tool_response.agentId-ja köti a hívást az agent_id-hoz. A SubagentStop last_assistant_message mezője a záró jelentés; a hook redaktálva, külön fájlba menti (d-agents-redact). ([modules/agents/hook.mjs](../../../modules/agents/hook.mjs))
 - Gyors hook: a groundwork init a projektbe másolja, és közvetlenül node futtatja — A hook egyetlen, csak Node-ot igénylő fájl; az init .claude/hooks/groundwork-agents-hook.mjs néven a projektbe másolja, és node "$CLAUDE_PROJECT_DIR/.claude/hooks/groundwork-agents-hook.mjs" parancsként telepíti. Mérve kb. 57 ms hívásonként (Windows, Node 24), az npx kb. 0,3–0,7 s. A PreToolUse csak az Agent eszközre fut (matcher), így egy közönséges eszközhívás egyszer futtatja a hookot. A futó szervernek küldött esemény elvetve: szerver nélkül elveszne. ([core/init.mjs](../../../core/init.mjs))
 - A worktree-k és branchek állapotát a git adja — A szerver csak olvas (GIT_OPTIONAL_LOCKS=0). Az integrációs ágat a gráfból becsüli: a linkelt worktree-ben ki nem vett, máshová még nem beolvadt branchek közül az, amelyhez képest a legkevesebb saját commitja van; döntetlennél az alapértelmezett ág, aztán a legkevésbé lemaradt. Egy beolvasztott branch nem alapja annak, amibe beolvadt (first-parent ellenőrzés). Egy-egy hívás branchenként a for-each-ref %(ahead-behind)-del (git 2.41+), régebbin rev-list. ([modules/agents/git-worktrees.mjs](../../../modules/agents/git-worktrees.mjs))
 
@@ -21,7 +21,7 @@ Két kérdést az első jegy dönt el: milyen mezőkkel azonosítják a hookok a
 
 Az események egy csak hozzáírható JSON Lines naplóba kerülnek a .groundwork/agents/ alatt, amely gitignore-ban van; az agentek állapotát a szerver ebből számolja. A régi futások forgatással kerülnek ki, hogy a napló ne nőjön korlátlanul.
 
-- Helyi eseménynapló: .groundwork/agents/events.jsonl, gitignore-ban — Csak hozzáírás; 2 MB fölött a napló events.1.jsonl-be kerül (a régebbit felülírva), a szerver mindkettőt olvassa. ([modules/agents/hook.mjs](../../../modules/agents/hook.mjs))
+- Helyi eseménynapló: .groundwork/agents/events.jsonl, gitignore-ban — Csak hozzáírás; 2 MB fölött a napló events.1.jsonl-be kerül (a régebbit felülírva), a szerver mindkettőt olvassa. A subagentek záró jelentései a reports/ mappába kerülnek, agentenként egy fájl; a legújabb 200 marad. ([modules/agents/hook.mjs](../../../modules/agents/hook.mjs))
 
 ## 3. Integrációk és interfészek
 
@@ -34,7 +34,7 @@ Egy agent jegyét a feladatleírásában szereplő jegyszám, a branch neve vagy
 
 A napló nem tárolja az eszközhívások tartalmát: csak az eszköz nevét, az érintett fájl útját és a futtatott parancs nevét, így fájltartalom, token vagy jelszó nem kerülhet bele. A modul csak a .groundwork/agents/ alá írhat.
 
-- A napló csak összefoglalót tárol: eszköz, fájlút, parancs neve; tartalmat és titkot nem ([modules/agents/hook.test.mjs](../../../modules/agents/hook.test.mjs))
+- A napló csak összefoglalót tárol: eszköz, fájlút, parancs neve; tartalmat és titkot nem — Kivétel a subagent záró jelentése (a SubagentStop last_assistant_message mezője): nem a naplósorba, hanem külön fájlba kerül (.groundwork/agents/reports/<agent>.md), a titoknak látszó részek (API-kulcsok, tokenek, Authorization-értékek, jelszó-párok, privát kulcsok, URL hitelesítő adatai és query-je) kivéve, 40 000 karakterre vágva. A teszt- és commit-jelzés a naplóban csak egy szó, illetve a commit hash; a kimenet és a commit-üzenet nem kerül be. ([modules/agents/hook.test.mjs](../../../modules/agents/hook.test.mjs))
 - Csak a .groundwork/agents/ alá írhat
 
 ## Elvetett megoldások

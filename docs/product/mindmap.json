@@ -1824,16 +1824,20 @@
                     "topic": "Idővonal agentenként: fájlok, tesztek, commitok, fő lépések",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "note": "Egy agentet (vagy munkamenetet) megnyitva az eszközhívásai lépésekbe csoportosítva, időponttal látszanak: olvasott fájlok, módosított fájlok, parancsok, egyéb eszközök. A tesztfuttatás (sikeres, sikertelen vagy ismeretlen kimenetellel) és a commit (a hash-ével) külön, kiemelt lépés, a használt skill és az indított subagent is. A hook a tesztet egy ellenőrzött parancslistából ismeri fel (npm test, node --test, vitest, pytest ...), a kimenetelt a hívás hibájából vagy a kimenet pass/fail számaiból veszi, és csak a szót tárolja.",
+                    "hyperLink": "modules/agents/timeline.mjs"
                   },
                   {
                     "id": "f-agents-report",
                     "topic": "A záró jelentés megjelenítése",
                     "metadata": {
                       "status": "decision",
-                      "impl": "missing"
-                    }
+                      "impl": "done"
+                    },
+                    "note": "A subagent leállása után a záró jelentése az idővonal alatt Markdownként jelenik meg; futás közben jelzi, hogy a leálláskor érkezik. A nyers HTML szövegként látszik, link csak http(s), mailto vagy relatív címre mutat, kép nem töltődik be.",
+                    "hyperLink": "modules/agents/view/detail.mjs"
                   },
                   {
                     "id": "f-agents-ticket-link",
@@ -1968,7 +1972,7 @@
                   {
                     "id": "q-agents-hook-fields",
                     "topic": "A subagentet az agent_id és az agent_type mező azonosítja",
-                    "note": "Dokumentáció (code.claude.com/docs/en/hooks) és egy valódi futás (Claude Code 2.1.302) alapján: minden hook kap session_id-t; a SubagentStart, a SubagentStop és a subagenten belül futó minden eszközhívás (PreToolUse/PostToolUse) agent_id-t és agent_type-ot is kap, a fő munkameneté nem. A subagentet indító eszköz neve Agent (régebben Task): a PreToolUse a tool_use_id-t és a description-t adja (ez az agent címkéje), a PostToolUse tool_response.agentId-ja köti a hívást az agent_id-hoz. A SubagentStop last_assistant_message mezője a záró jelentés; a naplóba ma nem kerül.",
+                    "note": "Dokumentáció (code.claude.com/docs/en/hooks) és egy valódi futás (Claude Code 2.1.302) alapján: minden hook kap session_id-t; a SubagentStart, a SubagentStop és a subagenten belül futó minden eszközhívás (PreToolUse/PostToolUse) agent_id-t és agent_type-ot is kap, a fő munkameneté nem. A subagentet indító eszköz neve Agent (régebben Task): a PreToolUse a tool_use_id-t és a description-t adja (ez az agent címkéje), a PostToolUse tool_response.agentId-ja köti a hívást az agent_id-hoz. A SubagentStop last_assistant_message mezője a záró jelentés; a hook redaktálva, külön fájlba menti (d-agents-redact).",
                     "metadata": {
                       "status": "decision"
                     },
@@ -2014,7 +2018,7 @@
                   {
                     "id": "d-agents-store",
                     "topic": "Helyi eseménynapló: .groundwork/agents/events.jsonl, gitignore-ban",
-                    "note": "Csak hozzáírás; 2 MB fölött a napló events.1.jsonl-be kerül (a régebbit felülírva), a szerver mindkettőt olvassa.",
+                    "note": "Csak hozzáírás; 2 MB fölött a napló events.1.jsonl-be kerül (a régebbit felülírva), a szerver mindkettőt olvassa. A subagentek záró jelentései a reports/ mappába kerülnek, agentenként egy fájl; a legújabb 200 marad.",
                     "metadata": {
                       "status": "decision"
                     },
@@ -2066,7 +2070,8 @@
                     "metadata": {
                       "status": "decision"
                     },
-                    "hyperLink": "modules/agents/hook.test.mjs"
+                    "hyperLink": "modules/agents/hook.test.mjs",
+                    "note": "Kivétel a subagent záró jelentése (a SubagentStop last_assistant_message mezője): nem a naplósorba, hanem külön fájlba kerül (.groundwork/agents/reports/<agent>.md), a titoknak látszó részek (API-kulcsok, tokenek, Authorization-értékek, jelszó-párok, privát kulcsok, URL hitelesítő adatai és query-je) kivéve, 40 000 karakterre vágva. A teszt- és commit-jelzés a naplóban csak egy szó, illetve a commit hash; a kimenet és a commit-üzenet nem kerül be."
                   },
                   {
                     "id": "d-agents-writes",
