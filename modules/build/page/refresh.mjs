@@ -8,7 +8,7 @@ import { state, app, actions, NO_GIT, NO_ISSUES } from './state.mjs';
 import { scan } from './folder.mjs';
 import { subscribe } from '/shell/live.mjs';
 import { serverJson } from './server.mjs';
-import { renderAll, renderView, renderNav, renderNotices, renderLive, showStartScreen, toast } from './render.mjs';
+import { renderAll, renderView, renderDrawer, renderNav, renderNotices, renderLive, showStartScreen, toast } from './render.mjs';
 
 const { readTickets, linkedSketches } = reader;
 
@@ -118,7 +118,7 @@ async function refreshOnce(want) {
       if (first && actions.openLinked) actions.openLinked();
     } else {
       if (gitChanged && app.model) { renderNav(true); if (state.view === 'git') renderView(); }
-      if (sketchesChanged && app.model) { app.sketches.byTicket = linkedSketches(app.model, app.sketches.linked); renderView(); }
+      if (sketchesChanged && app.model) { app.sketches.byTicket = linkedSketches(app.model, app.sketches.linked); renderView(); renderDrawer(); }
     }
     app.lastChecked = new Date();
     app.serverDown = false;
