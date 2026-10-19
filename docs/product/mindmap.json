@@ -106,8 +106,8 @@
               },
               {
                 "id": "d-nav-order",
-                "topic": "Fejléc: Ötletek → Plan → Build | Sketch · Agents",
-                "note": "Az első három a folyamat, a Sketch és az Agents eszköz, elválasztva.",
+                "topic": "Fejléc: Ideas → Plan → Build | Sketch · Agents · Present",
+                "note": "Az első három a folyamat, a többi eszköz, elválasztva.",
                 "metadata": {
                   "status": "decision"
                 }
@@ -175,6 +175,13 @@
               {
                 "id": "r-7",
                 "topic": "7. Agents",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "r-8",
+                "topic": "8. Present",
                 "metadata": {
                   "status": "decision"
                 }
@@ -2029,6 +2036,259 @@
                   {
                     "id": "d-agents-writes",
                     "topic": "Csak a .groundwork/agents/ alá írhat",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-present",
+        "topic": "Present modul",
+        "metadata": {
+          "component": "software",
+          "dir": "present"
+        },
+        "children": [
+          {
+            "id": "doc-present-prd",
+            "topic": "Termék",
+            "metadata": {
+              "doc": "prd"
+            },
+            "children": [
+              {
+                "id": "t-present-problem",
+                "topic": "Probléma és cél",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egy projekt bemutatásához ma kézzel kell összeszedni a célt, a döntéseket, a haladást és a terveket, és a kész prezentáció másnapra elavul. Pedig a Groundwork mindezt tudja: a Plan a célt és a döntéseket, a Build a haladást, a Sketch az ábrákat, az Ideas a jövőt.\n\nA Present modul ezekből készít prezentációt: az egész projektről, egy mérföldkőről vagy a fejlesztés pillanatnyi állásáról. A diák élő adatblokkokat tartalmazhatnak, így egy státuszprezentáció bármikor, frissen bemutatható.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-goal",
+                    "topic": "Prezentáció a projektről, egy mérföldkőről vagy a fejlesztés állásáról, a Groundwork adataiból",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-users",
+                "topic": "Felhasználók és használati esetek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A fejlesztő mutatja be a projektet egy megrendelőnek, a csapatnak vagy egy érdeklődőnek; Claude megírja a vázat és az előadói jegyzeteket, a fejlesztő átírja, majd teljes képernyőn, előadói nézettel bemutatja, vagy PDF-ben elküldi.\n\nTipikus esetek: egy mérföldkő lezárásakor egy összefoglaló arról, mi készült el és mi jön; egy heti státusz, amely mindig a friss számokat mutatja; egy projektbemutató egy új érdeklődőnek.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-users",
+                    "topic": "A fejlesztő mutatja be; a közönség megrendelő, csapat vagy érdeklődő",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-scope",
+                "topic": "Hatókör és fő funkciók",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Present diasorokat kezel, amelyek a böngészőben, teljes képernyőn, a közös kinézettel jelennek meg, billentyűzettel lapozhatók, és előadói nézetük is van jegyzetekkel, időmérővel és a következő diával. A diák élő adatblokkokat tartalmazhatnak, például egy mérföldkő haladását, a nyitott blokkolókat, a döntéseket vagy a méréseket, így a prezentáció mindig a friss állapotot mutatja. Vázlat és ötletlista is kerülhet diára.\n\nHárom sablonnal indul: projektbemutató, mérföldkő-összefoglaló és fejlesztési állás. Claude a skillen át megírja a történetet és az előadói jegyzeteket, a fejlesztő a böngészőben szerkeszti, élő előnézettel. PDF-be a böngésző nyomtatásával menthető; a PowerPoint-export későbbre marad.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "f-present-deck",
+                    "topic": "Diasor a böngészőben: teljes képernyő, billentyűzetes lapozás, közös kinézet",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-live",
+                    "topic": "Élő adatblokkok: mérföldkő-haladás, blokkolók, döntések, mérések",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-templates",
+                    "topic": "Sablonok: projektbemutató, mérföldkő-összefoglaló, fejlesztési állás",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-claude",
+                    "topic": "Claude írja a történetet és az előadói jegyzeteket, skillen át",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-edit",
+                    "topic": "Szerkesztés a böngészőben, élő előnézettel",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-speaker",
+                    "topic": "Előadói nézet: jegyzetek, időmérő, következő dia",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-pdf",
+                    "topic": "PDF-be mentés a böngésző nyomtatásával",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "f-present-sources",
+                    "topic": "Vázlatok és ötletek a diákon",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "missing"
+                    }
+                  },
+                  {
+                    "id": "p-present-pptx",
+                    "topic": "PowerPoint-export",
+                    "metadata": {
+                      "status": "parked"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-func",
+                "topic": "Funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Egy élő adatblokk rögzíthető is: ilyenkor a rögzítés pillanatának számait mutatja, így egy mérföldkő-összefoglaló később is a lezáráskori állapotot idézi. Ha egy blokk forrásmodulja hiányzik, a dia hiba helyett nyugodt helykitöltőt mutat.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-snapshot",
+                    "topic": "Egy élő blokk rögzíthető: pillanatképként az akkori számokat mutatja",
+                    "note": "Egy mérföldkő-összefoglaló így később is a lezáráskori állapotot mutatja.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-present-missing",
+                    "topic": "Ha egy blokk forrásmodulja hiányzik, a dia nyugodt helykitöltőt mutat",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-nfr",
+                "topic": "Nem funkcionális követelmények",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Present a közös dizájnrendszert használja, angolul és magyarul is működik, hálózat nélkül is. A diák szövege a diasor saját nyelvén van, függetlenül a felület nyelvétől, ahogy a Plan dokumentumainál.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-nfr",
+                    "topic": "Közös kinézet, angol és magyar felület, offline; a diák szövege a diasor nyelvén",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "doc-present-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-present-arch",
+                "topic": "Architektúra és komponensek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Present a többihez hasonló modul: nézet, /api/present/ végpontok, groundwork present parancs és skill; a böngészőoldal kis ES-modulokból áll, lit-html-lel. Az élő blokkok a többi modul deklarált, nyilvános végpontjaiból olvasnak, így a Present nem nyúl más modul adataihoz közvetlenül.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-module",
+                    "topic": "Önálló modul: nézet, végpontok, groundwork present parancs, skill; kis ES-modulok, lit-html",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-present-blocks",
+                    "topic": "Az élő blokkok a többi modul deklarált nyilvános végpontjaiból olvasnak",
+                    "note": "A d-module-endpoints szerint, pl. a Build haladás-végpontja.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-data",
+                "topic": "Adatok és tárolás",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Minden diasor egy Markdown-fájl a docs/product/decks/ alatt: a diákat egy --- sor választja el, az élő blokkok gw: kezdetű kódblokkok (például gw:milestone 5), az előadói jegyzetek a Note: sor után állnak. A fejléc a címet, a nyelvet és a sablont tárolja. Így a diasor olvasható, diffelhető, és gitben él.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-store",
+                    "topic": "Diasoronként egy Markdown-fájl a docs/product/decks/ alatt, gitben",
+                    "note": "A diákat --- választja el; az élő blokkok gw: kódblokkok; a jegyzetek Note: után.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-present-sec",
+                "topic": "Biztonság",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A modul csak a docs/product/decks/ alá írhat. A diák Markdownja biztonságos renderelővel jelenik meg, nyers HTML és veszélyes hivatkozások nélkül.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-present-writes",
+                    "topic": "Csak a docs/product/decks/ alá írhat; a Markdown nyers HTML nélkül jelenik meg",
                     "metadata": {
                       "status": "decision"
                     }

@@ -2,7 +2,7 @@
 
 # Groundwork — Áttekintés
 
-_Rendszer-áttekintés. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Mag: Műszaki terv](core/TECH.md), [Plan modul: Termék](plan/PRD.md), [Plan modul: Műszaki terv](plan/TECH.md), [Build modul: Termék](build/PRD.md), [Build modul: Műszaki terv](build/TECH.md), [Ötletek modul: Termék](ideas/PRD.md), [Ötletek modul: Műszaki terv](ideas/TECH.md), [Sketch modul: Termék](sketch/PRD.md), [Sketch modul: Műszaki terv](sketch/TECH.md), [Agents modul: Termék](agents/PRD.md), [Agents modul: Műszaki terv](agents/TECH.md)._
+_Rendszer-áttekintés. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Mag: Műszaki terv](core/TECH.md), [Plan modul: Termék](plan/PRD.md), [Plan modul: Műszaki terv](plan/TECH.md), [Build modul: Termék](build/PRD.md), [Build modul: Műszaki terv](build/TECH.md), [Ötletek modul: Termék](ideas/PRD.md), [Ötletek modul: Műszaki terv](ideas/TECH.md), [Sketch modul: Termék](sketch/PRD.md), [Sketch modul: Műszaki terv](sketch/TECH.md), [Agents modul: Termék](agents/PRD.md), [Agents modul: Műszaki terv](agents/TECH.md), [Present modul: Termék](present/PRD.md), [Present modul: Műszaki terv](present/TECH.md)._
 
 > Állapot: 4 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 1 kész, 0 részben, 0 hiányzik.
 
@@ -29,7 +29,7 @@ Az első két modul a **Plan** (tervezés: interjú, térkép, dokumentumok) és
 - Mag + két modul: Plan és Build
 - A Mag: közös szerver és keret, felhasználói funkció nélkül `kész` ([core/README.md](../../core/README.md))
 - Jegy ↔ PRD-elem kapcsolat stabil azonosítóval — A jegyben pl. **PRD:** d-npm sor.
-- Fejléc: Ötletek → Plan → Build | Sketch · Agents — Az első három a folyamat, a Sketch és az Agents eszköz, elválasztva.
+- Fejléc: Ideas → Plan → Build | Sketch · Agents · Present — Az első három a folyamat, a többi eszköz, elválasztva.
 
 ## 3. Közös ütemterv
 
@@ -42,6 +42,7 @@ A Groundwork négy lépésben épül. Először a két meglévő prototípus vá
 - 5. Közös keret és a felületek csiszolása
 - 6. Ötletláda és Sketch
 - 7. Agents
+- 8. Present
 
 ## 4. Kockázatok és függőségek
 
