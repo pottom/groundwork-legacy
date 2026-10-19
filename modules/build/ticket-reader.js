@@ -20,11 +20,13 @@
 //                   statusNote, issue, local, blockedBy, blockers: [{ raw, ticket | null }],
 //                   dependents, blocked, notes, checks: { done, total }, comments: [{ date,
 //                   title, event?, order }], lastComment, text, fields, hay, url?, labels?,
-//                   milestone? }]
+//                   milestone?, prd: [id] }]   prd: the ids of the PRD items (Plan's map nodes)
+//                   named on the ticket's "**PRD:** a, b" line, [] without one
 //   areas        Map name → { name, spec, tickets, docs, extras, open, closed, local }; a local
 //                ticket's area is its folder, a GitHub issue's is its milestone ('' without one)
 //   areaList, docs, adrs, readme, glossaries, byPath, byIssue, byLocal, resolveIssue(n),
 //   resolveLocal(area, n), areaRef, statusCounts, open, comments, projectName
+//   byPrd        Map PRD item id → [tickets naming it on their PRD line]
 //   problems     [{ kind, tickets, key, params }]: the inconsistencies; key and params are the
 //                UI string that tells it (the page translates)
 //
@@ -53,7 +55,7 @@ const fold = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 const plainInline = (s) => s.replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/(\*\*|__)(.*?)\1/g, '$2').replace(/(^|[^\w\\])_([^_\s][^_]*?)_(?!\w)/g, '$1$2').trim();
 const isClosed = (t) => CLOSED.has(t.status);
 
-const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
+const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type|prd)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
 const COMMENTS_HEADING = /^##\s+(comments?|megjegyzések|hozzászólások)\s*$/i;   // reads Hungarian files too
 const NO_BLOCKER = /^(none|nincs|semmi|nothing|n\/a|[—–-]+)(?![\p{L}\p{N}])/iu;
 
@@ -99,6 +101,15 @@ function parseBlockedBy(raw) {
   return { none: false, refs, raw };
 }
 
+// "f-build-trace, `d-trace`; [x-own](…) and n-1" → the ids of the PRD items (map nodes), each once.
+const PRD_ID = /^[\p{L}\p{N}][\p{L}\p{N}_.-]*$/u;
+function parsePrd(raw) {
+  const ids = String(raw).replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*]/g, '')
+    .split(/[\s,;]+/).map((s) => s.replace(/[.)]+$/, '').replace(/^\(+/, ''))
+    .filter((s) => PRD_ID.test(s) && !/^(and|és|or|vagy)$/i.test(s));
+  return [...new Set(ids)];
+}
+
 function parseTicket(path, area, fileName, text) {
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
   const t = { kind: 'ticket', path, area, fileName, text, fields: {} };
@@ -122,6 +133,7 @@ function parseTicket(path, area, fileName, text) {
   t.mismatch = issueField && fm && fm[1].length >= 3 && +fm[1] !== +issueField[1] ? { file: +fm[1], field: +issueField[1] } : null;
   t.earlier = t.fields['earlier name'] || '';
   t.type = t.fields.type || '';
+  t.prd = parsePrd(t.fields.prd || '');
 
   const headingsEnd = (() => { const c = lines.findIndex((l) => COMMENTS_HEADING.test(l)); return c < 0 ? lines.length : c; })();
   // The issue template's form: a "## Blocked by" (or "## Status") heading with
@@ -221,7 +233,7 @@ function readTickets(source) {
   const m = {
     folderName: source.name || '', trackerPath, adrPath, repo: source.github ? source.github.repo : null,
     tickets: [], docs: [], adrs: [], glossaries: [], areas: new Map(),
-    byPath: new Map(), byIssue: new Map(), byLocal: new Map(), problems: [],
+    byPath: new Map(), byIssue: new Map(), byLocal: new Map(), byPrd: new Map(), problems: [],
   };
   const area = (name) => {
     if (!m.areas.has(name)) m.areas.set(name, { name, spec: null, tickets: [], docs: [], extras: 0, local: false });
@@ -286,6 +298,7 @@ function readTickets(source) {
   for (const t of m.tickets) {
     if (t.issue != null) push(m.byIssue, t.issue, t);
     else if (t.local != null) push(m.byLocal, t.area + '/' + +t.local, t);
+    for (const id of t.prd) push(m.byPrd, id, t);
   }
   const alias = new Map();
   for (const t of m.tickets) {

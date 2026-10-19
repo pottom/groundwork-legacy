@@ -44,6 +44,7 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 - **Gyűjtő fejezetek dokumentumonként:** a kizárt elemekből például a PRD-ben „Nem célok”, a műszaki tervben „Elvetett megoldások” lesz. Az elhalasztott elemek, a „kérdezz rá” elemek és az érintetlen fejezetek szintén saját fejezetbe gyűlnek.
 - **Dokumentumnyelv:** a térkép a gyökerén tárolja a dokumentumok nyelvét (`lang`: `hu`, `en`); a skill az interjú elején a beszélgetés nyelvére állítja. Nyelv nélkül magyar. A dokumentumok állandó szövegei (fejléc, állapotok, gyűjtő fejezetek, kezdő fejezetek) ezen a nyelven készülnek; ez független a felület nyelvétől. Új nyelvhez elég egy új szövegkészlet a `doc-strings.mjs`-ben.
 - **Megvalósítási réteg:** egy elem lehet kész, részben kész vagy hiányzik. A dokumentum fejléce összesíti.
+- **Közvetlen link egy elemre:** a `/?module=plan&node=<azonosító>` (vagy a shell nélkül `/plan/?node=<azonosító>`) a térkép csomópontjára áll: kijelöli, felvillantja, és a dokumentumban is kiemeli; ha a nézet egy másik dokumentumra szűkít, átvált arra. Ismeretlen azonosítóra a Plan kiírja, hogy nincs ilyen elem. A Build innen linkeli a jegyek `**PRD:**` sorában felsorolt elemeket (`deep-link.mjs`).
 - **Kézzel írt fájlt nem ír felül.**
 - **Nem ütközik a mattpocock skillekkel:**
   - a `GLOSSARY*.md`, a `docs/adr/`, a `docs/agents/`, a `.scratch/` és a `.out-of-scope/` az ő helyük;
@@ -79,6 +80,7 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `ui-strings.mjs` | a felület szövegei nyelvenként (angol alapértelmezés, magyar fordítás), a mag fordítójához (`/shell/i18n.mjs`) |
 | `node-types.mjs` | csomópont-típusok ([Lucide](https://lucide.dev) ikon) és megvalósítási szintek kulcsai; a címkék a `ui-strings.mjs`-ben |
 | `map-theme.mjs` | a térkép világos és sötét témája a shell színeiből, és az operációs rendszer váltásának követése |
+| `deep-link.mjs` | a közvetlen link (`?node=<azonosító>`): `planLink(id)` elkészíti, `linkTarget(search, map)` megkeresi a csomópontot |
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
 | `docs/product/**/*.md` | a generált dokumentumok (a cél-projektben) |
 | `.groundwork/plan/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések, a generált fájlok listája (a cél-projektben; egy régi `.prd-maker/` mappát a mag ide költöztet) |

@@ -12,6 +12,8 @@ A live development dashboard for a project whose tickets, specs and decisions li
 
 On the core server it also reads the project's **GitHub issues** as tickets, when the `origin` remote is on GitHub: the state (closed, or the open issue's state label such as `ready-for-agent`, else `open`), the labels, the milestone (shown as the ticket's area) and "Blocked by" (GitHub's own dependency links, or a "Blocked by" line or `## Blocked by` section in the body). The server asks GitHub through the `gh` CLI when it is installed, else the REST API with `GITHUB_TOKEN` (or `GH_TOKEN`), else the REST API without a token (public repositories only); no token ever reaches the page. Answers are kept for a minute. Local tickets and issues can be mixed, and name each other (`#12`, `core 3`).
 
+A ticket may name the PRD items (the ids of Plan's map nodes) it came from, on a line of its own near the top: `**PRD:** f-build-trace, d-trace`. Build shows these ids on the ticket and in its details; on the server each one is a link that opens Plan with that item focused and highlighted (`/?module=plan&node=<id>`). The ticket reader keeps them as `ticket.prd` and lists the tickets per id in `model.byPrd`.
+
 It shows the following views:
 
 - tickets and areas;
