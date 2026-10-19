@@ -20,7 +20,7 @@ async function withGroundwork(fn) {
 test('every module carries the version of the package', async () => {
   await withGroundwork(async (url) => {
     const mods = await (await fetch(url + 'api/modules')).json()
-    assert.deepEqual(mods.map((m) => [m.id, m.version]), [['plan', PKG.version], ['build', PKG.version]])
+    assert.deepEqual(mods.map((m) => [m.id, m.version]), [['ideas', PKG.version], ['plan', PKG.version], ['build', PKG.version]])
     const hello = await (await fetch(url + 'api/build/hello')).json()
     assert.equal(hello.version, PKG.version)
   })

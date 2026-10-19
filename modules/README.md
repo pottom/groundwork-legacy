@@ -4,6 +4,7 @@ Each folder here is one Groundwork module.
 
 | Module | What it does | State |
 |---|---|---|
+| [`ideas/`](ideas/) | Numbered ideas with author and source, as Markdown files under `docs/product/ideas/items/`, on a kanban; `groundwork ideas add` | tracer: board read-only |
 | [`plan/`](plan/) | Turns a grilling interview with Claude Code into a live mind map and product documents under `docs/product/` | working prototype (Claude skill: groundwork-prd-maker) |
 | [`build/`](build/) | Shows a project's Markdown tickets, specs, ADRs and git branches as a live dashboard | working prototype |
 
@@ -17,7 +18,7 @@ From the plan ([`docs/product/core/TECH.md`](../docs/product/core/TECH.md), Modu
 4. optionally **skills and hooks** for Claude Code, which `groundwork init` installs into a project;
 5. the **folders it may write to**, which the core enforces.
 
-In code, a module exports its manifest from `module.mjs`, and `core/modules.mjs` lists it:
+In code, a module exports its manifest from `module.mjs`, and `core/modules.mjs` lists it (the order of that list is the order of the shell's tabs: the flow first, Ideas, Plan, Build):
 
 ```js
 export default {

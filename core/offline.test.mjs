@@ -69,6 +69,7 @@ test('the check finds resources from another host and lets plain links pass', ()
 
 test('no file served to the browser loads anything from another host', () => {
   const files = browserFiles()
+  assert.ok(files.some((f) => f.endsWith(path.join('ideas', 'index.html'))))
   assert.ok(files.some((f) => f.endsWith(path.join('plan', 'index.html'))))
   assert.ok(files.some((f) => f.endsWith(path.join('build', 'index.html'))))
   for (const f of files) {
