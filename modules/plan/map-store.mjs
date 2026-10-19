@@ -1,7 +1,7 @@
 // The map store: the one place that reads, writes and merges a project's mind map.
 // The CLI, the hook and the Plan API of the core server all go through it.
 //
-//   const store = openMap(projectDir)
+//   const store = openMap(projectDir, files)   files: the writer the core grants Plan (core/files.mjs)
 //   store.read()                     -> { v, data }       v: version id of the file
 //   store.apply(ops, by?)            -> { errors, v, data } Claude's ops (see applyOps)
 //   store.saveFromBrowser(base, data) -> { v, data, changed } merge a browser save made on version `base`
@@ -10,13 +10,13 @@
 //
 // The map lives in <dir>/docs/product/mindmap.json (Mind Elixir format). Edits made in the
 // browser are diffed against the version the browser loaded, merged onto the
-// current file, and logged to <dir>/.prd-maker/edits.jsonl until Claude reads them.
+// current file, and logged to <dir>/.groundwork/plan/edits.jsonl until Claude reads them
+// (state from before the move, in .prd-maker/, is moved there by the core: see module.mjs).
 // Every write also regenerates the documents under <dir>/docs/product/ (see documents.mjs).
 //
-// All file access goes through `io` (paths relative to the project), so the writes can
-// be limited to the folders the module may write to.
+// All file access goes through `io` (paths relative to the project): the writer the core
+// hands the module, which writes only under the folders Plan's manifest names.
 
-import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { setStatus } from './node-types.mjs'
@@ -24,31 +24,13 @@ import { buildPrd, toMarkdown, isGenerated, BASE_DIR, listDocs } from './documen
 
 const MAP = `${BASE_DIR}/mindmap.json`
 const GLOSSARY = 'GLOSSARY.md' // owned by domain-modeling: read and link only
-const STATE = '.prd-maker'
+const STATE = '.groundwork/plan'
 const EDITS = `${STATE}/edits.jsonl`
 const HISTORY = `${STATE}/edits-history.jsonl`
 const WRITTEN = `${STATE}/written.json`
 
-// Plain file access under `dir`.
-export function projectIo(dir) {
-  const abs = (rel) => path.join(dir, rel)
-  return {
-    exists: (rel) => fs.existsSync(abs(rel)),
-    read: (rel) => fs.readFileSync(abs(rel), 'utf8'),
-    write(rel, text) { // atomic
-      fs.mkdirSync(path.dirname(abs(rel)), { recursive: true })
-      fs.writeFileSync(abs(rel) + '.tmp', text)
-      fs.renameSync(abs(rel) + '.tmp', abs(rel))
-    },
-    append(rel, text) {
-      fs.mkdirSync(path.dirname(abs(rel)), { recursive: true })
-      fs.appendFileSync(abs(rel), text)
-    },
-    remove: (rel) => fs.unlinkSync(abs(rel)),
-  }
-}
-
-export function openMap(dir, io = projectIo(dir)) {
+export function openMap(dir, io) {
+  if (!io) throw new Error('openMap needs the writer the core grants the module (moduleFiles in core/files.mjs)')
   const seen = new Map() // version -> text, so a browser save can be diffed against what it loaded
   const remember = (v, text) => {
     seen.set(v, text)

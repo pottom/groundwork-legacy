@@ -23,8 +23,12 @@ In code, a module exports its manifest from `module.mjs`, and `core/modules.mjs`
 export default {
   id: 'plan', name: 'Plan', version: '0.1.0',
   view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
-  api: ({ root }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
+  writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
+  moves: { '.prd-maker': '.groundwork/plan' },           // optional: old state the core moves over once
+  api: ({ root, files }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
 }
 ```
+
+A module has no general file system access: it reads and writes the project through `files`, the writer the core hands it ([`core/files.mjs`](../core/files.mjs)). `files.write`, `append` and `remove` work only under the folders in `writes`, and those must lie under `docs/product/` or `.groundwork/`; a path that is absolute, climbs out with `..` or leads outside through a symlink or junction fails before anything is written. A module's local state goes in `.groundwork/<id>/`, which is gitignored.
 
 Plan follows this contract; Build still runs on its own server until it moves behind the core.

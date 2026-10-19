@@ -8,11 +8,18 @@ import os from 'node:os'
 import path from 'node:path'
 import { startServer } from '../../core/server.mjs'
 import { openMap } from './map-store.mjs'
+import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'
+
+const open = (dir) => openMap(dir, moduleFiles(dir, plan))
+
+test('the manifest names the folders Plan may write to', () => {
+  assert.deepEqual(plan.writes, ['docs/product', '.groundwork/plan'])
+})
 
 test('the map round-trips through /api/plan/map and a browser save is merged', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-api-'))
-  openMap(root).init('Product')
+  open(root).init('Product')
   const srv = await startServer({ root, modules: [plan], port: 0 })
   try {
     const base = `http://127.0.0.1:${srv.port}`
@@ -25,8 +32,8 @@ test('the map round-trips through /api/plan/map and a browser save is merged', a
     data.nodeData.children.push({ id: 'h', topic: 'From the browser' })
     const saved = await (await fetch(`${base}/api/plan/map`, { method: 'PUT', body: JSON.stringify({ base: v, data }) })).json()
     assert.notEqual(saved.v, v)
-    assert.equal(openMap(root).read().data.nodeData.children[0].topic, 'From the browser')
-    assert.equal(openMap(root).takeHumanEdits().length, 1)
+    assert.equal(open(root).read().data.nodeData.children[0].topic, 'From the browser')
+    assert.equal(open(root).takeHumanEdits().length, 1)
 
     assert.equal((await fetch(`${base}/api/plan/map`, { method: 'PUT', body: 'not json' })).status, 400)
     assert.deepEqual(await (await fetch(`${base}/api/plan/glossary`)).json(), { text: '' })

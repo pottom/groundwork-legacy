@@ -11,13 +11,16 @@
 // A module (see modules/README.md) is a plain object:
 //   { id, name, version,
 //     view: { dir, files: ['index.html', ...] },           served under /<id>/, index.html at /<id>/
-//     api: ({ root }) => (req, res, subpath) => handled }   subpath: the path after /api/<id>
+//     writes: ['docs/product', '.groundwork/<id>'],         the folders it may write to
+//     api: ({ root, files }) => (req, res, subpath) => handled }   subpath: the path after /api/<id>
 // The handler returns (or resolves to) true when it answered, anything else means 404.
+// `files` is the module's only file access: it writes only under `writes` (see files.mjs).
 
 import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import { send, TYPES } from './http.mjs'
+import { moduleFiles } from './files.mjs'
 
 export const HOST = '127.0.0.1'
 const LOCAL_NAMES = new Set(['127.0.0.1', 'localhost'])
@@ -33,7 +36,7 @@ export function isLocalHost(header) {
 }
 
 export function startServer({ root, modules, port = 4477 }) {
-  const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root }) : null }))
+  const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m) }) : null }))
   const byId = new Map(mods.map((m) => [m.id, m]))
 
   const server = http.createServer(async (req, res) => {

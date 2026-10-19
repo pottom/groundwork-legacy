@@ -96,3 +96,18 @@ test('the start page links every module', async () => {
     assert.match(r.body, /href="\/demo\/"/)
   })
 })
+
+test('each module gets a writer for the folders its manifest names, and only those', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-root-'))
+  let files
+  const mod = { id: 'demo', name: 'Demo', version: '1', writes: ['.groundwork/demo'], api: (ctx) => { files = ctx.files; return () => false } }
+  const srv = await startServer({ root, modules: [mod], port: 0 })
+  try {
+    files.write('.groundwork/demo/state.json', '{}')
+    assert.equal(fs.readFileSync(path.join(root, '.groundwork/demo/state.json'), 'utf8'), '{}')
+    assert.throws(() => files.write('docs/product/x.md', 'x'), /may not write/)
+    assert.throws(() => files.write('../x.md', 'x'), /may not write/)
+  } finally {
+    await srv.close()
+  }
+})

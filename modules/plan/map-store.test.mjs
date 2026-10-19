@@ -7,10 +7,15 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { openMap } from './map-store.mjs'
+import { moduleFiles } from '../../core/files.mjs'
+import plan from './module.mjs'
+
+// The store as the CLI and the server open it: through the writer the core grants Plan.
+const open = (dir) => openMap(dir, moduleFiles(dir, plan))
 
 function fresh() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-'))
-  const store = openMap(dir)
+  const store = open(dir)
   store.init('Product')
   store.apply([
     { op: 'add', id: 'doc', parent: 'root', topic: 'Product', doc: 'prd' },
@@ -120,7 +125,7 @@ test('a store opened later (the CLI, the hook) sees the edits the server logged'
   const { v, data } = store.read()
   find(data, 'a').topic = 'Changed'
   store.saveFromBrowser(v, data)
-  assert.equal(openMap(dir).takeHumanEdits().length, 1)
+  assert.equal(open(dir).takeHumanEdits().length, 1)
 })
 
 test('init refuses to overwrite an existing map unless forced', () => {
@@ -128,4 +133,36 @@ test('init refuses to overwrite an existing map unless forced', () => {
   assert.throws(() => store.init('Again'), /already exists/)
   store.init('Again', { force: true })
   assert.equal(store.read().data.nodeData.topic, 'Again')
+})
+
+test('the store writes only under docs/product/ and .groundwork/plan/', () => {
+  const { dir, store } = fresh()
+  const { v, data } = store.read()
+  find(data, 'a').topic = 'Changed'
+  store.saveFromBrowser(v, data)
+  const top = fs.readdirSync(dir).sort()
+  assert.deepEqual(top, ['.groundwork', 'docs'])
+  assert.deepEqual(fs.readdirSync(path.join(dir, '.groundwork')), ['plan'])
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'docs')), ['product'])
+  assert.ok(fs.existsSync(path.join(dir, '.groundwork/plan/edits.jsonl')))
+})
+
+test('the store refuses to run without the writer the core grants', () => {
+  assert.throws(() => openMap(fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-'))), /writer/)
+})
+
+test('edits left in an old .prd-maker/ folder are moved to .groundwork/plan/ and still taken', () => {
+  const { dir, store } = fresh()
+  const { v, data } = store.read()
+  find(data, 'a').topic = 'Edited before the move'
+  store.saveFromBrowser(v, data)
+  // Put the state back where the prd-maker prototype kept it.
+  fs.renameSync(path.join(dir, '.groundwork/plan'), path.join(dir, '.prd-maker'))
+  fs.rmSync(path.join(dir, '.groundwork'), { recursive: true })
+  const edits = open(dir).takeHumanEdits()
+  assert.equal(edits.length, 1)
+  assert.equal(edits[0].topic, 'Edited before the move')
+  assert.equal(fs.existsSync(path.join(dir, '.prd-maker')), false)
+  assert.ok(fs.existsSync(path.join(dir, '.groundwork/plan/edits-history.jsonl')))
+  assert.ok(fs.existsSync(path.join(dir, '.groundwork/plan/written.json')))
 })

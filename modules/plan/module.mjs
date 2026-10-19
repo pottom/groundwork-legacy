@@ -16,8 +16,12 @@ export default {
   name: 'Plan',
   version: '0.1.0',
   view: { dir: HERE, files: ['index.html', 'node-types.mjs', 'documents.mjs'] },
-  api({ root }) {
-    const store = openMap(root)
+  // The folders Plan may write to: the map and its documents, and its local state.
+  writes: ['docs/product', '.groundwork/plan'],
+  // Local state from before the move to .groundwork/plan/ (the prd-maker prototype).
+  moves: { '.prd-maker': '.groundwork/plan' },
+  api({ root, files }) {
+    const store = openMap(root, files)
     return async (req, res, sub, url) => {
       if (sub === '/glossary' && req.method === 'GET') return send(res, 200, { text: store.glossary() }), true
       if (sub !== '/map') return false
