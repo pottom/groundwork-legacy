@@ -17,3 +17,16 @@ body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-
 .agents-agent[data-focus] { padding-left: calc(var(--gw-space) * 1.5); }
 .agents-none { margin: 0; color: var(--gw-muted); font: var(--gw-text-small) var(--gw-font); }
 @media (max-width: 640px) { .agents-times { margin-left: 0; width: 100%; } }
+
+/* The worktrees and branches (view/worktrees.mjs): one row each in a card. */
+.agents-worktrees { display: grid; gap: var(--gw-space); }
+.agents-wts { list-style: none; margin: 0; padding: 0 calc(var(--gw-space) * 2); }
+.agents-wt { display: grid; gap: var(--gw-space); padding: calc(var(--gw-space) * 1.5) 0; border-top: 1px solid var(--gw-line); }
+.agents-wt:first-child { border-top: 0; }
+.agents-wt__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); }
+.agents-wt__branch { font-weight: 550; max-width: 42ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agents-wt__counts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); color: var(--gw-fg-2); font: var(--gw-text-small) var(--gw-font); font-variant-numeric: tabular-nums; }
+.agents-wt__who { margin-left: auto; display: inline-flex; align-items: center; gap: var(--gw-space); font: var(--gw-text-small) var(--gw-font); }
+.agents-wt__clean { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gw-space); }
+.agents-wt__commands { flex: 1 1 24rem; min-width: 0; margin: 0; padding: var(--gw-space) calc(var(--gw-space) * 1.5); overflow-x: auto; background: var(--gw-sunken); border-radius: var(--gw-radius-sm); font: var(--gw-text-small) var(--gw-font-mono); }
+@media (max-width: 640px) { .agents-wt__who { margin-left: 0; width: 100%; } }

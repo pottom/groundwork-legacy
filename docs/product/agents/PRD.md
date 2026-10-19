@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
 
-> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 3 kész, 0 részben, 4 hiányzik.
+> Állapot: 5 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 4 kész, 0 részben, 3 hiányzik.
 
 ## 1. Probléma és cél
 
@@ -30,7 +30,7 @@ Külön nézet mutatja a worktree-ket és brancheket: mennyivel járnak előréb
 - Idővonal agentenként: fájlok, tesztek, commitok, fő lépések `hiányzik`
 - A záró jelentés megjelenítése `hiányzik`
 - Agent ↔ jegy ↔ branch; a Build jegyein látszik a dolgozó agent `kész` — Minden munkamenet és agent mutatja a branchét és a jegyét; a jegy a Buildben nyílik meg. A Build jegyein (táblázat és fiók) „Dolgoznak rajta” jelvény jelenik meg agentenként, élőben (agents.events), amely az Agents modulban nyitja meg az agentet (/?module=agents&agent=<id>). ([modules/agents/agent-tickets.mjs](../../../modules/agents/agent-tickets.mjs))
-- Worktree-k és branchek: előnyben, lemaradva, összefésülve, takarítható `hiányzik`
+- Worktree-k és branchek: előnyben, lemaradva, összefésülve, takarítható `kész` — Minden worktree és helyi branch: előnyben/lemaradva az integrációs ághoz képest, összefésülve, nem commitolt változások, zárolt (futó agent), és ha ismert, a benne dolgozó agent és a jegy. Az eltakarítható (összefésült, tiszta, nem zárolt) worktree-hez és branchhez a git worktree remove / git branch -d parancs másolható; a modul semmit nem futtat. Élő: a refek változása az agents.git téma. ([modules/agents/view/worktrees.mjs](../../../modules/agents/view/worktrees.mjs))
 - Figyelmet kérő agent kiemelése: engedélyre vár, elakadt, hibázott `hiányzik`
 - Élő frissítés `kész` ([modules/agents/view/main.mjs](../../../modules/agents/view/main.mjs))
 
