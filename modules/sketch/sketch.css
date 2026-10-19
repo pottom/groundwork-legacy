@@ -1,5 +1,16 @@
-/* The Sketch page: Excalidraw fills the frame. Its own look is Excalidraw's, in light or dark as
-   the shell's; the page around it uses only the shell's theme (/shell/theme.css). */
+/* The Sketch page: the bar of sketches on top (sketches.mjs), Excalidraw filling the rest of the
+   frame. Excalidraw's own look is Excalidraw's, in light or dark as the shell's; the page around it
+   uses only the shell's theme (/shell/theme.css). */
 
+:root { --sk-bar-height: 44px; }
 html, body { height: 100%; margin: 0; background: var(--gw-bg); }
-#board { position: fixed; inset: 0; }
+.sk-bar {
+  position: fixed; inset: 0 0 auto 0; height: var(--sk-bar-height); box-sizing: border-box;
+  padding: 0 12px; border-bottom: 1px solid var(--gw-line); background: var(--gw-surface);
+  display: flex; align-items: center; gap: 8px; overflow-x: auto;
+}
+.sk-bar__select { min-width: 10rem; max-width: 40vw; }
+.sk-bar__form { display: flex; align-items: center; gap: 8px; }
+.sk-bar__name { width: 14rem; max-width: 40vw; }
+.sk-bar__error { color: var(--gw-bad); font-size: 0.85em; white-space: nowrap; }
+#board { position: fixed; inset: var(--sk-bar-height) 0 0 0; }
