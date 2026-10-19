@@ -89,6 +89,23 @@ test('the board follows the shell: light or dark as the shell\'s switch says, th
   assert.match(board, /validateEmbeddable: false/, 'no iframe of another site (and the tweet template never runs)')
 })
 
+test('the page follows its sketch live: on sketch.files (and on reconnect) it reads the file again and merges it into the board', () => {
+  const main = read('view/main.mjs')
+  assert.match(main, /import \{ subscribe \} from '\/shell\/live\.mjs'/)
+  assert.match(main, /topics\.includes\('sketch\.files'\)/)
+  assert.match(main, /onHello:/)
+  assert.match(main, /followDisk\(/)
+  assert.match(main, /updateScene\(\{ elements/)
+  assert.match(main, /saver\.loaded\(/)
+  assert.match(read('view/board.mjs'), /excalidrawAPI:/)
+})
+
+test('a save sends the deleted elements too (Excalidraw\'s serializeAsJSON drops them), so a deletion survives the merge', () => {
+  const main = read('view/main.mjs')
+  assert.doesNotMatch(main, /serializeAsJSON\(/)
+  assert.match(main, /type: 'excalidraw'/)
+})
+
 test('the board offers Hungarian, which Excalidraw 0.17.6 leaves out of its languages (70% translated)', async () => {
   const { offerHungarian, boardProps } = await import('./view/board.mjs')
   const languages = [{ code: 'en', label: 'English' }]

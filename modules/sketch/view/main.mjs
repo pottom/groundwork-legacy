@@ -1,6 +1,13 @@
 // The Sketch page's entry: chooses the sketch (sketches.mjs), reads it, shows it on the board, and
-// saves it when the drawing changes (saver.mjs). The board follows the shell: light or dark from the
-// OS, the UI language chosen in the shell's header. A failed read or save shows as a .gw-toast.
+// saves it when the drawing changes (saver.mjs). It follows the file live: when the sketch changes
+// on disk (Claude drew with `groundwork sketch apply`, topic sketch.files) it reads it again and
+// merges it into the board (follow.mjs), so Claude's drawing appears at once and the developer's own
+// drawing stays. The board follows the shell: light or dark from the OS, the UI language chosen in
+// the shell's header. A failed read or save shows as a .gw-toast.
+//
+// A save sends the elements as Excalidraw keeps them, the deleted ones too (isDeleted: true), which
+// its serializeAsJSON leaves out: the server merges the save with the file element by element
+// (merge.mjs), and a deletion must reach the file as an edit to win there.
 //
 // Which sketch: the deep link's (/?module=sketch&sketch=<name>, which the shell hands this frame as
 // ?sketch=<name>), else the one opened last in this browser, else the first, else "main". The bar
@@ -9,9 +16,11 @@
 
 import { html, render } from '/vendor/lit-html/lit-html.js'
 import { createI18n } from '/shell/i18n.mjs'
+import { subscribe } from '/shell/live.mjs'
 import { SKETCH_STRINGS } from '../ui-strings.mjs'
 import { mountBoard } from './board.mjs'
 import { createSaver } from './saver.mjs'
+import { followDisk } from './follow.mjs'
 import { followTheme } from './theme.mjs'
 import { chooseSketch, mountSketchBar, postSketch } from './sketches.mjs'
 
@@ -38,8 +47,17 @@ function showToasts() {
   render(toasts.map((t) => html`<div class="gw-toast gw-toast--bad" role="alert">${i18n.t(t.key)}</div>`), document.getElementById('toasts'))
 }
 
+async function readScene() {
+  const res = await fetch(api())
+  if (!res.ok) throw new Error(String(res.status))
+  return res.json()
+}
+
 async function save(elements, appState, files) {
-  const body = window.ExcalidrawLib.serializeAsJSON(elements, appState, files, 'local')
+  const body = JSON.stringify({
+    type: 'excalidraw', version: 2, source: location.origin, elements,
+    appState: { gridSize: appState.gridSize ?? null, viewBackgroundColor: appState.viewBackgroundColor }, files,
+  })
   const res = await fetch(api(), { method: 'PUT', headers: { 'content-type': 'application/json' }, body })
   if (!res.ok) {
     toast(res.status === 413 ? 'toast.tooLarge' : 'toast.saveFailed')
@@ -77,9 +95,7 @@ async function start() {
 
   let scene
   try {
-    const res = await fetch(api())
-    if (!res.ok) throw new Error(String(res.status))
-    scene = await res.json()
+    scene = await readScene()
   } catch {
     toast('toast.loadFailed')
     return
@@ -88,6 +104,24 @@ async function start() {
   saver.loaded(scene.elements, scene.files)
   const board = mountBoard(document.getElementById('board'), { scene, onChange: saver.change })
   addEventListener('pagehide', () => saver.flush())
+
+  // The file changed on disk: what it has is saved already; what is newer on the board stays.
+  async function refresh() {
+    const excalidraw = board.api
+    if (!excalidraw) return
+    let disk
+    try { disk = await readScene() } catch { return }   // the next change reads it again
+    saver.loaded(disk.elements, disk.files)
+    const known = excalidraw.getFiles()
+    const images = Object.values(disk.files ?? {}).filter((f) => !known[f.id])
+    if (images.length) excalidraw.addFiles(images)
+    const elements = followDisk(excalidraw.getSceneElementsIncludingDeleted(), disk.elements)
+    if (elements) excalidraw.updateScene({ elements })
+  }
+  subscribe({
+    onHello: refresh,
+    onChange: (topics) => { if (topics.includes('sketch.files')) refresh() },
+  })
 
   // Leaves for another sketch once this one is saved; a save still to come goes to the new name.
   const go = async (name, change) => {

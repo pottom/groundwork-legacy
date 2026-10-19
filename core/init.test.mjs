@@ -76,6 +76,19 @@ test('it installs the Ideas skill from the Ideas manifest, its commands running 
   assert.doesNotMatch(skill, /\{\{|npx groundwork/)
 })
 
+test('it installs the Sketch skill from the Sketch manifest, its commands running this version', async () => {
+  const dir = project()
+  const r = await init(dir, ['--yes'])
+  assert.equal(r.code, 0, r.stdout + r.stderr)
+  const skill = read(dir, '.claude/skills/groundwork-sketch/SKILL.md')
+  const packaged = fs.readFileSync(new URL('../modules/sketch/skills/groundwork-sketch/SKILL.md', import.meta.url), 'utf8')
+  assert.equal(skill, packaged.replaceAll('{{groundwork}}', RUNNER))
+  assert.match(skill, /^name: groundwork-sketch$/m)
+  for (const cmd of ['sketch show', 'sketch apply']) assert.ok(skill.includes(`${RUNNER} ${cmd}`), cmd)
+  assert.match(skill, /browser pane/i, 'for the picture it looks at the sketch in the browser pane')
+  assert.doesNotMatch(skill, /\{\{|npx groundwork/)
+})
+
 test('--yes applies without asking', async () => {
   const dir = project()
   const r = await init(dir, ['--yes'])
