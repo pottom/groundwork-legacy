@@ -4,7 +4,7 @@
 
 _Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 15 kész, 0 részben, 0 hiányzik.
+> Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 16 kész, 0 részben, 2 hiányzik.
 
 ## 1. Helyi szerver
 
@@ -75,10 +75,14 @@ A Groundwork Windowson, macOS-en és Linuxon fut, Node 20 vagy újabb verzióval
 
 ## 7. Technológiai stack
 
-Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és fordítási lépés nélkül, ahogy a két meglévő eszköz is. Amit módosítunk, az azonnal fut, és nincs függőségi lánc, ami csendben eltörhetne. Hogy a kód áttekinthető maradjon, minden modul több kisebb fájlra bomlik, nem egyetlen nagy fájlra.
+Az egész Groundwork sima JavaScript ES-modulokból áll, keretrendszer és fordítási lépés nélkül. Amit módosítunk, az azonnal fut, offline is, és nincs függőségi lánc, ami csendben eltörhetne; az agentek is közvetlenül tudják futtatni és javítani a kódot.
+
+A felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a csomagba tett sablonkönyvtár, a lit-html rajzolja deklaratívan és hatékonyan, a közös megjelenést pedig a keret theme.css-e adja kész komponensekkel. Hogy a kód áttekinthető maradjon, minden modul oldala kis fájlokra bomlik (nézetek, állapot, adatlekérés), nem egyetlen nagy index.html-re. Így megkapjuk egy keretrendszer előnyeit, a build-lépés és a függőségi lánc nélkül.
 
 - Sima JavaScript ES-modulok, build-lépés nélkül — Mindkét meglévő eszköz már így készült.
-- Modulonként több kisebb fájl, nem egy óriásfájl
+- Modulonként több kisebb fájl, nem egy óriásfájl `hiányzik` — A Plan és a Build oldala még egy-egy nagy index.html (63 és 122 KB); szét kell bontani nézetekre, állapotra és adatlekérésre.
+- Deklaratív nézetek lit-html-lel, a csomagba téve `hiányzik` — Kb. 7 KB, fordítási lépés nélkül fut, offline is; a core/vendor/ alá kerül, mint a Mind Elixir.
+- Közös dizájnrendszer a theme.css-ben (.gw-* komponensek) `kész` ([core/shell/theme.css](../../../core/shell/theme.css))
 
 ## Elvetett megoldások
 
