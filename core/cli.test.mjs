@@ -7,7 +7,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { startCommand } from './cli-process.mjs'
 
 const BIN = fileURLToPath(new URL('./groundwork.mjs', import.meta.url))
@@ -53,6 +53,16 @@ test('under Node 20 it stops with a clear message, before starting anything', as
   assert.match(r.stderr, /Node\.js 20 or newer/)
   assert.match(r.stderr, /18\.19\.0/)
   assert.doesNotMatch(r.stdout, /http:\/\//)
+})
+
+test('`groundwork plan <command>` runs the Plan module\'s command in the project: the skill\'s tool and the hook', () => {
+  const dir = project()
+  const show = spawnSync(process.execPath, [BIN, 'plan', 'show'], { cwd: dir, encoding: 'utf8' })
+  assert.equal(show.status, 0, show.stderr)
+  assert.match(show.stdout, /\[root\] Demo/)
+  const hook = spawnSync(process.execPath, [BIN, 'plan', 'hook'], { cwd: dir, encoding: 'utf8', input: JSON.stringify({ cwd: dir, prompt: 'grill me' }) })
+  assert.equal(hook.status, 0, hook.stderr)
+  assert.match(hook.stdout, /groundwork-prd-maker/)
 })
 
 test('the bin file runs on macOS and Linux too: a node shebang and LF line ends', () => {

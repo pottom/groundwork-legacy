@@ -25,6 +25,13 @@ export default {
   writes: ['docs/product', '.groundwork/plan'],
   // Local state from before the move to .groundwork/plan/ (the prd-maker prototype).
   moves: { '.prd-maker': '.groundwork/plan' },
+  // `groundwork plan <command>` runs plan.mjs: the skill's tool and the hook.
+  cli: path.join(HERE, 'plan.mjs'),
+  // What `groundwork init` puts into a project for Claude Code.
+  claude: {
+    skills: [path.join(HERE, 'skills', 'groundwork-prd-maker')],
+    hooks: [{ event: 'UserPromptSubmit', command: 'npx groundwork plan hook' }],
+  },
   watch: (p) => (p === 'docs/product/mindmap.json' ? 'plan.map' : p === 'GLOSSARY.md' ? 'plan.glossary' : null),
   api({ root, files }) {
     const store = openMap(root, files)

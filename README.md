@@ -36,6 +36,7 @@ In a project folder:
 
 ```bash
 npx groundwork              # the core server for this folder: http://localhost:4477, Plan at /plan/, Build at /build/; opens the browser
+npx groundwork init         # sets the project up for Claude Code: the skills, the hook, .groundwork/ in .gitignore (asks first)
 ```
 
 Options: `--root DIR` (the project, default the current folder), `--port N`, `--no-open`. In this repository, `node core/groundwork.mjs` does the same. The package has one version (`package.json`), shown in the header; the modules carry it too. Everything it needs is in the package, so it starts without a network. The core server listens on `127.0.0.1` only and refuses requests with a foreign `Host` header.

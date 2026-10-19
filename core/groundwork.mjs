@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // The command: `npx groundwork` (this file is the package's bin), or `node core/groundwork.mjs`.
-// It checks the Node.js version, then starts the core server (start.mjs) for a project.
+// It checks the Node.js version, then runs the command (commands.mjs): by default it starts the
+// core server (start.mjs) for a project.
 //
 //   groundwork [--root DIR] [--port N] [--no-open]
+//   groundwork init [--root DIR] [--yes]   set the project up for Claude Code (init.mjs)
+//   groundwork plan <command>              the Plan module's command (modules/plan/plan.mjs)
 //
 //   --root DIR  the project folder (default: the current folder; also MINDMAP_DIR)
 //   --port N    the port (default 4477; also PORT; 0 picks a free one)
@@ -20,5 +23,5 @@ if (!(major >= MIN_NODE)) {
   console.error('Install a newer Node.js from https://nodejs.org/ and run it again.')
   process.exitCode = 1
 } else {
-  import('./start.mjs')
+  import('./commands.mjs')
 }
