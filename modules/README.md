@@ -7,7 +7,7 @@ Each folder here is one Groundwork module.
 | [`ideas/`](ideas/) | Numbered ideas with author and source, as Markdown files under `docs/product/ideas/items/`, on a kanban the human edits and decides on (drawer, drag and drop, reject with a reason); `groundwork ideas add|similar|list|move` (move: New and Considering only) | in progress (Claude skill: groundwork-ideas) |
 | [`plan/`](plan/) | Turns a grilling interview with Claude Code into a live mind map and product documents under `docs/product/` | working prototype (Claude skill: groundwork-prd-maker) |
 | [`build/`](build/) | Shows a project's Markdown tickets, specs, ADRs and git branches as a live dashboard | working prototype |
-| [`sketch/`](sketch/) | A drawing board (Excalidraw) whose sketches are standard `.excalidraw` files under `docs/product/sketches/`; Claude reads and draws on them with `groundwork sketch show \| apply` (Mermaid flowcharts too), live, merged element by element with the browser's edits | first version: one sketch |
+| [`sketch/`](sketch/) | A drawing board (Excalidraw) of named sketches, each a standard `.excalidraw` file under `docs/product/sketches/` (a bar lists, opens, makes and renames them); Claude reads and draws on them with `groundwork sketch show \| apply` (Mermaid flowcharts too), live, merged element by element with the browser's edits; threads of comments pinned to shapes (`groundwork sketch threads \| comment \| close`); links from a sketch to ideas, map nodes, tickets and other sketches, which those modules show (`GET /api/sketch/links`) | in progress (Claude skill: groundwork-sketch) |
 
 ## What a module is
 
