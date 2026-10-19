@@ -177,3 +177,17 @@ test('POST /api/plan/todo takes only a JSON request with an idea and a title, an
     assert.equal((await fetch(`${base}/api/plan/todo`)).status, 405)
   } finally { await srv.close() }
 })
+
+test('POST /api/plan/todo answers 409 when the map has no document to put the idea in', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-todo-empty-'))
+  fs.mkdirSync(path.join(root, 'docs', 'product'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'docs', 'product', 'mindmap.json'), '{}')
+  const srv = await startServer({ root, modules: [plan], port: 0 })
+  const base = `http://127.0.0.1:${srv.port}`
+  try {
+    const res = await post(base, { idea: 'I-1', title: 'x' })
+    assert.equal(res.status, 409)
+    assert.match((await res.json()).error, /document/)
+    assert.equal(fs.readFileSync(path.join(root, 'docs', 'product', 'mindmap.json'), 'utf8'), '{}', 'nothing written')
+  } finally { await srv.close() }
+})

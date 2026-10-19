@@ -19,7 +19,7 @@
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { send, readJson } from '../../core/http.mjs'
+import { send, readJson, isJson } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { ITEMS, openIdeas } from './store.mjs'
 
@@ -58,7 +58,7 @@ export default {
       if (!item) return false
       if (req.method !== 'PUT') return send(res, 405, { error: 'method not allowed' }), true
       // Only a JSON request: another web site cannot send one here without the browser asking first.
-      if (!/^application\/json\b/i.test(req.headers['content-type'] ?? '')) return send(res, 415, { error: 'send JSON' }), true
+      if (!isJson(req)) return send(res, 415, { error: 'send JSON' }), true
       try {
         const { base, changes } = await readJson(req)
         send(res, 200, { idea: store.update(item[1], changes ?? {}, { base }) })

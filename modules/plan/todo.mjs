@@ -3,7 +3,8 @@
 //
 //   addIdea(store, { idea: 'I-12', title, status?: 'todo' | 'excluded', reason? })
 //     -> { id, added }   the node's id; added is false when the idea was on the map already
-//     throws (code 'bad') on a missing idea or title, another status, or a non-goal without its reason
+//     throws (code 'bad') on a missing idea or title, another status, or a non-goal without its reason;
+//     (code 'nodoc') when the map has no document to put the idea in (no root node)
 //
 // The node links to the idea (/?module=ideas&idea=I-12) and is marked as written by "ideas". It goes
 // into the "Ideas" section of the first PRD (made on first use, titled in the document language), so
@@ -18,7 +19,8 @@ import { docStrings, langOf } from './doc-strings.mjs'
 export const IDEAS_SECTION = 'from-ideas'
 export const ideaLink = (idea) => '/?module=ideas&idea=' + encodeURIComponent(idea)
 
-const bad = (message) => Object.assign(new Error(message), { code: 'bad' })
+const fail = (code, message) => Object.assign(new Error(message), { code })
+const bad = (message) => fail('bad', message)
 const line = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
 
 export function addIdea(store, { idea, title, status = 'todo', reason } = {}) {
@@ -31,6 +33,7 @@ export function addIdea(store, { idea, title, status = 'todo', reason } = {}) {
   if (status === 'excluded' && !reason) throw bad('a non-goal needs its reason')
 
   const { data } = store.read()
+  if (!data?.nodeData?.id) throw fail('nodoc', 'the map has no document to put the idea in')
   const link = ideaLink(idea)
   let found = null
   let section = null

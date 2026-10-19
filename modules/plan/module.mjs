@@ -8,7 +8,8 @@
 //   GET /api/plan/glossary           { text } of the project's GLOSSARY.md
 //   POST /api/plan/todo              { idea: 'I-12', title, status?: 'todo'|'excluded', reason? } -> { id, added }:
 //                                    an idea from the Ideas module as a node linked to it (todo.mjs);
-//                                    400 a wrong body, 404 no map, 415 not sent as application/json
+//                                    400 a wrong body, 404 no map, 409 a map without a document,
+//                                    415 not sent as application/json
 //                                    (so no other web site can post one)
 //
 // Live updates (core/events.mjs): the map file changing is the topic "plan.map", the glossary
@@ -16,7 +17,7 @@
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { send, readJson } from '../../core/http.mjs'
+import { send, readJson, isJson } from '../../core/http.mjs'
 import { openMap, nodeIds } from './map-store.mjs'
 import { addIdea } from './todo.mjs'
 import { VERSION } from '../../core/version.mjs'
@@ -70,12 +71,12 @@ export default {
       if (sub === '/todo') {
         if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' }), true
         // Only a JSON request: another web site cannot send one here without the browser asking first.
-        if (!/^application\/json\b/i.test(req.headers['content-type'] ?? '')) return send(res, 415, { error: 'send JSON' }), true
+        if (!isJson(req)) return send(res, 415, { error: 'send JSON' }), true
         if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` }), true
         try {
           send(res, 200, addIdea(store, await readJson(req)))
         } catch (e) {
-          send(res, e.code === 'bad' || e instanceof SyntaxError ? 400 : 500, { error: e.message })
+          send(res, e.code === 'bad' || e instanceof SyntaxError ? 400 : e.code === 'nodoc' ? 409 : 500, { error: e.message })
         }
         return true
       }
