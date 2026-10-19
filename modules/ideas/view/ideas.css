@@ -38,6 +38,7 @@ h2, h3, p { margin: 0; }
 .idea__open:hover { color: var(--gw-accent); }
 .idea__open:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; }
 .idea__estimate { display: flex; gap: 6px; flex-wrap: wrap; }
+.idea__sketches { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
 .idea__reason { color: var(--gw-fg-2); font: var(--gw-text-xs) var(--gw-font); overflow-wrap: anywhere; }
 .idea__reason-label { font-weight: 600; }
 /* the idea's nodes on Plan's map: links that open Plan there */

@@ -85,6 +85,8 @@ export const UI_STRINGS = {
     'notice.close': 'Close',
 
     'tickets.title': 'Tickets naming this item: {total}, done: {done}. Click to see them in Build.',
+    'sketch.badge': 'Sketch: {name}',
+    'sketch.title': 'Open the sketch {name}',
 
     'map.newTopic': 'New branch',
     'menu.addChild': 'Add child',
@@ -204,6 +206,8 @@ export const UI_STRINGS = {
     'notice.close': 'Bezárás',
 
     'tickets.title': 'Ezt az elemet megnevező jegyek: {total}, ebből kész: {done}. Kattints, és a Buildben látod őket.',
+    'sketch.badge': 'Vázlat: {name}',
+    'sketch.title': 'A(z) {name} vázlat megnyitása',
 
     'map.newTopic': 'Új ág',
     'menu.addChild': 'Új gyerek',

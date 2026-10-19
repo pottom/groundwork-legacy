@@ -134,6 +134,7 @@ export function decorate() {
     set('impl', impl)
     set('implLabel', impl ? ui(`impl.${impl}`) : null)
     ticketBadge(tpc, state.ticketCounts[n.id])
+    sketchBadges(tpc, state.sketchLinks[n.id])
   }
   if (linesStale()) {
     if (!relinking) { relinkNow(); return }   // the redraw's own decorate does the rest
@@ -161,6 +162,25 @@ function ticketBadge(tpc, count) {
   a.href = buildLink(tpc.nodeObj.id)
   a.title = ui('tickets.title', { done: count.done, total: count.total })
   if (count.total && count.done === count.total) a.dataset.complete = ''; else delete a.dataset.complete
+}
+
+// The sketches that link to a map item, a link each that opens the sketch (through the shell).
+// Set on Mind Elixir's node directly, like the ticket count.
+function sketchBadges(tpc, names = []) {
+  const have = [...tpc.querySelectorAll(':scope > a.mm-sketch')]
+  if (have.length === names.length && have.every((a, i) => a.dataset.sketch === names[i] && a.textContent === ui('sketch.badge', { name: names[i] }))) return
+  for (const a of have) a.remove()
+  for (const name of names) {
+    const a = document.createElement('a')
+    a.className = 'mm-sketch'
+    a.target = '_top'
+    a.dataset.sketch = name
+    a.href = '/?module=sketch&sketch=' + encodeURIComponent(name)
+    a.textContent = ui('sketch.badge', { name })
+    a.title = ui('sketch.title', { name })
+    for (const ev of ['mousedown', 'pointerdown', 'dblclick']) a.addEventListener(ev, (e) => e.stopPropagation())
+    tpc.appendChild(a)
+  }
 }
 
 // ---- background pan ----

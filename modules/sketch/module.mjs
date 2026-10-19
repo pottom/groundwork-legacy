@@ -6,6 +6,12 @@
 //   POST /api/sketch/create             { name }: a new empty sketch (201; 409 when it exists)
 //   POST /api/sketch/rename             { from, to }: moves the file (409 when `to` exists)
 //   GET /api/sketch/scene?name=<name>   the sketch's scene (the .excalidraw file), or an empty one
+//   GET  /api/sketch/links              (public) who links to what: { sketches: { name: [target] },
+//                                       linked: { idea|node|ticket|sketch: { ref: [names] } },
+//                                       renamed: { old: new } } (links-store.mjs)
+//   POST /api/sketch/link               { name, target }: the sketch links to target
+//                                       (groundwork://idea/I-12, view/targets.mjs); 400 when it is not one
+//   POST /api/sketch/unlink             { name, target }: the link goes again
 //   PUT /api/sketch/scene?name=<name>   the page's save: the scene, deleted elements included;
 //                                       needs content-type application/json (415 otherwise), 400 when
 //                                       it is not a scene or the name is not a plain name, 413 when an
@@ -34,11 +40,12 @@ import { send, readJson } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { openSketches, SketchError, DIR } from './sketch-store.mjs'
 import { openThreads } from './threads.mjs'
+import { openLinks, LINKS_FILE } from './links-store.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 // The page's files, the only ones served under /sketch/.
-const VIEW_FILES = ['index.html', 'sketch.css', 'ui-strings.mjs', 'view/asset-path.js', 'view/main.mjs', 'view/board.mjs', 'view/saver.mjs', 'view/follow.mjs', 'view/theme.mjs', 'view/sketches.mjs', 'view/pins.mjs', 'view/thread-panel.mjs', 'merge.mjs']
+const VIEW_FILES = ['index.html', 'sketch.css', 'ui-strings.mjs', 'view/asset-path.js', 'view/main.mjs', 'view/board.mjs', 'view/saver.mjs', 'view/follow.mjs', 'view/theme.mjs', 'view/sketches.mjs', 'view/pins.mjs', 'view/thread-panel.mjs', 'view/targets.mjs', 'view/links.mjs', 'merge.mjs']
 
 export default {
   id: 'sketch',
@@ -49,21 +56,26 @@ export default {
   tool: true,
   view: { dir: HERE, files: VIEW_FILES },
   writes: [DIR],
-  watch: (p) => (p.startsWith(DIR + '/') ? 'sketch.files' : null),   // the open page reads the sketch again
+  // the links file is its own topic; any other file there is a sketch, which the open page reads again
+  watch: (p) => (p === LINKS_FILE ? 'sketch.links' : p.startsWith(DIR + '/') ? 'sketch.files' : null),
   cli: path.join(HERE, 'sketch.mjs'),   // groundwork sketch list | show | apply
   claude: { skills: [path.join(HERE, 'skills', 'groundwork-sketch')] },
-  public: [],   // nothing another module may read yet (modules/README.md)
+  public: ['GET /api/sketch/links'],   // who links to what (README.md, "Public endpoints")
   api({ root, files }) {
     const store = openSketches(files, root)
     const threads = openThreads(files, store)
     const nameIn = (url) => url.searchParams.get('name') ?? 'main'
+    const links = openLinks(files)
     return async (req, res, sub, url) => {
       if (sub === '/threads') return answer(res, () => send(res, 200, { threads: threads.list(nameIn(url)) }))
       if (sub === '/comment') return change(req, res, async (b) => send(res, 200, threads.comment(nameIn(url), b.element, { text: b.text, author: b.author || developer(root) })))
       if (sub === '/close') return change(req, res, async (b) => send(res, 200, threads.close(nameIn(url), b.element, b.closed)))
       if (sub === '/list') return send(res, 200, { sketches: store.list().map((name) => ({ name })) }), true
-      if (sub === '/create') return change(req, res, async (body) => (store.create(body.name), send(res, 201, { name: body.name })))
-      if (sub === '/rename') return change(req, res, async ({ from, to }) => (store.rename(from, to), send(res, 200, { name: to })))
+      if (sub === '/links') return send(res, 200, links.index()), true
+      if (sub === '/create') return change(req, res, async (body) => (store.create(body.name), links.created(body.name), send(res, 201, { name: body.name })))
+      if (sub === '/rename') return change(req, res, async ({ from, to }) => (store.rename(from, to), links.renamed(from, to), send(res, 200, { name: to })))
+      if (sub === '/link') return change(req, res, async ({ name, target }) => (links.add(name, target), send(res, 200, links.index())))
+      if (sub === '/unlink') return change(req, res, async ({ name, target }) => (links.remove(name, target), send(res, 200, links.index())))
       if (sub !== '/scene') return false
       try {
         const name = url.searchParams.get('name') ?? 'main'

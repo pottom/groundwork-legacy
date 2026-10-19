@@ -17,11 +17,14 @@
 //
 // A product idea moved to To develop goes to Plan's map as a todo node, and a rejected one, when the
 // human asks, as a non-goal (plan.mjs); without Plan a toast says the map is unavailable.
+//
+// A card shows the sketches that link to its idea (the Sketch module's GET /api/sketch/links, topic
+// "sketch.links"), each opening that sketch.
 
 import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
 import { i18n, ui } from './strings.mjs'
-import { listIdeas, saveIdea, ideaTickets } from './api.mjs'
+import { listIdeas, saveIdea, ideaTickets, sketchLinks } from './api.mjs'
 import { board } from './board.mjs'
 import { matrix } from './matrix.mjs'
 import { estimateFor } from '../matrix.mjs'
@@ -38,7 +41,7 @@ const VIEWS = ['kanban', 'matrix']
 function recallView() { try { return localStorage.getItem(VIEW_KEY) } catch { return null } }
 function rememberView(view) { try { localStorage.setItem(VIEW_KEY, view) } catch {} }
 
-const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null, tickets: {},
+const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null, tickets: {}, sketches: {},
   view: VIEWS.includes(recallView()) ? recallView() : 'kanban' }
 let draft = null    // the idea open in the drawer: { idea, values, saving, error }
 let ask = null      // the reason a move to Rejected asks for: { idea, reason, error }
@@ -102,6 +105,11 @@ async function read() {
 
 async function readTickets() {
   state.tickets = await ideaTickets()
+  draw()
+}
+
+async function readSketches() {
+  state.sketches = await sketchLinks()
   draw()
 }
 
@@ -210,9 +218,10 @@ document.addEventListener('click', (e) => {
 document.documentElement.lang = i18n.lang
 i18n.onChange(() => { document.documentElement.lang = i18n.lang; draw() })
 subscribe({
-  onHello: () => { read(); readTickets() },
+  onHello: () => { read(); readTickets(); readSketches() },
   onChange: (topics) => {
     if (topics.includes('ideas.items')) read()
     if (topics.includes('build.files') || topics.includes('build.issues')) readTickets()
+    if (topics.includes('sketch.links')) readSketches()
   },
 })

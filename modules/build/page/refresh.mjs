@@ -4,7 +4,7 @@
 
 import { reader, FRESH_MS, NO_REPO } from './config.mjs';
 import { ui, clock, statusName, commentTitle } from './text.mjs';
-import { state, app, NO_GIT, NO_ISSUES } from './state.mjs';
+import { state, app, actions, NO_GIT, NO_ISSUES } from './state.mjs';
 import { scan } from './folder.mjs';
 import { subscribe } from '/shell/live.mjs';
 import { serverJson } from './server.mjs';
@@ -113,6 +113,7 @@ async function refreshOnce(want) {
       }
       app.model = next;
       renderAll();
+      if (first && actions.openLinked) actions.openLinked();
     } else if (gitChanged && app.model) { renderNav(true); if (state.view === 'git') renderView(); }
     app.lastChecked = new Date();
     app.serverDown = false;

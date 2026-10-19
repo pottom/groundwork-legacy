@@ -6,7 +6,7 @@ import { live } from '/vendor/lit-html/directives/live.js';
 import { reader, GROUPS } from '../config.mjs';
 import { ui, tx, statusName, dateText } from '../text.mjs';
 import { state, app, matches, visibleTickets, isFresh } from '../state.mjs';
-import { icon, chip, badge, count, dash, sectionHead, empty, docLink, blockerLinks, prdLinks, ideaLinks, meter, flags, progress, pct, table } from '../parts.mjs';
+import { icon, chip, badge, count, dash, sectionHead, empty, docLink, blockerLinks, prdLinks, ideaLinks, sketchLinks, meter, flags, progress, pct, table } from '../parts.mjs';
 
 const { fold, isClosed, waitingOn } = reader;
 
@@ -15,7 +15,7 @@ function ticketRow(t) {
   return html`<tr data-doc=${t.path} class=${t.blocked ? 'is-blocked' : nothing}>
 <td class="c-num">${t.label}</td>
 <td class="c-title">${docLink(t.path, t.title, 'open')}${flags(t)}${isFresh(t.path) ? [' ', badge('info', ui('flag.fresh'))] : nothing}
-${t.statusNote ? html`<div class="note" title=${t.statusNote}>${t.statusNote}</div>` : nothing}${t.prd.length ? html`<div class="refs-line"><span>${ui('table.prd-sub')}</span>${prdLinks(t)}</div>` : nothing}${t.ideas.length ? html`<div class="refs-line"><span>${ui('table.idea-sub')}</span>${ideaLinks(t)}</div>` : nothing}<div class="sub">${chip(t.status)}${t.area ? html`<span>${t.area}</span>` : nothing}${blockers ? html`<span>${tx('table.blocked-by-sub', { list: blockers })}</span>` : nothing}</div></td>
+${t.statusNote ? html`<div class="note" title=${t.statusNote}>${t.statusNote}</div>` : nothing}${t.prd.length ? html`<div class="refs-line"><span>${ui('table.prd-sub')}</span>${prdLinks(t)}</div>` : nothing}${t.ideas.length ? html`<div class="refs-line"><span>${ui('table.idea-sub')}</span>${ideaLinks(t)}</div>` : nothing}${t.sketches.length ? html`<div class="refs-line"><span>${ui('table.sketch-sub')}</span>${sketchLinks(t)}</div>` : nothing}<div class="sub">${chip(t.status)}${t.area ? html`<span>${t.area}</span>` : nothing}${blockers ? html`<span>${tx('table.blocked-by-sub', { list: blockers })}</span>` : nothing}</div></td>
 <td class="c-area">${t.area || dash}</td>
 <td class="c-st">${chip(t.status)}</td>
 <td class="c-chk">${meter(t.checks)}</td>

@@ -2,7 +2,7 @@
 // the keyboard, the language, and the boot. index.html loads this module from the core server;
 // Build has no mode without it.
 
-import { GIT_PAGE } from './config.mjs';
+import { GIT_PAGE, reader } from './config.mjs';
 import { i18n, ui } from './text.mjs';
 import { state, app, actions, applies, docHref } from './state.mjs';
 import { findServer, serverSource } from './server.mjs';
@@ -39,9 +39,23 @@ function clearPrd() {
   } catch (e) { /* the filter is gone anyway */ }
 }
 
+// The ticket a link asked for (?ticket=, a sketch's link): opened in the drawer once, the query gone.
+function openLinked() {
+  if (!state.ticket) return;
+  const t = reader.findTicket(app.model, state.ticket);
+  state.ticket = '';
+  try {
+    const url = new URL(location.href);
+    url.searchParams.delete('ticket');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  } catch (e) { /* the link is followed anyway */ }
+  if (t) location.hash = docHref(t.path);
+}
+
 let typing = null;
 
 Object.assign(actions, {
+  openLinked,
   // Read everything again now, and say so also when nothing changed.
   readAgain() {
     if (app.source) refresh(undefined, { asked: true });

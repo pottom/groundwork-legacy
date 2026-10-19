@@ -13,7 +13,11 @@
 // Which sketch: the deep link's (/?module=sketch&sketch=<name>, which the shell hands this frame as
 // ?sketch=<name>), else the one opened last in this browser, else the first, else "main". The bar
 // above the board opens another, makes a new one or renames this one; each reloads the page on the
-// sketch it lands on, after the drawing is saved.
+// sketch it lands on, after the drawing is saved. A name the sketch had before a rename (a ticket's
+// **Sketch:** line, a shape's link) still opens it.
+//
+// The bar's right end lists the sketch's links and adds or removes one (links.mjs); they follow
+// the file live (topic "sketch.links"), and a shape's link opens in the shell (board.mjs).
 
 import { html, render } from '/vendor/lit-html/lit-html.js'
 import { createI18n } from '/shell/i18n.mjs'
@@ -26,6 +30,7 @@ import { followTheme } from './theme.mjs'
 import { chooseSketch, mountSketchBar, postSketch } from './sketches.mjs'
 import { readThreads, commentOn, closeThread } from './pins.mjs'
 import { mountPins } from './thread-panel.mjs'
+import { mountLinks, readLinks, changeLink } from './links.mjs'
 
 const LAST_KEY = 'groundwork-sketch:last'
 const TOAST_MS = 4000
@@ -90,9 +95,14 @@ async function names() {
   }
 }
 
+async function links() {
+  try { return await readLinks() } catch { return null }
+}
+
 async function start() {
-  const list = await names()
-  current = chooseSketch({ asked: new URLSearchParams(location.search).get('sketch'), remembered: recall(), names: list })
+  const [list, index] = await Promise.all([names(), links()])
+  const renamed = index?.renamed ?? {}
+  current = chooseSketch({ asked: new URLSearchParams(location.search).get('sketch'), remembered: recall(), names: list, renamed })
   remember(current)
   showInAddress(current)
 
@@ -142,11 +152,6 @@ async function start() {
     const elements = followDisk(excalidraw.getSceneElementsIncludingDeleted(), disk.elements)
     if (elements) excalidraw.updateScene({ elements })
   }
-  subscribe({
-    onHello: () => { refresh(); refreshThreads() },
-    onChange: (topics) => { if (topics.includes('sketch.files')) { refresh(); refreshThreads() } },
-  })
-
   // Leaves for another sketch once this one is saved; a save still to come goes to the new name.
   const go = async (name, change) => {
     await saver.flush()
@@ -163,6 +168,21 @@ async function start() {
     onRename: (to) => go(to, () => postSketch('rename', { from: current, to })),
   })
 
+  const panel = mountLinks(document.getElementById('links'), {
+    name: current, i18n,
+    onAdd: async (link) => { await changeLink('add', current, link); show(await links()) },
+    onRemove: async (link) => { await changeLink('remove', current, link); show(await links()) },
+  })
+  const show = (next) => { if (next) { panel.show(next); board.set({ renamed: next.renamed }) } }
+  show(index)
+  subscribe({
+    onHello: async () => { refresh(); refreshThreads(); show(await links()) },
+    onChange: async (topics) => {
+      if (topics.includes('sketch.files')) { refresh(); refreshThreads() }
+      if (topics.includes('sketch.links')) show(await links())
+    },
+  })
+
   board.set({ lang: i18n.lang })
   followTheme((dark) => board.set({ dark }))
   i18n.onChange((lang) => {
@@ -170,6 +190,7 @@ async function start() {
     showToasts()
     bar.redraw()
     pins.redraw()
+    panel.redraw()
     board.set({ lang })
   })
 }

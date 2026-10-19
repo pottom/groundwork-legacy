@@ -158,6 +158,37 @@ test('the PRD line names the PRD items a ticket came from, in both sources', () 
   assert.deepEqual(m.byPrd.get('d-trace').map((t) => t.label), ['core 01', '#5']);
 });
 
+test('the Sketch line names the sketches a ticket links to, in both sources', () => {
+  const m = readTickets({
+    ...local({
+      '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**Sketch:** checkout-flow, `main`\n',
+      '.scratch/core/issues/02-two.md': '# Two\n\nStatus: ready-for-agent\n- Sketch: [flow](/?module=sketch&sketch=flow) (the payment part)\n',
+      '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n',
+    }),
+    github: { repo: 'acme/app', issues: [issue(4, { body: '**Sketch:** arch_v2\n\n## What to build\n\nIt.\n' })] },
+  });
+  assert.deepEqual(byLabel(m, 'core 01').sketches, ['checkout-flow', 'main']);
+  assert.deepEqual(byLabel(m, 'core 02').sketches, ['flow'], 'a remark in parentheses is not a sketch');
+  assert.deepEqual(byLabel(m, 'core 03').sketches, []);
+  assert.deepEqual(byLabel(m, '#4').sketches, ['arch_v2']);
+  assert.equal(reader.sketchLink('checkout-flow'), '/?module=sketch&sketch=checkout-flow');
+});
+
+test('a ticket a link names (?ticket=): an issue number, an area and number, or its path', () => {
+  const m = readTickets({
+    ...local({ '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n' }),
+    github: { repo: 'acme/app', issues: [issue(34)] },
+  });
+  const find = (ref) => reader.findTicket(m, ref)?.label ?? null;
+  assert.equal(find('#34'), '#34');
+  assert.equal(find('core 3'), 'core 03');
+  assert.equal(find('core  03'), 'core 03');
+  assert.equal(find('.scratch/core/issues/03-three.md'), 'core 03');
+  assert.equal(find('#99'), null);
+  assert.equal(find(''), null);
+  assert.equal(reader.ticketFilter('?ticket=%2334'), '#34');
+});
+
 test('the Idea line names the ideas a ticket was made from, in both sources', () => {
   const m = readTickets({
     ...local({

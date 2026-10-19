@@ -44,6 +44,8 @@ An **engineering** idea in To develop becomes a ticket (d-ideas-ticket-line): it
 
 To Plan (f-ideas-to-plan, d-ideas-plan-endpoint): a product idea moved to To develop goes to Plan's map as a `todo` node. Ideas never writes the map; the page asks Plan through its public `POST /api/plan/todo`, Plan adds the node to an "Ideas" section of the first PRD with a link back to the idea (`/?module=ideas&idea=I-12`, which opens the idea in the drawer), and the page adds the node's id to the idea's `links`. The card then links to the node on the map (a link that is not an idea, a ticket or an address is a map node). The rejection dialog can also send the idea as an `excluded` item with its reason, so the PRD lists it among its non-goals. Without Plan, or without a map, a toast says the map is unavailable and the idea stays as it is. An engineering idea goes to a ticket instead (above).
 
+A card shows the sketches that link to its idea ("Sketch: <name>"), each opening that sketch in the shell; Ideas reads them from Sketch's public `GET /api/sketch/links` and follows them live (topic `sketch.links`). Without Sketch the cards show none, with no error.
+
 ## Public endpoints
 
-None yet. Ideas itself uses Plan's `POST /api/plan/todo` and Build's `GET /api/build/ideas`.
+None yet. Ideas itself uses Plan's `POST /api/plan/todo`, Build's `GET /api/build/ideas` and Sketch's `GET /api/sketch/links`.

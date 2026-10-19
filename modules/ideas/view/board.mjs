@@ -7,7 +7,8 @@
 //
 //   board(state, act)   the template
 //     state  { ideas, error, fresh: Set of ids that just arrived, menu: the id whose move menu is open,
-//              over: the column a card is dragged over, tickets: { 'I-12': [ticket] } from Build }
+//              over: the column a card is dragged over, tickets: { 'I-12': [ticket] } from Build,
+//              sketches: { 'I-12': [names of the sketches that link to it] } from Sketch }
 //     act    { open(idea), move(idea, status), menu(id | null), over(status | null), copyPrompt(idea) }
 
 import { html, nothing } from '/vendor/lit-html/lit-html.js'
@@ -66,6 +67,8 @@ const card = (idea, state, act) => html`
       ${idea.effort ? html`<span class="gw-badge">${ui('card.effort', { level: ui(`level.${idea.effort}`) })}</span>` : nothing}</p>` : nothing}
     ${mapLinks(idea).length ? html`<p class="idea__map">${mapLinks(idea).map((l) => html`<a class="gw-tag" href=${l.href} target="_top"
       title=${ui('card.on-map', { node: l.id })} aria-label=${ui('card.on-map', { node: l.id })}>${l.id}</a>`)}</p>` : nothing}
+    ${state.sketches?.[idea.id]?.length ? html`<p class="idea__sketches">${state.sketches[idea.id].map((name) => html`<a class="gw-tag"
+      href=${'/?module=sketch&sketch=' + encodeURIComponent(name)} target="_top" title=${ui('card.sketch-open', { name })}>${ui('card.sketch', { name })}</a>`)}</p>` : nothing}
     ${idea.status === 'rejected' && idea.reason ? html`<p class="idea__reason"><span class="idea__reason-label">${ui('card.reason')}</span> ${idea.reason}</p>` : nothing}
     ${ticketPart(idea, state.tickets?.[idea.id], act)}
   </li>`

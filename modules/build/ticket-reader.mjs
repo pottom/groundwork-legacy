@@ -26,9 +26,11 @@
 //                   statusNote, issue, local, blockedBy, blockers: [{ raw, ticket | null }],
 //                   dependents, blocked, notes, checks: { done, total }, comments: [{ date,
 //                   title, event?, order }], lastComment, text, fields, hay, url?, labels?,
-//                   milestone?, prd: [id], ideas: [id] }]   prd: the ids of the PRD items (Plan's map
-//                   nodes) named on the ticket's "**PRD:** a, b" line, [] without one; ideas: the ideas
-//                   (the Ideas module's 'I-12') named on its "**Idea:** I-12" line, [] without one
+//                   milestone?, prd: [id], ideas: [id], sketches: [name] }]   prd: the ids of the
+//                   PRD items (Plan's map nodes) named on the ticket's "**PRD:** a, b" line, [] without
+//                   one; ideas: the ideas (the Ideas module's 'I-12') named on its "**Idea:** I-12"
+//                   line, [] without one; sketches: the sketches named on its "**Sketch:** a, b" line
+//                   (Sketch's own names, docs/product/sketches/<name>.excalidraw)
 //   areas        Map name → { name, spec, tickets, docs, extras, open, closed, local }; a local
 //                ticket's area is its folder, a GitHub issue's is its milestone ('' without one)
 //   areaList, docs, adrs, readme, glossaries, byPath, byIssue, byLocal, resolveIssue(n),
@@ -60,6 +62,9 @@
 //
 // The links between Plan and Build: planLink(id) is Plan's deep link (the same as Plan's
 // deep-link.mjs makes), prdFilter(location.search) the PRD item a Build link names (?prd=).
+// sketchLink(name) opens a sketch in the shell (/?module=sketch&sketch=<name>; a name the sketch
+// had before a rename still finds it). ticketFilter(location.search) is the ticket a link names
+// (?ticket=#34), findTicket(model, ref) that ticket.
 //
 // An ES module, shared by the page (page/config.mjs) and the server (project-tickets.mjs).
 
@@ -161,7 +166,7 @@ function ticketPath(path, trackerPath) {
   return dirs.every((d, i) => keepsFolder(d, i)) ? { area: m[1], name: m[2] } : null;
 }
 
-const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type|prd|idea)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
+const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type|prd|idea|sketch)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
 const COMMENTS_HEADING = /^##\s+(comments?|megjegyzések|hozzászólások)\s*$/i;   // reads Hungarian files too
 const NO_BLOCKER = /^(none|nincs|semmi|nothing|n\/a|[—–-]+)(?![\p{L}\p{N}])/iu;
 
@@ -223,6 +228,15 @@ function parsePrd(raw) {
   return { ids: [...new Set(ids)], none: false };
 }
 
+// "checkout-flow, `main` (the payment part)" → the sketch names, each once: a sketch's name is
+// letters, digits, "-" and "_"; a remark in parentheses is not one.
+const SKETCH_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+function parseSketches(raw) {
+  let s = String(raw).replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*]/g, '');
+  for (let k = 0; k < 4 && /\([^()]*\)/.test(s); k++) s = s.replace(/\([^()]*\)/g, ' ');
+  return [...new Set(s.split(/[\s,;]+/).map((x) => x.replace(/[.]+$/, '')).filter((x) => SKETCH_NAME.test(x)))];
+}
+
 // "I-12, `I-007` (the follow-up)" → the ideas named, as people say them ('I-12', 'I-7'), each once.
 function parseIdeas(raw) {
   const ids = [...String(raw || '').matchAll(/\bI-0*(\d+)\b/g)].map((m) => 'I-' + m[1]);
@@ -256,6 +270,7 @@ function parseTicket(path, area, fileName, text) {
   t.prd = prd.ids;
   t.prdNone = prd.none;
   t.ideas = parseIdeas(t.fields.idea);
+  t.sketches = 'sketch' in t.fields ? parseSketches(t.fields.sketch) : [];
 
   const headingsEnd = (() => { const c = lines.findIndex((l) => COMMENTS_HEADING.test(l)); return c < 0 ? lines.length : c; })();
   // The issue template's form: a "## Blocked by" (or "## Status") heading with
@@ -575,10 +590,24 @@ function parseIssue(issue, repo) {
 // Plan's deep link (modules/plan/deep-link.mjs makes the same; a test holds them together),
 // and the PRD item a Build link names (deep-link.mjs buildLink: /?module=build&prd=<id>).
 const planLink = (id) => '/?module=plan&node=' + encodeURIComponent(id);
+const sketchLink = (name) => '/?module=sketch&sketch=' + encodeURIComponent(name);
 const prdFilter = (search) => new URLSearchParams(search || '').get('prd') || '';
 
+// The ticket a link names (a sketch's link to a ticket: /?module=build&ticket=<ref>): "#34", an
+// area and its number ("core 3"), or the ticket's path. null when no ticket is that one.
+const ticketFilter = (search) => new URLSearchParams(search || '').get('ticket') || '';
+function findTicket(model, ref) {
+  const r = String(ref || '').trim().replace(/\s+/g, ' ');
+  if (!r) return null;
+  const issue = /^#(\d+)$/.exec(r);
+  if (issue) return model.resolveIssue(+issue[1]);
+  const local = /^(.+) (\d+)$/.exec(r);
+  if (local) return model.resolveLocal(local[1], +local[2]);
+  return model.byPath.get(r) || null;
+}
+
 export {
-  readTickets, locateProject, ticketPath, keepsFolder, planLink, prdFilter,
+  readTickets, locateProject, ticketPath, keepsFolder, planLink, sketchLink, prdFilter, ticketFilter, findTicket,
   DONE, DROPPED, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH,
   fold, plainInline, isClosed, isDone, isDropped, waitingOn, WAITING, HUMAN, TEST,
 };

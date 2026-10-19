@@ -136,3 +136,15 @@ test('the board has the four columns in order, and a card shows number, title, a
   assert.match(board, /STATUSES\.map\(/)
   for (const field of ['idea.id', 'idea.title', 'idea.author', 'idea.source']) assert.ok(board.includes(field), field)
 })
+
+test('a card shows the sketches that link to its idea (Sketch\'s public GET /api/sketch/links) and opens one in the shell', () => {
+  const src = viewSource()
+  assert.match(src, /fetch\('\/api\/sketch\/links'/)
+  assert.match(src, /'sketch\.links'/, 'follows the links live')
+  assert.match(read('view/board.mjs'), /\/\?module=sketch&sketch=/)
+  assert.match(read('view/board.mjs'), /target="_top"/)
+})
+
+test('a link to an idea (/?module=ideas&idea=I-12, a sketch\'s or a map node\'s) opens it in the drawer', () => {
+  assert.match(read('view/main.mjs'), /new URLSearchParams\(location\.search\)\.get\('idea'\)/)
+})

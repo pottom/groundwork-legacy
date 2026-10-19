@@ -123,7 +123,9 @@ Más modul csak ezeket használhatja (a manifest `public` mezője, lásd [`modul
 | `GET /api/plan/ids` | a Build, a jegyek `**PRD:**` sorainak ellenőrzéséhez |
 | `POST /api/plan/todo` | az Ötletek: a kidolgozásra szánt termékötletből `todo` csomópont, az elvetettből kérésre `excluded` (nem cél) az indoklással. A csomópont az első PRD „Ötletek” fejezetébe kerül (első használatkor jön létre, a dokumentum nyelvén), az ötletre mutat (`/?module=ideas&idea=I-12`), szerzője `ideas`. Ugyanaz az ötlet ugyanazt a csomópontot kapja; elvetéskor az nem céllá válik. A térképet továbbra is csak a Plan írja; csak JSON kérést fogad, így más webhely nem küldheti |
 
-A Plan maga csak a Build `GET /api/build/prd` végpontját olvassa. Build nélkül a térképen nincsenek jegyszámok, hibaüzenet sincs: a Plan minden mással ugyanúgy működik.
+A Plan maga a Build `GET /api/build/prd` és a Sketch `GET /api/sketch/links` végpontját olvassa. Build nélkül a térképen nincsenek jegyszámok, Sketch nélkül vázlatcímkék, hibaüzenet sincs: a Plan minden mással ugyanúgy működik.
+
+- **Vázlatok a térképen:** ha egy vázlat hivatkozik egy elemre, az elemen „Vázlat: <név>” címke látszik; rákattintva a vázlat nyílik meg a keretben (`/?module=sketch&sketch=<név>`). Élőben frissül (`sketch.links` téma).
 
 ## Kézi használat
 
