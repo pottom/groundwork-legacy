@@ -181,3 +181,35 @@ test('a browser save on a version the store never saw (the server restarted) doe
   assert.equal(find(now, 'a').topic, 'First')
   assert.deepEqual(restarted.takeHumanEdits(), [])
 })
+
+test('the document language is set on the root and the documents follow it', () => {
+  const { dir, store } = fresh()
+  const prd = () => fs.readFileSync(path.join(dir, 'docs/product/PRD.md'), 'utf8')
+  assert.match(prd(), /> Állapot:/, 'a map without a language is Hungarian')
+  const { errors } = store.apply([{ op: 'set', id: 'root', lang: 'en' }])
+  assert.deepEqual(errors, [])
+  assert.equal(store.read().data.nodeData.metadata.lang, 'en')
+  assert.match(prd(), /> Sections: /)
+})
+
+test('a language with no strings is refused', () => {
+  const { store } = fresh()
+  const { errors, data } = store.apply([{ op: 'set', id: 'root', lang: 'xx' }])
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /hu, en/, 'the error names the languages there are')
+  assert.equal(data.nodeData.metadata?.lang, undefined)
+})
+
+test('browser saves keep the document language', () => {
+  const { store } = fresh()
+  store.apply([{ op: 'set', id: 'root', lang: 'en' }])
+  let { v, data } = store.read()
+  find(data, 'a').topic = 'Edited by human'
+  store.saveFromBrowser(v, data) // nobody wrote meanwhile: the browser's map is kept
+  assert.equal(store.read().data.nodeData.metadata.lang, 'en')
+  ;({ v, data } = store.read())
+  store.apply([{ op: 'add', id: 'b', parent: 'goal', topic: 'Claude adds' }])
+  find(data, 'a').topic = 'Edited again'
+  store.saveFromBrowser(v, data) // Claude wrote meanwhile: the edit is replayed
+  assert.equal(store.read().data.nodeData.metadata.lang, 'en')
+})
