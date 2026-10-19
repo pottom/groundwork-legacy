@@ -18,6 +18,8 @@ An idea by `--author claude` must say its source and carry an estimate (impact, 
 
 Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-limits): `move` takes an idea only between New and Considering, and refuses To develop and Rejected with a message saying they are set in the browser. On the board a card opens in a drawer where every field can be edited, moves by drag and drop or by its move menu (keyboard: arrow keys, Enter, Escape), and a move to Rejected asks for a reason, which the card then shows. Each save is made on the version of the file the page saw; if it changed meanwhile the save is refused (409) and the page shows the newer version. The board follows the files live (topic `ideas.items`), and a new idea is tinted for a moment when it arrives.
 
+An **engineering** idea in To develop becomes a ticket (d-ideas-ticket-line): its card offers "Make a ticket", which copies a ready prompt for Claude (`ticket.mjs`); Claude, following the skill, creates the GitHub issue with an `**Idea:** I-12` line among its first lines. Build reads that line and shows the idea as a link on the ticket (`/?module=ideas&idea=I-12`, which opens the idea in the drawer), and the card shows the ticket's number and state, read from Build's public `GET /api/build/ideas` (again when Build's tickets change). Without Build the card shows no tickets, and the button still copies the prompt.
+
 | File | What it is |
 |---|---|
 | `module.mjs` | the manifest, `GET /api/ideas/list` and `PUT /api/ideas/item/<id>` |
@@ -31,7 +33,9 @@ Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-li
 | `view/board.mjs` | the kanban, as lit-html templates on the shell's `.gw-*` components: drag and drop, the move menu |
 | `view/drawer.mjs` | the drawer: one idea, every field editable |
 | `view/reject.mjs` | the reason a move to Rejected asks for |
-| `view/api.mjs` | the page's calls: list the ideas, save one |
+| `view/api.mjs` | the page's calls: list the ideas, save one, each idea's tickets from Build |
+| `view/tickets.mjs` | a card's tickets (number and state), or its "Make a ticket" button |
+| `ticket.mjs` | which idea may become a ticket, and the prompt for Claude that makes it |
 | `view/strings.mjs`, `ui-strings.mjs` | the UI text, English and Hungarian |
 | `view/ideas.css` | the layout of the board, the menu and the dialogs |
 

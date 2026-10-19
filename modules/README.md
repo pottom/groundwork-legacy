@@ -49,7 +49,7 @@ Endpoints answer with `send` from [`core/http.mjs`](../core/http.mjs): never cac
 
 Modules read each other's data only through small, declared public endpoints, never through the other's files or its full data:
 
-- A module lists in `public` the endpoints another module may read, and its README lists them under "Public endpoints". Each answers exactly what the reader needs and nothing more: today Plan's `GET /api/plan/ids` (the map's ids, not the map) and Build's `GET /api/build/prd` (the ticket counts per map item, not the tickets).
+- A module lists in `public` the endpoints another module may read, and its README lists them under "Public endpoints". Each answers exactly what the reader needs and nothing more: today Plan's `GET /api/plan/ids` (the map's ids, not the map) and Build's `GET /api/build/prd` (the ticket counts per map item, not the tickets) and `GET /api/build/ideas` (the number and state of the tickets naming each idea).
 - A module calls no other endpoint of another module, and does not open the files another module owns (Build never reads `mindmap.json`; Plan never reads tickets). A module that needs more asks for a new small endpoint in the other module's `public`, not for its full data.
 - Every module works when the other is missing. The core then answers the missing module's endpoints with `404`, and the reader takes any answer that is not `ok`, or no answer, as "nothing to show": no counts, no map, no links into the missing module, and no error on the page.
 

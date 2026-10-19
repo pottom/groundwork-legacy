@@ -349,6 +349,32 @@ test('Plan\'s counts read the same ticket files as the Build page: a ticket the 
   } finally { await srv.close(); }
 });
 
+test('the Ideas module\'s ticket list: per idea, the tickets naming it on their Idea line, with their number and state', async () => {
+  const root = project();
+  const write = (rel, text) => { fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); fs.writeFileSync(path.join(root, rel), text); };
+  write('.scratch/core/issues/01-first.md', '# First\n\n**Idea:** I-12\n**Status:** done\n');
+  write('.scratch/core/issues/02-second.md', '# Second\n\n**Idea:** I-12, I-3\n**Status:** wontfix\n');
+  write('.scratch/core/issues/03-third.md', '# Third\n\n**Status:** ready-for-agent\n');
+  const srv = await startServer({ root, modules: [buildModule({ githubRequest: async () => [] })], port: 0 });
+  try {
+    const items = (await (await fetch(`http://127.0.0.1:${srv.port}/api/build/ideas`)).json()).items;
+    assert.deepEqual(Object.keys(items).sort(), ['I-12', 'I-3']);
+    assert.deepEqual(items['I-12'].map((t) => [t.label, t.title, t.status, t.closed]), [['core 01', 'First', 'done', true], ['core 02', 'Second', 'wontfix', true]]);
+    assert.deepEqual(items['I-3'].map((t) => [t.label, t.status, t.closed]), [['core 02', 'wontfix', true]]);
+    write('.scratch/core/issues/03-third.md', '# Third\n\n**Idea:** I-3\n**Status:** ready-for-agent\n');
+    const later = (await (await fetch(`http://127.0.0.1:${srv.port}/api/build/ideas`)).json()).items;
+    assert.deepEqual(later['I-3'].map((t) => [t.label, t.status, t.closed]), [['core 02', 'wontfix', true], ['core 03', 'ready-for-agent', false]], 'a new ticket shows without a restart');
+  } finally { await srv.close(); }
+});
+
+test('a ticket\'s ideas link to the Ideas module in the whole window, beside its PRD items', () => {
+  const parts = readBuild('page/parts.mjs');
+  assert.match(parts, /export const ideaLinks = /);
+  assert.match(parts, /\/\?module=ideas&idea=/);
+  assert.match(readBuild('page/views/tickets.mjs'), /ideaLinks\(t\)/);
+  assert.match(readBuild('page/views/drawer.mjs'), /ideaLinks\(t\)/);
+});
+
 test('the view follows the shell\'s one stream (subscribe from /shell/live.mjs) and asks Plan only for the map ids', () => {
   assert.doesNotMatch(PAGE, /new EventSource/);
   assert.match(PAGE, /import \{ subscribe \} from '\/shell\/live\.mjs'/);

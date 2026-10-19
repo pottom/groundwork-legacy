@@ -40,6 +40,10 @@ h2, h3, p { margin: 0; }
 .idea__estimate { display: flex; gap: 6px; flex-wrap: wrap; }
 .idea__reason { color: var(--gw-fg-2); font: var(--gw-text-xs) var(--gw-font); overflow-wrap: anywhere; }
 .idea__reason-label { font-weight: 600; }
+/* the tickets made from an idea (number and state, from Build), or the button that starts one */
+.idea__tickets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.idea__ticket { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.idea__actions { display: flex; }
 
 /* the drawer (an idea opened to edit) and the reason a rejection asks for: native dialogs */
 dialog { padding: 0; border: 1px solid var(--gw-line); background: var(--gw-surface); color: var(--gw-fg); box-shadow: var(--gw-shadow-lg); }

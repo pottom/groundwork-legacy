@@ -32,6 +32,22 @@ Done when the command printed the new number and you told the user that number, 
 
 `{{groundwork}} ideas list` prints every idea: number, column, title, author and source, estimate, links. The human sees the same box as a board in the Groundwork browser page.
 
+## Making a ticket from an idea
+
+An **engineering** idea the human moved to **To develop** becomes a GitHub issue. (A product idea goes to Plan's map instead.) The human asks for it, or pastes the prompt the card's "Make a ticket" button copies.
+
+1. **Read the idea**: its file under `docs/product/ideas/items/` (`I-012-<slug>.md`), or `{{groundwork}} ideas list`. Only an engineering idea in To develop gets a ticket; for any other, tell the user why not.
+2. **Write the issue** in the project's usual ticket form (what to build, acceptance criteria), from the idea's description and estimate. Among its first lines, before the first `## ` heading, put the line that links it to the idea:
+
+   ```
+   **Idea:** I-12
+   ```
+
+   Keep the project's other lines too (`**PRD:** …` when the work belongs to a PRD item).
+3. **Create it**: `gh issue create --title "<title>" --body-file <file>`. Tell the user the issue number.
+
+Build reads the `**Idea:**` line and shows the idea as a link on the ticket; the idea's card shows the ticket's number and state. Do not edit the idea file for this: the link lives in the ticket.
+
 ## Your limits
 
 Ideas you file start in **New**. Moving an idea to **To develop** or **Rejected** is the human's decision, made in the browser; when an idea looks ready for either, say so to the user with your reason. Ideas are never deleted, so a number always means the same idea.

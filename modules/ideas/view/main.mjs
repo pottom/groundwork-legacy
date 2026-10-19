@@ -7,22 +7,30 @@
 // (reject.mjs). Each save is made on the version the page saw; when the file changed meanwhile the
 // page says so and shows the newer one. Saving and errors are short toasts. The language follows the
 // shell (strings.mjs).
+//
+// An engineering idea in To develop offers "Make a ticket" (tickets.mjs): it copies a prompt for
+// Claude. The tickets naming an idea come from Build (GET /api/build/ideas), read again when Build
+// says its tickets changed ("build.files", "build.issues"). A link with ?idea=I-12 (Build's link from
+// a ticket) opens that idea in the drawer.
 
 import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
 import { i18n, ui } from './strings.mjs'
-import { listIdeas, saveIdea } from './api.mjs'
+import { listIdeas, saveIdea, ideaTickets } from './api.mjs'
 import { board } from './board.mjs'
 import { drawer, valuesOf, changesOf } from './drawer.mjs'
 import { rejectForm } from './reject.mjs'
+import { copyText } from './tickets.mjs'
+import { ticketPrompt } from '../ticket.mjs'
 
 const $ = (id) => document.getElementById(id)
-const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null }
+const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null, tickets: {} }
 let draft = null    // the idea open in the drawer: { idea, values, saving, error }
 let ask = null      // the reason a move to Rejected asks for: { idea, reason, error }
 let toasts = []
 let known = null    // the ids seen so far; null before the first read
 let freshTimer
+let wanted = new URLSearchParams(location.search).get('idea')   // the idea a link asks to open, once
 
 function draw() {
   render(board(state, boardActs), $('board'))
@@ -55,6 +63,14 @@ async function read() {
     state.error = e.message
   }
   document.body.dataset.state = 'ready'
+  draw()
+  const asked = wanted && state.ideas?.find((i) => i.id === wanted)
+  wanted = null
+  if (asked) boardActs.open(asked)
+}
+
+async function readTickets() {
+  state.tickets = await ideaTickets()
   draw()
 }
 
@@ -94,6 +110,10 @@ const boardActs = {
     else if (was) document.querySelector(`[data-idea="${was}"] .idea__move`)?.focus()
   },
   over(status) { state.over = status; draw() },
+  async copyPrompt(idea) {
+    if (await copyText(ticketPrompt(idea))) toast(ui('toast.prompt-copied', { id: idea.id }))
+    else toast(ui('toast.copy-failed'), 'bad')
+  },
 }
 
 const drawerActs = {
@@ -134,6 +154,9 @@ document.addEventListener('click', (e) => {
 document.documentElement.lang = i18n.lang
 i18n.onChange(() => { document.documentElement.lang = i18n.lang; draw() })
 subscribe({
-  onHello: read,
-  onChange: (topics) => { if (topics.includes('ideas.items')) read() },
+  onHello: () => { read(); readTickets() },
+  onChange: (topics) => {
+    if (topics.includes('ideas.items')) read()
+    if (topics.includes('build.files') || topics.includes('build.issues')) readTickets()
+  },
 })

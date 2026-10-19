@@ -43,7 +43,13 @@ export const prdLinks = (t) => t.prd.map((id, i) => [i ? ' ' : '', app.map.ids
   ? html`<a class="gw-tag" href=${planLink(id)} target="_top" title=${ui('prd.open', { id })}>${id}</a>`
   : html`<span class="gw-tag">${id}</span>`]);
 
-export const progress = (value, title) => html`<span class="gw-progress" style="--value:${value}%" title=${title || nothing}></span>`;
+// The ideas a ticket was made from (its "**Idea:** I-12" line): each opens the Ideas module on that
+// idea, in the whole window. Without the Ideas module the shell shows its default tab.
+const ideaLink = (id) => '/?module=ideas&idea=' + encodeURIComponent(id);
+export const ideaLinks = (t) => t.ideas.map((id, i) => [i ? ' ' : '',
+  html`<a class="gw-tag" href=${ideaLink(id)} target="_top" title=${ui('idea.open', { id })}>${id}</a>`]);
+
+export const progress =(value, title) => html`<span class="gw-progress" style="--value:${value}%" title=${title || nothing}></span>`;
 export const meter = (c) => (c.total
   ? html`<span class="meter" title=${ui('table.meter', { done: c.done, total: c.total })}>${progress(pct(c.done, c.total))}${c.done}/${c.total}</span>`
   : dash);

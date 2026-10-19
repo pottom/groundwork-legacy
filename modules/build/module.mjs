@@ -13,6 +13,9 @@
 //   GET /api/build/prd                   { items: { <PRD item id>: { total, done, tickets } } }: per item of
 //                                        Plan's map, the tickets naming it on their PRD line, read with the
 //                                        page's ticket reader (project-tickets.mjs); Plan shows the counts
+//   GET /api/build/ideas                 { items: { 'I-12': [{ path, label, title, status, closed, url? }] } }:
+//                                        per idea, the tickets naming it on their "**Idea:** I-12" line;
+//                                        the Ideas module shows each idea's tickets and their state
 //
 // Live updates (core/events.mjs): a markdown file changing is the topic "build.files", a git ref
 // or HEAD "build.git"; while a page listens, the server asks GitHub afresh every
@@ -31,7 +34,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openProject } from './project-reader.mjs';
 import { githubRepo, openGitHub } from './github-source.mjs';
-import { openTickets, prdProgress } from './project-tickets.mjs';
+import { openTickets, prdProgress, ideaTickets } from './project-tickets.mjs';
 import { VERSION } from '../../core/version.mjs';
 import { send, TYPES } from '../../core/http.mjs';
 
@@ -107,8 +110,8 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
     icon: '<rect x="3.5" y="4" width="7" height="7" rx="1.6"/><rect x="13.5" y="4" width="7" height="7" rx="1.6"/><rect x="3.5" y="14" width="7" height="6" rx="1.6"/><path d="M14 17.5l2 2 4-4.5"/>',   // a board with a ticked card
     version: VERSION,
     view: { dir: HERE, files: VIEW_FILES },
-    // What another module may read (modules/README.md): Plan's ticket counts.
-    public: ['GET /api/build/prd'],
+    // What another module may read (modules/README.md): Plan's ticket counts, each idea's tickets.
+    public: ['GET /api/build/prd', 'GET /api/build/ideas'],
     watch,
     api({ root, events }) {
       const project = openProject(root, { stamp: events?.stamp });
@@ -136,10 +139,10 @@ export function buildModule({ githubRequest, githubTtlMs, issuesCheckMs = ISSUES
           const known = url.searchParams.get('known');
           return sendJson(res, known && answer.fingerprint === known ? { available: true, unchanged: true, fingerprint: known } : answer), true;
         }
-        if (sub === '/prd') {
+        if (sub === '/prd' || sub === '/ideas') {
           const gh = await issues();
           const model = tickets.read(gh.available ? { repo: gh.repo, issues: gh.issues } : null);
-          return sendJson(res, { items: prdProgress(model) }), true;
+          return sendJson(res, { items: sub === '/prd' ? prdProgress(model) : ideaTickets(model) }), true;
         }
         return false;
       };
