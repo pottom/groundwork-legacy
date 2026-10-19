@@ -45,6 +45,25 @@ h2, h3, p { margin: 0; }
 .idea__ticket { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .idea__actions { display: flex; }
 
+/* the switch between the board and the matrix */
+.views { margin-bottom: calc(var(--gw-space) * 2); }
+
+/* the matrix: impact up the side, effort along the top, the quick wins (top left) highlighted,
+   the unestimated ideas in a strip below; a quadrant takes a dragged card like a column */
+.matrix { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto auto; gap: var(--gw-space); }
+.matrix__axis { color: var(--gw-muted); font: 600 var(--gw-text-xs) var(--gw-font); }
+.matrix__axis--effort { grid-column: 2; grid-row: 1; text-align: center; }
+.matrix__axis--impact { grid-column: 1; grid-row: 2; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; }
+.matrix__grid { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(var(--gw-space) * 2); }
+.quadrant, .unestimated { display: flex; flex-direction: column; gap: var(--gw-space); min-width: 0; padding: var(--gw-space); background: var(--gw-sunken); border-radius: var(--gw-radius-lg); }
+.quadrant { min-height: 160px; outline: 1.5px solid transparent; outline-offset: -1.5px; transition: outline-color .15s; }
+.quadrant.is-over { outline-color: var(--gw-accent); }
+.quadrant .gw-section-head, .unestimated .gw-section-head { padding: 2px 4px; }
+.quadrant__hint { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); padding: 0 4px; }
+.quadrant--quick-wins { background: var(--gw-accent-soft); box-shadow: inset 0 0 0 1.5px var(--gw-accent); }
+.unestimated { grid-column: 2; grid-row: 3; }
+.unestimated .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+
 /* the drawer (an idea opened to edit) and the reason a rejection asks for: native dialogs */
 dialog { padding: 0; border: 1px solid var(--gw-line); background: var(--gw-surface); color: var(--gw-fg); box-shadow: var(--gw-shadow-lg); }
 dialog::backdrop { background: color-mix(in srgb, var(--gw-fg) 24%, transparent); }
@@ -71,7 +90,7 @@ textarea.gw-field { resize: vertical; font: var(--gw-text) var(--gw-font); }
 @media (max-width: 900px) { .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) {
   #board { padding: var(--gw-space); }
-  .board { grid-template-columns: minmax(0, 1fr); }
+  .board, .matrix__grid { grid-template-columns: minmax(0, 1fr); }
   #drawer { width: 100vw; border-radius: 0; }
   .drawer__head, .drawer__body, .drawer__foot { padding-left: calc(var(--gw-space) * 2); padding-right: calc(var(--gw-space) * 2); }
   .form__row { grid-template-columns: minmax(0, 1fr); }

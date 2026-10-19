@@ -260,8 +260,9 @@ test('Build needs the server: no copy of the theme, no file:// mode, no folder p
   }
 });
 
-test('light or dark follows the operating system: the view has no switch of its own', () => {
-  assert.doesNotMatch(PAGE, /data-theme|dataset\.theme/);
+test('light or dark follows the shell\'s switch (/shell/theme.js): the view has no switch of its own', () => {
+  assert.doesNotMatch(PAGE, /setAttribute\(\s*'data-theme'|dataset\.theme\s*=|groundworkTheme\.set\(|groundwork:theme/);
+  assert.match(PAGE, /<script src="\/shell\/theme\.js"><\/script>/);
 });
 
 // ───────── Live updates and Plan's ticket counts ─────────
@@ -388,7 +389,7 @@ test('the view follows the shell\'s one stream (subscribe from /shell/live.mjs) 
 test('index.html is a thin skeleton: no inline script or style, the theme, the styles and the entry module', () => {
   const page = readBuild('index.html');
   assert.doesNotMatch(page, /<style/);
-  assert.deepEqual([...page.matchAll(/<script\b([^>]*)>/g)].map((m) => m[1].trim()), ['type="module" src="page/main.mjs"']);
+  assert.deepEqual([...page.matchAll(/<script\b([^>]*)>/g)].map((m) => m[1].trim()), ['src="/shell/theme.js"', 'type="module" src="page/main.mjs"']);
   assert.match(page, /<link rel="stylesheet" href="\/shell\/theme\.css">/);
   assert.match(page, /<link rel="stylesheet" href="build\.css">/);
 });

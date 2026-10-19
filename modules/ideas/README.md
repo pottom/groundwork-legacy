@@ -16,7 +16,7 @@ groundwork ideas move I-12 new|considering
 
 An idea by `--author claude` must say its source and carry an estimate (impact, effort, rationale); `--links` must name existing ideas. `groundwork init` installs the `groundwork-ideas` skill (`skills/groundwork-ideas/`), which tells Claude to file side observations this way: `similar` first, then link instead of duplicating.
 
-Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-limits): `move` takes an idea only between New and Considering, and refuses To develop and Rejected with a message saying they are set in the browser. On the board a card opens in a drawer where every field can be edited, moves by drag and drop or by its move menu (keyboard: arrow keys, Enter, Escape), and a move to Rejected asks for a reason, which the card then shows. Each save is made on the version of the file the page saw; if it changed meanwhile the save is refused (409) and the page shows the newer version. The board follows the files live (topic `ideas.items`), and a new idea is tinted for a moment when it arrives.
+Claude adds and refines, the human decides (d-ideas-human-decides, d-ideas-ai-limits): `move` takes an idea only between New and Considering, and refuses To develop and Rejected with a message saying they are set in the browser. On the board a card opens in a drawer where every field can be edited, moves by drag and drop or by its move menu (keyboard: arrow keys, Enter, Escape), and a move to Rejected asks for a reason, which the card then shows. Each save is made on the version of the file the page saw; if it changed meanwhile the save is refused (409) and the page shows the newer version. A switch above the board (remembered by the browser) shows the open ideas (New and Considering) instead as an impact–effort matrix: quick wins (high impact, low effort) highlighted, big bets, fill-ins, time sinks, and an Unestimated strip for ideas without both values. A Medium estimate counts as the less favourable half (low impact, high effort), so only a sure quick win shows as one. Moving a card to another quadrant (drag and drop or its move menu) sets the half that differs to High or Low. The board follows the files live (topic `ideas.items`), and a new idea is tinted for a moment when it arrives.
 
 An **engineering** idea in To develop becomes a ticket (d-ideas-ticket-line): its card offers "Make a ticket", which copies a ready prompt for Claude (`ticket.mjs`); Claude, following the skill, creates the GitHub issue with an `**Idea:** I-12` line among its first lines. Build reads that line and shows the idea as a link on the ticket (`/?module=ideas&idea=I-12`, which opens the idea in the drawer), and the card shows the ticket's number and state, read from Build's public `GET /api/build/ideas` (again when Build's tickets change). Without Build the card shows no tickets, and the button still copies the prompt.
 
@@ -26,11 +26,13 @@ An **engineering** idea in To develop becomes a ticket (d-ideas-ticket-line): it
 | `store.mjs` | the idea files: list, add, update (checked values, versioned), the front matter |
 | `fields.mjs` | the values of the fields and the number formats, shared by the server and the page |
 | `ideas.mjs` | `groundwork ideas add|similar|list|move` |
+| `matrix.mjs` | the impact–effort matrix: which quadrant an idea sits in, the estimate a move sets; shared by the page and the tests |
 | `similar.mjs` | the likely duplicates of a text: word overlap with each idea's title and description, no dependencies |
 | `skills/groundwork-ideas/` | the skill `groundwork init` installs for Claude |
 | `index.html` | the page: a thin skeleton; `view/main.mjs` is its entry |
-| `view/main.mjs` | the page's state and actions: reading, saving, moving, the dialogs, toasts |
+| `view/main.mjs` | the page's state and actions: reading, saving, moving, the Kanban / Matrix switch, the dialogs, toasts |
 | `view/board.mjs` | the kanban, as lit-html templates on the shell's `.gw-*` components: drag and drop, the move menu |
+| `view/matrix.mjs` | the matrix view: four quadrants and the Unestimated strip, drag and drop, the move menu |
 | `view/drawer.mjs` | the drawer: one idea, every field editable |
 | `view/reject.mjs` | the reason a move to Rejected asks for |
 | `view/api.mjs` | the page's calls: list the ideas, save one, each idea's tickets from Build |
