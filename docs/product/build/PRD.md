@@ -4,7 +4,7 @@
 
 _Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Műszaki terv](../build/TECH.md)._
 
-> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 6 kész, 0 részben, 1 hiányzik.
+> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 5 kész, 0 részben, 1 hiányzik.
 
 ## 1. Hatókör és fő funkciók
 
@@ -17,7 +17,6 @@ A Build modul a fejlesztési dashboard-prototípusból születik. A projekt Mark
 - Ellentmondások kiszűrése `kész`
 - Dokumentumok: specek, ADR-ek, fogalomtár `kész`
 - Git ágak és merge-ök gráfja `kész`
-- Szerver nélkül is: mappaválasztóval (Chromium) `kész` — Csak Chromium-alapú böngészőben.
 - Jegyről egy kattintással a PRD-elemhez `hiányzik`
 
 ## 2. Felhasználók és használati esetek
@@ -26,6 +25,10 @@ A Build nézeteit bárki használhatja, aki a projektet követi, Claude nélkül
 
 - Bárki, aki a projektet követi, Claude nélkül is
 - _Claude nélkül csak olvasás_
+
+## Nem célok
+
+- Szerver nélküli, fájlból megnyitott Build — Elhagyva: az npx @pottom/groundwork egy parancs, a fájlmód pedig generált bundle-t, azaz build-lépést igényelt volna. _(Hatókör és fő funkciók)_
 
 ## Későbbi verziók
 

@@ -87,7 +87,7 @@ A felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a cs
 ## Elvetett megoldások
 
 - Modulonként külön szerver _(Helyi szerver)_
-- Lekérdezgetés (polling) az oldalakból — A szerver nélkül, fájlból (file://) megnyitott Build továbbra is 3 mp-enként olvassa újra a mappát. _(Helyi szerver)_
+- Lekérdezgetés (polling) az oldalakból _(Helyi szerver)_
 - Bemásolható mappa _(Csomagolás és terjesztés)_
 - Külön oldal–indító verziópár _(Csomagolás és terjesztés)_
 - Saját token- vagy jelszókezelés (bekérés, tárolás) _(Biztonság)_
