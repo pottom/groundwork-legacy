@@ -64,9 +64,10 @@ test('/api/plan/ids gives the ids of the nodes of the map, for Build to check PR
   }
 })
 
-// Plan's own colours: its node types and implementation states. Everything else
-// (page, panels, text, lines, accent, fonts) comes from the shell's theme.
-const PLAN_COLOURS = ['--topic', '--inferred', '--missing', '--decision', '--parked', '--todo']
+// Plan's own colours: its node types are aliases of the theme's status tokens; only "ask about it"
+// has a hue of its own (an icon and border colour, never text). Everything else (page, panels, text, lines,
+// accent, fonts) comes from the shell's theme.
+const PLAN_COLOURS = ['--todo']
 
 test('the Plan view uses the shell theme and defines no base colours of its own', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-look-'))

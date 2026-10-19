@@ -79,7 +79,8 @@ A térkép világos vagy sötét színei az operációs rendszert követik, újr
 | `documents.mjs` | dokumentum-modell a térképből (összetevők, dokumentumok, fejezetek) + Markdown export (közös a szerverrel) |
 | `doc-strings.mjs` | a dokumentumok állandó szövegei nyelvenként (közös a szerverrel) |
 | `ui-strings.mjs` | a felület szövegei nyelvenként (angol alapértelmezés, magyar fordítás), a mag fordítójához (`/shell/i18n.mjs`) |
-| `node-types.mjs` | csomópont-típusok ([Lucide](https://lucide.dev) ikon) és megvalósítási szintek kulcsai; a címkék a `ui-strings.mjs`-ben |
+| `node-types.mjs` | csomópont-típusok, dokumentum- és fejezetikon, összetevőtípus-ikonok (egy [Lucide](https://lucide.dev) ikoncsalád) és megvalósítási szintek kulcsai; a címkék a `ui-strings.mjs`-ben |
+| `view-rules.mjs` | a képernyő böngésző nélkül tesztelhető szabályai: melyik nézet fér el (keskeny ablakban nincs „mindkettő”), a térkép illesztésének legkisebb olvasható nagyítása, a dokumentumfejléc összesítő jelvényei, frame-enként egy rajzolás |
 | `map-theme.mjs` | a térkép világos és sötét témája a shell színeiből, és az operációs rendszer váltásának követése |
 | `deep-link.mjs` | a közvetlen link (`?node=<azonosító>`): `planLink(id)` elkészíti, `linkTarget(search, map)` megkeresi a csomópontot; `buildLink(id)` a Buildbe visz, az elem jegyeire szűrve |
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
@@ -102,7 +103,7 @@ Más mappában lévő projekthez: `npx @pottom/groundwork --root <mappa>`.
 
 ## Szinkron
 
-- **Claude → térkép és dokumentumok:** az `apply` közvetlenül a fájlba ír, a mag élő frissítése (`/api/events`, Server-Sent Events) szól az oldalnak, és az azonnal újratölti a térképet; lekérdezgetés (polling) nincs. Az új vagy megváltozott elemek felvillannak, és az összecsukott ágak kinyílnak, ha új elem került beléjük.
+- **Claude → térkép és dokumentumok:** az `apply` közvetlenül a fájlba ír, a mag élő frissítése (`/api/events`, Server-Sent Events, a shell egyetlen kapcsolatán át: `subscribe` a `/shell/live.mjs`-ből) szól az oldalnak, és az azonnal újratölti a térképet; lekérdezgetés (polling) nincs, és az első betöltés is a kapcsolat `hello` jelére történik. Hogy az oldal élő-e, azt csak a shell fejléce mutatja; a Plan a saját pillanatnyi teendőit (mentve, nem sikerült menteni, a térkép frissült) mutatja `.gw-toast`-ban. Az új vagy megváltozott elemek felvillannak, és az összecsukott ágak kinyílnak, ha új elem került beléjük.
 - **Ember → Claude:** minden szerkesztés után az oldal visszaküldi a térképet a betöltött verzió azonosítójával. Ha közben Claude is írt, a szerver csak a te változásaidat játssza rá a friss fájlra.
 - **Ismert korlátok:**
   - Ütközéskor a testvér-csomópontok sorrendjének változása elveszhet.
