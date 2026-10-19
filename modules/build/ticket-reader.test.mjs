@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as reader from './ticket-reader.mjs';
 
-const { readTickets } = reader;
+const { readTickets, waitingOn } = reader;
 
 // The local source: markdown texts by path, as the page reads them.
 const local = (files, more = {}) => ({
@@ -82,6 +82,24 @@ test('GitHub issues: the milestone is the area', () => {
   assert.deepEqual(m.areaList.map((a) => [a.name, a.open, a.closed]), [['', 1, 0], ['1. Start', 1, 1]]);
   assert.equal(byLabel(m, '#1').milestone, '1. Start');
   assert.equal(m.areaRef, null, 'a milestone does not name tickets as "<area> <n>"');
+});
+
+test('what an open ticket waits on: one bucket each, blocked before its status, the counts sum to the open tickets', () => {
+  const m = readTickets(local({
+    '.scratch/core/issues/01-base.md': '# Base\n\nStatus: claimed\n',
+    '.scratch/core/issues/02-free.md': '# Free agent\n\nStatus: ready-for-agent\n',
+    '.scratch/core/issues/03-wait.md': '# Blocked agent\n\nStatus: ready-for-agent\nBlocked by: 01\n',
+    '.scratch/core/issues/04-ask.md': '# Free human\n\nStatus: needs-info\n',
+    '.scratch/core/issues/05-ask.md': '# Blocked human\n\nStatus: ready-for-human\nBlocked by: 01\n',
+    '.scratch/core/issues/06-test.md': '# Test\n\nStatus: needs-browser-test\n',
+    '.scratch/core/issues/07-odd.md': '# Odd\n\nStatus: parked\n',
+    '.scratch/core/issues/08-done.md': '# Done\n\nStatus: done\nBlocked by: 01\n',
+  }));
+  const on = (label) => waitingOn(byLabel(m, label));
+  assert.deepEqual(['core 01', 'core 02', 'core 03', 'core 04', 'core 05', 'core 06', 'core 07', 'core 08'].map(on),
+    ['claimed', 'agent', 'blocked', 'human', 'blocked', 'test', 'other', 'closed']);
+  assert.deepEqual({ ...m.waiting }, { agent: 1, human: 1, blocked: 2, test: 1, claimed: 1, other: 1, unparsed: 0 });
+  assert.equal(Object.values(m.waiting).reduce((a, b) => a + b, 0), m.open.length);
 });
 
 test('GitHub issues: blocked by GitHub\'s links, a "## Blocked by" section or a "Blocked by:" line', () => {

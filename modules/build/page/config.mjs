@@ -17,16 +17,16 @@ export const TOAST_MS = 3500;
 // which folders are walked, the states and the links to Plan: readTickets, locateProject, fold,
 // isClosed, CLOSED, DONE, UNPARSED, … (see the end of ticket-reader.mjs).
 export { reader };
-const { DONE, UNPARSED } = reader;
 
-export const HUMAN = new Set(['ready-for-human', 'needs-info', 'needs-triage']);
-export const TEST = /^needs-(.*)-test$/;
-// The groups of the "Waiting on" view, by status.
+export const { HUMAN, TEST } = reader;
+// The groups of the "Waiting on" view: each open ticket in exactly one (reader.waitingOn), the
+// same buckets the overview counts. Statuses outside these show as groups of their own.
 export const GROUPS = [
-  { id: 'agent', title: 'group.agent', hint: 'group.agent.hint', has: (s) => s === 'ready-for-agent' },
-  { id: 'human', title: 'group.human', hint: 'group.human.hint', has: (s) => HUMAN.has(s) },
-  { id: 'test', title: 'group.test', hint: 'group.test.hint', has: (s) => TEST.test(s) },
-  { id: 'claimed', title: 'group.claimed', hint: 'group.claimed.hint', has: (s) => s === 'claimed' },
+  { id: 'agent', title: 'group.agent', hint: 'group.agent.hint' },
+  { id: 'human', title: 'group.human', hint: 'group.human.hint' },
+  { id: 'blocked', title: 'group.blocked', hint: 'group.blocked.hint' },
+  { id: 'test', title: 'group.test', hint: 'group.test.hint' },
+  { id: 'claimed', title: 'group.claimed', hint: 'group.claimed.hint' },
 ];
 export const VIEWS = [
   ['waiting', 'view.waiting'], ['areas', 'view.areas'], ['deps', 'view.deps'],

@@ -11,6 +11,7 @@ import { startServer } from './server.mjs'
 import { shellPage } from './shell/shell.mjs'
 import { SHELL_STRINGS } from './shell/strings.mjs'
 import { VERSION } from './version.mjs'
+import { send } from './http.mjs'
 import zlib from 'node:zlib'
 
 function fakeModule(viewDir) {
@@ -136,7 +137,6 @@ test('files are cached by the browser and asked again cheaply: an unchanged one 
     for (const p of ['/demo/', '/shell/theme.css', '/vendor/marked/marked.esm.js']) {
       const first = await get(port, p)
       assert.equal(first.status, 200, p)
-      assert.equal(first.headers['cache-control'], 'no-cache', p)
       assert.ok(first.headers.etag, p)
       const again = await get(port, p, undefined, { 'if-none-match': first.headers.etag })
       assert.equal(again.status, 304, p)
@@ -160,12 +160,17 @@ test('a changed file gets a new ETag, so the browser never keeps an old one', as
   } finally { await srv.close() }
 })
 
-test('fonts are kept a week; every other file is asked again each time, whatever its query', async () => {
+test('fonts are kept a week, the bundled libraries five minutes; the shell\'s and the modules\' own files are asked again each time', async () => {
   await withServer(async ({ port }) => {
     assert.match((await get(port, '/vendor/fonts/inter/inter-latin-wght-normal.woff2')).headers['cache-control'], /max-age=604800/)
-    // A checkout changes its files under the same version: nothing is kept for good.
+    // /vendor/ changes only with a Groundwork release: kept a short while, so the pages of one
+    // visit do not ask for each library again; an upgrade shows within minutes.
+    const lib = await get(port, '/vendor/lit-html/lit-html.js')
+    assert.equal(lib.headers['cache-control'], 'max-age=300')
+    assert.ok(lib.headers.etag, 'and asked again cheaply after that')
+    // What a checkout changes while one works on it: never kept without asking, whatever its query.
     assert.equal((await get(port, `/shell/theme.css?v=${VERSION}`)).headers['cache-control'], 'no-cache')
-    assert.equal((await get(port, '/vendor/lit-html/lit-html.js')).headers['cache-control'], 'no-cache')
+    assert.equal((await get(port, '/demo/')).headers['cache-control'], 'no-cache')
   })
 })
 
@@ -195,6 +200,36 @@ test('text is sent compressed when the browser accepts it, and the same when it 
     const font = await get(port, '/vendor/fonts/inter/inter-latin-wght-normal.woff2', undefined, { 'accept-encoding': 'br' })
     assert.equal(font.headers['content-encoding'], undefined, 'woff2 is compressed already')
   })
+})
+
+test('API answers of 1 KB or more are compressed too, and still never cached', async () => {
+  const items = Array.from({ length: 200 }, (_, i) => ({ id: `item-${i}`, title: `Item number ${i}` }))
+  const mod = {
+    id: 'data', name: 'Data', version: '1',
+    api: () => (req, res, sub) => {
+      if (sub === '/big') { send(res, 200, { items }); return true }
+      if (sub === '/small') { send(res, 200, { ok: true }); return true }
+      return false
+    },
+  }
+  const srv = await startServer({ root: '/project', modules: [mod], port: 0 })
+  try {
+    const plain = await get(srv.port, '/api/data/big')
+    assert.equal(plain.headers['content-encoding'], undefined)
+    assert.deepEqual(JSON.parse(plain.body), { items })
+    const br = await get(srv.port, '/api/data/big', undefined, { 'accept-encoding': 'gzip, deflate, br' })
+    assert.equal(br.headers['content-encoding'], 'br')
+    assert.equal(br.headers['cache-control'], 'no-store')
+    assert.match(br.headers.vary, /accept-encoding/i)
+    assert.equal(Number(br.headers['content-length']), br.raw.length)
+    assert.ok(br.raw.length < plain.raw.length / 3)
+    assert.deepEqual(JSON.parse(zlib.brotliDecompressSync(br.raw).toString('utf8')), { items })
+    const gz = await get(srv.port, '/api/data/big', undefined, { 'accept-encoding': 'gzip' })
+    assert.equal(gz.headers['content-encoding'], 'gzip')
+    assert.deepEqual(JSON.parse(zlib.gunzipSync(gz.raw).toString('utf8')), { items })
+    const small = await get(srv.port, '/api/data/small', undefined, { 'accept-encoding': 'br' })
+    assert.equal(small.headers['content-encoding'], undefined, 'under 1 KB: not worth it')
+  } finally { await srv.close() }
 })
 
 test('the module list shows each manifest', async () => {

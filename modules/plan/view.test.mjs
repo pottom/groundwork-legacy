@@ -44,6 +44,34 @@ test('every file the page loads from the module is listed in the manifest, so th
   for (const f of listed) assert.ok(seen.has(f), `${f} is listed and the page loads it`)
 })
 
+// Every ES module the page imports, its own and the core's (/shell/, /vendor/), as the page names
+// them: './view/main.mjs', '/vendor/lit-html/lit-html.js'.
+function moduleGraph() {
+  const core = path.join(plan.view.dir, '..', '..', 'core')
+  const file = (url) => (url.startsWith('/shell/') ? path.join(core, 'shell', url.slice(7))
+    : url.startsWith('/vendor/') ? path.join(core, 'vendor', url.slice(8)) : path.join(plan.view.dir, url))
+  const seen = new Set()
+  const queue = ['/plan/view/main.mjs']
+  while (queue.length) {
+    const url = queue.shift()
+    if (seen.has(url)) continue
+    seen.add(url)
+    const src = fs.readFileSync(file(url.replace(/^\/plan\//, '')), 'utf8')
+    for (const [, spec] of src.matchAll(/(?:^|[\s;}])(?:import|export)\b[^'"]*?\bfrom\s*["']([^"']+)["']|(?:^|[\s;])import\s*["']([^"']+)["']/gm)) {
+      queue.push(spec.startsWith('/') ? spec : path.posix.join(path.posix.dirname(url), spec))
+    }
+  }
+  return [...seen].map((u) => (u.startsWith('/plan/') ? './' + u.slice(6) : u)).sort()
+}
+
+test('index.html preloads every module the page imports, so they load side by side, not one import after another', () => {
+  const html = read('index.html')
+  const preloaded = [...html.matchAll(/<link rel="modulepreload" href="([^"]+)">/g)].map((m) => m[1]).sort()
+  const graph = moduleGraph()
+  assert.ok(graph.includes('/vendor/lit-html/lit-html.js') && graph.includes('./documents.mjs'), graph.join(' '))
+  assert.deepEqual(preloaded, graph.filter((u) => u !== './view/main.mjs'))
+})
+
 test('the view renders through lit-html templates, not hand-built HTML strings', () => {
   const src = viewSource()
   assert.match(src, /from '\/vendor\/lit-html\/lit-html\.js'/)

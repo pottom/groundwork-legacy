@@ -71,8 +71,8 @@ export function staticFile(dir, rest) {
   return fs.statSync(f, { throwIfNoEntry: false })?.isFile() ? f : null
 }
 
-// How long the browser keeps a file: cachePolicy in http.mjs (fonts a week, anything else is asked
-// for again, a 304 while unchanged). /api/ answers are never kept.
+// How long the browser keeps a file: cachePolicy in http.mjs (fonts a week, the bundled libraries
+// five minutes, anything else is asked for again, a 304 while unchanged). /api/ answers are never kept.
 
 // The first path segments the core answers itself; a module with one of these ids would be hidden.
 const RESERVED = new Set(['api', 'shell', 'vendor'])
@@ -110,7 +110,7 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       }
       if (parts[1] === 'vendor' && req.method === 'GET') {
         const f = staticFile(vendor, parts.slice(2).join('/'))
-        if (f) return sendFile(req, res, f)
+        if (f) return sendFile(req, res, f, { vendor: true })
         return send(res, 404, { error: 'not found' })
       }
       const mod = byId.get(parts[1])

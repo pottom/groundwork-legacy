@@ -53,7 +53,8 @@
 //                                   strict: skip the heavy folders from the top, as for ADRs)
 //
 // A ticket's state, once: DONE (done, resolved, closed) and DROPPED (wontfix, legacy) are
-// CLOSED; isDone(t), isDropped(t), isClosed(t).
+// CLOSED; isDone(t), isDropped(t), isClosed(t). waitingOn(t) is the one bucket an open ticket is
+// counted in (WAITING; model.waiting holds the counts).
 //
 // The links between Plan and Build: planLink(id) is Plan's deep link (the same as Plan's
 // deep-link.mjs makes), prdFilter(location.search) the PRD item a Build link names (?prd=).
@@ -74,6 +75,22 @@ const plainInline = (s) => s.replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]*)\]\(
 const isClosed = (t) => CLOSED.has(t.status);
 const isDone = (t) => DONE.has(t.status);
 const isDropped = (t) => DROPPED.has(t.status);
+
+// What an open ticket waits on: exactly one bucket each, so the overview's numbers and the
+// "Waiting on" view's sections are the same counts and sum to the open tickets. A ticket waiting
+// for an open ticket is "blocked" whatever its status; the rest go by status.
+const HUMAN = new Set(['ready-for-human', 'needs-info', 'needs-triage']);
+const TEST = /^needs-(.*)-test$/;
+const WAITING = ['agent', 'human', 'blocked', 'test', 'claimed', 'other', 'unparsed'];
+function waitingOn(t) {
+  if (isClosed(t)) return 'closed';
+  if (t.blocked) return 'blocked';
+  if (t.status === 'ready-for-agent') return 'agent';
+  if (HUMAN.has(t.status)) return 'human';
+  if (TEST.test(t.status)) return 'test';
+  if (t.status === 'claimed') return 'claimed';
+  return t.status === UNPARSED ? 'unparsed' : 'other';
+}
 
 // ───────────────────────── Where the files are ─────────────────────────
 
@@ -452,6 +469,8 @@ function readTickets(source) {
   m.statusCounts = new Map();
   for (const t of m.tickets) m.statusCounts.set(t.status, (m.statusCounts.get(t.status) || 0) + 1);
   m.open = m.tickets.filter((t) => !isClosed(t));
+  m.waiting = Object.fromEntries(WAITING.map((w) => [w, 0]));
+  for (const t of m.open) m.waiting[waitingOn(t)]++;
   // "core 3" names a local ticket: only the folders' areas, not the milestones.
   const names = [...m.areas.values()].filter((a) => a.local && a.name).map((a) => a.name).sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   m.areaRef = names.length ? new RegExp('(^|[^\\w/.-])((' + names.join('|') + ')\\s(\\d{1,4}))(?![\\w-])', 'g') : null;
@@ -551,5 +570,5 @@ const prdFilter = (search) => new URLSearchParams(search || '').get('prd') || ''
 export {
   readTickets, locateProject, ticketPath, keepsFolder, planLink, prdFilter,
   DONE, DROPPED, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH,
-  fold, plainInline, isClosed, isDone, isDropped,
+  fold, plainInline, isClosed, isDone, isDropped, waitingOn, WAITING, HUMAN, TEST,
 };

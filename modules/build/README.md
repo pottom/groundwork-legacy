@@ -22,7 +22,7 @@ Plan shows, on each map item, how many tickets name it and how many of them are 
 
 The page uses the shell's design system (`/shell/theme.css`: the `--gw-*` tokens and the `.gw-*` components). Inside the shell it shows no bar of its own: the shell's header already shows the project, whether the page is live, the version and the language. Opened alone (`/build/`) it has a slim bar with those. What the page does by itself (it read something again, nothing changed) shows as a toast that goes away; a stopped server shows as a notice above the overview. Build needs the core server: it has no mode opened from a file.
 
-The "Waiting on" view opens with one overview strip: open tickets, ready to write, waiting for a human, blocked, and the share of closed tickets under them. Status labels show by a translated name (`ready-for-agent` is "Ready for agent"), the label itself in the tooltip. Each view shows only the filters it applies; the filters in force show as removable pills, and none of them survives a reload.
+The "Waiting on" view opens with one overview strip: open tickets, ready to write, waiting for a human, blocked, and the share of closed tickets under them. Each open ticket counts in exactly one bucket (the reader's `waitingOn`): a ticket waiting for an open ticket is blocked whatever its status, so the numbers match the sections below, which list every open ticket once. Status labels show by a translated name (`ready-for-agent` is "Ready for agent"), the label itself in the tooltip. Each view shows only the filters it applies; the filters in force show as removable pills, and none of them survives a reload.
 
 It shows the following views:
 

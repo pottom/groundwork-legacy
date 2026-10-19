@@ -6,7 +6,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Marked } from '../../core/vendor/marked/marked.esm.js'
-import { MARKDOWN_OPTIONS } from './markdown.mjs'
+import { MARKDOWN_OPTIONS, createMarkdown } from './markdown.mjs'
 
 const md = new Marked(MARKDOWN_OPTIONS)
 const render = (text) => md.parse(text)
@@ -41,4 +41,13 @@ test('links go to http(s), mailto and relative addresses only; anything else is 
 
 test('a title and the link text are escaped', () => {
   assert.match(render('[a](https://x.example "say \\"hi\\" <b>")'), /title="say &quot;hi&quot; &lt;b&gt;"/)
+})
+
+test('a checklist note renders inline: emphasis and code, no paragraph around it, raw HTML still as text', () => {
+  const { inline, block } = createMarkdown(Marked)
+  assert.equal(inline('A jegyben pl. **PRD:** d-npm sor.'), 'A jegyben pl. <strong>PRD:</strong> d-npm sor.')
+  assert.equal(inline('see `ids` and [docs](javascript:alert(1))'), 'see <code>ids</code> and docs')
+  assert.doesNotMatch(inline('x <b onclick=y>z</b>'), /<b/)
+  assert.equal(inline(''), '')
+  assert.equal(block('Some **bold**.'), render('Some **bold**.'), 'a paragraph renders as before')
 })

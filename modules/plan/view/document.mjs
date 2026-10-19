@@ -8,7 +8,7 @@ import { html, render, nothing } from '/vendor/lit-html/lit-html.js'
 import { repeat } from '/vendor/lit-html/directives/repeat.js'
 import { unsafeHTML } from '/vendor/lit-html/directives/unsafe-html.js'
 import { Marked } from '/vendor/marked/marked.esm.js'
-import { MARKDOWN_OPTIONS } from '../markdown.mjs'
+import { createMarkdown } from '../markdown.mjs'
 import { buildPrd, progressSummary, BASE_DIR, listDocs, docOf } from '../documents.mjs'
 import { summaryBadges, coalesce } from '../view-rules.mjs'
 import { state, mapData } from './state.mjs'
@@ -21,8 +21,9 @@ import { editorView, openEditor, isOpen } from './editor.mjs'
 
 const panel = () => document.getElementById('prd')
 const doc = () => panel().querySelector('.doc')
-const marked = new Marked(MARKDOWN_OPTIONS)
-const md = (t) => unsafeHTML(marked.parse(t || ''))
+const markdown = createMarkdown(Marked)
+const md = (t) => unsafeHTML(markdown.block(t))
+const mdInline = (t) => unsafeHTML(markdown.inline(t))
 
 const PROGRESS_TONE = { done: 'ok', active: 'info', untouched: 'neutral' }
 const IMPL_TONE = { done: 'ok', partial: 'warn', missing: 'bad' }
@@ -34,7 +35,7 @@ function itemView(it, { showSection = false } = {}) {
   return html`<li data-id=${it.id} data-status=${it.status ?? nothing} style="--d:${showSection ? 0 : it.depth}" @click=${() => selectOnMap(it.id)}><i></i><span class="c"><span class="t">${it.topic}</span>${
     it.impl ? html`<span class="gw-badge gw-badge--${IMPL_TONE[it.impl]}">${ui(`impl.${it.impl}`)}</span>` : nothing}${
     it.status === 'inferred' ? html`<span class="gw-badge gw-badge--info">${ui('panel.inferred')}</span>` : nothing}${
-    it.note ? html`<span class="n">${it.note}</span>` : nothing}${
+    it.note ? html`<span class="n">${mdInline(it.note)}</span>` : nothing}${
     it.link ? html`<a class="gw-tag" href="#" data-link=${it.link} title=${it.link} @click=${stay}>${it.link}</a>` : nothing}</span>${
     showSection ? html`<span class="s">${it.untouched ? ui('panel.untouched') : it.section}</span>` : nothing}</li>`
 }

@@ -8,7 +8,7 @@ import { ui, tx, statusName, dateText } from '../text.mjs';
 import { state, app, matches, visibleTickets, isFresh } from '../state.mjs';
 import { icon, chip, badge, count, dash, sectionHead, empty, docLink, blockerLinks, prdLinks, meter, flags, progress, pct, table } from '../parts.mjs';
 
-const { fold, isClosed, UNPARSED } = reader;
+const { fold, isClosed, waitingOn } = reader;
 
 function ticketRow(t) {
   const blockers = t.blockers.length ? blockerLinks(t) : null;
@@ -34,20 +34,17 @@ export function ticketTable(list) {
 
 export function waitingView() {
   const list = visibleTickets();
-  const used = new Set();
   // A group with nothing in it is one quiet line; with a status filter on, only what it lets through shows.
   const section = (id, title, hint, items, always) => {
-    items.forEach((t) => used.add(t));
     if (!items.length && !(always && !state.status && !state.q.trim())) return nothing;
     if (!items.length) return html`<section class="group is-empty" id="group-${id}">${sectionHead(title, count(0), html`<span class="none-yet">${icon('check')}${ui('group.none')}</span>`)}</section>`;
-    items = [...items].sort((a, b) => a.blocked - b.blocked);
-    const blocked = items.filter((t) => t.blocked).length;
-    return html`<section class="group" id="group-${id}">${sectionHead(title, [count(items.length), blocked ? badge('bad', ui('flag.blocked-n', { n: blocked })) : nothing], hint)}${ticketTable(items)}</section>`;
+    return html`<section class="group" id="group-${id}">${sectionHead(title, count(items.length), hint)}${ticketTable(items)}</section>`;
   };
-  const parts = GROUPS.map((g) => section(g.id, ui(g.title), ui(g.hint), list.filter((t) => g.has(t.status)), g.id === 'agent' || g.id === 'human'));
-  const rest = list.filter((t) => !used.has(t) && !isClosed(t) && t.status !== UNPARSED);
+  // Each open ticket in exactly one section, the one the overview counts it in (reader.waitingOn).
+  const parts = GROUPS.map((g) => section(g.id, ui(g.title), ui(g.hint), list.filter((t) => waitingOn(t) === g.id), g.id === 'agent' || g.id === 'human'));
+  const rest = list.filter((t) => waitingOn(t) === 'other');
   for (const s of [...new Set(rest.map((t) => t.status))].sort()) parts.push(section('s-' + s, statusName(s), ui('group.unknown.hint'), rest.filter((t) => t.status === s)));
-  parts.push(section('unparsed', ui('group.unparsed'), ui('group.unparsed.hint'), list.filter((t) => t.status === UNPARSED)));
+  parts.push(section('unparsed', ui('group.unparsed'), ui('group.unparsed.hint'), list.filter((t) => waitingOn(t) === 'unparsed')));
   parts.push(section('closed', ui('group.closed'), ui('group.closed.hint'), list.filter(isClosed)));
   return parts.some((p) => p !== nothing) ? parts : empty('inbox', ui('table.empty'), ui('filter.nothing'));
 }

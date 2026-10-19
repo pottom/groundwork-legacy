@@ -43,6 +43,11 @@ body:not([data-state="ready"]) :is(#toolbar, #legend, #dockbar, #prd, #prd-toggl
 #views svg, #mode svg { width: 15px; height: 15px; flex: none; }
 #views button { padding: 0 10px; }
 body[data-split="no"] #views [data-v="split"] { display: none; }
+/* too narrow for one row with labels (toolbar.mjs fitToolbar): icons first in the views, then the mode */
+#toolbar:is([data-compact="views"], [data-compact="all"]) #views button span { display: none; }
+#toolbar:is([data-compact="views"], [data-compact="all"]) #views button { padding: 0 8px; }
+#toolbar[data-compact="all"] #mode span { display: none; }
+#toolbar[data-compact="all"] #mode { width: 32px; padding: 0; }
 
 /* a notice under the toolbar (a deep link to an id the map does not have) */
 #notice {
