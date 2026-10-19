@@ -42,4 +42,4 @@ node core/groundwork.mjs --root .       # then open http://localhost:4477/build/
 
 It never writes. It serves only the page, the project's Markdown files inside the root and, in a git repository, the branch history; git is only asked to read.
 
-The header comments of the files describe the formats in detail. The UI is in Hungarian for now; an English UI comes with the shared shell (roadmap step 2).
+The header comments of the files describe the formats in detail. The UI is in English, with a Hungarian translation (the strings are `BUILD_STRINGS` in `index.html`). Inside the shell it follows the shell's language; opened alone it has its own language picker. The translation mechanism is an inline copy of `core/shell/i18n.mjs`, so the page needs no server; `ui-strings.test.mjs` keeps the copy equal to the original.
