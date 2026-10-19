@@ -44,6 +44,31 @@ test('/api/ideas/list gives every idea with its number, title, author, source an
   })
 })
 
+test('PUT /api/ideas/item/<id> saves the browser\'s change to the idea file, on the version it was made on', async () => {
+  const root = project()
+  open(root).add({ title: 'Quick tabs', author: 'claude' })
+  await withServer(root, [ideas], async (base) => {
+    const put = (id, body, type = 'application/json') => fetch(`${base}/api/ideas/item/${id}`, { method: 'PUT', headers: { 'content-type': type }, body: JSON.stringify(body) })
+    const seen = (await (await fetch(`${base}/api/ideas/list`)).json()).ideas[0]
+
+    const ok = await put('I-1', { base: seen.version, changes: { title: 'Quick tab switching', impact: 'high', status: 'rejected', reason: 'Too small.' } })
+    assert.equal(ok.status, 200)
+    const { idea } = await ok.json()
+    assert.deepEqual([idea.title, idea.impact, idea.status, idea.reason], ['Quick tab switching', 'high', 'rejected', 'Too small.'])
+    assert.equal(open(root).list()[0].title, 'Quick tab switching')
+
+    const stale = await put('I-1', { base: seen.version, changes: { title: 'Lost' } })
+    assert.equal(stale.status, 409)
+    assert.equal((await stale.json()).idea.title, 'Quick tab switching', 'a refused save sends the idea as it is now')
+
+    assert.equal((await put('I-1', { base: idea.version, changes: { status: 'rejected', reason: '' } })).status, 400)
+    assert.equal((await put('I-1', { base: idea.version, changes: { status: 'considering' } }, 'text/plain')).status, 415, 'only a JSON request, which another site cannot send without asking')
+    assert.equal((await put('I-7', { changes: { title: 'X' } })).status, 404)
+    assert.equal((await fetch(`${base}/api/ideas/item/I-1`)).status, 405)
+    assert.equal(open(root).list()[0].title, 'Quick tab switching')
+  })
+})
+
 test('an idea file is Ideas\' live topic; other files are not', () => {
   assert.equal(ideas.watch('docs/product/ideas/items/I-001-x.md'), 'ideas.items')
   assert.equal(ideas.watch('docs/product/ideas/PRD.md'), null)

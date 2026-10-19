@@ -63,3 +63,48 @@ test('an idea needs a title, and author, kind and status take only their known v
 test('without an ideas folder the list is empty', () => {
   assert.deepEqual(open(project()).list(), [])
 })
+
+test('an idea\'s fields can be changed; they are saved in its file and read back', () => {
+  const root = project()
+  const store = open(root)
+  store.add({ title: 'Quick tabs', body: 'Ctrl+1.', author: 'claude', source: 'chat' })
+  const saved = store.update('I-1', {
+    title: 'Quick tab switching', body: 'Ctrl+1..9 switches tabs.', source: 'review', kind: 'engineering',
+    impact: 'high', effort: 'low', links: ['#42', 'n-12'], status: 'considering',
+  })
+  assert.equal(saved.title, 'Quick tab switching')
+  const [idea] = open(root).list()
+  assert.deepEqual(
+    { title: idea.title, body: idea.body, source: idea.source, kind: idea.kind, impact: idea.impact, effort: idea.effort, links: idea.links, status: idea.status, author: idea.author },
+    { title: 'Quick tab switching', body: 'Ctrl+1..9 switches tabs.', source: 'review', kind: 'engineering', impact: 'high', effort: 'low', links: ['#42', 'n-12'], status: 'considering', author: 'claude' })
+  assert.deepEqual(itemFiles(root), ['I-001-quick-tabs.md'], 'the file keeps its name, so its number and links stay')
+})
+
+test('a change takes only known values, and rejecting needs a reason, which is kept with the idea', () => {
+  const root = project()
+  const store = open(root)
+  store.add({ title: 'Dark mode toggle' })
+  for (const bad of [{ status: 'done' }, { kind: 'other' }, { impact: 'huge' }, { effort: 'tiny' }, { title: ' ' }, { status: 'rejected' }, { status: 'rejected', reason: '  ' }]) {
+    assert.throws(() => store.update('I-1', bad), Error, JSON.stringify(bad))
+  }
+  assert.equal(open(root).list()[0].status, 'new', 'a refused change writes nothing')
+  store.update('I-1', { status: 'rejected', reason: 'The OS decides light or dark.' })
+  assert.deepEqual([open(root).list()[0].status, open(root).list()[0].reason], ['rejected', 'The OS decides light or dark.'])
+  assert.match(fs.readFileSync(path.join(root, ITEMS, 'I-001-dark-mode-toggle.md'), 'utf8'), /\nreason: The OS decides light or dark\.\n/)
+  store.update('I-1', { status: 'considering' })
+  assert.equal(open(root).list()[0].reason, undefined, 'taken back from Rejected, the old reason goes')
+  assert.throws(() => store.update('I-9', { title: 'X' }), /I-9/)
+})
+
+test('a change made on an older version of the file is refused, so a newer edit is not lost', () => {
+  const root = project()
+  const store = open(root)
+  store.add({ title: 'Seen in the browser' })
+  const seen = store.list()[0].version
+  assert.ok(seen)
+  store.update('I-1', { source: 'Claude, meanwhile' })   // someone else saves first
+  assert.throws(() => store.update('I-1', { title: 'From the browser' }, { base: seen }), (e) => e.code === 'stale')
+  assert.equal(store.list()[0].title, 'Seen in the browser')
+  const now = store.list()[0].version
+  assert.equal(store.update('I-1', { title: 'From the browser' }, { base: now }).title, 'From the browser')
+})
