@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="hu">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fejlesztési állapot</title>
+<title data-i18n="page.title">Development status</title>
 <link rel="icon" href="data:,">
 <!--
   The Build module's dashboard (index.html): a self-contained status page for
@@ -26,7 +26,7 @@
     docs/adr/*.md                                decision records
     README.md                                    the project's name (first heading)
     GLOSSARY.md (or the older CONTEXT.md), GLOSSARY-MAP.md
-                                                 the domain glossary, listed under Dokumentumok
+                                                 the domain glossary, listed under Documents
   <tracker> is ".scratch" by default (DEFAULT_TRACKER_DIR below); without it,
   the first folder whose subfolders hold "issues/" folders.
 
@@ -40,7 +40,7 @@
   Comments go under "## Comments"; a heading with a date (### 2026-10-14 …)
   is one comment.
 
-  The Ágak (branches) view draws the git history: every branch and tag, the
+  The Branches view draws the git history: every branch and tag, the
   commits in date order, and where each branch was merged. Git is asked by the
   server (read only), so this view needs it; opened by double click, the
   page cannot run git.
@@ -50,83 +50,129 @@
   step, a fix a patch, a change that breaks the server pairing a major one).
     1.0.0  2026-10-18  the first numbered version: tickets, areas, dependencies,
                        activity, inconsistencies, documents, and the git branch
-                       graph (Ágak); the version is shown in the header, and a
+                       graph; the version is shown in the header, and a
                        page and launcher of different versions say so
     2.0.0  2026-10-19  served by the Groundwork core server: the endpoints moved
                        to /api/build/, development-status.mjs is gone
+    2.1.0  2026-10-19  the shared look: colours and fonts from the shell's theme
+                       (/shell/theme.css, with a fallback when opened alone);
+                       light or dark follows the system, the switch is gone;
+                       inside the shell the bar drops the project name
+    2.2.0  2026-10-19  English UI with a Hungarian translation (the shell's
+                       i18n.mjs, inline below, kept equal by ui-strings.test.mjs);
+                       it follows the shell's language, and alone it has its own
+                       language picker
 -->
+<link rel="stylesheet" href="/shell/theme.css">
+<script>try { if (window.self !== window.top) document.documentElement.classList.add('in-shell'); } catch (e) { document.documentElement.classList.add('in-shell'); }</script>
 <style>
 /* Colours carry the ticket states:
    ready-for-agent = blue, waiting for a human = orange,
    needs-…-test = purple, done = green. */
-:root {
-  color-scheme: light;
-  --bg: #fbfaf7; --surface: #ffffff; --sunken: #f3f1ec; --raised: #ffffff;
-  --ink: #1d1c1a; --ink-2: #4a4843; --muted: #6b6860;
-  --line: #e4e0d7; --line-strong: #cfcac0; --accent: #2f5bd3; --focus: #2f5bd3;
-  --c-agent: #2f5bd3; --c-human: #c2410c; --c-test: #7c3aed; --c-claimed: #0b7269;
-  --c-done: #1f8a4c; --c-dropped: #7a776f; --c-neutral: #55524a; --c-bad: #c0392b;
-  --shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
-  --shadow-lg: 0 10px 40px rgb(0 0 0 / .16);
-  --g0: #2f5bd3; --g1: #c2410c; --g2: #1f8a4c; --g3: #7c3aed; --g4: #0b7269; --g5: #b4235a; --g6: #8a6d00; --g7: #4a6fa5;
-  --radius: 10px;
-  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+/* The shared look comes from the shell's theme (/shell/theme.css, linked above): every
+   colour, font and radius the shell and the other modules share is a --gw-* variable.
+   Light or dark follows the operating system.
+
+   Opened by double click there is no server, so no theme: the :where(:root) blocks
+   below repeat the theme's values as a fallback. :where() has no specificity, so
+   when theme.css is there its :root wins. Keep them equal to core/shell/theme.css
+   (module.test.mjs checks it). */
+:where(:root) {
+  color-scheme: light dark;
+  --gw-bg: #fbfaf7;
+  --gw-surface: #ffffff;
+  --gw-sunken: #f3f1ec;
+  --gw-fg: #1d1c1a;
+  --gw-fg-2: #4a4843;
+  --gw-muted: #6b6860;
+  --gw-line: #e4e0d7;
+  --gw-line-strong: #cfcac0;
+  --gw-accent: #2f5bd3;
+  --gw-accent-fg: #ffffff;
+  --gw-focus: #2f5bd3;
+  --gw-ok: #1f8a4c;
+  --gw-bad: #c0392b;
+  --gw-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .05);
+  --gw-font: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --gw-font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  --gw-radius: 10px;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #15161a; --surface: #1c1e23; --sunken: #24262c; --raised: #22242a;
-    --ink: #ecebe8; --ink-2: #c3c1bb; --muted: #9a978f;
-    --line: #2f3238; --line-strong: #464a52; --accent: #7d9cf0; --focus: #7d9cf0;
+  :where(:root) {
+    --gw-bg: #15161a;
+    --gw-surface: #1c1e23;
+    --gw-sunken: #24262c;
+    --gw-fg: #ecebe8;
+    --gw-fg-2: #c3c1bb;
+    --gw-muted: #9a978f;
+    --gw-line: #2f3238;
+    --gw-line-strong: #464a52;
+    --gw-accent: #7d9cf0;
+    --gw-accent-fg: #15161a;
+    --gw-focus: #7d9cf0;
+    --gw-ok: #5cc58a;
+    --gw-bad: #ee7a6c;
+    --gw-shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
+  }
+}
+
+/* Build's own colours: the ticket kinds (--c-*), the branch lanes (--g*), and two
+   surfaces the shell has no name for. Done and missing are the shell's ok and bad. */
+:root {
+  --raised: #ffffff;
+  --c-agent: #2f5bd3; --c-human: #c2410c; --c-test: #7c3aed; --c-claimed: #0b7269;
+  --c-done: var(--gw-ok); --c-dropped: #7a776f; --c-neutral: #55524a; --c-bad: var(--gw-bad);
+  --shadow-lg: 0 10px 40px rgb(0 0 0 / .16);
+  --g0: #2f5bd3; --g1: #c2410c; --g2: #1f8a4c; --g3: #7c3aed; --g4: #0b7269; --g5: #b4235a; --g6: #8a6d00; --g7: #4a6fa5;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --raised: #22242a;
     --c-agent: #7d9cf0; --c-human: #f08a5d; --c-test: #b294f5; --c-claimed: #5cc7bb;
-    --c-done: #5cc58a; --c-dropped: #8f8c85; --c-neutral: #b4b1a8; --c-bad: #ee7a6c;
+    --c-dropped: #8f8c85; --c-neutral: #b4b1a8;
     --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd;
-    --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
     --shadow-lg: 0 10px 40px rgb(0 0 0 / .5);
   }
 }
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #15161a; --surface: #1c1e23; --sunken: #24262c; --raised: #22242a;
-  --ink: #ecebe8; --ink-2: #c3c1bb; --muted: #9a978f;
-  --line: #2f3238; --line-strong: #464a52; --accent: #7d9cf0; --focus: #7d9cf0;
-  --c-agent: #7d9cf0; --c-human: #f08a5d; --c-test: #b294f5; --c-claimed: #5cc7bb;
-  --c-done: #5cc58a; --c-dropped: #8f8c85; --c-neutral: #b4b1a8; --c-bad: #ee7a6c;
-  --g0: #7d9cf0; --g1: #f08a5d; --g2: #5cc58a; --g3: #b294f5; --g4: #5cc7bb; --g5: #f07aa8; --g6: #d9b44a; --g7: #8fb0dd;
-  --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 4px 16px rgb(0 0 0 / .22);
-  --shadow-lg: 0 10px 40px rgb(0 0 0 / .5);
-}
+
+/* Inside the shell (an iframe of /), the shell's header already names the project:
+   Build's bar keeps only the live state and the version. */
+.in-shell .bar h1 { display: none; }
+.in-shell .bar { justify-content: flex-end; padding-top: 6px; padding-bottom: 6px; }
+.in-shell #start { margin-top: 4vh; }
+/* Alone, the page picks its own UI language; inside the shell the shell's picker does it. */
+.in-shell #lang { display: none; }
+#lang { padding: 2px 6px; border: 1px solid var(--gw-line-strong); border-radius: 7px; background: var(--gw-surface); font-size: 12.5px; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); overflow-x: hidden; }
-a { color: var(--accent); text-decoration: none; text-underline-offset: 2px; }
+body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: 14px/1.5 var(--gw-font); overflow-x: hidden; }
+a { color: var(--gw-accent); text-decoration: none; text-underline-offset: 2px; }
 a:hover { text-decoration: underline; }
 :focus { outline: none; }
-:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; border-radius: 4px; }
 button, select, input { font: inherit; color: inherit; }
 button, .btn {
-  display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--line-strong);
-  background: var(--surface); border-radius: 7px; cursor: pointer; white-space: nowrap; line-height: 1.4;
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid var(--gw-line-strong);
+  background: var(--gw-surface); border-radius: 7px; cursor: pointer; white-space: nowrap; line-height: 1.4;
   transition: border-color .12s, background-color .12s;
 }
-button:hover, .btn:hover { border-color: var(--ink-2); text-decoration: none; }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; padding: 9px 18px; }
-button.primary:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink)); }
-button.quiet { border-color: transparent; background: none; color: var(--accent); padding: 2px 4px; }
+button:hover, .btn:hover { border-color: var(--gw-fg-2); text-decoration: none; }
+button.primary { background: var(--gw-accent); border-color: var(--gw-accent); color: var(--gw-accent-fg); font-weight: 600; padding: 9px 18px; }
+button.primary:hover { background: color-mix(in srgb, var(--gw-accent) 88%, var(--gw-fg)); }
+button.quiet { border-color: transparent; background: none; color: var(--gw-accent); padding: 2px 4px; }
 button.quiet:hover { text-decoration: underline; }
-button.icon { padding: 5px 8px; color: var(--ink-2); }
+button.icon { padding: 5px 8px; color: var(--gw-fg-2); }
 .skip { position: absolute; left: -9999px; }
-.skip:focus { left: 8px; top: 8px; z-index: 50; background: var(--surface); padding: 6px 10px; border-radius: 6px; box-shadow: var(--shadow); }
-.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.muted { color: var(--muted); }
+.skip:focus { left: 8px; top: 8px; z-index: 50; background: var(--gw-surface); padding: 6px 10px; border-radius: 6px; box-shadow: var(--gw-shadow); }
+.num, .mono { font-family: var(--gw-font-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--gw-muted); }
 [hidden] { display: none !important; }
-code { font-family: var(--mono); font-size: .9em; background: var(--sunken); padding: 1px 5px; border-radius: 4px; }
+code { font-family: var(--gw-font-mono); font-size: .9em; background: var(--gw-sunken); padding: 1px 5px; border-radius: 4px; }
 
 /* Top bar */
 #top {
-  position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg) 90%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
+  position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--gw-line);
+  background: color-mix(in srgb, var(--gw-bg) 90%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
 }
 .bar { max-width: 1440px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .bar h1 { font-size: 16px; margin: 0 auto 0 0; font-weight: 680; letter-spacing: -.005em; display: flex; align-items: center; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
@@ -134,9 +180,9 @@ code { font-family: var(--mono); font-size: .9em; background: var(--sunken); pad
   content: ""; flex: none; width: 14px; height: 14px; border-radius: 4px;
   background: linear-gradient(135deg, var(--c-agent) 0 50%, var(--c-done) 50% 100%);
 }
-.bar h1 small { font-weight: 450; color: var(--muted); font-size: 13px; }
-.live { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--muted); font-size: 12.5px; }
-.live .state { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px; background: var(--sunken); min-width: 0; }
+.bar h1 small { font-weight: 450; color: var(--gw-muted); font-size: 13px; }
+.live { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; color: var(--gw-muted); font-size: 12.5px; }
+.live .state { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px; background: var(--gw-sunken); min-width: 0; }
 .live button { font-size: 12.5px; padding: 3px 10px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-dropped); flex: none; }
 .dot.on { background: var(--c-done); }
@@ -147,44 +193,44 @@ code { font-family: var(--mono); font-size: .9em; background: var(--sunken); pad
 
 /* Start screen */
 #start { max-width: 660px; margin: 8vh auto 40px; padding: 0 20px; }
-#start .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px 30px; box-shadow: var(--shadow); }
+#start .card { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: 14px; padding: 28px 30px; box-shadow: var(--gw-shadow); }
 #start h2 { font-size: 26px; margin: 0 0 8px; letter-spacing: -.015em; line-height: 1.2; }
-#start p { margin: 8px 0; color: var(--ink-2); }
-#start p.muted { color: var(--muted); }
+#start p { margin: 8px 0; color: var(--gw-fg-2); }
+#start p.muted { color: var(--gw-muted); }
 .choices { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 20px 0 10px; }
-.drop { border: 1.5px dashed var(--line-strong); border-radius: 10px; padding: 20px; color: var(--muted); margin-top: 16px; text-align: center; transition: background-color .12s, border-color .12s; }
-body.dragging .drop, body.dragging #top { border-color: var(--accent); }
-body.dragging .drop { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--ink); }
+.drop { border: 1.5px dashed var(--gw-line-strong); border-radius: 10px; padding: 20px; color: var(--gw-muted); margin-top: 16px; text-align: center; transition: background-color .12s, border-color .12s; }
+body.dragging .drop, body.dragging #top { border-color: var(--gw-accent); }
+body.dragging .drop { background: color-mix(in srgb, var(--gw-accent) 8%, transparent); color: var(--gw-fg); }
 .notice { border-left: 3px solid var(--c-human); background: color-mix(in srgb, var(--c-human) 9%, transparent); padding: 9px 13px; border-radius: 0 8px 8px 0; margin: 12px 0; }
 .notice.bad { border-color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 9%, transparent); }
-.rules { color: var(--muted); font-size: 13px; margin-top: 24px; border-top: 1px solid var(--line); padding-top: 14px; }
+.rules { color: var(--gw-muted); font-size: 13px; margin-top: 24px; border-top: 1px solid var(--gw-line); padding-top: 14px; }
 .rules code { font-size: 12px; }
 
 /* Overview: big numbers and the segmented progress bar */
 .overview { padding: 20px 0 6px; display: grid; gap: 14px; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .kpi {
-  --c: var(--ink-2); position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 12px 14px 11px; display: grid; gap: 2px; box-shadow: var(--shadow); overflow: hidden; min-width: 0;
+  --c: var(--gw-fg-2); position: relative; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius);
+  padding: 12px 14px 11px; display: grid; gap: 2px; box-shadow: var(--gw-shadow); overflow: hidden; min-width: 0;
 }
 .kpi::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--c); }
-.kpi .v { font: 680 30px/1.05 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.kpi .v small { font-size: 15px; font-weight: 600; color: var(--muted); margin-left: 2px; }
-.kpi .k { font-size: 12.5px; color: var(--ink-2); font-weight: 560; }
-.kpi .s { font-size: 12px; color: var(--muted); }
-.kpi.zero .v { color: var(--muted); }
-.kpi.zero::before { background: var(--line-strong); }
-.progress { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 10px; box-shadow: var(--shadow); }
-.progress .head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: 13px; color: var(--muted); }
-.progress .head b { color: var(--ink); font-weight: 650; }
-.stack { display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden; background: var(--sunken); }
+.kpi .v { font: 680 30px/1.05 var(--gw-font); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.kpi .v small { font-size: 15px; font-weight: 600; color: var(--gw-muted); margin-left: 2px; }
+.kpi .k { font-size: 12.5px; color: var(--gw-fg-2); font-weight: 560; }
+.kpi .s { font-size: 12px; color: var(--gw-muted); }
+.kpi.zero .v { color: var(--gw-muted); }
+.kpi.zero::before { background: var(--gw-line-strong); }
+.progress { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); padding: 12px 14px; display: grid; gap: 10px; box-shadow: var(--gw-shadow); }
+.progress .head { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; font-size: 13px; color: var(--gw-muted); }
+.progress .head b { color: var(--gw-fg); font-weight: 650; }
+.stack { display: flex; gap: 2px; height: 12px; border-radius: 6px; overflow: hidden; background: var(--gw-sunken); }
 .stack span { display: block; min-width: 4px; background: var(--c); border-radius: 2px; }
-.stack span.closed { background: repeating-linear-gradient(135deg, var(--c) 0 5px, color-mix(in srgb, var(--c) 72%, var(--surface)) 5px 8px); }
+.stack span.closed { background: repeating-linear-gradient(135deg, var(--c) 0 5px, color-mix(in srgb, var(--c) 72%, var(--gw-surface)) 5px 8px); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.chips .sep { width: 1px; height: 18px; background: var(--line-strong); margin: 0 4px; }
+.chips .sep { width: 1px; height: 18px; background: var(--gw-line-strong); margin: 0 4px; }
 .chip {
   --c: var(--c-neutral); display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px 1px 8px; border-radius: 999px; white-space: nowrap;
-  font: 500 12px/1.65 var(--mono); color: color-mix(in srgb, var(--c) 82%, var(--ink)); background: color-mix(in srgb, var(--c) 11%, transparent);
+  font: 500 12px/1.65 var(--gw-font-mono); color: color-mix(in srgb, var(--c) 82%, var(--gw-fg)); background: color-mix(in srgb, var(--c) 11%, transparent);
   border: 1px solid color-mix(in srgb, var(--c) 28%, transparent);
 }
 .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
@@ -193,130 +239,130 @@ body.dragging .drop { background: color-mix(in srgb, var(--accent) 8%, transpare
 button.chip { cursor: pointer; padding-top: 2px; padding-bottom: 2px; }
 button.chip:hover, button.chip[aria-pressed="true"] { border-color: var(--c); }
 button.chip[aria-pressed="true"] { background: color-mix(in srgb, var(--c) 24%, transparent); font-weight: 650; box-shadow: inset 0 0 0 1px var(--c); }
-.chip b { font-weight: 700; color: var(--ink); }
+.chip b { font-weight: 700; color: var(--gw-fg); }
 .t-agent { --c: var(--c-agent); } .t-human { --c: var(--c-human); } .t-test { --c: var(--c-test); }
 .t-claimed { --c: var(--c-claimed); } .t-done { --c: var(--c-done); } .t-dropped { --c: var(--c-dropped); }
 .t-neutral { --c: var(--c-neutral); } .t-bad { --c: var(--c-bad); }
-.changes { font-size: 13px; color: var(--muted); padding: 0 2px; }
+.changes { font-size: 13px; color: var(--gw-muted); padding: 0 2px; }
 .changes summary { cursor: pointer; border-radius: 4px; }
 .changes ul { margin: 6px 0 0; padding-left: 18px; }
-.changes li b { color: var(--ink); font-weight: 600; }
+.changes li b { color: var(--gw-fg); font-weight: 600; }
 
 /* Navigation and filters */
-nav.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; margin-top: 8px; scrollbar-width: thin; }
-nav.tabs a { display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px 10px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-weight: 520; border-radius: 6px 6px 0 0; }
-nav.tabs a:hover { color: var(--ink); text-decoration: none; background: color-mix(in srgb, var(--ink) 4%, transparent); }
-nav.tabs a[aria-current="page"] { color: var(--ink); border-color: var(--accent); font-weight: 650; }
-nav.tabs .badge { font: 600 11px/1.6 var(--mono); background: var(--sunken); color: var(--ink-2); border-radius: 999px; padding: 0 7px; }
+nav.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--gw-line); overflow-x: auto; margin-top: 8px; scrollbar-width: thin; }
+nav.tabs a { display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px 10px; color: var(--gw-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-weight: 520; border-radius: 6px 6px 0 0; }
+nav.tabs a:hover { color: var(--gw-fg); text-decoration: none; background: color-mix(in srgb, var(--gw-fg) 4%, transparent); }
+nav.tabs a[aria-current="page"] { color: var(--gw-fg); border-color: var(--gw-accent); font-weight: 650; }
+nav.tabs .badge { font: 600 11px/1.6 var(--gw-font-mono); background: var(--gw-sunken); color: var(--gw-fg-2); border-radius: 999px; padding: 0 7px; }
 nav.tabs .badge.warn { background: color-mix(in srgb, var(--c-human) 18%, transparent); color: var(--c-human); }
 .filters { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 14px 0 6px; }
-.filters input[type="search"], .filters select { padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); min-width: 0; }
+.filters input[type="search"], .filters select { padding: 6px 10px; border: 1px solid var(--gw-line-strong); border-radius: 8px; background: var(--gw-surface); min-width: 0; }
 .filters input[type="search"] { flex: 1 1 240px; max-width: 380px; }
 .filters select { max-width: 230px; }
-.filters label.check { display: inline-flex; gap: 7px; align-items: center; cursor: pointer; color: var(--ink-2); }
-.filters label.check input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
-.filters .summary { margin-left: auto; color: var(--muted); font-size: 13px; }
+.filters label.check { display: inline-flex; gap: 7px; align-items: center; cursor: pointer; color: var(--gw-fg-2); }
+.filters label.check input { accent-color: var(--gw-accent); width: 15px; height: 15px; margin: 0; }
+.filters .summary { margin-left: auto; color: var(--gw-muted); font-size: 13px; }
 
 /* Groups and tables */
 .group { margin: 0 0 26px; }
 .group > h2, .view > h2 { font-size: 15px; margin: 18px 0 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; letter-spacing: -.005em; }
-.group > h2 .count { font: 650 12px/1.7 var(--mono); background: var(--sunken); padding: 0 8px; border-radius: 999px; color: var(--ink-2); }
-.group > h2 .hint, .lead { font-weight: 400; color: var(--muted); font-size: 13px; }
-.group.info > h2 { color: var(--ink-2); }
+.group > h2 .count { font: 650 12px/1.7 var(--gw-font-mono); background: var(--gw-sunken); padding: 0 8px; border-radius: 999px; color: var(--gw-fg-2); }
+.group > h2 .hint, .lead { font-weight: 400; color: var(--gw-muted); font-size: 13px; }
+.group.info > h2 { color: var(--gw-fg-2); }
 .lead { margin: 12px 0 14px; max-width: 86ch; }
-.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.tablewrap { overflow-x: auto; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); box-shadow: var(--gw-shadow); }
 table.grid { width: 100%; border-collapse: collapse; }
-table.grid th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 650; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; background: color-mix(in srgb, var(--sunken) 55%, var(--surface)); }
-table.grid td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.grid th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--gw-muted); font-weight: 650; padding: 8px 12px; border-bottom: 1px solid var(--gw-line); white-space: nowrap; background: color-mix(in srgb, var(--gw-sunken) 55%, var(--gw-surface)); }
+table.grid td { padding: 9px 12px; border-bottom: 1px solid var(--gw-line); vertical-align: top; }
 table.grid tr:last-child td { border-bottom: 0; }
 table.grid tbody tr[data-doc] { cursor: pointer; }
-table.grid tbody tr[data-doc]:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
-table.grid tbody tr.is-blocked td.c-title a.open { color: var(--ink-2); }
-td.c-num { white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); width: 1%; font-size: 12.5px; padding-top: 10px; }
+table.grid tbody tr[data-doc]:hover { background: color-mix(in srgb, var(--gw-accent) 5%, transparent); }
+table.grid tbody tr.is-blocked td.c-title a.open { color: var(--gw-fg-2); }
+td.c-num { white-space: nowrap; font-family: var(--gw-font-mono); font-variant-numeric: tabular-nums; color: var(--gw-muted); width: 1%; font-size: 12.5px; padding-top: 10px; }
 td.c-title { overflow-wrap: anywhere; min-width: 220px; }
-td.c-title a.open { color: var(--ink); font-weight: 580; }
-td.c-title .note { color: var(--muted); font-size: 12.5px; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-td.c-title .sub { display: none; color: var(--muted); font-size: 12px; margin-top: 3px; }
+td.c-title a.open { color: var(--gw-fg); font-weight: 580; }
+td.c-title .note { color: var(--gw-muted); font-size: 12.5px; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+td.c-title .sub { display: none; color: var(--gw-muted); font-size: 12px; margin-top: 3px; }
 td.c-title .sub-st { display: none; }
 td.c-area, td.c-last, td.c-st, td.c-chk { white-space: nowrap; }
 th.c-area { width: 150px; } th.c-st { width: 160px; } th.c-chk { width: 100px; } th.c-last { width: 140px; } th.c-blk { width: 15%; }
-td.c-area { color: var(--ink-2); }
+td.c-area { color: var(--gw-fg-2); }
 td.c-blk { font-size: 13px; }
-td.c-last { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
-.tref { font-family: var(--mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
-.tref:hover { text-decoration: none; background: color-mix(in srgb, var(--accent) 16%, transparent); }
-.tref.is-closed { color: var(--muted); background: var(--sunken); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent); }
+td.c-last { font-family: var(--gw-font-mono); font-size: 12.5px; color: var(--gw-muted); }
+.tref { font-family: var(--gw-font-mono); font-size: .92em; white-space: nowrap; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--gw-accent) 8%, transparent); }
+.tref:hover { text-decoration: none; background: color-mix(in srgb, var(--gw-accent) 16%, transparent); }
+.tref.is-closed { color: var(--gw-muted); background: var(--gw-sunken); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--gw-muted) 60%, transparent); }
 .tref.is-missing { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 9%, transparent); }
-.flag { display: inline-block; font: 650 10.5px/1.6 var(--mono); padding: 0 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; vertical-align: 1px; text-transform: lowercase; }
+.flag { display: inline-block; font: 650 10.5px/1.6 var(--gw-font-mono); padding: 0 6px; border-radius: 5px; border: 1px solid; white-space: nowrap; vertical-align: 1px; text-transform: lowercase; }
 .flag.blocked { color: var(--c-bad); background: color-mix(in srgb, var(--c-bad) 8%, transparent); }
 .flag.fresh { color: var(--c-claimed); background: color-mix(in srgb, var(--c-claimed) 8%, transparent); }
 .flag.free { color: var(--c-done); background: color-mix(in srgb, var(--c-done) 9%, transparent); }
-.meter { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
-.meter i { display: block; width: 48px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.meter { display: inline-flex; align-items: center; gap: 7px; font-family: var(--gw-font-mono); font-size: 12px; color: var(--gw-fg-2); }
+.meter i { display: block; width: 48px; height: 6px; border-radius: 3px; background: var(--gw-line); overflow: hidden; }
 .meter i::before { content: ""; display: block; height: 100%; width: var(--p); background: var(--c-done); border-radius: 3px; }
-.empty { color: var(--muted); padding: 12px 14px; background: var(--surface); border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+.empty { color: var(--gw-muted); padding: 12px 14px; background: var(--gw-surface); border: 1px dashed var(--gw-line-strong); border-radius: var(--gw-radius); }
 
 /* Areas */
-details.area { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px; box-shadow: var(--shadow); }
-details.area > summary { display: grid; grid-template-columns: 18px minmax(150px, 1.1fr) minmax(0, 2.2fr) 160px 170px; gap: 12px; align-items: center; padding: 10px 14px; cursor: pointer; list-style: none; border-radius: var(--radius); }
+details.area { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); margin-bottom: 8px; box-shadow: var(--gw-shadow); }
+details.area > summary { display: grid; grid-template-columns: 18px minmax(150px, 1.1fr) minmax(0, 2.2fr) 160px 170px; gap: 12px; align-items: center; padding: 10px 14px; cursor: pointer; list-style: none; border-radius: var(--gw-radius); }
 details.area > summary::-webkit-details-marker { display: none; }
-details.area > summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(-45deg); justify-self: center; transition: transform .15s; }
+details.area > summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--gw-muted); border-bottom: 1.5px solid var(--gw-muted); transform: rotate(-45deg); justify-self: center; transition: transform .15s; }
 details.area[open] > summary::before { transform: rotate(45deg); }
-details.area > summary:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+details.area > summary:hover { background: color-mix(in srgb, var(--gw-fg) 3%, transparent); }
 details.area > summary .name { font-weight: 650; overflow-wrap: anywhere; }
-details.area > summary .spec { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-details.area > summary .cnt { font: 12.5px var(--mono); text-align: right; white-space: nowrap; color: var(--muted); }
-details.area > summary .cnt b { color: var(--ink); }
-.bar2 { display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--c-agent) 22%, var(--sunken)); overflow: hidden; }
-.bar2.none { background: var(--sunken); }
+details.area > summary .spec { color: var(--gw-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.area > summary .cnt { font: 12.5px var(--gw-font-mono); text-align: right; white-space: nowrap; color: var(--gw-muted); }
+details.area > summary .cnt b { color: var(--gw-fg); }
+.bar2 { display: block; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--c-agent) 22%, var(--gw-sunken)); overflow: hidden; }
+.bar2.none { background: var(--gw-sunken); }
 .bar2 i { display: block; height: 100%; width: var(--p); background: var(--c-done); border-radius: 4px; }
-details.area .inner { padding: 6px 14px 14px; border-top: 1px solid var(--line); }
+details.area .inner { padding: 6px 14px 14px; border-top: 1px solid var(--gw-line); }
 .doclist { margin: 8px 0 12px; padding: 0; list-style: none; display: grid; gap: 4px; }
 .doclist li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; }
-.doclist .path { color: var(--muted); font: 12px var(--mono); margin-left: 8px; overflow-wrap: anywhere; }
-.kind { font: 600 10.5px/1.6 var(--mono); color: var(--ink-2); background: var(--sunken); border-radius: 4px; padding: 0 6px; margin-right: 7px; text-transform: lowercase; }
+.doclist .path { color: var(--gw-muted); font: 12px var(--gw-font-mono); margin-left: 8px; overflow-wrap: anywhere; }
+.kind { font: 600 10.5px/1.6 var(--gw-font-mono); color: var(--gw-fg-2); background: var(--gw-sunken); border-radius: 4px; padding: 0 6px; margin-right: 7px; text-transform: lowercase; }
 
 /* Dependency tree */
 ul.tree, ul.tree ul { list-style: none; margin: 0; padding: 0; }
-ul.tree > li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+ul.tree > li { background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--gw-shadow); }
 ul.tree ul { margin: 2px 0 0 14px; padding-left: 22px; }
 ul.tree ul > li { position: relative; padding: 5px 0 0; }
 ul.tree ul > li::before {
   content: ""; position: absolute; left: -22px; top: 0; width: 16px; height: 22px;
-  border-left: 1.5px solid var(--line-strong); border-bottom: 1.5px solid var(--line-strong); border-bottom-left-radius: 7px;
+  border-left: 1.5px solid var(--gw-line-strong); border-bottom: 1.5px solid var(--gw-line-strong); border-bottom-left-radius: 7px;
 }
-ul.tree ul > li::after { content: ""; position: absolute; left: -22px; top: 22px; bottom: 0; border-left: 1.5px solid var(--line-strong); }
+ul.tree ul > li::after { content: ""; position: absolute; left: -22px; top: 22px; bottom: 0; border-left: 1.5px solid var(--gw-line-strong); }
 ul.tree ul > li:last-child::after { display: none; }
 .node { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-height: 30px; }
-ul.tree ul .node { display: inline-flex; max-width: 100%; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+ul.tree ul .node { display: inline-flex; max-width: 100%; background: var(--raised); border: 1px solid var(--gw-line); border-radius: 8px; padding: 4px 10px; }
 .node .ttl { overflow-wrap: anywhere; font-weight: 550; min-width: 0; }
 .node.ctx { opacity: .72; }
 .node.ctx .ttl { font-weight: 450; }
-.rel { color: var(--muted); font-size: 12px; }
-.unlocks { display: block; margin: 6px 0 0 1px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 12.5px; margin: -4px 0 14px; align-items: center; }
+.rel { color: var(--gw-muted); font-size: 12px; }
+.unlocks { display: block; margin: 6px 0 0 1px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--gw-muted); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--gw-muted); font-size: 12.5px; margin: -4px 0 14px; align-items: center; }
 
 /* Activity */
 .day { margin: 0 0 18px; }
-.day > h3 { font: 650 13px var(--mono); margin: 0 0 6px; position: sticky; top: var(--top-h, 52px); z-index: 2; background: var(--bg); padding: 6px 0; }
-.day ul { margin: 0; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
-.day li { padding: 9px 14px; border-bottom: 1px solid var(--line); }
+.day > h3 { font: 650 13px var(--gw-font-mono); margin: 0 0 6px; position: sticky; top: var(--top-h, 52px); z-index: 2; background: var(--gw-bg); padding: 6px 0; }
+.day ul { margin: 0; padding: 0; list-style: none; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); box-shadow: var(--gw-shadow); }
+.day li { padding: 9px 14px; border-bottom: 1px solid var(--gw-line); }
 .day li:last-child { border-bottom: 0; }
-.day .notes { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+.day .notes { margin: 3px 0 0; color: var(--gw-muted); font-size: 13px; }
 .day .notes div { padding-left: 14px; position: relative; }
 .day .notes div::before { content: "–"; position: absolute; left: 0; }
 .view > button { margin-top: 4px; }
 
 /* Git branches */
-.ver { font: 500 11.5px/1.6 var(--mono); color: var(--muted); padding: 0 7px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.ver { font: 500 11.5px/1.6 var(--gw-font-mono); color: var(--gw-muted); padding: 0 7px; border-radius: 999px; border: 1px solid var(--gw-line); white-space: nowrap; }
 .ver.warn { color: var(--c-human); border-color: color-mix(in srgb, var(--c-human) 45%, transparent); }
-.ref { --c: var(--c-neutral); display: inline-flex; align-items: center; gap: 4px; font: 600 11px/1.55 var(--mono); padding: 0 6px; border-radius: 5px; white-space: nowrap;
-  color: color-mix(in srgb, var(--c) 80%, var(--ink)); background: color-mix(in srgb, var(--c) 13%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
+.ref { --c: var(--c-neutral); display: inline-flex; align-items: center; gap: 4px; font: 600 11px/1.55 var(--gw-font-mono); padding: 0 6px; border-radius: 5px; white-space: nowrap;
+  color: color-mix(in srgb, var(--c) 80%, var(--gw-fg)); background: color-mix(in srgb, var(--c) 13%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); }
 .ref.remote { background: transparent; border-style: dashed; font-weight: 500; }
-.ref.tag { color: var(--ink-2); background: var(--sunken); border-color: var(--line-strong); font-weight: 500; }
-.ref.tag::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: var(--muted); }
+.ref.tag { color: var(--gw-fg-2); background: var(--gw-sunken); border-color: var(--gw-line-strong); font-weight: 500; }
+.ref.tag::before { content: ""; width: 6px; height: 6px; transform: rotate(45deg); background: var(--gw-muted); }
 .ref.head { box-shadow: inset 0 0 0 1px var(--c); }
-.ref.head::before { content: "HEAD"; font-size: 9.5px; letter-spacing: .04em; color: var(--muted); }
+.ref.head::before { content: "HEAD"; font-size: 9.5px; letter-spacing: .04em; color: var(--gw-muted); }
 /* after .ref: a lane's colour wins over the neutral default */
 .lane0 { --c: var(--g0); } .lane1 { --c: var(--g1); } .lane2 { --c: var(--g2); } .lane3 { --c: var(--g3); }
 .lane4 { --c: var(--g4); } .lane5 { --c: var(--g5); } .lane6 { --c: var(--g6); } .lane7 { --c: var(--g7); }
@@ -324,24 +370,24 @@ button.ref { cursor: pointer; }
 button.ref:hover { border-color: var(--c); }
 td.c-branch { white-space: nowrap; }
 td.c-branch .ref { font-size: 12px; }
-.graph { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; }
+.graph { position: relative; background: var(--gw-surface); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); box-shadow: var(--gw-shadow); overflow-x: auto; }
 .graph svg { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
 .graph svg path { fill: none; stroke-width: 2; stroke-linecap: round; }
 .graph svg circle { stroke-width: 2; }
 .graph .rows { position: relative; min-width: 560px; }
 .graph .row { height: var(--row-h); display: flex; align-items: center; gap: 8px; padding-right: 12px; cursor: pointer; white-space: nowrap; border-radius: 6px; }
-.graph .row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
-.graph .row.hit { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.graph .row .h { font: 12px var(--mono); color: var(--muted); flex: none; }
+.graph .row:hover { background: color-mix(in srgb, var(--gw-fg) 4%, transparent); }
+.graph .row.hit { background: color-mix(in srgb, var(--gw-accent) 12%, transparent); }
+.graph .row .h { font: 12px var(--gw-font-mono); color: var(--gw-muted); flex: none; }
 .graph .row .s { overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
-.graph .row.merge .s { color: var(--ink-2); }
-.graph .row .who { color: var(--muted); font-size: 12.5px; flex: none; }
-.graph .row .when { font: 12px var(--mono); color: var(--muted); flex: none; width: 78px; text-align: right; }
+.graph .row.merge .s { color: var(--gw-fg-2); }
+.graph .row .who { color: var(--gw-muted); font-size: 12.5px; flex: none; }
+.graph .row .when { font: 12px var(--gw-font-mono); color: var(--gw-muted); flex: none; width: 78px; text-align: right; }
 .graph .refs { display: inline-flex; gap: 4px; flex: none; }
 .graph .more { position: absolute; left: 0; right: 0; }
-.graph .detail { padding: 8px 12px 10px; margin: 0 8px 6px 0; background: var(--sunken); border-radius: 8px; font-size: 13px; white-space: normal; display: grid; gap: 2px; }
+.graph .detail { padding: 8px 12px 10px; margin: 0 8px 6px 0; background: var(--gw-sunken); border-radius: 8px; font-size: 13px; white-space: normal; display: grid; gap: 2px; }
 .graph .detail .mono { overflow-wrap: anywhere; }
-.graph-foot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 10px; color: var(--muted); font-size: 13px; }
+.graph-foot { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 10px; color: var(--gw-muted); font-size: 13px; }
 @media (max-width: 860px) {
   .graph .row .who { display: none; }
   .graph .rows { min-width: 0; }
@@ -358,40 +404,39 @@ td.c-branch .ref { font-size: 12px; }
 }
 @keyframes fade { from { opacity: 0; } }
 @keyframes slide { from { transform: translateX(24px); } }
-#drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(900px, 100%); z-index: 21; background: var(--surface); border-left: 1px solid var(--line-strong); display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
-#drawer header { display: flex; gap: 12px; align-items: flex-start; padding: 14px 22px; border-bottom: 1px solid var(--line); }
+#drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(900px, 100%); z-index: 21; background: var(--gw-surface); border-left: 1px solid var(--gw-line-strong); display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+#drawer header { display: flex; gap: 12px; align-items: flex-start; padding: 14px 22px; border-bottom: 1px solid var(--gw-line); }
 #drawer header h2 { margin: 0; font-size: 18px; line-height: 1.35; flex: 1; overflow-wrap: anywhere; letter-spacing: -.01em; min-width: 0; }
-#drawer header h2 .num { color: var(--muted); font-weight: 500; margin-right: 8px; font-size: 15px; }
+#drawer header h2 .num { color: var(--gw-muted); font-weight: 500; margin-right: 8px; font-size: 15px; }
 #drawer .scroll { overflow: auto; padding: 0 22px 64px; flex: 1; overscroll-behavior: contain; }
-dl.meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 16px 0; padding: 12px 14px; background: var(--sunken); border-radius: var(--radius); font-size: 13px; align-items: baseline; }
-dl.meta dt { color: var(--muted); }
+dl.meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 16px 0; padding: 12px 14px; background: var(--gw-sunken); border-radius: var(--gw-radius); font-size: 13px; align-items: baseline; }
+dl.meta dt { color: var(--gw-muted); }
 dl.meta dd { margin: 0; overflow-wrap: anywhere; }
 .md { max-width: 78ch; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.6; }
-.md h1 { font-size: 21px; letter-spacing: -.01em; } .md h2 { font-size: 16.5px; border-bottom: 1px solid var(--line); padding-bottom: 4px; margin-top: 28px; }
+.md h1 { font-size: 21px; letter-spacing: -.01em; } .md h2 { font-size: 16.5px; border-bottom: 1px solid var(--gw-line); padding-bottom: 4px; margin-top: 28px; }
 .md h3 { font-size: 14.5px; margin-top: 22px; } .md h4, .md h5, .md h6 { font-size: 13.5px; }
 .md p, .md ul, .md ol, .md pre, .md table, .md blockquote { margin: 9px 0; }
 .md ul, .md ol { padding-left: 22px; }
 .md li { margin: 3px 0; }
 .md li.task { list-style: none; margin-left: -20px; }
 .md li.task input { margin: 0 7px 0 0; vertical-align: -1px; accent-color: var(--c-done); }
-.md li.task.done > span.t { color: var(--muted); }
-.md pre { background: var(--sunken); padding: 11px 13px; border-radius: 8px; overflow: auto; font: 12.5px/1.55 var(--mono); border: 1px solid var(--line); }
+.md li.task.done > span.t { color: var(--gw-muted); }
+.md pre { background: var(--gw-sunken); padding: 11px 13px; border-radius: 8px; overflow: auto; font: 12.5px/1.55 var(--gw-font-mono); border: 1px solid var(--gw-line); }
 .md pre code { background: none; padding: 0; font-size: inherit; }
-.md blockquote { border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); padding: 4px 14px; color: var(--ink-2); margin-left: 0; border-radius: 0 8px 8px 0; }
+.md blockquote { border-left: 3px solid var(--gw-accent); background: color-mix(in srgb, var(--gw-accent) 6%, transparent); padding: 4px 14px; color: var(--gw-fg-2); margin-left: 0; border-radius: 0 8px 8px 0; }
 .md .tw { overflow-x: auto; }
 .md table { border-collapse: collapse; font-size: 13px; }
-.md th, .md td { border: 1px solid var(--line); padding: 5px 9px; vertical-align: top; text-align: left; }
-.md th { background: var(--sunken); }
-.md hr { border: 0; border-top: 1px solid var(--line-strong); margin: 20px 0; }
-.md .dead { border-bottom: 1px dotted var(--muted); }
-.md del { color: var(--muted); }
+.md th, .md td { border: 1px solid var(--gw-line); padding: 5px 9px; vertical-align: top; text-align: left; }
+.md th { background: var(--gw-sunken); }
+.md hr { border: 0; border-top: 1px solid var(--gw-line-strong); margin: 20px 0; }
+.md .dead { border-bottom: 1px dotted var(--gw-muted); }
+.md del { color: var(--gw-muted); }
 
 @media (max-width: 860px) {
   .bar, .wrap { padding-left: 16px; padding-right: 16px; }
   #top { position: static; }
   .bar h1 { flex: 1 1 0; flex-wrap: wrap; row-gap: 0; }
   .bar h1 small { flex-basis: 100%; padding-left: 24px; }
-  #theme { order: 1; align-self: flex-start; }
   .live { order: 2; margin-left: 0; width: 100%; }
   .live .state { flex: 1 1 100%; border-radius: 8px; }
   table.grid th.c-area, table.grid td.c-area, table.grid th.c-blk, table.grid td.c-blk, table.grid th.c-last, table.grid td.c-last { display: none; }
@@ -424,56 +469,55 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; }
   dl.meta dd { margin-bottom: 6px; }
 }
 </style>
-<script>try { const t = localStorage.getItem('development-status:theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) { /* optional */ }</script>
 </head>
 <body>
-<a class="skip" href="#main">Ugrás a tartalomra</a>
+<a class="skip" href="#main" data-i18n="page.skip">Skip to content</a>
 
 <header id="top">
   <div class="bar">
-    <h1 id="project">Fejlesztési állapot</h1>
+    <h1 id="project">Development status</h1>
     <div class="live" id="live" hidden>
       <span class="state"><span class="dot" id="dot"></span>
       <span id="live-text" aria-live="polite"></span></span>
-      <button type="button" id="refresh">Frissítés most</button>
-      <button type="button" id="change">Másik mappa</button>
+      <button type="button" id="refresh" data-i18n="live.refresh">Refresh now</button>
+      <button type="button" id="change" data-i18n="live.change">Another folder</button>
     </div>
     <span class="ver" id="ver"></span>
-    <button type="button" class="icon" id="theme" aria-label="Színséma váltása" title="Színséma: automatikus / világos / sötét"></button>
+    <select id="lang" class="gw-lang" data-i18n-aria-label="page.lang"></select>
   </div>
 </header>
 
 <main id="main">
   <section id="start"><div class="card">
-    <h2>Fejlesztési állapot</h2>
-    <p>Ez az oldal a projekt markdown fájljaiból (jegyek, specek, döntések) rakja össze, hol tart a munka. Csak olvas: semmit nem ír a mappába, és semmit nem küld el sehová.</p>
+    <h2 data-i18n="page.title">Development status</h2>
+    <p data-i18n="start.intro"></p>
     <div id="resume" hidden>
       <div class="choices">
         <button type="button" class="primary" id="resume-btn"></button>
       </div>
-      <p class="muted">A böngésző újratöltés után újra megkérdezi, olvashatja-e a mappát; egy kattintás, és az oldal folytatja.</p>
+      <p class="muted" data-i18n="start.resume-note"></p>
     </div>
     <div class="choices">
-      <button type="button" class="primary" id="pick" hidden>Projektmappa kiválasztása</button>
-      <button type="button" id="snapshot">Pillanatkép egy mappából</button>
+      <button type="button" class="primary" id="pick" hidden></button>
+      <button type="button" id="snapshot" data-i18n="start.snapshot"></button>
       <input type="file" id="dir-input" webkitdirectory multiple hidden>
     </div>
     <p id="mode-note" class="muted"></p>
     <div id="start-error" class="notice bad" hidden></div>
-    <div class="drop">Vagy húzd ide a projekt mappáját.</div>
+    <div class="drop" data-i18n="start.drop"></div>
     <div class="rules">
-      <p>Amit keres: jegyek a <code>.scratch/&lt;terület&gt;/issues/&lt;szám&gt;-&lt;név&gt;.md</code> fájlokban (<code>Status:</code> és <code>Blocked by:</code> sorral, félkövéren vagy anélkül, ahogy a <code>/to-tickets</code> írja), a terület specje a <code>spec.md</code>-ben, a döntések a <code>docs/adr/</code> alatt, a szószedet a <code>GLOSSARY.md</code>-ben. Ha nincs <code>.scratch/</code>, azt a mappát használja, amelynek az almappáiban <code>issues/</code> van.</p>
+      <p id="rules"></p>
     </div>
   </div></section>
 
   <section id="app" class="wrap" hidden>
     <div class="overview" id="overview"></div>
-    <nav class="tabs" id="tabs" aria-label="Nézetek"></nav>
+    <nav class="tabs" id="tabs" data-i18n-aria-label="page.views"></nav>
     <div class="filters" id="filters" role="search">
-      <input type="search" id="q" placeholder="Keresés: szám, cím, szöveg ( / )" aria-label="Keresés a jegyekben">
-      <select id="f-status" aria-label="Állapot"></select>
-      <select id="f-area" aria-label="Terület"></select>
-      <label class="check"><input type="checkbox" id="f-closed"> Zárt jegyek is</label>
+      <input type="search" id="q" data-i18n-placeholder="filter.search" data-i18n-aria-label="filter.search-label">
+      <select id="f-status" data-i18n-aria-label="filter.status"></select>
+      <select id="f-area" data-i18n-aria-label="filter.area"></select>
+      <label class="check"><input type="checkbox" id="f-closed"> <span data-i18n="filter.closed"></span></label>
       <span class="summary" id="f-summary" aria-live="polite"></span>
     </div>
     <div class="view" id="view"></div>
@@ -484,14 +528,24 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; }
 <aside id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
   <header>
     <h2 id="drawer-title"></h2>
-    <button type="button" id="drawer-close" aria-label="Bezárás (Esc)">Bezárás</button>
+    <button type="button" id="drawer-close" data-i18n="drawer.close" data-i18n-aria-label="drawer.close-label"></button>
   </header>
   <div class="scroll" id="drawer-body" tabindex="-1"></div>
 </aside>
 
+<!-- The UI translation (i18n.js, a copy of core/shell/i18n.mjs without "export") and Build's
+     strings (ui-strings.js, BUILD_STRINGS). Classic scripts, not modules: opened by double click
+     (file://) there is no /shell/ and no module import, but a classic script beside the page loads.
+     Do not edit i18n.js: change core/shell/i18n.mjs and copy it (ui-strings.test.mjs checks). -->
+<script src="i18n.js"></script>
+<script src="ui-strings.js"></script>
 <script>
 (() => {
 'use strict';
+
+// The UI language: English by default, Hungarian too; the choice is shared with the shell.
+const i18n = createI18n(BUILD_STRINGS);
+const ui = i18n.t;
 
 // ───────────────────────── Constants ─────────────────────────
 
@@ -500,7 +554,7 @@ dl.meta dd { margin: 0; overflow-wrap: anywhere; }
 const SERVER_ID = 'development-status';
 const SERVER_API = '/api/build';
 const SERVER_TIMEOUT_MS = 8000;
-const VERSION = '2.0.0';   // the same in module.mjs; the header comment lists the versions
+const VERSION = '2.2.0';   // the same in module.mjs; the header comment lists the versions
 
 const DEFAULT_TRACKER_DIR = '.scratch';
 const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
@@ -520,19 +574,20 @@ const MAX_DEPTH = 8;
 const CLOSED = new Set(['done', 'closed', 'wontfix', 'resolved', 'legacy']);
 const UNPARSED = '?';
 const GROUPS = [
-  { id: 'agent', title: 'Megírható', hint: 'ready-for-agent: kidolgozva, ügynök megírhatja', has: (s) => s === 'ready-for-agent' },
-  { id: 'human', title: 'Emberre vár', hint: 'ready-for-human, needs-info, needs-triage: döntés, megerősítés vagy kézi munka kell', has: (s) => s === 'ready-for-human' || s === 'needs-info' || s === 'needs-triage' },
-  { id: 'test', title: 'Tesztre vár', hint: 'needs-…-test: megírva, a próbája hátravan', has: (s) => /^needs-.*test$/.test(s) },
-  { id: 'claimed', title: 'Folyamatban', hint: 'claimed: valaki dolgozik rajta', has: (s) => s === 'claimed' },
+  { id: 'agent', title: 'group.agent', hint: 'group.agent.hint', has: (s) => s === 'ready-for-agent' },
+  { id: 'human', title: 'group.human', hint: 'group.human.hint', has: (s) => s === 'ready-for-human' || s === 'needs-info' || s === 'needs-triage' },
+  { id: 'test', title: 'group.test', hint: 'group.test.hint', has: (s) => /^needs-.*test$/.test(s) },
+  { id: 'claimed', title: 'group.claimed', hint: 'group.claimed.hint', has: (s) => s === 'claimed' },
 ];
 const VIEWS = [
-  ['waiting', 'Kire vár'], ['areas', 'Területek'], ['deps', 'Függőségek'],
-  ['activity', 'Legutóbbi mozgás'], ['checks', 'Következetlenségek'], ['docs', 'Dokumentumok'], ['git', 'Ágak'],
+  ['waiting', 'view.waiting'], ['areas', 'view.areas'], ['deps', 'view.deps'],
+  ['activity', 'view.activity'], ['checks', 'view.checks'], ['docs', 'view.docs'], ['git', 'view.git'],
 ];
-const GIT_PAGE = 400;     // commits asked for at once; "Korábbi commitok" asks for this many more
+const GIT_PAGE = 400;     // commits asked for at once; "Earlier commits" asks for this many more
 const GIT_ROW_H = 28;     // px, one commit
 const GIT_LANE_W = 16;    // px, one lane of the graph
 const GIT_COLORS = 8;     // --g0 … --g7
+const NO_REPO = 'no-repo'; // gitState.error when the folder is not the top of a git repository
 
 // ───────────────────────── Small helpers ─────────────────────────
 
@@ -540,7 +595,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fold = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const joinPath = (a, b) => (a ? a + '/' + b : b);
-const clock = (d) => d.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const clock = (d) => d.toLocaleTimeString(i18n.lang, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const plainInline = (s) => s.replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/(\*\*|__)(.*?)\1/g, '$2').replace(/(^|[^\w\\])_([^_\s][^_]*?)_(?!\w)/g, '$1$2').trim();
 
@@ -554,7 +609,7 @@ function statusTone(status) {
   if (CLOSED.has(status)) return 'dropped';
   return 'neutral';
 }
-const statusName = (status) => (status === UNPARSED ? 'nem értelmezhető' : status);
+const statusName = (status) => (status === UNPARSED ? ui('status.unparsed') : status);
 const isClosed = (t) => CLOSED.has(t.status);
 const chip = (status, extra = '') => `<span class="chip t-${statusTone(status)}${CLOSED.has(status) ? ' closed' : ''}">${esc(statusName(status))}${extra}</span>`;
 
@@ -631,7 +686,7 @@ async function serverFetch(path) {
   try {
     return await fetch(SERVER_API + path, { cache: 'no-store', signal: stop.signal });
   } catch (err) {
-    throw new ServerDownError('A helyi szerver nem válaszol.');
+    throw new ServerDownError(ui('error.server-down'));
   } finally {
     clearTimeout(timeout);
   }
@@ -642,7 +697,7 @@ async function serverJson(path) {
   let data = null;
   try { data = res.ok ? await res.json() : null; } catch (err) { data = null; }
   // Anything else on this address is not the launcher: as good as stopped.
-  if (!data || data.server !== SERVER_ID) throw new ServerDownError('Ezen a címen nem az állapotoldal szervere válaszol.');
+  if (!data || data.server !== SERVER_ID) throw new ServerDownError(ui('error.not-our-server'));
   return data;
 }
 
@@ -780,7 +835,7 @@ async function scan(src) {
 // ───────────────────────── Parsing ─────────────────────────
 
 const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
-const COMMENTS_HEADING = /^##\s+(comments?|megjegyzések|hozzászólások)\s*$/i;
+const COMMENTS_HEADING = /^##\s+(comments?|megjegyzések|hozzászólások)\s*$/i;   // reads Hungarian files too
 const NO_BLOCKER = /^(none|nincs|semmi|nothing|n\/a|[—–-]+)(?![\p{L}\p{N}])/iu;
 
 function firstHeading(lines) {
@@ -879,7 +934,7 @@ function parseTicket(path, area, fileName, text) {
     t.statusNote = note;
   } else {
     t.status = UNPARSED;
-    t.statusNote = t.statusLine ? (t.fields.status || '(üres Status sor)') : '';
+    t.statusNote = t.statusLine ? (t.fields.status || '') : '';
   }
 
   if ('blocked by' in t.fields) t.blockedBy = parseBlockedBy(t.fields['blocked by']);
@@ -910,7 +965,7 @@ function parseTicket(path, area, fileName, text) {
     const m = /^#{3,5}\s+(.*?)(\d{4}-\d{2}-\d{2})(.*)$/.exec(lines[i]) || (i > bodyEnd ? /^\*\*()(\d{4}-\d{2}-\d{2})([^*]*)\*\*\s*$/.exec(lines[i]) : null);
     if (!m) continue;
     const title = plainInline((m[1] + ' ' + m[3]).replace(/^[\s,:.–—-]+/, '').replace(/\s+/g, ' '));
-    t.comments.push({ date: m[2], title: title || '(cím nélkül)', order: i });
+    t.comments.push({ date: m[2], title, order: i });
   }
   t.lastComment = t.comments.reduce((max, c) => (c.date > max ? c.date : max), '');
   t.hay = fold(t.label + ' ' + (t.issue != null ? t.issue + ' ' : '') + t.title + '\n' + text);
@@ -931,9 +986,9 @@ function parseAdr(path, text) {
   const head = lines.slice(0, 30);
   for (let i = 0; i < head.length && !status; i++) {
     const l = head[i];
-    let m = /^\s*(?:[-*]\s+)?\*{0,2}(?:status|státusz|állapot)\*{0,2}\s*:\*{0,2}\s*(.+)$/i.exec(l);
+    let m = /^\s*(?:[-*]\s+)?\*{0,2}(?:status|státusz|állapot)\*{0,2}\s*:\*{0,2}\s*(.+)$/i.exec(l);   // reads Hungarian files too
     if (m) status = m[1];
-    else if (/^##\s+(status|státusz|állapot)\s*$/i.test(l)) status = head.slice(i + 1).find((x) => x.trim()) || '';
+    else if (/^##\s+(status|státusz|állapot)\s*$/i.test(l)) status = head.slice(i + 1).find((x) => x.trim()) || '';   // reads Hungarian files too
     else if ((m = /^>\s*\*\*([^*]+?)[.:]?\*\*/.exec(l))) status = m[1];
   }
   return { kind: 'adr', path, num, title: firstHeading(lines) || name, status: plainInline(status).slice(0, 60), text, hay: fold(name + ' ' + text) };
@@ -992,7 +1047,7 @@ function buildModel(folderName, files, others, trackerPath, adrPath) {
     const rel = p.slice(prefix.length);
     if (rel.includes('/') && m.areas.has(rel.slice(0, rel.indexOf('/')))) m.areas.get(rel.slice(0, rel.indexOf('/'))).extras++;
   }
-  m.projectName = (m.readme && m.readme.title) || folderName || 'Projekt';
+  m.projectName = (m.readme && m.readme.title) || folderName || '';
 
   // Numbering: an issue number is global; an older ticket is "<area> <number>".
   const push = (map, key, t) => { if (!map.has(key)) map.set(key, []); map.get(key).push(t); };
@@ -1009,8 +1064,8 @@ function buildModel(folderName, files, others, trackerPath, adrPath) {
   const issue = (num) => (m.byIssue.get(num) || [])[0] || null;
   m.resolveIssue = issue;
   m.resolveLocal = local;
-  // A blocker named by its title or its file name ("Blocked by: Címke megadása
-  // és tárolása", or "01-cimke-megadasa"): /to-tickets allows "numbers/titles".
+  // A blocker named by its title or its file name ("Blocked by: Store the
+  // label", or "01-store-the-label"): /to-tickets allows "numbers/titles".
   const nameKey = (s) => fold(plainInline(s)).replace(/^["'„“]+|["'”.]+$/g, '').replace(/[\s_-]+/g, ' ').trim();
   const byName = new Map();
   for (const t of m.tickets) {
@@ -1070,28 +1125,28 @@ function buildModel(folderName, files, others, trackerPath, adrPath) {
 function findProblems(m) {
   const add = (kind, tickets, text) => m.problems.push({ kind, tickets, text });
   for (const t of m.tickets) {
-    if (!t.statusLine) add('no-status', [t], 'Nincs Status sor a fájl elején.');
-    else if (t.status === UNPARSED) add('bad-status', [t], 'A Status sor: „' + t.statusNote + '”.');
-    if (t.status === 'ready-for-agent' && t.checks.total > 0 && t.checks.done === t.checks.total) add('all-checked', [t], `Mind a ${t.checks.total} pontja kipipálva, az állapota mégis ready-for-agent.`);
+    if (!t.statusLine) add('no-status', [t], () => ui('problem.no-status.text'));
+    else if (t.status === UNPARSED) add('bad-status', [t], () => (t.statusNote ? ui('problem.bad-status.text', { line: t.statusNote }) : ui('problem.bad-status.empty')));
+    if (t.status === 'ready-for-agent' && t.checks.total > 0 && t.checks.done === t.checks.total) add('all-checked', [t], () => ui('problem.all-checked.text', { n: t.checks.total }));
     const missing = t.blockers.filter((b) => !b.ticket);
-    if (missing.length) add('missing-blocker', [t], 'A Blocked by sorban nincs ilyen jegy: ' + missing.map((b) => b.raw).join(', ') + '.');
-    if (!isClosed(t) && t.blockers.length && t.blockers.every((b) => b.ticket && isClosed(b.ticket))) add('released', [t], 'A Blocked by jegyei mind lezárultak (' + t.blockers.map((b) => b.ticket.label).join(', ') + '): a jegyet már semmi nem tartja vissza, indítható. Ahol lezáráskor törölni szokás a sort, ott a sor elavult; a /to-tickets formátumában a sor marad, ott ez rendben van.');
-    if (t.mismatch) add('mismatch', [t], `A fájlnév száma ${t.mismatch.file}, az Issue soré #${t.mismatch.field}.`);
-    if (t.issue == null && t.local == null) add('no-number', [t], 'Sem a fájlnévben, sem a címsorban nincs szám.');
+    if (missing.length) add('missing-blocker', [t], () => ui('problem.missing-blocker.text', { list: missing.map((b) => b.raw).join(', ') }));
+    if (!isClosed(t) && t.blockers.length && t.blockers.every((b) => b.ticket && isClosed(b.ticket))) add('released', [t], () => ui('problem.released.text', { list: t.blockers.map((b) => b.ticket.label).join(', ') }));
+    if (t.mismatch) add('mismatch', [t], () => ui('problem.mismatch.text', { file: t.mismatch.file, field: t.mismatch.field }));
+    if (t.issue == null && t.local == null) add('no-number', [t], () => ui('problem.no-number.text'));
   }
-  for (const [num, list] of m.byIssue) if (list.length > 1) add('duplicate', list, `${list.length} fájl viseli a #${num} számot.`);
-  for (const [key, list] of m.byLocal) if (list.length > 1) add('duplicate', list, `${list.length} fájl ugyanazzal a számmal (${key.replace('/', ' ')}).`);
+  for (const [num, list] of m.byIssue) if (list.length > 1) add('duplicate', list, () => ui('problem.duplicate.issue', { n: list.length, num }));
+  for (const [key, list] of m.byLocal) if (list.length > 1) add('duplicate', list, () => ui('problem.duplicate.local', { n: list.length, key: key.replace('/', ' ') }));
 }
 
 const PROBLEM_KINDS = [
-  ['duplicate', 'Két fájl ugyanazzal a számmal'],
-  ['no-status', 'Jegy Status sor nélkül'],
-  ['bad-status', 'Nem értelmezhető Status sor'],
-  ['all-checked', 'ready-for-agent, pedig minden pontja kipipálva'],
-  ['missing-blocker', 'Blocked by nem létező jegyre'],
-  ['released', 'Felszabadult jegy: minden blokkolója lezárult', true],
-  ['mismatch', 'A fájlnév és az Issue sor száma eltér'],
-  ['no-number', 'Jegy szám nélkül'],
+  ['duplicate', 'problem.duplicate'],
+  ['no-status', 'problem.no-status'],
+  ['bad-status', 'problem.bad-status'],
+  ['all-checked', 'problem.all-checked'],
+  ['missing-blocker', 'problem.missing-blocker'],
+  ['released', 'problem.released', true],
+  ['mismatch', 'problem.mismatch'],
+  ['no-number', 'problem.no-number'],
 ];
 
 // Kinds that are worth knowing but are not a contradiction: not counted as a warning.
@@ -1211,7 +1266,7 @@ function renderBlocks(lines, ctx) {
         if (single) html = single[1] + html.slice(single[0].length);
         if (!task) return '<li>' + html + '</li>';
         const checked = task[1] !== ' ';
-        return `<li class="task${checked ? ' done' : ''}"><input type="checkbox" disabled${checked ? ' checked' : ''} aria-label="${checked ? 'kész' : 'nincs kész'}"><span class="t">${html}</span></li>`;
+        return `<li class="task${checked ? ' done' : ''}"><input type="checkbox" disabled${checked ? ' checked' : ''} aria-label="${esc(ui(checked ? 'md.done' : 'md.not-done'))}"><span class="t">${html}</span></li>`;
       }).join('') + `</${tag}>`);
       continue;
     }
@@ -1238,7 +1293,7 @@ function renderLink(url, html, ctx) {
   try { target = decodeURIComponent(target); } catch (e) { /* keep as written */ }
   const path = target.startsWith('/') ? target.slice(1) : resolvePath(ctx.path, target);
   if (path && ctx.model.byPath.has(path)) return `<a href="${docHref(path)}" data-doc="${esc(path)}">${html}</a>`;
-  return `<span class="dead" title="${esc(url)} (nem megnyitható innen)">${html}</span>`;
+  return `<span class="dead" title="${esc(ui('md.dead-link', { url }))}">${html}</span>`;
 }
 
 function emphasis(s) {
@@ -1269,7 +1324,7 @@ function renderInline(src, ctx, noLinks) {
   let s = src;
   s = s.replace(/(`+)([\s\S]*?[^`])\1(?!`)/g, (m, ticks, code) => keep('<code>' + esc(code.trim() || code) + '</code>'));
   s = s.replace(/\\([\\`*_{}[\]()#+\-.!|>~])/g, (m, ch) => keep(esc(ch)));
-  s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, (m, alt) => keep('<span class="dead">[kép: ' + esc(alt || 'név nélkül') + ']</span>'));
+  s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, (m, alt) => keep('<span class="dead">' + esc(ui('md.image', { alt: alt || ui('md.image-unnamed') })) + '</span>'));
   if (!noLinks) {
     s = s.replace(/\[([^\]\n]+)\]\(\s*<?((?:[^()\s<>]|\([^()\s]*\))+)>?(?:\s+"[^"]*")?\s*\)/g, (m, label, url) => keep(renderLink(url, renderInline(label, ctx, true), ctx)));
     s = s.replace(/<(https?:\/\/[^>\s]+)>/g, (m, url) => keep(renderLink(url, esc(url), ctx)));
@@ -1332,18 +1387,18 @@ const recallHandle = () => idb('readonly', (s) => s.get(STORE_KEY));
 
 function describeChange(path, before, after) {
   if (after && after.kind === 'ticket') {
-    if (!before) return { label: after.label, text: 'új jegy: ' + after.title + ' (' + statusName(after.status) + ')' };
+    if (!before) return { label: after.label, text: () => ui('change.new-ticket', { title: after.title, status: statusName(after.status) }) };
     const parts = [];
-    if (before.status !== after.status) parts.push('állapot: ' + statusName(before.status) + ' → ' + statusName(after.status));
-    if (before.checks.done !== after.checks.done || before.checks.total !== after.checks.total) parts.push(`pontok: ${before.checks.done}/${before.checks.total} → ${after.checks.done}/${after.checks.total}`);
-    if (after.comments.length > before.comments.length) parts.push('új megjegyzés: ' + after.comments[after.comments.length - 1].title);
-    if (before.title !== after.title) parts.push('új cím: ' + after.title);
-    if (before.fields['blocked by'] !== after.fields['blocked by']) parts.push('Blocked by: ' + (after.fields['blocked by'] || 'nincs'));
-    return { label: after.label, text: parts.join('; ') || 'a szövege módosult' };
+    if (before.status !== after.status) parts.push(() => ui('change.status', { from: statusName(before.status), to: statusName(after.status) }));
+    if (before.checks.done !== after.checks.done || before.checks.total !== after.checks.total) parts.push(() => ui('change.checks', { from: `${before.checks.done}/${before.checks.total}`, to: `${after.checks.done}/${after.checks.total}` }));
+    if (after.comments.length > before.comments.length) { const c = after.comments[after.comments.length - 1]; parts.push(() => ui('change.comment', { title: c.title || ui('activity.untitled') })); }
+    if (before.title !== after.title) parts.push(() => ui('change.title', { title: after.title }));
+    if (before.fields['blocked by'] !== after.fields['blocked by']) parts.push(() => 'Blocked by: ' + (after.fields['blocked by'] || ui('change.none')));
+    return { label: after.label, text: () => parts.map((f) => f()).join('; ') || ui('change.text') };
   }
   const name = path.split('/').slice(-2).join('/');
-  if (!after) return { label: before && before.label ? before.label : name, text: 'a fájl törlődött' };
-  return { label: name, text: before ? 'módosult' : 'új fájl' };
+  if (!after) return { label: before && before.label ? before.label : name, text: () => ui('change.deleted') };
+  return { label: name, text: () => ui(before ? 'change.modified' : 'change.new-file') };
 }
 
 async function refresh() {
@@ -1387,7 +1442,7 @@ async function refresh() {
     else if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) lostAccess = true;
     else if (err && err.name === 'NotFoundError') source.roots = null;
     else console.error(err);
-    if (!model) showStart('Nem sikerült beolvasni a mappát: ' + (err && err.message ? err.message : err));
+    if (!model) showStart(ui('error.read', { error: err && err.message ? err.message : err }));
   } finally {
     busy = false;
     renderLive(true);
@@ -1403,7 +1458,7 @@ async function refreshGit() {
   try { data = await serverJson('/git?limit=' + gitState.limit + known); } catch (err) { return false; }
   if (data.unchanged) return false;
   if (!data.available) {
-    const error = data.error || 'nincs';
+    const error = data.error || NO_REPO;
     const changed = gitState.data !== null || gitState.error !== error;
     gitState.data = null;
     gitState.error = error;
@@ -1441,8 +1496,8 @@ function showStart(error) {
   $('app').hidden = true;
   $('live').hidden = true;
   $('start').hidden = false;
-  $('project').textContent = 'Fejlesztési állapot';
-  document.title = 'Fejlesztési állapot';
+  $('project').textContent = ui('page.title');
+  document.title = ui('page.title');
   closeDrawerNow();
   if (error) { $('start-error').textContent = error; $('start-error').hidden = false; }
 }
@@ -1464,20 +1519,20 @@ const docHref = (path) => '#/' + state.view + '/' + encodeURIComponent(path);
 function ticketLink(t, text) {
   return `<a class="tref${isClosed(t) ? ' is-closed' : ''}" href="${docHref(t.path)}" data-doc="${esc(t.path)}" title="${esc(t.title + ' (' + statusName(t.status) + ')')}">${esc(text || t.label)}</a>`;
 }
-const blockerLinks = (t) => t.blockers.map((b) => (b.ticket ? ticketLink(b.ticket) : `<span class="tref is-missing" title="Nincs ilyen jegy">${esc(b.raw)}?</span>`)).join(' ');
-const meter = (c) => (c.total ? `<span class="meter" title="${c.done} kész a ${c.total} pontból"><i style="--p:${pct(c.done, c.total)}%"></i>${c.done}/${c.total}</span>` : '<span class="muted">–</span>');
+const blockerLinks = (t) => t.blockers.map((b) => (b.ticket ? ticketLink(b.ticket) : `<span class="tref is-missing" title="${esc(ui('table.no-such-ticket'))}">${esc(b.raw)}?</span>`)).join(' ');
+const meter = (c) => (c.total ? `<span class="meter" title="${esc(ui('table.meter', { done: c.done, total: c.total }))}"><i style="--p:${pct(c.done, c.total)}%"></i>${c.done}/${c.total}</span>` : '<span class="muted">–</span>');
 
 // Blocked by an open ticket, or freed: every blocker it names is closed.
 const isFree = (t) => !isClosed(t) && !t.blocked && t.blockers.length > 0 && t.blockers.every((b) => b.ticket);
-const flags = (t) => (t.blocked ? ' <span class="flag blocked">blokkolva</span>' : isFree(t) ? ' <span class="flag free" title="Minden blokkolója lezárult">indítható</span>' : '');
+const flags = (t) => (t.blocked ? ` <span class="flag blocked">${ui('flag.blocked')}</span>` : isFree(t) ? ` <span class="flag free" title="${esc(ui('flag.free-title'))}">${ui('flag.free')}</span>` : '');
 
 function ticketRow(t) {
   const fresh = recent.has(t.path) && Date.now() - recent.get(t.path) < FRESH_MS;
   const blockers = blockerLinks(t);
-  const sub = [esc(t.area), t.blockers.length ? 'blokkolja: ' + blockers : '', t.lastComment ? `<span class="mono" style="white-space:nowrap">${t.lastComment}</span>` : ''].filter(Boolean).join(' · ');
+  const sub = [esc(t.area), t.blockers.length ? ui('table.blocked-by-sub', { list: blockers }) : '', t.lastComment ? `<span class="mono" style="white-space:nowrap">${t.lastComment}</span>` : ''].filter(Boolean).join(' · ');
   return `<tr data-doc="${esc(t.path)}"${t.blocked ? ' class="is-blocked"' : ''}>
 <td class="c-num">${esc(t.label)}</td>
-<td class="c-title"><a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a>${flags(t)}${fresh ? ' <span class="flag fresh">most változott</span>' : ''}
+<td class="c-title"><a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a>${flags(t)}${fresh ? ` <span class="flag fresh">${ui('flag.fresh')}</span>` : ''}
 ${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusNote)}</div>` : ''}<div class="sub"><span class="sub-st">${chip(t.status)}</span>${sub}</div></td>
 <td class="c-area">${esc(t.area)}</td>
 <td class="c-st">${chip(t.status)}</td>
@@ -1488,8 +1543,8 @@ ${t.statusNote ? `<div class="note" title="${esc(t.statusNote)}">${esc(t.statusN
 }
 
 function ticketTable(list) {
-  if (!list.length) return '<div class="empty">Nincs ilyen jegy.</div>';
-  return `<div class="tablewrap"><table class="grid"><thead><tr><th class="c-num">Szám</th><th>Jegy</th><th class="c-area">Terület</th><th class="c-st">Állapot</th><th class="c-chk">Pontok</th><th class="c-blk">Blokkolja</th><th class="c-last">Utolsó megjegyzés</th></tr></thead><tbody>${list.map(ticketRow).join('')}</tbody></table></div>`;
+  if (!list.length) return `<div class="empty">${ui('table.empty')}</div>`;
+  return `<div class="tablewrap"><table class="grid"><thead><tr><th class="c-num">${ui('table.num')}</th><th>${ui('table.ticket')}</th><th class="c-area">${ui('table.area')}</th><th class="c-st">${ui('table.status')}</th><th class="c-chk">${ui('table.checks')}</th><th class="c-blk">${ui('table.blocked-by')}</th><th class="c-last">${ui('table.last-comment')}</th></tr></thead><tbody>${list.map(ticketRow).join('')}</tbody></table></div>`;
 }
 
 function renderLive(ticked) {
@@ -1500,32 +1555,32 @@ function renderLive(ticked) {
   $('change').hidden = !!source.server;
   if (serverDown) {
     dot.className = 'dot warn';
-    text = `A szerver leállt: az utoljára olvasott állás látszik${lastChecked ? ' (' + clock(lastChecked) + ')' : ''}. Indítsd újra${source.launcher ? ' (' + source.launcher + ')' : ''}, és az oldal magától folytatja.`;
-    $('refresh').textContent = 'Próbáld újra';
+    text = ui('live.down', { at: lastChecked ? ' (' + clock(lastChecked) + ')' : '', launcher: source.launcher ? ' (' + source.launcher + ')' : '' });
+    $('refresh').textContent = ui('live.retry');
   } else if (lostAccess) {
     dot.className = 'dot warn';
-    text = 'A böngésző már nem engedi olvasni a mappát; az utolsó ismert állás látszik.';
-    $('refresh').textContent = 'Engedély megújítása';
+    text = ui('live.lost');
+    $('refresh').textContent = ui('live.renew');
   } else if (source.live) {
     dot.className = 'dot on';
     if (ticked) { dot.classList.remove('tick'); void dot.offsetWidth; dot.classList.add('tick'); }
-    text = `Élő${source.server ? ' · helyi szerver (' + source.server + ')' : ''}: ${POLL_MS / 1000} másodpercenként olvas · ellenőrizve ${lastChecked ? clock(lastChecked) : '–'}`;
-    $('refresh').textContent = 'Frissítés most';
+    text = ui('live.on', { server: source.server ? ui('live.server', { host: source.server }) : '', sec: POLL_MS / 1000, at: lastChecked ? clock(lastChecked) : '–' });
+    $('refresh').textContent = ui('live.refresh');
   } else {
     dot.className = 'dot';
-    text = `Pillanatkép: beolvasva ${lastChecked ? clock(lastChecked) : '–'}, magától nem frissül`;
-    $('refresh').textContent = 'Újraolvasás (mappa kiválasztása)';
+    text = ui('live.snapshot', { at: lastChecked ? clock(lastChecked) : '–' });
+    $('refresh').textContent = ui('live.reread');
   }
   $('live-text').textContent = text;
   renderVersion();
 }
 
 function renderVersion() {
-  const other = source && source.server && source.version !== VERSION ? source.version || 'régebbi' : '';
-  $('ver').textContent = other ? `v${VERSION} · indító ${other}` : `v${VERSION}`;
+  const other = source && source.server && source.version !== VERSION ? source.version || ui('ver.older') : '';
+  $('ver').textContent = other ? ui('ver.mismatch', { version: VERSION, other }) : `v${VERSION}`;
   $('ver').className = 'ver' + (other ? ' warn' : '');
   $('ver').title = other
-    ? `Az oldal ${VERSION}, a Build modul szervere (module.mjs) ${other}: a két fájl más verzióból való.`
+    ? ui('ver.mismatch-title', { version: VERSION, other })
     : `development-status ${VERSION}`;
 }
 
@@ -1533,7 +1588,7 @@ function renderOverview() {
   const m = model;
   const total = m.tickets.length, open = m.open.length;
   const statuses = [...m.statusCounts.entries()].sort((a, b) => CLOSED.has(a[0]) - CLOSED.has(b[0]) || b[1] - a[1]);
-  const statusButton = ([s, n]) => `<button type="button" class="chip t-${statusTone(s)}${CLOSED.has(s) ? ' closed' : ''}" data-status="${esc(s)}" aria-pressed="${state.status === s}" title="Szűrés erre az állapotra">${esc(statusName(s))} <b>${n}</b></button>`;
+  const statusButton = ([s, n]) => `<button type="button" class="chip t-${statusTone(s)}${CLOSED.has(s) ? ' closed' : ''}" data-status="${esc(s)}" aria-pressed="${state.status === s}" title="${esc(ui('overview.filter-status'))}">${esc(statusName(s))} <b>${n}</b></button>`;
   const openChips = statuses.filter(([s]) => !CLOSED.has(s)).map(statusButton).join('');
   const closedChips = statuses.filter(([s]) => CLOSED.has(s)).map(statusButton).join('');
   // The bar reads as progress: the closed part first, then the open states.
@@ -1549,27 +1604,27 @@ function renderOverview() {
 
   let changes;
   if (!changeLog.length) {
-    changes = source.live ? 'Az oldal megnyitása óta nem változott semmi.' : 'Pillanatkép: a változásokat az oldal csak élő módban követi.';
+    changes = ui(source.live ? 'overview.no-changes' : 'overview.no-changes-snapshot');
     changes = `<div class="changes">${changes}</div>`;
   } else {
-    const item = (it) => `<li>${m.byPath.has(it.path) ? `<a href="${docHref(it.path)}" data-doc="${esc(it.path)}"><b>${esc(it.label)}</b></a>` : `<b>${esc(it.label)}</b>`}: ${esc(it.text)}</li>`;
+    const item = (it) => `<li>${m.byPath.has(it.path) ? `<a href="${docHref(it.path)}" data-doc="${esc(it.path)}"><b>${esc(it.label)}</b></a>` : `<b>${esc(it.label)}</b>`}: ${esc(it.text())}</li>`;
     const [latest, ...older] = changeLog;
-    changes = `<details class="changes" data-key="changes"${openDetails.has('changes') ? ' open' : ''}><summary>Legutóbbi változás ${clock(latest.at)}: ${latest.items.slice(0, 3).map((it) => `<b>${esc(it.label)}</b> ${esc(it.text)}`).join('; ')}${latest.items.length > 3 ? `; és még ${latest.items.length - 3}` : ''}</summary>
+    changes = `<details class="changes" data-key="changes"${openDetails.has('changes') ? ' open' : ''}><summary>${ui('overview.latest-change', { time: clock(latest.at) })} ${latest.items.slice(0, 3).map((it) => `<b>${esc(it.label)}</b> ${esc(it.text())}`).join('; ')}${latest.items.length > 3 ? ui('overview.and-more', { n: latest.items.length - 3 }) : ''}</summary>
 <ul>${latest.items.map(item).join('')}</ul>${older.map((b) => `<div style="margin-top:6px">${clock(b.at)}</div><ul>${b.items.map(item).join('')}</ul>`).join('')}</details>`;
   }
 
   $('overview').innerHTML = `
 <div class="kpis">
-${kpi('', open, 'nyitott jegy', `${total} összesen · ${m.areaList.length} terület · ${m.adrs.length} ADR`, ' main')}
-${kpi('agent', agentFree, 'megírható most', agentAll.length > agentFree ? `ready-for-agent · további ${agentAll.length - agentFree} blokkolva` : 'ready-for-agent, nincs blokkolva')}
-${kpi('human', human, 'emberre vár', 'ready-for-human, needs-info, needs-triage')}
-${kpi('bad', blocked, 'blokkolva', 'nyitott jegyre vár')}
-${kpi('done', total ? pct(done, total) + '<small>%</small>' : '–', 'kész', `${done} lezárt jegy`)}
+${kpi('', open, ui('kpi.open'), ui('kpi.open-sub', { total, areas: m.areaList.length, adrs: m.adrs.length }), ' main')}
+${kpi('agent', agentFree, ui('kpi.agent'), agentAll.length > agentFree ? ui('kpi.agent-sub-blocked', { n: agentAll.length - agentFree }) : ui('kpi.agent-sub'))}
+${kpi('human', human, ui('kpi.human'), 'ready-for-human, needs-info, needs-triage')}
+${kpi('bad', blocked, ui('kpi.blocked'), ui('kpi.blocked-sub'))}
+${kpi('done', total ? pct(done, total) + '<small>%</small>' : '–', ui('kpi.done'), ui('kpi.done-sub', { n: done }))}
 </div>
-${total ? `<div class="progress"><div class="head"><span><b>Haladás</b></span><span>${done} / ${total} lezárva${blocked ? ` · ${blocked} blokkolva` : ''}</span></div>
-<div class="stack" role="img" aria-label="${open} nyitott és ${done} lezárt jegy">${stack}</div>
+${total ? `<div class="progress"><div class="head"><span><b>${ui('overview.progress')}</b></span><span>${ui('overview.closed', { done, total })}${blocked ? ui('overview.blocked', { n: blocked }) : ''}</span></div>
+<div class="stack" role="img" aria-label="${esc(ui('overview.bar-label', { open, done }))}">${stack}</div>
 <div class="chips">${closedChips}${openChips && closedChips ? '<span class="sep"></span>' : ''}${openChips}</div></div>` : ''}
-${m.trackerPath == null ? `<div class="notice">Ebben a mappában nem találtam jegyeket: nincs <code>${esc(DEFAULT_TRACKER_DIR)}/</code>, és olyan mappa sincs, amelynek az almappáiban <code>issues/</code> van.${source.live ? '' : ` Pillanatképnél a böngészők egy része kihagyja a ponttal kezdődő (rejtett) mappákat: ilyenkor magát a jegyek mappáját (például a <code>${esc(DEFAULT_TRACKER_DIR)}</code> mappát) válaszd ki.`}</div>` : ''}
+${m.trackerPath == null ? `<div class="notice">${ui('overview.no-tracker', { dir: esc(DEFAULT_TRACKER_DIR) })}${source.live ? '' : ' ' + ui('overview.no-tracker-snapshot', { dir: esc(DEFAULT_TRACKER_DIR) })}</div>` : ''}
 ${changes}`;
 }
 
@@ -1581,7 +1636,7 @@ function renderTabs() {
     if (id === 'git' && gitState.data) badge = `<span class="badge">${gitState.data.refs.filter((r) => r.kind === 'branch').length}</span>`;
     if (id === 'checks' && real) badge = `<span class="badge warn">${real}</span>`;
     else if (id === 'checks' && model.problems.length) badge = `<span class="badge">${model.problems.length}</span>`;
-    return `<a href="#/${id}"${state.view === id ? ' aria-current="page"' : ''}>${label}${badge}</a>`;
+    return `<a href="#/${id}"${state.view === id ? ' aria-current="page"' : ''}>${ui(label)}${badge}</a>`;
   }).join('');
   // On a narrow screen the tabs scroll sideways: keep the current one in sight.
   const nav = $('tabs'), cur = nav.querySelector('[aria-current]');
@@ -1593,9 +1648,9 @@ function renderFilters() {
   if (state.status && !m.statusCounts.has(state.status)) state.status = '';
   if (state.area && !m.areas.has(state.area)) state.area = '';
   const statuses = [...m.statusCounts.keys()].sort((a, b) => CLOSED.has(a) - CLOSED.has(b) || a.localeCompare(b));
-  $('f-status').innerHTML = '<option value="">Minden állapot</option>' + statuses.map((s) => `<option value="${esc(s)}"${s === state.status ? ' selected' : ''}>${esc(statusName(s))} (${m.statusCounts.get(s)})</option>`).join('');
+  $('f-status').innerHTML = `<option value="">${ui('filter.all-statuses')}</option>` + statuses.map((s) => `<option value="${esc(s)}"${s === state.status ? ' selected' : ''}>${esc(statusName(s))} (${m.statusCounts.get(s)})</option>`).join('');
   const areas = [...m.areas.values()].filter((a) => a.name).sort((a, b) => a.name.localeCompare(b.name));
-  $('f-area').innerHTML = '<option value="">Minden terület</option>' + areas.map((a) => `<option value="${esc(a.name)}"${a.name === state.area ? ' selected' : ''}>${esc(a.name)} (${a.open}/${a.tickets.length})</option>`).join('');
+  $('f-area').innerHTML = `<option value="">${ui('filter.all-areas')}</option>` + areas.map((a) => `<option value="${esc(a.name)}"${a.name === state.area ? ' selected' : ''}>${esc(a.name)} (${a.open}/${a.tickets.length})</option>`).join('');
   $('f-closed').checked = state.showClosed;
   if ($('q').value !== state.q) $('q').value = state.q;
 }
@@ -1603,7 +1658,7 @@ function renderFilters() {
 function renderSummary() {
   const shown = visibleTickets().length;
   const hidden = model.tickets.filter((t) => matches(t, true)).length - shown;
-  $('f-summary').innerHTML = `${shown} jegy látszik` + (hidden ? ` · ${hidden} zárt rejtve <button type="button" class="quiet" data-act="show-closed">mutasd</button>` : '') + (state.q || state.status || state.area ? ' <button type="button" class="quiet" data-act="clear">szűrők törlése</button>' : '');
+  $('f-summary').innerHTML = ui('filter.shown', { n: shown }) + (hidden ? ` · ${ui('filter.hidden', { n: hidden })} <button type="button" class="quiet" data-act="show-closed">${ui('filter.show')}</button>` : '') + (state.q || state.status || state.area ? ` <button type="button" class="quiet" data-act="clear">${ui('filter.clear')}</button>` : '');
 }
 
 const VIEW_RENDERERS = {
@@ -1615,13 +1670,13 @@ const VIEW_RENDERERS = {
       if (!items.length && !always) return '';
       items = [...items].sort((a, b) => a.blocked - b.blocked);
       const blocked = items.filter((t) => t.blocked).length;
-      return `<section class="group"><h2>${esc(title)} <span class="count">${items.length}</span>${blocked ? `<span class="flag blocked">${blocked} blokkolva</span>` : ''}<span class="hint">${esc(hint)}</span></h2>${ticketTable(items)}</section>`;
+      return `<section class="group"><h2>${esc(title)} <span class="count">${items.length}</span>${blocked ? `<span class="flag blocked">${ui('flag.blocked-n', { n: blocked })}</span>` : ''}<span class="hint">${esc(hint)}</span></h2>${ticketTable(items)}</section>`;
     };
-    let html = GROUPS.map((g) => section(g.title, g.hint, list.filter((t) => g.has(t.status)), g.id === 'agent' || g.id === 'human')).join('');
+    let html = GROUPS.map((g) => section(ui(g.title), ui(g.hint), list.filter((t) => g.has(t.status)), g.id === 'agent' || g.id === 'human')).join('');
     const rest = list.filter((t) => !used.has(t) && !isClosed(t) && t.status !== UNPARSED);
-    for (const s of [...new Set(rest.map((t) => t.status))].sort()) html += section(s, 'az oldal nem ismeri ezt az állapotot; nyitottnak veszi', rest.filter((t) => t.status === s));
-    html += section('Nem értelmezhető állapot', 'nincs Status sor, vagy nem olvasható ki belőle állapot; nyitottnak számít', list.filter((t) => t.status === UNPARSED));
-    html += section('Lezárt', [...CLOSED].join(', '), list.filter(isClosed));
+    for (const s of [...new Set(rest.map((t) => t.status))].sort()) html += section(s, ui('group.unknown.hint'), rest.filter((t) => t.status === s));
+    html += section(ui('group.unparsed'), ui('group.unparsed.hint'), list.filter((t) => t.status === UNPARSED));
+    html += section(ui('group.closed'), [...CLOSED].join(', '), list.filter(isClosed));
     return html;
   },
 
@@ -1633,16 +1688,16 @@ const VIEW_RENDERERS = {
       const key = 'area:' + a.name;
       const docs = a.docs.map((d) => `<li><span class="kind">${esc(d.rel.split('/').length > 1 ? d.rel.split('/')[0] : 'md')}</span><a href="${docHref(d.path)}" data-doc="${esc(d.path)}">${esc(d.title)}</a><span class="path">${esc(d.rel)}</span></li>`).join('');
       return `<details class="area" data-key="${esc(key)}"${openDetails.has(key) ? ' open' : ''}>
-<summary><span class="name">${esc(a.name || '(a gyökérben)')}</span>
-<span class="spec">${a.spec ? '<span class="kind">spec</span>' + esc(a.spec.title) : '<i>nincs spec</i>'}</span>
-<span class="bar2${a.tickets.length ? '' : ' none'}" title="${a.closed} lezárt a ${a.tickets.length} jegyből"><i style="--p:${pct(a.closed, a.tickets.length)}%"></i></span>
-<span class="cnt">${a.tickets.length ? `<b>${a.open}</b> nyitott · ${a.closed} lezárt` : 'nincs jegy'}</span></summary>
+<summary><span class="name">${esc(a.name || ui('area.root'))}</span>
+<span class="spec">${a.spec ? '<span class="kind">spec</span>' + esc(a.spec.title) : `<i>${ui('area.no-spec')}</i>`}</span>
+<span class="bar2${a.tickets.length ? '' : ' none'}" title="${esc(ui('area.bar-title', { closed: a.closed, total: a.tickets.length }))}"><i style="--p:${pct(a.closed, a.tickets.length)}%"></i></span>
+<span class="cnt">${a.tickets.length ? ui('area.count', { open: `<b>${a.open}</b>`, closed: a.closed }) : ui('area.no-tickets')}</span></summary>
 <div class="inner"><ul class="doclist">
 ${a.spec ? `<li><span class="kind">spec</span><a href="${docHref(a.spec.path)}" data-doc="${esc(a.spec.path)}">${esc(a.spec.title)}</a><span class="path">${esc(a.spec.rel)}</span></li>` : ''}
-${docs}${a.extras ? `<li class="muted"><span class="kind">egyéb</span>${a.extras} nem markdown fájl a mappában (prototípus, kép, adat)</li>` : ''}</ul>
-${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.length ? `<p class="muted">${a.tickets.length - tickets.length} jegyet a szűrők elrejtenek.</p>` : ''}</div></details>`;
+${docs}${a.extras ? `<li class="muted"><span class="kind">${ui('area.other')}</span>${ui('area.extras', { n: a.extras })}</li>` : ''}</ul>
+${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.length ? `<p class="muted">${ui('area.hidden', { n: a.tickets.length - tickets.length })}</p>` : ''}</div></details>`;
     }).join('');
-    return `<p class="lead">Egy terület a jegykövető egy mappája: benne a spec, a jegyek és a többi dokumentum. A sáv a lezárt jegyek arányát mutatja.</p>${rows || '<div class="empty">Nincs a szűrőknek megfelelő terület.</div>'}`;
+    return `<p class="lead">${ui('area.lead')}</p>${rows || `<div class="empty">${ui('area.empty')}</div>`}`;
   },
 
   deps() {
@@ -1661,15 +1716,15 @@ ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.leng
       const kids = loop ? [] : children(t);
       const others = parents(t).filter((p) => p !== path[path.length - 1]);
       const ctx = !visible.has(t);
-      return `<li><div class="node${ctx ? ' ctx' : ''}">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)}${flags(t)}${loop ? ' <span class="flag blocked">kör</span>' : ''}${path.length && others.length ? `<span class="rel">vár még erre is: ${others.map((p) => ticketLink(p)).join(' ')}</span>` : ''}</div>${kids.length ? `<span class="unlocks">feloldja ↓</span><ul>${kids.map((k) => node(k, [...path, t])).join('')}</ul>` : ''}</li>`;
+      return `<li><div class="node${ctx ? ' ctx' : ''}">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)}${flags(t)}${loop ? ` <span class="flag blocked">${ui('deps.loop')}</span>` : ''}${path.length && others.length ? `<span class="rel">${ui('deps.also-waits', { list: others.map((p) => ticketLink(p)).join(' ') })}</span>` : ''}</div>${kids.length ? `<span class="unlocks">${ui('deps.unlocks')}</span><ul>${kids.map((k) => node(k, [...path, t])).join('')}</ul>` : ''}</li>`;
     };
     let html = '';
     for (const t of linked) if (!parents(t).length) html += node(t, []);
     for (const t of linked) if (!placed.has(t)) html += node(t, []);
     const waiting = linked.filter((t) => visible.has(t) && t.blocked).length;
     const free = linked.filter((t) => visible.has(t) && isFree(t)).length;
-    const legend = html ? `<div class="legend"><span><span class="flag blocked">blokkolva</span> nyitott jegyre vár</span><span><span class="flag free">indítható</span> minden blokkolója lezárult</span><span class="muted">halványan: lezárt blokkoló, ami már feloldott valamit</span></div>` : '';
-    return `<p class="lead">Melyik jegy mit old fel: felül a blokkoló, alatta behúzva, ami rá vár. ${state.showClosed || state.status ? '' : 'A nyitott jegyek láncai látszanak, a már lezárt blokkolóikkal együtt; a „Zárt jegyek is” kapcsolóval minden lezárt jegy. '}${waiting ? `Most ${waiting} nyitott jegy vár másik nyitott jegyre.` : 'Most egyetlen nyitott jegy sem vár másik nyitott jegyre.'}${free ? ` ${free} jegy blokkolói mind lezárultak: ezek indíthatók.` : ''}</p>${legend}${html ? `<ul class="tree">${html}</ul>` : '<div class="empty">A látható jegyek között nincs Blocked by kapcsolat.</div>'}`;
+    const legend = html ? `<div class="legend"><span><span class="flag blocked">${ui('flag.blocked')}</span> ${ui('deps.legend-blocked')}</span><span><span class="flag free">${ui('flag.free')}</span> ${ui('deps.legend-free')}</span><span class="muted">${ui('deps.legend-dim')}</span></div>` : '';
+    return `<p class="lead">${ui('deps.lead')} ${state.showClosed || state.status ? '' : ui('deps.lead-closed') + ' '}${waiting ? ui('deps.waiting', { n: waiting }) : ui('deps.none-waiting')}${free ? ' ' + ui('deps.free', { n: free }) : ''}</p>${legend}${html ? `<ul class="tree">${html}</ul>` : `<div class="empty">${ui('deps.empty')}</div>`}`;
   },
 
   activity() {
@@ -1682,8 +1737,8 @@ ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.leng
       byTicket.get(c.ticket).push(c);
     }
     const all = [...days.entries()];
-    const html = all.slice(0, state.activityDays).map(([date, byTicket]) => `<section class="day"><h3>${date} <span class="muted">· ${byTicket.size} jegy</span></h3><ul>${[...byTicket.entries()].map(([t, list]) => `<li><div class="node">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)} <span class="rel">${esc(t.area)}</span></div><div class="notes">${list.map((c) => `<div>${esc(c.title)}</div>`).join('')}</div></li>`).join('')}</ul></section>`).join('');
-    return `<p class="lead">A jegyek megjegyzései (a dátummal kezdődő címsorok) napok szerint visszafelé, a zárt jegyekéi is.</p>${html || '<div class="empty">Nincs dátumozott megjegyzés a szűrőknek megfelelő jegyekben.</div>'}${all.length > state.activityDays ? `<button type="button" data-act="more-days">Korábbi napok (${all.length - state.activityDays})</button>` : ''}`;
+    const html = all.slice(0, state.activityDays).map(([date, byTicket]) => `<section class="day"><h3>${date} <span class="muted">· ${ui('activity.tickets', { n: byTicket.size })}</span></h3><ul>${[...byTicket.entries()].map(([t, list]) => `<li><div class="node">${ticketLink(t)} <a class="ttl" href="${docHref(t.path)}" data-doc="${esc(t.path)}" style="color:inherit">${esc(t.title)}</a> ${chip(t.status)} <span class="rel">${esc(t.area)}</span></div><div class="notes">${list.map((c) => `<div>${esc(c.title || ui('activity.untitled'))}</div>`).join('')}</div></li>`).join('')}</ul></section>`).join('');
+    return `<p class="lead">${ui('activity.lead')}</p>${html || `<div class="empty">${ui('activity.empty')}</div>`}${all.length > state.activityDays ? `<button type="button" data-act="more-days">${ui('activity.more', { n: all.length - state.activityDays })}</button>` : ''}`;
   },
 
   checks() {
@@ -1693,9 +1748,9 @@ ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.leng
       const items = list.filter((p) => p.kind === kind);
       if (!items.length) return '';
       const openOnes = items.filter((p) => p.tickets.some((t) => !isClosed(t))).length;
-      return `<section class="group${info ? ' info' : ''}"><h2>${title} <span class="count">${items.length}</span><span class="hint">${info ? 'tájékoztatás, nem feltétlenül hiba · ' : ''}${openOnes} nyitott jegyet érint</span></h2><div class="tablewrap"><table class="grid"><thead><tr><th>Jegy</th><th class="c-st">Állapot</th><th>Mi a gond</th></tr></thead><tbody>${items.map((p) => `<tr><td class="c-title">${p.tickets.map((t) => `${ticketLink(t)} <a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a><div class="note">${esc(t.path)}</div>`).join('')}</td><td class="c-st">${p.tickets.map((t) => chip(t.status)).join('<br>')}</td><td>${esc(p.text)}</td></tr>`).join('')}</tbody></table></div></section>`;
+      return `<section class="group${info ? ' info' : ''}"><h2>${ui(title)} <span class="count">${items.length}</span><span class="hint">${info ? ui('checks.info') + ' · ' : ''}${ui('checks.affects', { n: openOnes })}</span></h2><div class="tablewrap"><table class="grid"><thead><tr><th>${ui('table.ticket')}</th><th class="c-st">${ui('table.status')}</th><th>${ui('checks.problem')}</th></tr></thead><tbody>${items.map((p) => `<tr><td class="c-title">${p.tickets.map((t) => `${ticketLink(t)} <a class="open" href="${docHref(t.path)}" data-doc="${esc(t.path)}">${esc(t.title)}</a><div class="note">${esc(t.path)}</div>`).join('')}</td><td class="c-st">${p.tickets.map((t) => chip(t.status)).join('<br>')}</td><td>${esc(p.text())}</td></tr>`).join('')}</tbody></table></div></section>`;
     }).join('');
-    return `<p class="lead">Amit az oldal a fájlok összevetéséből ellentmondásnak lát. Egy részük régi, lezárt jegy öröksége; a nyitott jegyeket érintők számítanak. A „tájékoztatás” jelű csoport nem hiba, csak érdemes tudni róla.</p>${html || '<div class="empty">Az oldal nem talált következetlenséget.</div>'}`;
+    return `<p class="lead">${ui('checks.lead')}</p>${html || `<div class="empty">${ui('checks.empty')}</div>`}`;
   },
 
   git: renderGitView,
@@ -1704,16 +1759,16 @@ ${a.tickets.length ? ticketTable(tickets) : ''}${tickets.length < a.tickets.leng
     const q = fold(state.q.trim());
     const ok = (d) => (!state.area || d.area === state.area) && (!q || d.hay.includes(q));
     const link = (d) => `<a class="open" href="${docHref(d.path)}" data-doc="${esc(d.path)}">${esc(d.title)}</a>`;
-    const table = (head, rows) => (rows.length ? `<div class="tablewrap"><table class="grid"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<div class="empty">Nincs ilyen dokumentum.</div>');
+    const table = (head, rows) => (rows.length ? `<div class="tablewrap"><table class="grid"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>` : `<div class="empty">${ui('docs.empty')}</div>`);
     const specs = model.docs.filter((d) => d.kind === 'spec' && ok(d));
     const other = model.docs.filter((d) => d.kind === 'doc' && ok(d));
     const adrs = state.area ? [] : model.adrs.filter((d) => !q || d.hay.includes(q));
     const row = (d) => `<tr data-doc="${esc(d.path)}"><td class="c-area">${esc(d.area || '–')}</td><td class="c-title">${link(d)}<div class="note">${esc(d.path)}</div></td></tr>`;
     const own = state.area ? [] : [model.readme, ...model.glossaries].filter((d) => d && (!q || d.hay.includes(q)));
-    return `${own.length ? `<section class="group"><h2>A projekt leírása és szószedete<span class="hint">README, GLOSSARY.md (régi neve CONTEXT.md)</span></h2>${table(['Fájl', 'Cím'], own.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-area"><span class="kind">${d.kind === 'readme' ? 'leírás' : 'szószedet'}</span>${esc(d.path)}</td><td class="c-title">${link(d)}</td></tr>`))}</section>` : ''}
-<section class="group"><h2>Egyéb dokumentumok <span class="count">${other.length}</span><span class="hint">a jegykövető mappájának nem jegy, nem spec markdown fájljai (összefoglalók, kutatás, átadók)</span></h2>${table(['Terület', 'Dokumentum'], other.map(row))}</section>
-<section class="group"><h2>Specek <span class="count">${specs.length}</span></h2>${table(['Terület', 'Spec'], specs.map(row))}</section>
-${state.area ? '' : `<section class="group"><h2>ADR-ek <span class="count">${adrs.length}</span><span class="hint">${model.adrPath ? esc(model.adrPath) + '/' : 'nincs ADR-mappa'}</span></h2>${table(['Szám', 'Döntés', 'Jelölés'], adrs.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-num">${esc(d.num || '–')}</td><td class="c-title">${link(d)}</td><td>${d.status ? esc(d.status) : '<span class="muted">–</span>'}</td></tr>`))}</section>`}`;
+    return `${own.length ? `<section class="group"><h2>${ui('docs.own')}<span class="hint">${ui('docs.own.hint')}</span></h2>${table([ui('docs.file'), ui('docs.title')], own.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-area"><span class="kind">${ui(d.kind === 'readme' ? 'docs.readme' : 'docs.glossary')}</span>${esc(d.path)}</td><td class="c-title">${link(d)}</td></tr>`))}</section>` : ''}
+<section class="group"><h2>${ui('docs.other')} <span class="count">${other.length}</span><span class="hint">${ui('docs.other.hint')}</span></h2>${table([ui('table.area'), ui('docs.document')], other.map(row))}</section>
+<section class="group"><h2>${ui('docs.specs')} <span class="count">${specs.length}</span></h2>${table([ui('table.area'), ui('docs.spec')], specs.map(row))}</section>
+${state.area ? '' : `<section class="group"><h2>${ui('docs.adrs')} <span class="count">${adrs.length}</span><span class="hint">${model.adrPath ? esc(model.adrPath) + '/' : ui('docs.no-adr-dir')}</span></h2>${table([ui('table.num'), ui('docs.decision'), ui('docs.adr-status')], adrs.map((d) => `<tr data-doc="${esc(d.path)}"><td class="c-num">${esc(d.num || '–')}</td><td class="c-title">${link(d)}</td><td>${d.status ? esc(d.status) : '<span class="muted">–</span>'}</td></tr>`))}</section>`}`;
   },
 };
 
@@ -1722,13 +1777,13 @@ ${state.area ? '' : `<section class="group"><h2>ADR-ek <span class="count">${adr
 const shortHash = (h) => h.slice(0, 7);
 const relTime = (sec) => {
   const d = Date.now() / 1000 - sec;
-  if (d < 90) return 'most';
-  if (d < 3600) return Math.round(d / 60) + ' perce';
-  if (d < 86400) return Math.round(d / 3600) + ' órája';
-  if (d < 86400 * 45) return Math.round(d / 86400) + ' napja';
-  return new Date(sec * 1000).toLocaleDateString('hu-HU');
+  if (d < 90) return ui('git.now');
+  if (d < 3600) return ui('git.minutes', { n: Math.round(d / 60) });
+  if (d < 86400) return ui('git.hours', { n: Math.round(d / 3600) });
+  if (d < 86400 * 45) return ui('git.days', { n: Math.round(d / 86400) });
+  return new Date(sec * 1000).toLocaleDateString(i18n.lang);
 };
-const fullTime = (sec) => new Date(sec * 1000).toLocaleString('hu-HU');
+const fullTime = (sec) => new Date(sec * 1000).toLocaleString(i18n.lang);
 
 // The branch a merge commit brought in, when its subject is git's own wording.
 function mergedName(subject) {
@@ -1784,7 +1839,7 @@ function gitSvg(layout) {
     for (const e of r.ends) paths.push(`<path class="lane${e.color}" d="${curve(x(e.k), top, cx, mid)}" stroke="var(--c)"/>`);
     for (const o of r.outs) paths.push(`<path class="lane${o.color}" d="${curve(cx, mid, x(o.k), bottom)}" stroke="var(--c)"/>`);
     const merge = r.c.parents.length > 1;
-    dots.push(`<circle class="lane${r.color}" cx="${cx}" cy="${mid}" r="${merge ? 3.5 : 4.5}" stroke="var(--c)" fill="${merge ? 'var(--surface)' : 'var(--c)'}"/>`);
+    dots.push(`<circle class="lane${r.color}" cx="${cx}" cy="${mid}" r="${merge ? 3.5 : 4.5}" stroke="var(--c)" fill="${merge ? 'var(--gw-surface)' : 'var(--c)'}"/>`);
   });
   const w = x(layout.width) + 2;
   return { w, svg: `<svg width="${w}" height="${layout.rows.length * H}" aria-hidden="true">${paths.join('')}${dots.join('')}</svg>` };
@@ -1792,37 +1847,37 @@ function gitSvg(layout) {
 
 function refPill(r, color, asButton) {
   const cls = `ref ${r.kind === 'tag' ? 'tag' : r.kind === 'remote' ? 'remote lane' + color : 'lane' + color}${r.head ? ' head' : ''}`;
-  const title = r.kind === 'tag' ? 'címke' : r.kind === 'remote' ? 'távoli ág' : r.head ? 'a kivett ág (HEAD)' : 'helyi ág';
+  const title = ui(r.kind === 'tag' ? 'git.tag' : r.kind === 'remote' ? 'git.remote' : r.head ? 'git.head' : 'git.local');
   return asButton
-    ? `<button type="button" class="${cls}" data-git-jump="${esc(r.hash)}" title="${esc(title)}: ugrás a csúcsára">${esc(r.name)}</button>`
+    ? `<button type="button" class="${cls}" data-git-jump="${esc(r.hash)}" title="${esc(ui('git.jump', { what: title }))}">${esc(r.name)}</button>`
     : `<span class="${cls}" title="${esc(title)}">${esc(r.name)}</span>`;
 }
 
 function branchState(r, g) {
-  if (r.kind === 'branch' && r.name === g.base) return '<span class="flag free">alapág</span>';
+  if (r.kind === 'branch' && r.name === g.base) return `<span class="flag free">${ui('git.base')}</span>`;
   if (r.ahead == null) return '<span class="muted">–</span>';
   // The base's own remote: not merged into it, only behind or ahead of it.
   const baseRef = g.refs.find((b) => b.kind === 'branch' && b.name === g.base);
   if (r.kind === 'remote' && baseRef && baseRef.upstream === r.name) {
-    if (!r.ahead && !r.behind) return `<span class="flag free">egyezik a ${esc(g.base)}-nel</span>`;
-    return [r.behind ? `<span class="flag fresh">${r.behind} commit nincs feltöltve</span>` : '', r.ahead ? `<span class="flag fresh">${r.ahead} commit nincs letöltve</span>` : ''].filter(Boolean).join(' ');
+    if (!r.ahead && !r.behind) return `<span class="flag free">${ui('git.same', { base: esc(g.base) })}</span>`;
+    return [r.behind ? `<span class="flag fresh">${ui('git.not-pushed', { n: r.behind })}</span>` : '', r.ahead ? `<span class="flag fresh">${ui('git.not-pulled', { n: r.ahead })}</span>` : ''].filter(Boolean).join(' ');
   }
-  if (r.ahead === 0) return `<span class="flag free">beolvadt a ${esc(g.base)}-be</span>${r.behind ? ` <span class="muted">${r.behind} commit azóta a ${esc(g.base)}-ben</span>` : ''}`;
-  return `<span class="flag fresh">${r.ahead} commit nincs a ${esc(g.base)}-ben</span>${r.behind ? ` <span class="muted">${r.behind} lemaradás</span>` : ''}`;
+  if (r.ahead === 0) return `<span class="flag free">${ui('git.merged', { base: esc(g.base) })}</span>${r.behind ? ` <span class="muted">${ui('git.behind-merged', { n: r.behind, base: esc(g.base) })}</span>` : ''}`;
+  return `<span class="flag fresh">${ui('git.ahead', { n: r.ahead, base: esc(g.base) })}</span>${r.behind ? ` <span class="muted">${ui('git.behind', { n: r.behind })}</span>` : ''}`;
 }
 
 function renderGitView() {
   if (!source || !source.server) {
-    return `<p class="lead">Az ággráfot a Groundwork szervere adja: <code>node core/groundwork.mjs</code>, utána <code>/build/</code>. Mappaválasztással megnyitva a böngésző nem tud gitet futtatni.</p>`;
+    return `<p class="lead">${ui('git.no-server')}</p>`;
   }
   if (!source.git) {
-    return `<div class="notice">A Build modul szervere${source.version ? ' (' + esc(source.version) + ')' : ''} régebbi, mint az oldal (${VERSION}), és nem ad git adatot. Frissítsd, és indítsd újra.</div>`;
+    return `<div class="notice">${ui('git.old-server', { version: source.version ? ' (' + esc(source.version) + ')' : '', page: VERSION })}</div>`;
   }
   const g = gitState.data;
   if (!g) {
     return gitState.error
-      ? `<div class="empty">${gitState.error === 'nincs' ? 'A mappa nem egy git-tároló teteje, így nincs mit rajzolni.' : 'A git nem válaszolt: ' + esc(gitState.error)}</div>`
-      : '<div class="empty">A git adatai töltődnek…</div>';
+      ? `<div class="empty">${gitState.error === NO_REPO ? ui('git.no-repo') : ui('git.error', { error: esc(gitState.error) })}</div>`
+      : `<div class="empty">${ui('git.loading')}</div>`;
   }
   const layout = layoutGit(g);
   const color = new Map(layout.rows.map((r) => [r.c.hash, r.color]));
@@ -1836,7 +1891,7 @@ function renderGitView() {
   const baseUp = (g.refs.find((r) => r.kind === 'branch' && r.name === g.base) || {}).upstream;
   const merged = branches.filter((r) => r.ahead === 0 && !(r.kind === 'remote' && r.name === baseUp)).length;
   const merges = g.commits.filter((c) => c.parents.length > 1).length;
-  const table = `<div class="tablewrap"><table class="grid"><thead><tr><th>Ág</th><th>Viszony a ${esc(g.base || 'alapághoz')}</th><th class="c-last">Utolsó commit</th></tr></thead><tbody>${branches.map((r) => `<tr><td class="c-branch">${refPill(r, color.get(r.hash) ?? 7, true)}${r.worktree && !r.head ? ' <span class="flag fresh" title="egy másik munkakönyvtárban (worktree) ki van véve">worktree</span>' : ''}${r.upstream ? ` <span class="muted">→ ${esc(r.upstream)}</span>` : ''}</td><td>${branchState(r, g)}</td><td class="c-last" title="${esc(fullTime(r.date))}">${esc(relTime(r.date))}</td></tr>`).join('')}</tbody></table></div>`;
+  const table = `<div class="tablewrap"><table class="grid"><thead><tr><th>${ui('git.branch')}</th><th>${ui('git.relation', { base: g.base ? esc(g.base) : ui('git.base-branch') })}</th><th class="c-last">${ui('git.last-commit')}</th></tr></thead><tbody>${branches.map((r) => `<tr><td class="c-branch">${refPill(r, color.get(r.hash) ?? 7, true)}${r.worktree && !r.head ? ` <span class="flag fresh" title="${esc(ui('git.worktree-title'))}">worktree</span>` : ''}${r.upstream ? ` <span class="muted">→ ${esc(r.upstream)}</span>` : ''}</td><td>${branchState(r, g)}</td><td class="c-last" title="${esc(fullTime(r.date))}">${esc(relTime(r.date))}</td></tr>`).join('')}</tbody></table></div>`;
 
   const w = 10 + layout.width * GIT_LANE_W + 2;   // as gitSvg draws it
   const rows = layout.rows.map((r) => {
@@ -1844,7 +1899,7 @@ function renderGitView() {
     const into = merge ? mergedName(c.subject) : '';
     const pills = (refsAt.get(c.hash) || []).map((ref) => refPill(ref, r.color, false)).join('');
     const open = gitState.open.has(c.hash);
-    const detail = open ? `<div class="detail"><div class="mono">${esc(c.hash)}</div><div>${esc(c.subject)}</div><div class="muted">${esc(c.author)} · ${esc(fullTime(c.date))}${merge ? ` · összefésülés, ${c.parents.length} szülő: ${c.parents.map((p) => `<span class="mono">${esc(shortHash(p))}</span>`).join(', ')}` : c.parents.length ? '' : ' · az első commit'}${into ? ` · beolvasztott ág: <b>${esc(into)}</b>` : ''}</div></div>` : '';
+    const detail = open ? `<div class="detail"><div class="mono">${esc(c.hash)}</div><div>${esc(c.subject)}</div><div class="muted">${esc(c.author)} · ${esc(fullTime(c.date))}${merge ? ' · ' + ui('git.merge-parents', { n: c.parents.length, list: c.parents.map((p) => `<span class="mono">${esc(shortHash(p))}</span>`).join(', ') }) : c.parents.length ? '' : ' · ' + ui('git.first')}${into ? ' · ' + ui('git.merged-branch', { name: `<b>${esc(into)}</b>` }) : ''}</div></div>` : '';
     return `<div class="row${merge ? ' merge' : ''}${gitState.hit === c.hash ? ' hit' : ''}" data-commit="${esc(c.hash)}" title="${esc(c.subject)}"><span class="h">${esc(shortHash(c.hash))}</span>${pills ? `<span class="refs">${pills}</span>` : ''}<span class="s">${esc(c.subject)}</span><span class="who">${esc(c.author)}</span><span class="when" title="${esc(fullTime(c.date))}">${esc(relTime(c.date))}</span></div>${detail}`;
   });
   // A detail line pushes the rows below it down: the graph is drawn per block.
@@ -1863,11 +1918,11 @@ function renderGitView() {
   });
   flush();
   const shown = g.commits.length;
-  return `<p class="lead">A tároló ágai és commitjai, a legújabb felül. Egy szín egy ág vonala; az üres karika összefésülés (merge), ahol egy ág beolvadt. Egy sorra kattintva a commit részletei, egy ág nevére kattintva a csúcsa látszik.</p>
-<section class="group"><h2>Ágak <span class="count">${branches.length}</span><span class="hint">${merged} beolvadt a ${esc(g.base)}-be · ${g.refs.filter((r) => r.kind === 'tag').length} címke${g.headBranch ? ' · kivéve: ' + esc(g.headBranch) : ' · leválasztott HEAD'}</span></h2>${table}</section>
-<section class="group"><h2>Gráf <span class="count">${shown}</span><span class="hint">${shown < g.total ? `a legújabb ${shown} a ${g.total} commitból` : 'minden commit'} · ${merges} összefésülés</span></h2>
+  return `<p class="lead">${ui('git.lead')}</p>
+<section class="group"><h2>${ui('git.branches')} <span class="count">${branches.length}</span><span class="hint">${ui('git.branches-hint', { merged, base: esc(g.base), tags: g.refs.filter((r) => r.kind === 'tag').length })} · ${g.headBranch ? ui('git.checked-out', { name: esc(g.headBranch) }) : ui('git.detached')}</span></h2>${table}</section>
+<section class="group"><h2>${ui('git.graph')} <span class="count">${shown}</span><span class="hint">${shown < g.total ? ui('git.newest', { shown, total: g.total }) : ui('git.all')} · ${ui('git.merges', { n: merges })}</span></h2>
 <div class="graph" style="--row-h:${GIT_ROW_H}px"><div class="rows">${html}</div></div>
-<div class="graph-foot">${shown < g.total ? `<button type="button" data-act="more-commits">Korábbi commitok (még ${Math.min(GIT_PAGE, g.total - shown)})</button>` : ''}<span>Legenda: ${refPill({ kind: 'branch', name: 'helyi ág', hash: '' }, 0, false)} ${refPill({ kind: 'remote', name: 'távoli ág', hash: '' }, 0, false)} ${refPill({ kind: 'tag', name: 'címke', hash: '' }, 0, false)} ${refPill({ kind: 'branch', name: 'kivett ág', hash: '', head: true }, 0, false)}</span></div></section>`;
+<div class="graph-foot">${shown < g.total ? `<button type="button" data-act="more-commits">${ui('git.more', { n: Math.min(GIT_PAGE, g.total - shown) })}</button>` : ''}<span>${ui('git.legend')} ${refPill({ kind: 'branch', name: ui('git.local'), hash: '' }, 0, false)} ${refPill({ kind: 'remote', name: ui('git.remote'), hash: '' }, 0, false)} ${refPill({ kind: 'tag', name: ui('git.tag'), hash: '' }, 0, false)} ${refPill({ kind: 'branch', name: ui('git.checked-out-branch'), hash: '', head: true }, 0, false)}</span></div></section>`;
 }
 
 function renderView() {
@@ -1894,17 +1949,17 @@ function renderDrawer() {
     const area = model.areas.get(t.area);
     const row = (k, v) => (v ? `<dt>${k}</dt><dd>${v}</dd>` : '');
     meta = `<dl class="meta">
-${row('Állapot', chip(t.status) + flags(t) + (t.statusNote ? ' ' + esc(t.statusNote) : ''))}
-${row('Terület', esc(t.area) + (area && area.spec ? ` · <a href="${docHref(area.spec.path)}" data-doc="${esc(area.spec.path)}"><span class="kind">spec</span>${esc(area.spec.title)}</a>` : ''))}
-${row('Pontok', t.checks.total ? meter(t.checks) : '')}
-${row('Blokkolja', blockerLinks(t) + (t.notes.length ? ' <span class="muted">' + esc(t.notes.join('; ')) + '</span>' : ''))}
-${row('Feloldja', t.dependents.map((d) => ticketLink(d)).join(' '))}
-${row('Korábbi név', esc(t.earlier))}${row('Típus', esc(t.type))}
-${row('Utolsó megjegyzés', t.lastComment ? `<span class="mono">${t.lastComment}</span> · ${t.comments.length} megjegyzés` : '')}
-${row('Fájl', `<span class="mono">${esc(t.path)}</span>`)}</dl>`;
+${row(ui('table.status'), chip(t.status) + flags(t) + (t.statusNote ? ' ' + esc(t.statusNote) : ''))}
+${row(ui('table.area'), esc(t.area) + (area && area.spec ? ` · <a href="${docHref(area.spec.path)}" data-doc="${esc(area.spec.path)}"><span class="kind">spec</span>${esc(area.spec.title)}</a>` : ''))}
+${row(ui('table.checks'), t.checks.total ? meter(t.checks) : '')}
+${row(ui('table.blocked-by'), blockerLinks(t) + (t.notes.length ? ' <span class="muted">' + esc(t.notes.join('; ')) + '</span>' : ''))}
+${row(ui('drawer.unlocks'), t.dependents.map((d) => ticketLink(d)).join(' '))}
+${row(ui('drawer.earlier'), esc(t.earlier))}${row(ui('drawer.type'), esc(t.type))}
+${row(ui('table.last-comment'), t.lastComment ? `<span class="mono">${t.lastComment}</span> · ${ui('drawer.comments', { n: t.comments.length })}` : '')}
+${row(ui('docs.file'), `<span class="mono">${esc(t.path)}</span>`)}</dl>`;
     $('drawer-title').innerHTML = `<span class="num">${esc(t.label)}</span>${esc(t.title)}`;
   } else {
-    meta = `<dl class="meta"><dt>Fájl</dt><dd><span class="mono">${esc(doc.path)}</span></dd>${doc.kind === 'adr' && doc.status ? `<dt>Jelölés</dt><dd>${esc(doc.status)}</dd>` : ''}</dl>`;
+    meta = `<dl class="meta"><dt>${ui('docs.file')}</dt><dd><span class="mono">${esc(doc.path)}</span></dd>${doc.kind === 'adr' && doc.status ? `<dt>${ui('docs.adr-status')}</dt><dd>${esc(doc.status)}</dd>` : ''}</dl>`;
     $('drawer-title').textContent = doc.title;
   }
   body.innerHTML = meta + '<div class="md">' + renderMarkdown(doc.text, { path: doc.path, model }) + '</div>';
@@ -1940,8 +1995,9 @@ function closeDrawer() {
 function renderAll() {
   $('start').hidden = true;
   $('app').hidden = false;
-  $('project').innerHTML = `${esc(model.projectName)}<small>fejlesztési állapot</small>`;
-  document.title = `${model.open.length} nyitott · ${model.projectName}`;
+  const name = model.projectName || ui('page.project');
+  $('project').innerHTML = `${esc(name)}<small>${ui('page.subtitle')}</small>`;
+  document.title = ui('page.title-open', { n: model.open.length, name });
   renderOverview();
   renderTabs();
   renderFilters();
@@ -2049,7 +2105,7 @@ async function pickFolder() {
     await useHandle(await window.showDirectoryPicker({ mode: 'read', id: 'development-status' }));
   } catch (err) {
     if (err && err.name === 'AbortError') return;
-    $('start-error').textContent = 'A mappa megnyitása nem sikerült: ' + (err && err.message ? err.message : err);
+    $('start-error').textContent = ui('error.open', { error: err && err.message ? err.message : err });
     $('start-error').hidden = false;
   }
 }
@@ -2098,30 +2154,13 @@ document.addEventListener('drop', async (e) => {
   try { handle = handlePromise ? await handlePromise : null; } catch (err) { handle = null; }
   if (handle && handle.kind === 'directory') return useHandle(handle);
   if (entry && entry.isDirectory) return start({ adapter: entryAdapter, root: entry, name: entry.name, live: false });
-  $('start-error').textContent = 'Egy mappát húzz ide, ne fájlt.';
+  $('start-error').textContent = ui('error.drop-file');
   $('start-error').hidden = false;
 });
 
-// ───────────────────────── Theme and layout ─────────────────────────
-// Automatic (the system's), light or dark; the choice is kept in this browser.
+// ───────────────────────── Layout ─────────────────────────
+// Light or dark follows the operating system (the shell's theme); there is no switch here.
 
-const THEME_KEY = 'development-status:theme';
-const THEMES = [['', '◐', 'automatikus'], ['light', '☀', 'világos'], ['dark', '☾', 'sötét']];
-function showTheme() {
-  const now = document.documentElement.dataset.theme || '';
-  const [, icon, name] = THEMES.find((x) => x[0] === now) || THEMES[0];
-  $('theme').textContent = icon;
-  $('theme').title = 'Színséma: ' + name + ' (kattints a váltáshoz)';
-  $('theme').setAttribute('aria-label', 'Színséma: ' + name + '. Váltás.');
-}
-$('theme').addEventListener('click', () => {
-  const now = document.documentElement.dataset.theme || '';
-  const next = THEMES[(THEMES.findIndex((x) => x[0] === now) + 1) % THEMES.length][0];
-  if (next) document.documentElement.dataset.theme = next; else delete document.documentElement.dataset.theme;
-  try { if (next) localStorage.setItem(THEME_KEY, next); else localStorage.removeItem(THEME_KEY); } catch (e) { /* optional */ }
-  showTheme();
-});
-showTheme();
 // The sticky day headings sit right under the top bar, whatever its height.
 const topHeight = () => document.documentElement.style.setProperty('--top-h', (getComputedStyle($('top')).position === 'sticky' ? $('top').offsetHeight : 0) + 'px');
 if (typeof ResizeObserver === 'function') new ResizeObserver(topHeight).observe($('top'));
@@ -2130,12 +2169,36 @@ topHeight();
 
 // ───────────────────────── Boot ─────────────────────────
 
+// ───────────────────────── Language ─────────────────────────
+// Inside the shell the shell's picker sets the language and this page follows it (i18n listens);
+// alone, the page shows its own picker (hidden in the shell by CSS).
+
+let resumeName = '';   // the remembered folder, offered on the start screen
+
+function relabelStart() {
+  $('mode-note').textContent = canPick ? ui('start.mode-live', { sec: POLL_MS / 1000 }) : ui('start.mode-snapshot');
+  $('pick').textContent = ui(resumeName ? 'start.pick-other' : 'start.pick');
+  $('resume-btn').textContent = ui('start.resume', { name: resumeName });
+  $('rules').innerHTML = ui('start.rules');
+}
+
+function relabel() {
+  i18n.apply(document);
+  relabelStart();
+  renderVersion();
+  if (model) renderAll();
+  else { $('project').textContent = ui('page.title'); document.title = ui('page.title'); renderLive(false); }
+}
+
+const langPicker = $('lang');
+langPicker.innerHTML = Object.entries(LANGS).map(([code, name]) => `<option value="${code}">${esc(name)}</option>`).join('');
+langPicker.addEventListener('change', () => i18n.set(langPicker.value));
+i18n.onChange(() => { langPicker.value = i18n.lang; relabel(); });
+langPicker.value = i18n.lang;
+relabel();
+
 async function boot() {
   $('pick').hidden = !canPick;
-  $('mode-note').textContent = canPick
-    ? `A kiválasztott mappát az oldal ${POLL_MS / 1000} másodpercenként újraolvassa, és magától követi a változásokat. A „pillanatkép” egyszer olvas be, utána nem frissül.`
-    : 'Ez a böngésző nem ad folyamatos hozzáférést egy mappához (ahhoz Chrome vagy Edge kell), ezért itt pillanatképet kapsz: az oldal egyszer beolvassa a fájlokat, a frissítéshez újra ki kell választani a mappát.';
-  renderVersion();
   readHash();
   const hello = await findServer();
   if (hello) { await start(serverSource(hello)); return; }
@@ -2146,14 +2209,14 @@ async function boot() {
   try { permission = await saved.queryPermission({ mode: 'read' }); } catch (e) { /* ask again */ }
   if (permission === 'granted') { await start({ adapter: handleAdapter, root: saved, name: saved.name, live: true }); return; }
   $('resume').hidden = false;
-  $('resume-btn').textContent = 'Folytatás: ' + saved.name;
+  resumeName = saved.name;
+  relabelStart();
   $('pick').classList.remove('primary');
-  $('pick').textContent = 'Másik mappa kiválasztása';
   $('resume-btn').onclick = async () => {
     try {
       if (await saved.requestPermission({ mode: 'read' }) === 'granted') await start({ adapter: handleAdapter, root: saved, name: saved.name, live: true });
     } catch (err) {
-      $('start-error').textContent = 'A mappa már nem érhető el: ' + (err && err.message ? err.message : err);
+      $('start-error').textContent = ui('error.gone', { error: err && err.message ? err.message : err });
       $('start-error').hidden = false;
     }
   };

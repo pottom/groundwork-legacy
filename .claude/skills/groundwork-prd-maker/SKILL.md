@@ -25,23 +25,25 @@ root                          the system or product
 
 The sections are only starting points. What a project needs, and what "scope" means for it, differs from project to project. Propose sections fitted to this project, and let the human confirm or change them.
 
+The table below shows the English names, while a map without a language is Hungarian. `node modules/plan/plan.mjs kinds` prints the starting sections in the map's document language (see Session flow, step 1): use the titles it prints, not the ones here.
+
 | kind | file | starting sections |
 |---|---|---|
-| `system` | SYSTEM.md | Cél és érintettek · Összetevők és határaik · Közös ütemterv · Kockázatok és függőségek · Költségek |
-| `prd` | PRD.md | Probléma és cél · Felhasználók és használati esetek · Hatókör és fő funkciók · Funkcionális követelmények · Nem funkcionális követelmények |
-| `tech` | TECH.md | Platform és futtatási környezet · Technológiai stack · Architektúra és komponensek · Adatok és tárolás · Integrációk és interfészek · Biztonság · Build, kiadás, telepítés · Tesztelés és minőség · Döntésnapló |
-| `service` | SERVICE.md | Kinek és mit · Szolgáltatási szint (SLA) · Csatornák · Feltételek és árazás · Mérőszámok |
-| `process` | PROCESS.md | Szerepek · Fő folyamatok · Eszkaláció · Átadások |
-| `infra` | INFRA.md | Környezetek · Hálózat · Kapacitás · Biztonság · Mentés |
-| `ops` | OPERATIONS.md | Monitorozás · Incidenskezelés · Mentés és helyreállítás · Karbantartás · Támogatási modell |
-| `rollout` | ROLLOUT.md | Ütemezés · Migráció · Oktatás · Kommunikáció · Visszaállítási terv |
+| `system` | SYSTEM.md | Goal and stakeholders · Components and their boundaries · Shared roadmap · Risks and dependencies · Costs |
+| `prd` | PRD.md | Problem and goal · Users and use cases · Scope and main features · Functional requirements · Non-functional requirements |
+| `tech` | TECH.md | Platform and runtime · Technology stack · Architecture and components · Data and storage · Integrations and interfaces · Security · Build, release, deployment · Testing and quality · Decision log |
+| `service` | SERVICE.md | Who and what · Service level (SLA) · Channels · Terms and pricing · Metrics |
+| `process` | PROCESS.md | Roles · Main processes · Escalation · Handovers |
+| `infra` | INFRA.md | Environments · Network · Capacity · Security · Backup |
+| `ops` | OPERATIONS.md | Monitoring · Incident management · Backup and recovery · Maintenance · Support model |
+| `rollout` | ROLLOUT.md | Schedule · Migration · Training · Communication · Rollback plan |
 
 Any other kind is allowed too; its file name comes from the document's name, or from `file`.
 
 Notes on two of the sections:
 
-- **Technológiai stack** (in `tech`): group it by layer. For each technology, record what it is, why it was chosen (`note`, ADR `link`), and the alternatives ruled out (`excluded`).
-- **Döntésnapló** (in `tech`): one `decision` per ADR in `docs/adr/`, with its state in `note` (érvényes, részben felülírt, érvénytelen, nyitott) and the file in `link`.
+- **Technology stack** (in `tech`): group it by layer. For each technology, record what it is, why it was chosen (`note`, ADR `link`), and the alternatives ruled out (`excluded`).
+- **Decision log** (in `tech`): one `decision` per ADR in `docs/adr/`, with its state in `note` (valid, partly superseded, superseded, open; in the document language) and the file in `link`.
 
 ## The map is meeting notes, not a transcript
 
@@ -80,6 +82,7 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
   - `{"op":"add","id":"…","parent":"…","topic":"…","status":"…","note":"…","link":"…","impl":"…","component":"…","dir":"…","doc":"…","file":"…"}`
   - `{"op":"set","id":"…", …the same fields…, "prose":"…","progress":"done"}`
     - `prose` and `progress` are for sections only.
+    - `lang` is for the root only: the document language, `{"op":"set","id":"root","lang":"en"}`.
     - Set a field to `""` to clear it.
   - `{"op":"move","id":"…","parent":"…"}`
   - `{"op":"remove","id":"…"}`
@@ -89,7 +92,7 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
   - `topic`: a group inside a section.
   - `decision`: something settled.
   - `note`: a fact or constraint.
-  - `excluded`: ruled out. Each document lists these in its own section: Nem célok in the PRD, Elvetett megoldások in TECH. Record the rejected alternatives of a technical decision this way.
+  - `excluded`: ruled out. Each document lists these in its own section: Non-goals in the PRD, Rejected alternatives in TECH. Record the rejected alternatives of a technical decision this way.
   - `parked`: deferred.
   - `todo`: still to discuss. It goes to the open questions.
   - `inferred`: read from existing code or documents, waiting for the human to confirm. Once confirmed, change it to `decision` (or `note`); if it is wrong, fix or remove it.
@@ -100,6 +103,8 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
 ## Session flow
 
 1. **Start.** If `docs/product/mindmap.json` is missing, run `init`. Start the core server with `preview_start` (configuration `groundwork`, from `.claude/launch.json`; or `node core/groundwork.mjs`) and open `/plan/`.
+
+   Set the document language to the language of the conversation: `{"op":"set","id":"root","lang":"…"}`. `show` prints it on the root line. A map without one is Hungarian (`hu`). Every fixed text of the documents (header, states, closing sections) and the starting sections from `kinds` are then in that language, so the map's own labels and prose must be in it too. The languages there are: `hu`, `en` (the usage line of `plan.mjs` lists them). If the conversation is in a language with no strings, use `en` and say so. If the conversation switches language for good, change it and translate the map's labels and prose.
 2. **Existing project?** If there is already code or documentation, read it before asking anything. Dispatch a sub-agent for a thorough analysis:
    - the product: README, specs, glossary, docs;
    - every ADR in `docs/adr/`, with its state;
@@ -116,7 +121,7 @@ All access goes through `node modules/plan/plan.mjs`. Never write the map or the
    1. Update the map items.
    2. Rewrite the `prose` of every section the answers touched. Write it as the section reads **now**: complete, polished text, not a log of the conversation. The prose gives the context, the reasoning and the scenarios. The list under it holds the atomic decisions, so do not repeat them one by one. Use Markdown, in the language of the conversation, typically one to three short paragraphs.
    3. Set `progress: "done"` on a section once your design tree has nothing left open in it.
-6. **ADRs and glossary (grill-with-docs).** domain-modeling writes ADRs to `docs/adr/` and terms to `GLOSSARY.md`. groundwork-prd-maker does not write them itself. When an ADR appears, add it to the Döntésnapló and set `link` on the matching decision. The glossary is shown automatically in the PRD and the overview.
+6. **ADRs and glossary (grill-with-docs).** domain-modeling writes ADRs to `docs/adr/` and terms to `GLOSSARY.md`. groundwork-prd-maker does not write them itself. When an ADR appears, add it to the Decision log section and set `link` on the matching decision. The glossary is shown automatically in the PRD and the overview.
 7. **Finish.** When the frontier is empty, make a final pass:
    - Reread every section's prose so each document reads as one coherent whole, and the documents agree with each other.
    - Mark every section `done`.

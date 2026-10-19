@@ -129,3 +129,51 @@ test('reading the project writes nothing into it', async () => {
   });
   assert.deepEqual(snapshot(root), before);
 });
+
+// The shared look: the page takes its colours and type from the shell's theme (/shell/theme.css).
+// Opened by double click there is no shell and no theme, so the page carries the same values as a
+// fallback, in light and dark.
+const THEME = fs.readFileSync(new URL('../../core/shell/theme.css', import.meta.url), 'utf8');
+const PAGE = fs.readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+const usedShellVariables = (page) => new Set([...page.matchAll(/var\((--gw-[\w-]+)/g)].map((m) => m[1]));
+
+// The --gw-* declarations of the first block that `opener` (ending in its "{") starts, as { name: value }.
+function declarations(css, opener) {
+  const m = css.match(opener);
+  if (!m) return null;
+  const body = css.slice(m.index + m[0].length);
+  const out = {};
+  for (const d of body.slice(0, body.indexOf('}')).matchAll(/(--gw-[\w-]+)\s*:\s*([^;]+);/g)) out[d[1]] = d[2].trim();
+  return out;
+}
+
+test('the view links the shell theme and uses its variables', async () => {
+  await withServer(project(), async (base) => {
+    const page = await (await fetch(`${base}/build/`)).text();
+    assert.match(page, /<link rel="stylesheet" href="\/shell\/theme\.css">/);
+    const theme = await (await fetch(`${base}/shell/theme.css`)).text();
+    const used = usedShellVariables(page);
+    for (const v of ['--gw-bg', '--gw-fg', '--gw-accent', '--gw-line', '--gw-font', '--gw-ok', '--gw-bad']) assert.ok(used.has(v), `uses ${v}`);
+    for (const v of used) assert.match(theme, new RegExp(`${v}:`), `${v} is a shell variable`);
+    // The old local palette is gone: a shared colour has one name.
+    for (const old of ['--ink', '--ink-2', '--bg', '--surface', '--sunken', '--line', '--line-strong', '--accent', '--focus', '--shadow', '--radius', '--sans', '--mono']) {
+      assert.doesNotMatch(page, new RegExp(`var\\(${old}[,)]`), `still uses ${old}`);
+    }
+  });
+});
+
+test('without the shell the view falls back to the same light and dark values', () => {
+  const light = declarations(PAGE, /:where\(:root\)\s*\{/);
+  const dark = declarations(PAGE, /prefers-color-scheme:\s*dark\)\s*\{\s*:where\(:root\)\s*\{/);
+  assert.ok(light && dark, 'a :where(:root) fallback, light and dark');
+  const themeLight = declarations(THEME, /:root\s*\{/);
+  const themeDark = declarations(THEME, /prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{/);
+  for (const v of usedShellVariables(PAGE)) {
+    assert.equal(light[v], themeLight[v], `light ${v}`);
+    if (v in themeDark) assert.equal(dark[v], themeDark[v], `dark ${v}`);
+  }
+});
+
+test('light or dark follows the operating system: the view has no switch of its own', () => {
+  assert.doesNotMatch(PAGE, /data-theme|dataset\.theme/);
+});

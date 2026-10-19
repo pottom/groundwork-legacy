@@ -25,7 +25,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 // SERVER_ID, SERVER_API and VERSION in index.html.
 const SERVER_ID = 'development-status';
 const API_VERSION = 1;
-const VERSION = '2.0.0';
+const VERSION = '2.2.0';
 
 const GIT_LIMIT = 400;
 const GIT_MAX_LIMIT = 5000;
@@ -62,7 +62,7 @@ export default {
   id: 'build',
   name: 'Build',
   version: VERSION,
-  view: { dir: HERE, files: ['index.html'] },
+  view: { dir: HERE, files: ['index.html', 'i18n.js', 'ui-strings.js'] },
   api({ root }) {
     const project = openProject(root);
     const name = path.basename(project.root);

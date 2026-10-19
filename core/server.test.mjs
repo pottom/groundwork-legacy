@@ -8,6 +8,8 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { startServer } from './server.mjs'
+import { shellPage } from './shell/shell.mjs'
+import { SHELL_STRINGS } from './shell/strings.mjs'
 
 function fakeModule(viewDir) {
   return {
@@ -25,6 +27,15 @@ async function withServer(fn) {
   fs.writeFileSync(path.join(viewDir, 'index.html'), '<h1>demo view</h1>')
   fs.writeFileSync(path.join(viewDir, 'secret.txt'), 'not listed')
   const srv = await startServer({ root: '/project', modules: [fakeModule(viewDir)], port: 0 })
+  try { await fn(srv) } finally { await srv.close() }
+}
+
+// Two modules with views and one without, in a project folder with a name that needs escaping.
+async function withShell(fn) {
+  const root = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'gw-shell-')), 'my <project>')
+  const view = (id, name) => ({ id, name, version: '1', view: { dir: root, files: ['index.html'] } })
+  const modules = [view('one', 'First'), view('two', 'Second & more'), { id: 'headless', name: 'Headless', version: '1' }]
+  const srv = await startServer({ root, modules, port: 0 })
   try { await fn(srv) } finally { await srv.close() }
 }
 
@@ -114,11 +125,96 @@ test('/vendor/ refuses paths outside the folder, dot files, folders and unserved
   })
 })
 
-test('the start page links every module', async () => {
-  await withServer(async ({ port }) => {
+test('the start page is the shell: the project name in the header, the first module inside', async () => {
+  await withShell(async ({ port }) => {
     const r = await get(port, '/')
     assert.equal(r.status, 200)
-    assert.match(r.body, /href="\/demo\/"/)
+    assert.match(r.headers['content-type'], /^text\/html/)
+    assert.match(r.body, /<header[^>]*>[\s\S]*my &lt;project&gt;[\s\S]*<\/header>/)
+    assert.match(r.body, /<iframe[^>]*src="\/one\/"/)
+  })
+})
+
+// The shared style variables modules may use; theme.css documents each.
+const COLOURS = ['--gw-bg', '--gw-surface', '--gw-sunken', '--gw-fg', '--gw-fg-2', '--gw-muted', '--gw-line', '--gw-line-strong',
+  '--gw-accent', '--gw-accent-fg', '--gw-focus', '--gw-ok', '--gw-warn', '--gw-bad', '--gw-shadow']
+const SHAPES = ['--gw-font', '--gw-font-serif', '--gw-font-mono', '--gw-text', '--gw-text-small', '--gw-radius', '--gw-space', '--gw-header-height']
+
+test('the shell serves its theme, and every page of it uses the theme', async () => {
+  await withShell(async ({ port }) => {
+    const page = (await get(port, '/')).body
+    for (const href of ['/shell/theme.css', '/shell/shell.css']) {
+      assert.match(page, new RegExp(`<link rel="stylesheet" href="${href}">`))
+      const css = await get(port, href)
+      assert.equal(css.status, 200, href)
+      assert.match(css.headers['content-type'], /^text\/css/)
+    }
+    assert.equal((await get(port, '/shell/shell.mjs')).status, 404)
+    assert.equal((await get(port, '/shell/..%2fserver.mjs')).status, 404)
+  })
+})
+
+test('the theme defines the shared variables, light by default and dark when the OS asks for it', async () => {
+  await withShell(async ({ port }) => {
+    const css = (await get(port, '/shell/theme.css')).body
+    const block = (re) => { const m = re.exec(css); assert.ok(m, String(re)); return m[1] }
+    const light = block(/^:root\s*\{([^}]*)\}/m)
+    const dark = block(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}/)
+    assert.match(light, /color-scheme:\s*light dark/)
+    for (const v of [...COLOURS, ...SHAPES]) assert.match(light, new RegExp(`${v}:`), `light ${v}`)
+    for (const v of COLOURS) assert.match(dark, new RegExp(`${v}:`), `dark ${v}`)
+    assert.match(css, /@import url\('\/vendor\/fonts\.css'\)/)
+  })
+})
+
+// The data-i18n keys a page marks, with the attribute variants.
+const i18nKeys = (html) => [...html.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]+)"/g)].map((m) => m[1])
+
+test('the shell shows its text in English and marks every string for translation, with a Hungarian set', async () => {
+  await withShell(async ({ port }) => {
+    const page = (await get(port, '/')).body
+    assert.match(page, /<html lang="en">/)
+    assert.match(page, /<nav class="gw-nav" aria-label="Modules" data-i18n-aria-label="nav"/)
+    const empty = shellPage({ project: 'p', modules: [], active: null })
+    assert.match(empty, /<p class="gw-empty" data-i18n="noView">No module has a view\.<\/p>/)
+    const keys = [...new Set([...i18nKeys(page), ...i18nKeys(empty)])]
+    assert.ok(keys.length >= 3, keys.join())
+    for (const k of keys) {
+      assert.ok(SHELL_STRINGS.en[k], `en ${k}`)
+      assert.ok(SHELL_STRINGS.hu[k] && SHELL_STRINGS.hu[k] !== SHELL_STRINGS.en[k], `hu ${k}`)
+    }
+  })
+})
+
+test('the shell has a language picker and serves the translation module to its pages', async () => {
+  await withShell(async ({ port }) => {
+    const page = (await get(port, '/')).body
+    assert.match(page, /<select class="gw-lang"[^>]*>\s*<option value="en">English<\/option>\s*<option value="hu">Magyar<\/option>/)
+    assert.match(page, /import \{ createI18n \} from '\/shell\/i18n\.mjs'/)
+    for (const js of ['/shell/i18n.mjs', '/shell/strings.mjs']) {
+      const r = await get(port, js)
+      assert.equal(r.status, 200, js)
+      assert.match(r.headers['content-type'], /javascript/)
+    }
+  })
+})
+
+test('a module may not take an id the core uses for its own paths', async () => {
+  for (const id of ['api', 'shell', 'vendor']) {
+    await assert.rejects(startServer({ root: '/project', modules: [{ id, name: id, version: '1' }], port: 0 }), /reserved/, id)
+  }
+})
+
+test('the navigation lists every module with a view, from the manifests, and opens each', async () => {
+  await withShell(async ({ port }) => {
+    const nav = /<nav[^>]*>([\s\S]*?)<\/nav>/.exec((await get(port, '/')).body)[1]
+    const links = [...nav.matchAll(/<a href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map((m) => [m[1], m[2]])
+    assert.deepEqual(links, [['/?module=one', 'First'], ['/?module=two', 'Second &amp; more']])
+    const two = (await get(port, '/?module=two')).body
+    assert.match(two, /<iframe[^>]*src="\/two\/"/)
+    assert.match(two, /<a href="\/\?module=two" aria-current="page">/)
+    assert.doesNotMatch(two, /<a href="\/\?module=one" aria-current/)
+    assert.match((await get(port, '/?module=nobody')).body, /<iframe[^>]*src="\/one\/"/)
   })
 })
 

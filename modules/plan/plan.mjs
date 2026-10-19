@@ -5,6 +5,8 @@
 //   node modules/plan/plan.mjs init "<title>"   create mindmap.json in the current dir
 //   node modules/plan/plan.mjs apply '<ops>'    apply a JSON op array (or pipe it on stdin)
 //   node modules/plan/plan.mjs show             print the outline + pending human edits
+//   node modules/plan/plan.mjs kinds            print the document kinds and their starting sections,
+//                                               in the map's document language
 //   node modules/plan/plan.mjs hook             UserPromptSubmit hook (reads hook JSON on stdin)
 //
 // The editor is served by the core server: node core/groundwork.mjs
@@ -13,6 +15,7 @@
 import fs from 'node:fs'
 import { STATUSES } from './node-types.mjs'
 import { BASE_DIR, KINDS, COMPONENT_TYPES, listDocs, isSection } from './documents.mjs'
+import { DOC_STRINGS, docStrings, langOf } from './doc-strings.mjs'
 import { openMap, walk, index } from './map-store.mjs'
 import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'
@@ -34,7 +37,7 @@ function outline(data) {
       `section: ${m.progress === 'done' ? 'done' : m.prose ? 'has prose' : 'no prose yet'}`,
       m.humanProse?.length && `${m.humanProse.length} human paragraph(s)`,
     ] : []
-    const extra = [n.hyperLink && `link: ${n.hyperLink}`, n.note && `note: ${n.note}`, ...prd].filter(Boolean).join('; ')
+    const extra = [n === data.nodeData && `document language: ${langOf(data)}`, n.hyperLink && `link: ${n.hyperLink}`, n.note && `note: ${n.note}`, ...prd].filter(Boolean).join('; ')
     lines.push(`${'  '.repeat(depth)}[${n.id}] ${n.topic}${st}${extra ? ` — ${extra}` : ''}`)
     for (const c of n.children || []) rec(c, depth + 1)
   }
@@ -106,6 +109,14 @@ function cmdShow(dir) {
   console.log(outline(data))
 }
 
+function cmdKinds(dir) {
+  const store = open(dir)
+  const lang = store.exists() ? langOf(store.read().data) : langOf({})
+  const t = docStrings(lang)
+  console.log(`starting sections in ${t.name} (${lang}):`)
+  for (const [kind, { file }] of Object.entries(KINDS)) console.log(`  ${kind} (${file}): ${t.kinds[kind].sections.join(' · ')}`)
+}
+
 function cmdHook() {
   try {
     const input = JSON.parse(fs.readFileSync(0, 'utf8') || '{}')
@@ -136,8 +147,10 @@ switch (cmd) {
   case 'init': cmdInit(dir, rest.find((a) => !a.startsWith('--')), rest.includes('--force')); break
   case 'apply': cmdApply(dir, rest[0]); break
   case 'show': cmdShow(dir); break
+  case 'kinds': cmdKinds(dir); break
   case 'hook': cmdHook(); break
   case 'serve': die('plan.mjs serve is gone: the core server serves the editor now. Run: node core/groundwork.mjs'); break
-  default: die('usage: plan.mjs init "<title>" | apply \'<ops json>\' | show | hook\n' +
-    `statuses: ${Object.keys(STATUSES).join(', ')}\ndocument kinds: ${Object.keys(KINDS).join(', ')}\ncomponent types: ${Object.keys(COMPONENT_TYPES).join(', ')}`)
+  default: die('usage: plan.mjs init "<title>" | apply \'<ops json>\' | show | kinds | hook\n' +
+    `statuses: ${Object.keys(STATUSES).join(', ')}\ndocument kinds: ${Object.keys(KINDS).join(', ')}\ncomponent types: ${COMPONENT_TYPES.join(', ')}\n` +
+    `document languages: ${Object.keys(DOC_STRINGS).join(', ')}`)
 }

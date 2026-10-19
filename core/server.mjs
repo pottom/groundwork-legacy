@@ -1,8 +1,9 @@
 // The core server: one local server for every module.
 //
-//   GET  /                     start page, links every module
+//   GET  /[?module=<id>]       the shell: header, navigation, the module's view (shell/shell.mjs)
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
 //   *    /api/<module>/...     the module's endpoints
+//   GET  /shell/...            the shared look (theme.css, shell.css) and the UI translation (i18n.mjs, strings.mjs)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
 //   GET  /<module>/...         the module's view (only the files its manifest lists)
 //
@@ -23,6 +24,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { send, TYPES } from './http.mjs'
 import { moduleFiles } from './files.mjs'
+import { shellPage } from './shell/shell.mjs'
 
 export const HOST = '127.0.0.1'
 const LOCAL_NAMES = new Set(['127.0.0.1', 'localhost'])
@@ -38,6 +40,9 @@ export function isLocalHost(header) {
 }
 
 export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
+export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
+// The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
+const SHELL_BROWSER_FILES = new Set(['theme.css', 'shell.css', 'i18n.mjs', 'strings.mjs'])
 
 // The file under `dir` that the URL path `rest` (still percent-encoded) names, or null when it
 // leaves the folder, names a dot file, or has a type the server does not serve (README, LICENSE).
@@ -51,16 +56,23 @@ export function staticFile(dir, rest) {
   return fs.statSync(f, { throwIfNoEntry: false })?.isFile() ? f : null
 }
 
-export function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR }) {
+// The first path segments the core answers itself; a module with one of these ids would be hidden.
+const RESERVED = new Set(['api', 'shell', 'vendor'])
+
+export async function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR }) {
+  for (const m of modules) if (RESERVED.has(m.id)) throw new Error(`module id "${m.id}" is reserved by the core`)
   const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m) }) : null }))
   const byId = new Map(mods.map((m) => [m.id, m]))
+  const project = path.basename(path.resolve(root))
 
   const server = http.createServer(async (req, res) => {
     try {
       if (!isLocalHost(req.headers.host)) return send(res, 403, { error: 'forbidden host' })
       const url = new URL(req.url, 'http://localhost')
       const parts = url.pathname.split('/') // ['', first, ...rest]
-      if (url.pathname === '/') return send(res, 200, startPage(mods), TYPES['.html'])
+      if (url.pathname === '/') {
+        return send(res, 200, shellPage({ project, modules: mods, active: url.searchParams.get('module') }), TYPES['.html'])
+      }
       if (url.pathname === '/api/modules') {
         return send(res, 200, mods.map(({ id, name, version }) => ({ id, name, version, path: `/${id}/` })))
       }
@@ -70,6 +82,11 @@ export function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR })
         if (mod?.handle && (await mod.handle(req, res, sub, url)) === true) return
         if (!res.headersSent) send(res, 404, { error: 'not found' })
         return
+      }
+      if (parts[1] === 'shell' && req.method === 'GET') {
+        const f = staticFile(SHELL_DIR, parts.slice(2).join('/'))
+        if (f && SHELL_BROWSER_FILES.has(path.basename(f))) return send(res, 200, fs.readFileSync(f), TYPES[path.extname(f)])
+        return send(res, 404, { error: 'not found' })
       }
       if (parts[1] === 'vendor' && req.method === 'GET') {
         const f = staticFile(vendor, parts.slice(2).join('/'))
@@ -102,13 +119,4 @@ export function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR })
       })
     })
   })
-}
-
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
-
-function startPage(mods) {
-  const items = mods.filter((m) => m.view).map((m) => `<li><a href="/${esc(m.id)}/">${esc(m.name)}</a> <small>${esc(m.version)}</small></li>`)
-  return `<!doctype html><meta charset="utf-8"><title>Groundwork</title>
-<style>body{font:16px system-ui,sans-serif;margin:3rem;color-scheme:light dark}</style>
-<h1>Groundwork</h1><ul>${items.join('')}</ul>\n`
 }

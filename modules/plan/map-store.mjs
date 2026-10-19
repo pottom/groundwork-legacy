@@ -22,6 +22,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { setStatus } from './node-types.mjs'
 import { buildPrd, toMarkdown, isGenerated, BASE_DIR, listDocs } from './documents.mjs'
+import { DOC_STRINGS } from './doc-strings.mjs'
 
 const MAP = `${BASE_DIR}/mindmap.json`
 const GLOSSARY = 'GLOSSARY.md' // owned by domain-modeling: read and link only
@@ -182,6 +183,8 @@ const newId = () => crypto.randomBytes(6).toString('hex')
 //     prose:    Claude's Markdown text for a PRD section (main topics only)
 //     progress: 'done' | '' for a PRD section
 //     human:    [{id, text}] the human's own paragraphs (only replayed from browser edits)
+//     lang:     the document language, on the root only: a key of DOC_STRINGS ('hu', 'en', ...);
+//               '' clears it (Hungarian)
 //   {op:'move', id, parent}
 //   {op:'remove', id}
 function applyOps(data, ops, by) {
@@ -206,11 +209,15 @@ function applyOps(data, ops, by) {
       case 'set': {
         if (!entry) { errors.push(`set: no node ${op.id}`); break }
         const n = entry.node
+        if (op.lang !== undefined) {
+          if (entry.parent) { errors.push(`set: lang goes on the root, not on ${op.id}`); break }
+          if (op.lang && !DOC_STRINGS[op.lang]) { errors.push(`set: no document strings for language "${op.lang}" (there are: ${Object.keys(DOC_STRINGS).join(', ')})`); break }
+        }
         if (op.topic !== undefined) n.topic = op.topic
         if (op.status !== undefined) setStatus(n, op.status)
         if (op.note !== undefined) { if (op.note) n.note = op.note; else delete n.note }
         if (op.link !== undefined) { if (op.link) n.hyperLink = op.link; else delete n.hyperLink }
-        for (const [k, field] of [['doc', 'doc'], ['component', 'component'], ['dir', 'dir'], ['file', 'file'], ['impl', 'impl'], ['prose', 'prose'], ['progress', 'progress'], ['human', 'humanProse']]) {
+        for (const [k, field] of [['doc', 'doc'], ['component', 'component'], ['dir', 'dir'], ['file', 'file'], ['impl', 'impl'], ['prose', 'prose'], ['progress', 'progress'], ['human', 'humanProse'], ['lang', 'lang']]) {
           if (op[k] === undefined) continue
           n.metadata = { ...(n.metadata || {}) }
           const empty = op[k] === '' || (Array.isArray(op[k]) && !op[k].length)

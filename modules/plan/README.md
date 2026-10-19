@@ -42,6 +42,7 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 - **Egy igazságforrás:** a `docs/product/mindmap.json`. A térkép és a dokumentumok ennek nézetei, és minden változáskor újragenerálódnak belőle. A térképről törölt dokumentum fájlja is törlődik.
 - **A térkép jegyzet, nem jegyzőkönyv.** A kérdések nem kerülnek fel, csak ami a válaszokból fontos.
 - **Gyűjtő fejezetek dokumentumonként:** a kizárt elemekből például a PRD-ben „Nem célok”, a műszaki tervben „Elvetett megoldások” lesz. Az elhalasztott elemek, a „kérdezz rá” elemek és az érintetlen fejezetek szintén saját fejezetbe gyűlnek.
+- **Dokumentumnyelv:** a térkép a gyökerén tárolja a dokumentumok nyelvét (`lang`: `hu`, `en`); a skill az interjú elején a beszélgetés nyelvére állítja. Nyelv nélkül magyar. A dokumentumok állandó szövegei (fejléc, állapotok, gyűjtő fejezetek, kezdő fejezetek) ezen a nyelven készülnek; ez független a felület nyelvétől. Új nyelvhez elég egy új szövegkészlet a `doc-strings.mjs`-ben.
 - **Megvalósítási réteg:** egy elem lehet kész, részben kész vagy hiányzik. A dokumentum fejléce összesíti.
 - **Kézzel írt fájlt nem ír felül.**
 - **Nem ütközik a mattpocock skillekkel:**
@@ -51,15 +52,19 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 
 ## Kezelés
 
+A felület alapból angol, és magyarul is elérhető: a nyelvet a mag fejlécében lehet váltani (a szövegek a `ui-strings.mjs`-ben). Ez nem érinti a dokumentumok nyelvét. Az alábbi táblázat az angol feliratokat mutatja.
+
 | Hol | Mit |
 |---|---|
-| fejléc | fókusz: teljes térkép / egy összetevő / egy dokumentum · nézet: Térkép / Mindkettő / Dokumentum · **Nézet / Szerkesztés** kapcsoló (nézet módban semmi nem módosítható) |
-| dokumentum panel | dokumentumválasztó összetevők szerint, haladással · a panel széle: becsukás |
+| fejléc | fókusz (*What the map shows*): *Whole map* / egy összetevő / egy dokumentum · nézet: *Map* / *Both* / *Document* · **View / Editing** kapcsoló (nézet módban semmi nem módosítható) |
+| dokumentum panel | dokumentumválasztó összetevők szerint, haladással · a panel széle: becsukás (*Close the document*) |
 | térkép háttér | húzás: mozgatás · Shift + húzás: kijelölés |
 | csomópont | Tab: új ág · dupla kattintás: átnevezés · húzás másik csomópontra: áthelyezés |
-| alsó sáv (szerkesztés módban) | a kijelölt csomópont típusa (téma, döntés, tény, kizárva, később, kérdezz rá, kódból) és megvalósítása (kész, részben, hiányzik) |
+| alsó sáv (szerkesztés módban) | a kijelölt csomópont típusa (*topic, decision, fact, excluded, later, ask about it, from code*) és megvalósítása (*done, partial, missing*) |
 | nagy térkép | induláskor a fejezetek össze vannak csukva; a „+” nyitja, a dokumentumból kattintva magától kinyílik |
-| dokumentum | sorra kattintva a térképen is kijelölődik · „Szerkesztés” vagy dupla kattintás: bekezdés átírása · „+ Saját bekezdés” |
+| dokumentum | sorra kattintva a térképen is kijelölődik · *Edit* vagy dupla kattintás: bekezdés átírása · *+ Your own paragraph* |
+
+A térkép világos vagy sötét színei az operációs rendszert követik, újratöltés nélkül is.
 
 ## Részek
 
@@ -67,10 +72,13 @@ Más típus is használható; ilyenkor a fájlnév a dokumentum nevéből lesz. 
 |---|---|
 | `module.mjs` | a modul a mag szerver számára: manifest, nézet, végpontok `/api/plan/` alatt |
 | `map-store.mjs` | a térkép olvasása, írása és összefésülése; a CLI, a hook és a szerver is ezt használja |
-| `plan.mjs` | CLI (`init`, `apply`, `show`, `hook`) |
+| `plan.mjs` | CLI (`init`, `apply`, `show`, `kinds`, `hook`) |
 | `index.html` | a térkép és a dokumentum panel ([Mind Elixir](https://github.com/ssshooter/mind-elixir-core) 5.15.1, [marked](https://marked.js.org) 12.0.2; a csomagban, a mag szolgálja ki a `/vendor/` alól, hálózat nélkül is működik) |
 | `documents.mjs` | dokumentum-modell a térképből (összetevők, dokumentumok, fejezetek) + Markdown export (közös a szerverrel) |
-| `node-types.mjs` | csomópont-típusok: címke, [Lucide](https://lucide.dev) ikon |
+| `doc-strings.mjs` | a dokumentumok állandó szövegei nyelvenként (közös a szerverrel) |
+| `ui-strings.mjs` | a felület szövegei nyelvenként (angol alapértelmezés, magyar fordítás), a mag fordítójához (`/shell/i18n.mjs`) |
+| `node-types.mjs` | csomópont-típusok ([Lucide](https://lucide.dev) ikon) és megvalósítási szintek kulcsai; a címkék a `ui-strings.mjs`-ben |
+| `map-theme.mjs` | a térkép világos és sötét témája a shell színeiből, és az operációs rendszer váltásának követése |
 | `docs/product/mindmap.json` | a térkép és a szövegek, ez az egyetlen igazságforrás (a cél-projektben) |
 | `docs/product/**/*.md` | a generált dokumentumok (a cél-projektben) |
 | `.groundwork/plan/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések, a generált fájlok listája (a cél-projektben; egy régi `.prd-maker/` mappát a mag ide költöztet) |
