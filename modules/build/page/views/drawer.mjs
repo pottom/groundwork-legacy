@@ -8,7 +8,7 @@ import { reader } from '../config.mjs';
 import { ui, dateText } from '../text.mjs';
 import { app, actions } from '../state.mjs';
 import { renderMarkdown } from '../markdown.mjs';
-import { icon, chip, badge, docLink, ticketLinks, blockerLinks, prdLinks, ideaLinks, sketchLinks, sketchesOf, meter, flags } from '../parts.mjs';
+import { icon, chip, badge, docLink, ticketLinks, blockerLinks, prdLinks, ideaLinks, sketchLinks, sketchesOf, agentLinks, agentsOf, meter, flags } from '../parts.mjs';
 
 const { fold, plainInline } = reader;
 
@@ -28,6 +28,7 @@ function ticketMeta(t) {
   const tag = (text) => html`<span class="gw-tag">${text}</span>`;
   return html`<dl class="meta">
 ${row(ui('table.area'), [t.area, area && area.spec ? [' · ', badge('neutral', ui('area.spec')), ' ', docLink(area.spec.path, area.spec.title)] : nothing], t.area || (area && area.spec))}
+${row(ui('drawer.agents'), agentLinks(t), agentsOf(t).length)}
 ${row(ui('drawer.note'), t.statusNote)}
 ${row(ui('drawer.prd'), t.prd.length ? prdLinks(t) : html`<span class="muted">${ui('drawer.prd-none')}</span>`, t.prd.length || t.prdNone)}
 ${row(ui('drawer.ideas'), ideaLinks(t), t.ideas.length)}

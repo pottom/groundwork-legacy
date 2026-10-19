@@ -29,7 +29,6 @@ test('Agents is a tool after Sketch, which may write only .groundwork/agents/ an
   assert.equal(agents.name, 'Agents')
   assert.equal(agents.tool, true)
   assert.deepEqual(agents.writes, ['.groundwork/agents'])
-  assert.deepEqual(agents.public, [])
   assert.ok(agents.tagline.en && agents.tagline.hu && agents.icon)
   const tabs = MODULES.filter((m) => m.view).map((m) => m.id)
   assert.deepEqual(tabs.slice(-2), ['sketch', 'agents'], 'the shell shows Agents after Sketch')
@@ -79,6 +78,68 @@ test('an agent\'s timeline and, once it stopped, its final report; the main sess
     assert.equal((await fetch(`${base}/api/agents/agent?agent=a-1`)).status, 400, 'a session is required')
     assert.equal((await fetch(`${base}/api/agents/agent?session=s-1&agent=..%2F..%2Fx`)).status, 400)
     assert.equal((await fetch(`${base}/api/agents/agent?session=s-1`, { method: 'POST' })).status, 405)
+  })
+})
+
+const hasGit = spawnSync('git', ['--version']).status === 0
+const git = (cwd, ...args) => {
+  const r = spawnSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args], { cwd, encoding: 'utf8' })
+  assert.equal(r.status, 0, r.stderr)
+}
+
+// A project on `main` with two worktree agents: one on a branch named for #37, one whose commit names #38.
+function worktreeProject(root) {
+  git(root, 'init', '-q', '-b', 'main')
+  fs.writeFileSync(path.join(root, 'a.txt'), 'a')
+  git(root, 'add', '.')
+  git(root, 'commit', '-q', '-m', 'Start (#1)')
+  const w1 = path.join(root, '.claude', 'worktrees', 'agent-1')
+  const w2 = path.join(root, '.claude', 'worktrees', 'agent-2')
+  git(root, 'worktree', 'add', '-q', '-b', '37-agent-links', w1)
+  git(root, 'worktree', 'add', '-q', '-b', 'worktree-agent-2', w2)
+  fs.writeFileSync(path.join(w2, 'b.txt'), 'b')
+  git(w2, 'add', '.')
+  git(w2, 'commit', '-q', '-m', 'Agents: the worktrees view (#38)')
+  const now = Date.now()
+  const at = (s) => new Date(now + s * 1000).toISOString()
+  const line = (e) => JSON.stringify({ v: 1, session: 's-1', ...e })
+  fs.mkdirSync(path.join(root, DIR), { recursive: true })
+  fs.writeFileSync(path.join(root, DIR, 'events.jsonl'), [
+    line({ at: at(-60), event: 'SessionStart', cwd: root }),
+    line({ at: at(-50), event: 'PreToolUse', tool: 'Agent', toolUse: 't1', subagentType: 'general-purpose', description: 'Build the links', cwd: root }),
+    line({ at: at(-49), event: 'SubagentStart', agent: 'a-1', agentType: 'general-purpose', cwd: root }),
+    line({ at: at(-48), event: 'PostToolUse', agent: 'a-1', agentType: 'general-purpose', tool: 'Edit', cwd: w1 }),
+    line({ at: at(-40), event: 'PreToolUse', tool: 'Agent', toolUse: 't2', subagentType: 'Explore', description: 'Worktrees', cwd: root }),
+    line({ at: at(-39), event: 'SubagentStart', agent: 'a-2', agentType: 'Explore', cwd: root }),
+    line({ at: at(-38), event: 'PostToolUse', agent: 'a-2', agentType: 'Explore', tool: 'Bash', cwd: w2 }),
+    line({ at: at(-30), event: 'PreToolUse', tool: 'Agent', toolUse: 't3', subagentType: 'Explore', description: 'Finished #12', cwd: root }),
+    line({ at: at(-29), event: 'SubagentStart', agent: 'a-3', agentType: 'Explore', cwd: root }),
+    line({ at: at(-28), event: 'SubagentStop', agent: 'a-3', agentType: 'Explore', cwd: root }),
+  ].join('\n') + '\n')
+}
+
+test('each agent is listed with its branch and ticket: from its task, its branch name or its commits', { skip: !hasGit }, async () => {
+  await withServer(async ({ root, base }) => {
+    worktreeProject(root)
+    const { sessions } = await (await fetch(`${base}/api/agents/list`)).json()
+    assert.deepEqual([sessions[0].branch, sessions[0].ticket], ['main', null])
+    assert.deepEqual(sessions[0].agents.map((a) => [a.id, a.branch, a.ticket, a.ticketFrom]), [
+      ['a-1', '37-agent-links', '#37', 'branch'],
+      ['a-2', 'worktree-agent-2', '#38', 'commit'],
+      ['a-3', 'main', '#12', 'task'],
+    ])
+  })
+})
+
+test('GET /api/agents/tickets (public, for Build): the running agents per ticket, nothing more', { skip: !hasGit }, async () => {
+  assert.deepEqual(agents.public, ['GET /api/agents/tickets'])
+  await withServer(async ({ root, base }) => {
+    assert.deepEqual(await (await fetch(`${base}/api/agents/tickets`)).json(), { tickets: {} }, 'no log: no agent on any ticket')
+    worktreeProject(root)
+    const { tickets } = await (await fetch(`${base}/api/agents/tickets`)).json()
+    assert.deepEqual(Object.keys(tickets).sort(), ['#37', '#38'], 'a-3 is done: #12 is not being worked on')
+    assert.deepEqual(tickets['#37'], [{ id: 'a-1', session: 's-1', label: 'Build the links', branch: '37-agent-links', start: tickets['#37'][0].start }])
+    assert.equal((await fetch(`${base}/api/agents/tickets`, { method: 'POST' })).status, 405)
   })
 })
 

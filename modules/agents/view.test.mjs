@@ -82,6 +82,16 @@ test('every kind of step and test outcome has its words, in both languages', () 
   }
 })
 
+test('an agent shows its ticket, linking to it in Build, and its branch; Build\'s link to an agent opens it here', () => {
+  const list = read('view/list.mjs')
+  assert.match(list, /'\/\?module=build&ticket=' \+ encodeURIComponent\(/)
+  assert.match(list, /target="_top"/, 'the ticket opens in the whole window')
+  assert.match(list, /\.branch/)
+  const main = read('view/main.mjs')
+  assert.match(main, /new URLSearchParams\(location\.search\)\.get\('agent'\)/)
+  assert.match(main, /scrollIntoView\(/)
+})
+
 test('a duration reads as m:ss, or h:mm:ss from an hour on', () => {
   assert.equal(duration(0), '0:00')
   assert.equal(duration(42_400), '0:42')

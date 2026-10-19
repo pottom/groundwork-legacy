@@ -39,6 +39,10 @@ export const UI_STRINGS = {
     'report.title': 'Final report',
     'report.pending': 'The final report shows here when the agent stops.',
     'report.none': 'No final report was recorded.',
+    'ticket.from.task': 'Ticket {ticket}, named in its task. Open it in Build',
+    'ticket.from.branch': 'Ticket {ticket}, from its branch name. Open it in Build',
+    'ticket.from.commit': 'Ticket {ticket}, named in its commits. Open it in Build',
+    'branch': 'Branch {branch}',
   },
   hu: {
     'title': 'Agentek',
@@ -77,5 +81,9 @@ export const UI_STRINGS = {
     'report.title': 'Zárójelentés',
     'report.pending': 'A zárójelentés itt jelenik meg, amikor az agent leáll.',
     'report.none': 'Nem került rögzítésre zárójelentés.',
+    'ticket.from.task': 'A(z) {ticket} jegy, a feladata nevezi meg. Megnyitás a Buildben',
+    'ticket.from.branch': 'A(z) {ticket} jegy, a branch nevéből. Megnyitás a Buildben',
+    'ticket.from.commit': 'A(z) {ticket} jegy, a commitjai nevezik meg. Megnyitás a Buildben',
+    'branch': '{branch} branch',
   },
 }

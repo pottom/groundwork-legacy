@@ -12,12 +12,17 @@ import { i18n } from './strings.mjs'
 import { agentList } from './list.mjs'
 
 const root = document.getElementById('agents')
-const state = { sessions: null, error: null, open: null, detail: null, detailError: null }
+// The session or agent a link asked for (Build's "being worked on": ?agent=<id>), shown once it is read.
+let focus = null
+try { focus = new URLSearchParams(location.search).get('agent') } catch { /* no query */ }
+const state = { sessions: null, error: null, focus, open: null, detail: null, detailError: null }
 let ticker = null
 
 function draw() {
   render(agentList(state, Date.now()), root)
   document.body.dataset.state = state.error ? 'error' : state.sessions ? 'ready' : 'loading'
+  const asked = focus && document.getElementById('agent-' + focus)
+  if (asked) { asked.scrollIntoView({ block: 'center' }); focus = null }
   const running = state.sessions?.some((s) => s.state === 'running' || s.agents.some((a) => a.state === 'running'))
   if (running && !ticker) ticker = setInterval(draw, 1000)
   if (!running && ticker) { clearInterval(ticker); ticker = null }

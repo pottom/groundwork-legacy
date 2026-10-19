@@ -1,8 +1,9 @@
 // The sessions and agents the event log tells of (the lines hook.mjs writes, oldest first).
 //
 //   readAgents(text) -> { sessions: [{ id, cwd, state, start, end,
-//                                       agents: [{ id, type, description, state, start, end }] }] }
+//                                       agents: [{ id, type, description, state, start, end, cwd }] }] }
 //
+// An agent's cwd is that of its latest event: a worktree agent works in its worktree.
 // Newest session first (by its latest event); its agents in the order they started. Times are the
 // hook's ISO stamps; `end` is null while running. States:
 //   - a session is `running` until a Stop or SessionEnd, `done` after one; any later event (the
@@ -28,7 +29,7 @@ export function readAgents(text) {
   const agentOf = (s, e) => {
     let a = s.agents.get(e.agent)
     if (!a) {
-      a = { id: e.agent, type: e.agentType ?? null, description: null, state: 'running', start: e.at, end: null }
+      a = { id: e.agent, type: e.agentType ?? null, description: null, state: 'running', start: e.at, end: null, cwd: null }
       s.agents.set(e.agent, a)
     }
     return a
@@ -47,6 +48,7 @@ export function readAgents(text) {
 
     if (e.agent) {
       const a = agentOf(s, e)
+      if (e.cwd) a.cwd = e.cwd
       if (e.event === 'SubagentStart') {
         const call = s.calls.find((c) => !c.agent && c.type === a.type)
         if (call) { call.agent = a.id; a.description = call.description }
