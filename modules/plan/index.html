@@ -1055,10 +1055,10 @@ async function save() {
 
 // Asks for the map again (the live updates said it changed, or the page reconnected). While an
 // edit or a save is under way it asks again a moment later, so a change on disk is never lost.
-let pollAgain = null
-async function poll() {
-  clearTimeout(pollAgain)
-  if (saving || dirty || editing()) { pollAgain = setTimeout(poll, 1000); return }
+let reloadMapLater = null
+async function reloadMap() {
+  clearTimeout(reloadMapLater)
+  if (saving || dirty || editing()) { reloadMapLater = setTimeout(reloadMap, 1000); return }
   try {
     const r = await fetch('/api/plan/map?v=' + encodeURIComponent(version))
     const j = await r.json()
@@ -1090,11 +1090,11 @@ async function loadTickets() {
 // (re)connect starts with "hello", when everything is asked for again.
 function subscribe() {
   const events = new EventSource('/api/events')
-  events.addEventListener('hello', () => { poll(); loadTickets() })
+  events.addEventListener('hello', () => { reloadMap(); loadTickets() })
   events.addEventListener('change', (e) => {
     let topics = []
     try { topics = JSON.parse(e.data).topics || [] } catch { /* not ours */ }
-    if (topics.includes('plan.map')) poll()
+    if (topics.includes('plan.map')) reloadMap()
     if (topics.includes('plan.glossary')) loadGlossary().then(() => { lastSnapshot = null; renderPrd() })
     if (topics.includes('build.files') || topics.includes('build.issues')) loadTickets()
   })

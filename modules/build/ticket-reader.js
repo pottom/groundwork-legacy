@@ -43,6 +43,21 @@
 // own dependency links. "#12" names an issue (global), "core 3" or "3" a local ticket of an
 // area; a title or a file name names a ticket too.
 //
+// Where the files are, one rule for the page and the server (project-tickets.mjs), so Build
+// and Plan's counts read the same tickets:
+//
+//   locateProject(folders)          { trackerPath, adrPath } among the project's folders (paths
+//                                   relative to the root, "/"-separated, '' the root itself)
+//   ticketPath(path, trackerPath)   { area, name } when the file is a ticket, else null
+//   keepsFolder(name, depth, strict)  is a folder walked (depth below the tracker or ADR folder;
+//                                   strict: skip the heavy folders from the top, as for ADRs)
+//
+// A ticket's state, once: DONE (done, resolved, closed) and DROPPED (wontfix, legacy) are
+// CLOSED; isDone(t), isDropped(t), isClosed(t).
+//
+// The links between Plan and Build: planLink(id) is Plan's deep link (the same as Plan's
+// deep-link.mjs makes), prdFilter(location.search) the PRD item a Build link names (?prd=).
+//
 // A classic script, not an ES module: the page loads it with <script src> also when opened by
 // double click (file://). It defines one global, GroundworkTickets; under Node, importing the
 // file does the same (globalThis).
@@ -50,7 +65,9 @@
 (function (root) {
 'use strict';
 
-const CLOSED = new Set(['done', 'closed', 'wontfix', 'resolved', 'legacy']);
+const DONE = new Set(['done', 'resolved', 'closed']);
+const DROPPED = new Set(['wontfix', 'legacy']);
+const CLOSED = new Set([...DONE, ...DROPPED]);
 const UNPARSED = '?';
 // The project's own top-level documents: the README names the project; the
 // domain glossary is GLOSSARY.md (CONTEXT.md before v1.3 of the skills).
@@ -60,6 +77,75 @@ const GLOSSARY_FILE = /^(glossary|glossary-map|context)\.(md|markdown)$/i;
 const fold = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const plainInline = (s) => s.replace(/`([^`]*)`/g, '$1').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/(\*\*|__)(.*?)\1/g, '$2').replace(/(^|[^\w\\])_([^_\s][^_]*?)_(?!\w)/g, '$1$2').trim();
 const isClosed = (t) => CLOSED.has(t.status);
+const isDone = (t) => DONE.has(t.status);
+const isDropped = (t) => DROPPED.has(t.status);
+
+// ───────────────────────── Where the files are ─────────────────────────
+
+const DEFAULT_TRACKER_DIR = '.scratch';
+const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
+// Never walked into; the heavy ones (SKIP_DIRS) only from one level below the tracker, where
+// an area may carry any name ("build", "out"). The server's file list (project-reader.mjs)
+// keeps the same folders out.
+const ALWAYS_SKIP = new Set(['node_modules', '.git', '.hg', '.svn']);
+const SKIP_DIRS = new Set([...ALWAYS_SKIP, 'target', 'dist', 'build', 'out', 'vendor', 'worktrees', '.cache', '.next', '.venv', '__pycache__']);
+const MAX_DEPTH = 8;        // folders below the tracker (or the ADR folder) that are walked
+const TRACKER_DEPTH = 3;    // how deep a tracker is looked for
+
+const keepsFolder = (name, depth, strict) => !ALWAYS_SKIP.has(name) && depth < MAX_DEPTH && !((strict || depth >= 1) && SKIP_DIRS.has(name));
+
+const parentOf = (p) => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '');
+const nameOf = (p) => p.slice(p.lastIndexOf('/') + 1);
+
+// The tracker is a folder whose subfolders (the areas) hold an "issues" folder: ".scratch"
+// when it is one, else the root when it is one, else the first one within three levels
+// (heavy folders not searched); ".scratch" anyway when it exists. The ADR folder is the first
+// of ADR_DIRS that exists.
+function locateProject(folders) {
+  const has = new Set(folders);
+  const children = new Map();
+  for (const f of has) {
+    if (f === '') continue;
+    const parent = parentOf(f);
+    if (!children.has(parent)) children.set(parent, []);
+    children.get(parent).push(f);
+  }
+  const kids = (dir, skip) => (children.get(dir) || []).filter((c) => !skip.has(nameOf(c))).sort();
+  const looksLikeTracker = (dir) => kids(dir, ALWAYS_SKIP).some((a) => (children.get(a) || []).some((c) => nameOf(c).toLowerCase() === 'issues'));
+  const tracker = (() => {
+    if (has.has(DEFAULT_TRACKER_DIR) && looksLikeTracker(DEFAULT_TRACKER_DIR)) return DEFAULT_TRACKER_DIR;
+    if (looksLikeTracker('')) return '';
+    let level = [''];
+    for (let depth = 0; depth < TRACKER_DEPTH; depth++) {
+      const next = [];
+      for (const at of level) {
+        for (const c of kids(at, SKIP_DIRS)) {
+          if (looksLikeTracker(c)) return c;
+          next.push(c);
+        }
+      }
+      level = next;
+    }
+    return has.has(DEFAULT_TRACKER_DIR) ? DEFAULT_TRACKER_DIR : null;
+  })();
+  return { trackerPath: tracker, adrPath: ADR_DIRS.find((d) => has.has(d)) || null };
+}
+
+// The folders locateProject needs, from a tree walked lazily (the page's folder picker):
+// down to the areas' "issues" folders of a tracker three levels deep. A heavy folder is listed
+// with its own subfolders (it may be an area) but not walked further.
+const LOCATE_DEPTH = TRACKER_DEPTH + 2;
+
+// A ticket is <tracker>/<area>/issues/<name>.md, its area one or more folders the page walks.
+function ticketPath(path, trackerPath) {
+  if (trackerPath == null) return null;
+  const prefix = trackerPath ? trackerPath + '/' : '';
+  if (!path.startsWith(prefix)) return null;
+  const m = /^(.+)\/issues\/([^/]+)\.(?:md|markdown)$/i.exec(path.slice(prefix.length));
+  if (!m) return null;
+  const dirs = [...m[1].split('/'), 'issues'];
+  return dirs.every((d, i) => keepsFolder(d, i)) ? { area: m[1], name: m[2] } : null;
+}
 
 const FIELD = /^\s*(?:[-*+]\s+)?\*{0,2}(status|issue|blocked by|earlier name|type|prd)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
 const COMMENTS_HEADING = /^##\s+(comments?|megjegyzések|hozzászólások)\s*$/i;   // reads Hungarian files too
@@ -256,13 +342,13 @@ function readTickets(source) {
       m.byPath.set(path, adr);
     } else if (inTracker) {
       const rel = path.slice(prefix.length);
-      const tm = /^(.+)\/issues\/([^/]+)\.(?:md|markdown)$/i.exec(rel);
+      const tm = ticketPath(path, trackerPath);
       if (tm) {
-        const t = parseTicket(path, tm[1], tm[2], file.text);
+        const t = parseTicket(path, tm.area, tm.name, file.text);
         t.source = 'file';
         m.tickets.push(t);
-        area(tm[1]).tickets.push(t);
-        area(tm[1]).local = true;
+        area(tm.area).tickets.push(t);
+        area(tm.area).local = true;
         m.byPath.set(path, t);
         continue;
       }
@@ -466,5 +552,16 @@ function mapIds(map) {
   return ids;
 }
 
-root.GroundworkTickets = { readTickets, mapIds, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, fold, plainInline, isClosed };
+// ───────────────────────── Plan and Build ─────────────────────────
+
+// Plan's deep link (modules/plan/deep-link.mjs makes the same; a test holds them together),
+// and the PRD item a Build link names (deep-link.mjs buildLink: /?module=build&prd=<id>).
+const planLink = (id) => '/?module=plan&node=' + encodeURIComponent(id);
+const prdFilter = (search) => new URLSearchParams(search || '').get('prd') || '';
+
+root.GroundworkTickets = {
+  readTickets, mapIds, locateProject, ticketPath, keepsFolder, planLink, prdFilter,
+  DONE, DROPPED, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH,
+  fold, plainInline, isClosed, isDone, isDropped,
+};
 })(typeof window !== 'undefined' ? window : globalThis);

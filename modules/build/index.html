@@ -27,7 +27,7 @@
     README.md                                    the project's name (first heading)
     GLOSSARY.md (or the older CONTEXT.md), GLOSSARY-MAP.md
                                                  the domain glossary, listed under Documents
-  <tracker> is ".scratch" by default (DEFAULT_TRACKER_DIR below); without it,
+  <tracker> is ".scratch" by default (DEFAULT_TRACKER_DIR in ticket-reader.js); without it,
   the first folder whose subfolders hold "issues/" folders.
 
   A ticket's fields are read near the top of the file, in any of these forms:
@@ -577,19 +577,16 @@ const SERVER_API = '/api/build';
 const SERVER_TIMEOUT_MS = 8000;
 const VERSION = '2.6.0';   // the same in module.mjs; the header comment lists the versions
 
-const DEFAULT_TRACKER_DIR = '.scratch';
-const ADR_DIRS = ['docs/adr', 'doc/adr', 'docs/adrs', 'docs/decisions', 'adr'];
-// Never descended into while looking for the tracker, nor below an area.
-// The server (project-reader.mjs) keeps the same two sets out of
-// its file list: change them together.
-const SKIP_DIRS = new Set(['node_modules', '.git', '.hg', '.svn', 'target', 'dist', 'build', 'out', 'vendor', 'worktrees', '.cache', '.next', '.venv', '__pycache__']);
-const ALWAYS_SKIP = new Set(['node_modules', '.git', '.hg', '.svn']);
 const POLL_MS = 3000;
 const FRESH_MS = 90000;
-const MAX_DEPTH = 8;
 
-// What a ticket is and how it is read (the model every view draws): ticket-reader.js, beside the page.
-const { readTickets, CLOSED, UNPARSED, README_FILE, GLOSSARY_FILE, fold, isClosed } = GroundworkTickets;
+// What a ticket is and how it is read (the model every view draws), where the tracker is and
+// which folders are walked, the states and the links to Plan: ticket-reader.js, beside the page.
+// The server reads the tickets for Plan's counts by the same rules (project-tickets.mjs).
+const {
+  readTickets, locateProject, keepsFolder, planLink, prdFilter, CLOSED, DONE, DROPPED, UNPARSED, README_FILE, GLOSSARY_FILE,
+  DEFAULT_TRACKER_DIR, ALWAYS_SKIP, SKIP_DIRS, LOCATE_DEPTH, fold, isClosed,
+} = GroundworkTickets;
 const GROUPS = [
   { id: 'agent', title: 'group.agent', hint: 'group.agent.hint', has: (s) => s === 'ready-for-agent' },
   { id: 'human', title: 'group.human', hint: 'group.human.hint', has: (s) => s === 'ready-for-human' || s === 'needs-info' || s === 'needs-triage' },
@@ -620,8 +617,8 @@ function statusTone(status) {
   if (status === 'ready-for-human' || status === 'needs-info' || status === 'needs-triage') return 'human';
   if (/^needs-.*test$/.test(status)) return 'test';
   if (status === 'claimed') return 'claimed';
-  if (status === 'done' || status === 'resolved' || status === 'closed') return 'done';
-  if (CLOSED.has(status)) return 'dropped';
+  if (DONE.has(status)) return 'done';
+  if (DROPPED.has(status)) return 'dropped';
   return 'neutral';
 }
 const statusName = (status) => (status === UNPARSED ? ui('status.unparsed') : status);
@@ -757,8 +754,6 @@ function serverSource(hello) {
   return src;
 }
 
-const childDirs = async (A, dir, skip) => (await A.children(dir)).filter((c) => c.isDir && !skip.has(c.name));
-
 async function findChild(A, dir, path) {
   let node = dir;
   for (const part of path.split('/')) {
@@ -769,40 +764,30 @@ async function findChild(A, dir, path) {
   return node;
 }
 
-// A tracker is a folder whose subfolders (the areas) hold an "issues" folder.
-async function looksLikeTracker(A, dir) {
-  for (const area of await childDirs(A, dir, ALWAYS_SKIP)) {
-    if ((await A.children(area.node)).some((c) => c.isDir && c.name.toLowerCase() === 'issues')) return true;
-  }
-  return false;
+// The folders the reader's locateProject decides by, with their nodes: LOCATE_DEPTH levels
+// down; a heavy folder (SKIP_DIRS) only with its own subfolders, as it may be an area.
+async function listFolders(A, root) {
+  const nodes = new Map([['', root]]);
+  const visit = async (dir, path, depth, heavy) => {
+    await Promise.all((await A.children(dir)).map(async (c) => {
+      if (!c.isDir || ALWAYS_SKIP.has(c.name)) return;
+      const p = joinPath(path, c.name);
+      nodes.set(p, c.node);
+      if (!heavy && depth + 1 < LOCATE_DEPTH) await visit(c.node, p, depth + 1, SKIP_DIRS.has(c.name));
+    }));
+  };
+  await visit(root, '', 0, false);
+  return nodes;
 }
 
+// The tracker and the ADR folder: the same rule as the server's (ticket-reader.js).
 async function locate(src) {
-  const A = src.adapter;
-  const roots = { tracker: null, adr: null };
-  const preferred = await findChild(A, src.root, DEFAULT_TRACKER_DIR);
-  if (preferred && await looksLikeTracker(A, preferred)) roots.tracker = { node: preferred, path: DEFAULT_TRACKER_DIR };
-  else if (await looksLikeTracker(A, src.root)) roots.tracker = { node: src.root, path: '' };
-  else {
-    let level = [{ node: src.root, path: '' }];
-    search: for (let depth = 0; depth < 3; depth++) {
-      const next = [];
-      for (const at of level) {
-        for (const c of await childDirs(A, at.node, SKIP_DIRS)) {
-          const here = { node: c.node, path: joinPath(at.path, c.name) };
-          if (await looksLikeTracker(A, c.node)) { roots.tracker = here; break search; }
-          next.push(here);
-        }
-      }
-      level = next;
-    }
-    if (!roots.tracker && preferred) roots.tracker = { node: preferred, path: DEFAULT_TRACKER_DIR };
-  }
-  for (const path of ADR_DIRS) {
-    const node = await findChild(A, src.root, path);
-    if (node) { roots.adr = { node, path }; break; }
-  }
-  return roots;
+  const nodes = await listFolders(src.adapter, src.root);
+  const { trackerPath, adrPath } = locateProject([...nodes.keys()]);
+  return {
+    tracker: trackerPath == null ? null : { node: nodes.get(trackerPath), path: trackerPath },
+    adr: adrPath == null ? null : { node: nodes.get(adrPath), path: adrPath },
+  };
 }
 
 async function walk(A, dir, path, depth, skipFrom, out) {
@@ -810,8 +795,7 @@ async function walk(A, dir, path, depth, skipFrom, out) {
   await Promise.all(kids.map(async (c) => {
     const p = joinPath(path, c.name);
     if (c.isDir) {
-      const skip = depth >= skipFrom ? SKIP_DIRS : ALWAYS_SKIP;
-      if (skip.has(c.name) || depth >= MAX_DEPTH) return;
+      if (!keepsFolder(c.name, depth, skipFrom === 0)) return;
       await walk(A, c.node, p, depth + 1, skipFrom, out);
     } else if (/\.(md|markdown)$/i.test(c.name)) {
       const f = await A.file(c.node);
@@ -1053,7 +1037,7 @@ function renderInline(src, ctx, noLinks) {
 const STORE_KEY = 'development-status:' + location.pathname;
 // prd: only the tickets naming this PRD item (Plan's link "/?module=build&prd=<id>"), closed ones too.
 const state = { view: 'waiting', doc: null, q: '', status: '', area: '', prd: '', showClosed: false, activityDays: 14 };
-try { state.prd = new URLSearchParams(location.search).get('prd') || ''; } catch (e) { /* no query */ }
+try { state.prd = prdFilter(location.search); } catch (e) { /* no query */ }
 const openDetails = new Set();
 let source = null;       // { adapter, root, name, live, roots }; from the launcher's server also { server, launcher, reload }
 let cache = new Map();   // path → { size, mtime, text }
@@ -1327,10 +1311,10 @@ function ticketLink(t, text) {
 }
 const blockerLinks = (t) => t.blockers.map((b) => (b.ticket ? ticketLink(b.ticket) : `<span class="tref is-missing" title="${esc(ui('table.no-such-ticket'))}">${esc(b.raw)}?</span>`)).join(' ');
 // The PRD items a ticket came from (its "**PRD:**" line): each opens Plan focused on that map
-// node (Plan's deep link /?module=plan&node=<id>, in the whole window). Opened as a file
+// node (Plan's deep link, planLink in ticket-reader.js, in the whole window). Opened as a file
 // (file://) there is no Plan to open: the ids show as text.
 const prdLinks = (t) => t.prd.map((id) => (source && source.live
-  ? `<a class="prd-ref" href="/?module=plan&amp;node=${esc(encodeURIComponent(id))}" target="_top" title="${esc(ui('prd.open', { id }))}">${esc(id)}</a>`
+  ? `<a class="prd-ref" href="${esc(planLink(id))}" target="_top" title="${esc(ui('prd.open', { id }))}">${esc(id)}</a>`
   : `<span class="prd-ref" title="${esc(ui('prd.no-plan'))}">${esc(id)}</span>`)).join(' ');
 const meter = (c) => (c.total ? `<span class="meter" title="${esc(ui('table.meter', { done: c.done, total: c.total }))}"><i style="--p:${pct(c.done, c.total)}%"></i>${c.done}/${c.total}</span>` : '<span class="muted">–</span>');
 

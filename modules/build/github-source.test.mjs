@@ -81,6 +81,22 @@ test('answers are kept for a while: polling does not reach GitHub each time', as
   assert.equal(asked.length, 2);
 });
 
+test('a fresh read asks GitHub at once, kept answer or not: the live re-check sees a change within one interval', async () => {
+  let now = 0;
+  let title = 'Before';
+  const asked = [];
+  const request = async (path) => { asked.push(path); return [restIssue(1, { title })]; };
+  const gh = openGitHub({ repo: 'acme/app', request, ttlMs: 60000, now: () => now });
+  assert.equal((await gh.issues()).issues[0].title, 'Before');
+  title = 'After';
+  now = 1000;
+  assert.equal((await gh.issues()).issues[0].title, 'Before', 'within the time an answer is kept, a plain read is served from it');
+  assert.equal((await gh.issues({ fresh: true })).issues[0].title, 'After');
+  assert.equal(asked.length, 2);
+  assert.equal((await gh.issues()).issues[0].title, 'After', 'the fresh answer is the one kept');
+  assert.equal(asked.length, 2);
+});
+
 test('a failure is told, without what the request carried; the last good answer stays', async () => {
   let fail = false;
   const request = async (path) => {

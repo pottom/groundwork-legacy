@@ -27,7 +27,7 @@ It shows the following views:
 - documents;
 - the git branch graph.
 
-On the core server the page follows the core's live updates (`/api/events`, Server-Sent Events): it reads again when a Markdown file, a git ref, Plan's map or the GitHub issues change (the server asks GitHub again every 20 seconds while a page listens), and on every reconnect. Opened as a file with a chosen folder, it re-reads the folder every 3 seconds.
+On the core server the page follows the core's live updates (`/api/events`, Server-Sent Events): it reads again when a Markdown file, a git ref, Plan's map or the GitHub issues change (the server asks GitHub afresh once a minute while a page listens, so a change on GitHub shows within a minute), and on every reconnect. Opened as a file with a chosen folder, it re-reads the folder every 3 seconds.
 
 | File | Role |
 |---|---|

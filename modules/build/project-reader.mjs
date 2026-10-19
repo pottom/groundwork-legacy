@@ -15,13 +15,12 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative, sep } from 'node:path';
+import './ticket-reader.js';
 
-// Folders that are never listed. The same two sets are SKIP_DIRS and
-// ALWAYS_SKIP in index.html: change them together. The page decides what a
-// listed file means; the server only keeps the heavy and the private folders
-// out of the list.
-const ALWAYS_SKIP = new Set(['node_modules', '.git', '.hg', '.svn']);
-const SKIP_DIRS = new Set([...ALWAYS_SKIP, 'target', 'dist', 'build', 'out', 'vendor', 'worktrees', '.cache', '.next', '.venv', '__pycache__']);
+// Folders that are never listed: the ticket reader's (ticket-reader.js), the sets the page
+// walks by. The page decides what a listed file means; the server only keeps the heavy and the
+// private folders out of the list.
+const { ALWAYS_SKIP, SKIP_DIRS } = globalThis.GroundworkTickets;
 const MARKDOWN = /\.(md|markdown)$/i;
 const MAX_DEPTH = 12;
 

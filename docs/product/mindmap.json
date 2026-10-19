@@ -239,7 +239,7 @@
                   {
                     "id": "d-live-sse",
                     "topic": "Élő frissítés Server-Sent Events-szel (/api/events)",
-                    "note": "A mag figyeli a projektmappát; a modul manifestje mondja meg, melyik fájl melyik témához tartozik, és maga is küldhet értesítést (a Build 20 mp-enként újra megkérdezi a GitHubot). Az oldalak csak értesítésre kérdeznek újra; újracsatlakozáskor mindent újraolvasnak.",
+                    "note": "A mag figyeli a projektmappát; a modul manifestje mondja meg, melyik fájl melyik témához tartozik, és maga is küldhet értesítést (a Build percenként frissen megkérdezi a GitHubot, így a GitHubon történt változás egy percen belül látszik). Az oldalak csak értesítésre kérdeznek újra; újracsatlakozáskor mindent újraolvasnak.",
                     "hyperLink": "core/events.mjs",
                     "metadata": {
                       "status": "decision",
@@ -460,7 +460,7 @@
                 "topic": "Biztonság",
                 "metadata": {
                   "status": "topic",
-                  "prose": "Egyetlen szerver ír és olvas, ezért a hozzáférés szűk: csak a helyi gépről (`127.0.0.1`) érhető el, és idegen `Host` fejlécű kérést elutasít. Írni csak a projekt dokumentációs mappájába (`docs/product/`) és a saját helyi állapotába (`.groundwork/`) tud. Tokent vagy jelszót nem használ, mert csak helyben fut.",
+                  "prose": "Egyetlen szerver ír és olvas, ezért a hozzáférés szűk: csak a helyi gépről (`127.0.0.1`) érhető el, és idegen `Host` fejlécű kérést elutasít. Írni csak a projekt dokumentációs mappájába (`docs/product/`) és a saját helyi állapotába (`.groundwork/`) tud.\n\nSaját tokent vagy jelszót nem kér és nem tárol. A GitHub olvasásához a felhasználó meglévő `gh`-bejelentkezését vagy a `GITHUB_TOKEN` / `GH_TOKEN` környezeti változót használhatja; ezt sehova nem menti, és az oldalakhoz soha nem jut el: az oldal csak az issue-kat kapja meg.",
                   "progress": "done"
                 },
                 "children": [
@@ -484,9 +484,19 @@
                   },
                   {
                     "id": "x-sec-token",
-                    "topic": "Token vagy jelszó",
+                    "topic": "Saját token- vagy jelszókezelés (bekérés, tárolás)",
                     "metadata": {
                       "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-sec-github",
+                    "topic": "GitHub olvasása a meglévő gh-bejelentkezéssel vagy GITHUB_TOKEN / GH_TOKEN változóval",
+                    "note": "A szerver nem tárolja a tokent, és nem küldi az oldalnak; a hibaüzenetből is kivágja a tokennek látszó részt. Token nélkül a nyilvános repók olvashatók.",
+                    "hyperLink": "modules/build/github-source.mjs",
+                    "metadata": {
+                      "status": "decision",
+                      "impl": "done"
                     }
                   }
                 ]

@@ -187,3 +187,61 @@ test('without the PRD map no id is unknown, and a missing PRD line counts only o
   }));
   assert.deepEqual(prdProblems(some), [['no-prd', 'core 01', 'problem.no-prd.text', {}]]);
 });
+
+// ───────── Where the tickets are: one rule for the page and the server ─────────
+
+const { locateProject, ticketPath, keepsFolder, DONE, DROPPED, CLOSED, isDone, isDropped } = globalThis.GroundworkTickets;
+
+test('the tracker: .scratch when its areas hold issues, else the root, else the first such folder within three levels', () => {
+  assert.equal(locateProject(['', '.scratch', '.scratch/core', '.scratch/core/issues', 'work', 'work/core', 'work/core/issues']).trackerPath, '.scratch');
+  assert.equal(locateProject(['', 'core', 'core/issues', 'src']).trackerPath, '');
+  assert.equal(locateProject(['', 'build', 'build/issues']).trackerPath, '', 'an area may be called "build"');
+  assert.equal(locateProject(['', 'a', 'a/b', 'a/b/tickets', 'a/b/tickets/core', 'a/b/tickets/core/issues']).trackerPath, 'a/b/tickets');
+  assert.equal(locateProject(['', 'a', 'a/b', 'a/b/c', 'a/b/c/d', 'a/b/c/d/core', 'a/b/c/d/core/issues']).trackerPath, null, 'deeper than three levels');
+  assert.equal(locateProject(['', 'dist', 'dist/t', 'dist/t/core', 'dist/t/core/issues']).trackerPath, null, 'not inside a skipped folder');
+  assert.equal(locateProject(['', '.scratch', 'docs']).trackerPath, '.scratch', '.scratch anyway when it exists');
+  assert.equal(locateProject(['']).trackerPath, null);
+});
+
+test('the ADR folder: the first of the known places that exists', () => {
+  assert.equal(locateProject(['', 'docs', 'docs/adr', 'adr']).adrPath, 'docs/adr');
+  assert.equal(locateProject(['', 'docs', 'docs/decisions']).adrPath, 'docs/decisions');
+  assert.equal(locateProject(['', 'docs']).adrPath, null);
+});
+
+test('a ticket file: <tracker>/<area>/issues/<name>.md, the area any folders not skipped', () => {
+  assert.deepEqual(ticketPath('.scratch/core/issues/01-first.md', '.scratch'), { area: 'core', name: '01-first' });
+  assert.deepEqual(ticketPath('.scratch/build/issues/02.markdown', '.scratch'), { area: 'build', name: '02' }, 'a top area may have a skipped name');
+  assert.deepEqual(ticketPath('.scratch/web/ui/issues/03.md', '.scratch'), { area: 'web/ui', name: '03' });
+  assert.deepEqual(ticketPath('core/issues/01.md', ''), { area: 'core', name: '01' });
+  assert.equal(ticketPath('.scratch/web/dist/issues/03.md', '.scratch'), null, 'below an area, skipped folders are not read');
+  assert.equal(ticketPath('.scratch/node_modules/issues/01.md', '.scratch'), null);
+  assert.equal(ticketPath('.scratch/core/spec.md', '.scratch'), null);
+  assert.equal(ticketPath('.scratch/issues/01.md', '.scratch'), null, 'an issues folder needs an area');
+  assert.equal(ticketPath('other/core/issues/01.md', '.scratch'), null);
+  assert.equal(ticketPath('.scratch/core/issues/01.md', null), null);
+  assert.equal(ticketPath('.scratch/a/b/c/d/e/f/g/h/issues/01.md', '.scratch'), null, 'deeper than the page walks');
+});
+
+test('the folders walked are the folders a ticket may be in', () => {
+  assert.equal(keepsFolder('build', 0), true);
+  assert.equal(keepsFolder('build', 1), false);
+  assert.equal(keepsFolder('build', 0, true), false, 'the ADR folder skips them from the top');
+  assert.equal(keepsFolder('.git', 0), false);
+  assert.equal(keepsFolder('core', 7), true);
+  assert.equal(keepsFolder('core', 8), false);
+});
+
+test('a file outside the tracker\'s rule is not a ticket, whoever passes it', () => {
+  const m = readTickets(local({ '.scratch/web/dist/issues/03.md': '# Hidden\n\n**Status:** ready-for-agent\n', '.scratch/core/issues/01.md': '# One\n\n**Status:** done\n' }));
+  assert.deepEqual(m.tickets.map((t) => t.label), ['core 01']);
+});
+
+test('done and dropped: one definition, closed is either', () => {
+  assert.deepEqual([...DONE].sort(), ['closed', 'done', 'resolved']);
+  assert.deepEqual([...DROPPED].sort(), ['legacy', 'wontfix']);
+  assert.deepEqual([...CLOSED].sort(), ['closed', 'done', 'legacy', 'resolved', 'wontfix']);
+  assert.equal(isDone({ status: 'resolved' }), true);
+  assert.equal(isDropped({ status: 'wontfix' }), true);
+  assert.equal(isDone({ status: 'wontfix' }), false);
+});
