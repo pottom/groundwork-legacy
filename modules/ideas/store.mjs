@@ -2,7 +2,7 @@
 // type the manifest declares (`records`); the store reads, numbers and writes the files, enforces the
 // lifecycle and keeps each idea's history. Each idea is one Markdown file under docs/product/ideas/,
 // I-012-<slug>.md: its id and fields in the front matter, its description below, its history at the
-// end. Other files in that folder (Plan's generated PRD.md and TECH.md) are not ideas.
+// end. Other files in that folder are not ideas (Plan's documents live in the Spec, docs/product/spec/).
 //
 //   const ideas = openIdeas(records)   // records: the core's store (api({ records }), or openRecords)
 //   ideas.list()          [{ id: 'I-12', n: 12, file, version, title, body, author, source, kind, status,

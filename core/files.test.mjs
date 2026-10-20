@@ -88,6 +88,27 @@ test('a listed folder that is itself a link to outside cannot be written', () =>
   assert.deepEqual(fs.readdirSync(outside), [])
 })
 
+test('removeEmptyDir removes an empty folder under a writable folder, and nothing else', () => {
+  const root = tmp()
+  const outside = tmp('gw-outside-')
+  fs.mkdirSync(path.join(root, 'docs/product/empty'), { recursive: true })
+  fs.mkdirSync(path.join(root, 'docs/product/full'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'docs/product/full/x.md'), 'x')
+  fs.mkdirSync(path.join(root, 'src/empty'), { recursive: true })
+  linkDir(outside, path.join(root, 'docs/product/linked'))
+  const files = projectFiles(root, WRITES)
+  assert.equal(files.removeEmptyDir('docs/product/empty'), true)
+  assert.equal(fs.existsSync(path.join(root, 'docs/product/empty')), false)
+  assert.equal(files.removeEmptyDir('docs/product/full'), false, 'not empty: kept')
+  assert.equal(files.removeEmptyDir('docs/product/gone'), false, 'missing: nothing to do')
+  assert.ok(fs.existsSync(path.join(root, 'docs/product/full/x.md')))
+  assert.throws(() => files.removeEmptyDir('src/empty'), /may not write/)
+  assert.throws(() => files.removeEmptyDir('docs/product'), /may not write/, 'the writable folder itself stays')
+  assert.throws(() => files.removeEmptyDir('docs/product/linked'), /may not write/, 'a link to outside')
+  assert.ok(fs.existsSync(path.join(root, 'src/empty')))
+  assert.ok(fs.lstatSync(path.join(root, 'docs/product/linked')))
+})
+
 test('a manifest may only list folders under docs/product/ or .groundwork/', () => {
   const root = tmp()
   assert.throws(() => projectFiles(root, ['src']), /docs\/product\/ and \.groundwork\//)

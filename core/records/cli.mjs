@@ -36,9 +36,7 @@
 // call prints a message and exits with 1.
 
 import path from 'node:path'
-import { MODULES } from '../modules.mjs'
-import { openRecords } from './store.mjs'
-import { CORE_RECORDS } from './changes.mjs'
+import { openProjectRecords } from './project.mjs'
 import { checkRecords, formatFinding } from './check.mjs'
 import { renumber } from './renumber.mjs'
 
@@ -75,7 +73,7 @@ function only(opts, allowed) {
 function run([cmd, ...rest]) {
   const { words, opts } = parse(rest)
   const root = path.resolve(opts.root ?? (process.env.MINDMAP_DIR || process.cwd()))
-  const store = openRecords(root, [...MODULES, CORE_RECORDS])
+  const store = openProjectRecords(root)
   const stateOf = (/** @type {import('./types.mjs').StoredRecord} */ r) => {
     const t = store.types().find((x) => x.prefix === r.type)
     return String((t && r.fields[t.lifecycle.field]) ?? '')
@@ -176,7 +174,7 @@ function showId(store, id) {
   return lines(found)
 }
 
-/** @typedef {ReturnType<typeof openRecords>} Store */
+/** @typedef {ReturnType<typeof import('./store.mjs').openRecords>} Store */
 /** @typedef {import('./spec-format.mjs').SpecItem} SpecItem */
 /** @typedef {import('./spec-format.mjs').SpecSection} SpecSection */
 

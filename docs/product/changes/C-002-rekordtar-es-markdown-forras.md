@@ -219,6 +219,8 @@ Jóváhagyó lista és beolvasztás (C-3), Spec munkaterület és Lit (C-4), jeg
   A rekordtárban és a modulszerződésben (rekordtípusok, op-ok, manifestek). Csak fejlesztői függőség, a csomagba nem kerül, a kód .mjs marad; az implement skill típusellenőrzése ezt futtatja.
 - add `x-server-framework` → `core/tech#t-core-stack` — Szerver-keretrendszer (NestJS, Fastify) · kizárt · hiányzik
   A szerver kicsi, zömmel tartománylogika; a HTTP-réteg nem fáj.
+- change `d-sec-write` → `core/tech#t-core-sec` — Írni csak a docs/product/ és a .groundwork/ alá; egyetlen kivétel a kézzel indított record renumber, amely a .scratch/ alatti helyi jegyekben is átírja a hivatkozásokat · döntés · kész
+  A kivételt a #50 kéri (core/files.mjs: renumberFiles); más parancs és modul nem nyitja meg, és ugyanazok az útvonal-ellenőrzések védik.
 
 ## Jegyek
 

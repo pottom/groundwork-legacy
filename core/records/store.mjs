@@ -26,6 +26,10 @@
 //   store.resolve(id)                   what an id means: a record, a Spec id, an item a pending
 //                                       change proposes, or an old id a merged change lists
 //                                       (resolve.mjs), or null
+//   store.forModule(manifest)           the store as a module gets it: reads are global, writes
+//                                       only the record types its manifest declares, and the Spec
+//                                       only when its `writes` cover docs/product/spec/ (code
+//                                       'forbidden' otherwise)
 //
 // by is 'human' (the browser) or 'claude' (the command line), and is 'claude' when not given. On
 // every write the store enforces the type's lifecycle: Claude moves a record only between the
@@ -319,7 +323,25 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     return nextNumber(t, scan())
   }
 
-  const self = { root, types: () => [...types], list, get, show, create, update, next, spec, resolve: (/** @type {string} */ id) => resolver(self).resolve(id) }
+  const self = { root, types: () => [...types], list, get, show, create, update, next, spec, resolve: (/** @type {string} */ id) => resolver(self).resolve(id), forModule }
+
+  // What one module gets: every read, and writes of the record types it declares only; the Spec
+  // only when its manifest's `writes` cover the Spec's folder (Plan's). Refused: code 'forbidden'.
+  /** @param {{ id: string, records?: RecordType[], writes?: string[] }} m */
+  function forModule(m) {
+    const own = new Set((m.records ?? []).map((t) => t.prefix))
+    /** @param {string} what @returns {never} */
+    const deny = (what) => { throw fail(`${m.id} may not write ${what}: a module writes only its own record types (${[...own].join(', ') || 'none'})`, 'forbidden') }
+    const writesSpec = (m.writes ?? []).some((w) => { const f = path.posix.normalize(w).replace(/\/$/, ''); return SPEC_DIR === f || SPEC_DIR.startsWith(f + '/') })
+    return {
+      ...self,
+      /** @type {typeof create} */
+      create: (prefix, input, opts) => (own.has(prefix) ? create(prefix, input, opts) : deny(`a ${prefix} record`)),
+      /** @type {typeof update} */
+      update: (id, input, opts) => (own.has(ID.exec(String(id))?.[1] ?? '') ? update(id, input, opts) : deny(String(id))),
+      spec: writesSpec ? spec : { ...spec, writeDoc: () => deny('the Spec') },
+    }
+  }
   return self
 }
 

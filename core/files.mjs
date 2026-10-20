@@ -7,6 +7,7 @@
 //   files.exists(rel)  files.read(rel)           anywhere inside the project
 //   files.write(rel, text)                       atomic, creates missing folders
 //   files.append(rel, text)  files.remove(rel)
+//   files.removeEmptyDir(rel)                    a folder inside a writable one, only when empty
 //
 // Paths are relative to the project. A write fails when its path is absolute, leaves its
 // folder with `..`, or reaches outside through a symlink or junction. The folders
@@ -94,6 +95,16 @@ function open(root, writes, allowed = WRITABLE) {
       fs.appendFileSync(abs, text)
     },
     remove: (rel) => fs.unlinkSync(target(rel)),
+    // Removes a folder inside a writable one if it is empty: true when it went, false when it
+    // holds something or is gone already. A link is refused like any write through it.
+    removeEmptyDir(rel) {
+      const abs = target(rel)
+      let st
+      try { st = fs.lstatSync(abs) } catch { return false }
+      if (!st.isDirectory() || fs.readdirSync(abs).length) return false
+      fs.rmdirSync(abs)
+      return true
+    },
   }
   return { files, target }
 }
