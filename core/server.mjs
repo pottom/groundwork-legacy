@@ -29,7 +29,8 @@
 // The handler returns (or resolves to) true when it answered, anything else means 404.
 // `files` is the module's only way to write: it writes only under `writes` (see files.mjs).
 // `events` lets it push a live-update topic itself: events.publish(topic), events.every(ms, fn).
-// `records` is the record store shared by every module (records/store.mjs).
+// `records` is the record store shared by every module (records/store.mjs), with the core's own
+// types after the modules': changes and milestones (records/changes.mjs).
 
 import http from 'node:http'
 import fs from 'node:fs'
@@ -43,6 +44,7 @@ import { VERSION } from './version.mjs'
 import { projectName } from './project-name.mjs'
 import { openRecords } from './records/store.mjs'
 import { recordsApi, recordTopic } from './records/api.mjs'
+import { CORE_RECORDS } from './records/changes.mjs'
 
 export const HOST = '127.0.0.1'
 const HOST6 = '::1'
@@ -86,7 +88,7 @@ const RESERVED = new Set(['api', 'shell', 'vendor', 'records'])
 
 export async function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR }) {
   for (const m of modules) if (RESERVED.has(m.id)) throw new Error(`module id "${m.id}" is reserved by the core`)
-  const records = openRecords(root, modules)
+  const records = openRecords(root, [...modules, CORE_RECORDS])
   const events = createEvents({ root: path.resolve(root), modules: [...modules, { id: 'records', watch: (/** @type {string} */ p) => recordTopic(records, p) }] })
   const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m), events: events.api, records }) : null }))
   const recordsHandler = recordsApi(records)

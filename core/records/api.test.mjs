@@ -10,6 +10,7 @@ import path from 'node:path'
 import { startServer } from '../server.mjs'
 import { listen } from '../sse-client.test-helper.mjs'
 import { openRecords } from './store.mjs'
+import { CORE_RECORDS } from './changes.mjs'
 
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-records-api-'))
 const THING = {
@@ -45,7 +46,23 @@ test('a module api gets the shared store', async () => {
   let seen
   const mod = { ...MODULE, api: ({ records }) => { seen = records; return () => false } }
   await withServer(project(), [mod], async () => {
-    assert.deepEqual(seen.types().map((t) => t.prefix), ['T'])
+    assert.deepEqual(seen.types().map((t) => t.prefix), ['T', 'C', 'M'], 'the modules\' types, then the core\'s own')
+  })
+})
+
+test('the core\'s changes and milestones are on /api/records with their links; a missing module\'s ids stay plain', async () => {
+  const root = project()
+  const store = openRecords(root, [MODULE, CORE_RECORDS])
+  store.create('T', { fields: { title: 'A thing' } })
+  store.create('M', { fields: { title: 'Redesign' } })
+  store.create('C', { fields: { title: 'Record store', ideas: ['I-5'], milestone: 'M-1' } })
+  await withServer(root, [MODULE], async (base) => {
+    const { records } = await (await fetch(`${base}/api/records`)).json()
+    assert.deepEqual(records.map((r) => r.id), ['T-1', 'C-1', 'M-1'])
+    const { record } = await (await fetch(`${base}/api/records/C-1`)).json()
+    assert.deepEqual(record.links.map((l) => [l.id, l.title ?? null]), [['I-5', null], ['M-1', 'Redesign']])
+    assert.equal(record.outline.tickets, 'C-1')
+    assert.deepEqual((await (await fetch(`${base}/api/records/M-1`)).json()).record.linkedFrom, ['C-1'])
   })
 })
 
