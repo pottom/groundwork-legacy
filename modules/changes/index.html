@@ -14,11 +14,14 @@
 <link rel="modulepreload" href="/vendor/reactive-element/reactive-element.js"><link rel="modulepreload" href="/vendor/reactive-element/css-tag.js">
 <link rel="modulepreload" href="/shell/i18n.mjs"><link rel="modulepreload" href="/shell/live.mjs">
 <link rel="modulepreload" href="/shell/record-chip.mjs"><link rel="modulepreload" href="/shell/record-link.mjs">
-<link rel="modulepreload" href="./view/changes-list.mjs"><link rel="modulepreload" href="./view/strings.mjs"><link rel="modulepreload" href="./ui-strings.mjs">
+<link rel="modulepreload" href="./view/changes-list.mjs"><link rel="modulepreload" href="./view/change-page.mjs"><link rel="modulepreload" href="./compare.mjs">
+<link rel="modulepreload" href="/vendor/lit-html/directives/unsafe-html.js"><link rel="modulepreload" href="/vendor/lit-html/directive.js"><link rel="modulepreload" href="./view/strings.mjs"><link rel="modulepreload" href="./ui-strings.mjs">
 </head>
 <body data-state="loading">
-<!-- view/main.mjs fills the list (view/changes-list.mjs) from /api/changes/list -->
+<!-- view/main.mjs fills the list (view/changes-list.mjs) from /api/changes/list, or with ?change=C-3
+     that change's page (view/change-page.mjs) from /api/changes/show -->
 <gw-changes-list id="list"></gw-changes-list>
+<gw-change-page id="page" hidden></gw-change-page>
 <script type="module" src="./view/main.mjs"></script>
 </body>
 </html>

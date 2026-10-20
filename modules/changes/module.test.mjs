@@ -13,6 +13,7 @@ import { moduleFiles } from '../../core/files.mjs'
 import { openRecords } from '../../core/records/store.mjs'
 import { CORE_RECORDS } from '../../core/records/changes.mjs'
 import { MODULES } from '../../core/modules.mjs'
+import { execFileSync } from 'node:child_process'
 import { listen } from '../../core/sse-client.test-helper.mjs'
 import ideas from '../ideas/module.mjs'
 import changes from './module.mjs'
@@ -26,6 +27,12 @@ async function withServer(root, modules, fn) {
   try { await fn(`http://127.0.0.1:${srv.port}`, srv) } finally { await srv.close() }
 }
 const list = async (base) => (await (await fetch(`${base}/api/changes/list`)).json())
+const show = async (base, id) => (await fetch(`${base}/api/changes/show?id=${encodeURIComponent(id)}`)).json()
+const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd, stdio: 'ignore' })
+// every file below the root, with its content: what a read must leave as it was
+const snapshot = (root) => Object.fromEntries(fs.readdirSync(root, { recursive: true, withFileTypes: true })
+  .filter((d) => d.isFile() && !path.relative(root, d.parentPath ?? d.path).startsWith('.git'))
+  .map((d) => { const f = path.join(d.parentPath ?? d.path, d.name); return [path.relative(root, f), fs.readFileSync(f, 'utf8')] }))
 
 test('the Changes module declares the Change type in docs/product/changes/ and writes nothing itself', () => {
   assert.deepEqual(changes.writes, [])
@@ -76,6 +83,74 @@ test('this repository\'s changes: C-1…C-13 (and any made since), each with a s
     assert.deepEqual([c3.milestone.id, c3.milestone.module], ['M-9', 'core'])
     assert.ok(c3.items > 0)
   })
+})
+
+test('/api/changes/show gives one change\'s page; an unknown or missing id is refused', async () => {
+  const root = project()
+  const store = open(root)
+  store.create('I', { fields: { title: 'Record model' } }, { by: 'human' })
+  store.create('C', { fields: { title: 'Asking', ideas: ['I-1'] }, body: '## Probléma\n\nNo *home*.\n\n## Kérdések\n\n- Git or not?\n\n## Javasolt elemek\n\n- add `d-a` → `system#t-x` — A\n  Its note.\n' })
+  await withServer(root, [ideas, changes], async (base) => {
+    const page = await show(base, 'C-1')
+    assert.deepEqual([page.id, page.title, page.stage, page.questions, page.tickets], ['C-1', 'Asking', 'grilling', 1, null], 'a body written without the tickets rule has none')
+    assert.deepEqual(page.ideas, [{ id: 'I-1', name: 'idea', module: 'ideas', title: 'Record model' }])
+    assert.match(page.html.sections.problem, /<em>home<\/em>/)
+    assert.deepEqual(page.content.items.map((i) => [i.op, i.id, i.target, i.note]), [['add', 'd-a', 'system#t-x', 'Its note.']])
+    assert.equal(page.marks, null, 'a folder without git: no marks, no error')
+    assert.equal((await fetch(`${base}/api/changes/show?id=C-9`)).status, 404)
+    assert.equal((await fetch(`${base}/api/changes/show?id=I-1`)).status, 404, 'an idea is no change')
+    assert.equal((await fetch(`${base}/api/changes/show`)).status, 404)
+    assert.equal((await fetch(`${base}/api/changes/show?id=C-1`, { method: 'POST' })).status, 405)
+  })
+})
+
+test('reading the list and a page writes no file', async () => {
+  const root = project()
+  open(root).create('C', { fields: { title: 'Asking' }, body: '## Kérdések\n\n- Git or not?' })
+  const before = snapshot(root)
+  await withServer(root, [changes], async (base) => {
+    await list(base)
+    await show(base, 'C-1')
+  })
+  assert.deepEqual(snapshot(root), before)
+})
+
+test('the marks: what changed since the last commit; none for an uncommitted change, none after a commit', async () => {
+  const root = project()
+  git(root, 'init', '-q')
+  const store = open(root)
+  store.create('C', { fields: { title: 'Asking' }, body: '## Probléma\n\nNo home.\n\n## Kérdések\n\n- Git or not?\n\n## Javasolt elemek\n\n- add `d-a` → `system#t-x` — A\n- add `d-b` → `system#t-x` — B\n' })
+  await withServer(root, [changes], async (base) => {
+    assert.equal((await show(base, 'C-1')).marks, null, 'not committed yet')
+    git(root, 'add', '.'); git(root, 'commit', '-q', '-m', 'one')
+    assert.deepEqual((await show(base, 'C-1')).marks.items, {}, 'committed and unchanged: nothing marked')
+    const rec = store.get('C-1')
+    store.update('C-1', { body: rec.body.replace('No home.', 'No home yet.').replace('- Git or not?', '- Which name?').replace('- add `d-b` → `system#t-x` — B', '- add `d-c` → `system#t-x` — C') })
+    const page = await show(base, 'C-1')
+    assert.deepEqual(page.marks.sections, { problem: 'modified' })
+    assert.deepEqual(page.marks.items, { 'd-c': 'new' })
+    assert.deepEqual(page.marks.removed.items.map((i) => i.id), ['d-b'])
+    assert.deepEqual(page.marks.questions, { 'which name?': 'new' })
+    assert.deepEqual(page.marks.removed.questions.map((q) => q.text), ['Git or not?'])
+    git(root, 'add', '.'); git(root, 'commit', '-q', '-m', 'two')
+    const after = (await show(base, 'C-1')).marks
+    assert.deepEqual([after.sections, after.items, after.removed.items], [{}, {}, []], 'after the commit the marks are gone')
+  })
+})
+
+test('this repository\'s C-3 opens as a page with every proposed item', async () => {
+  await withServer(REPO, MODULES, async (base) => {
+    const page = await show(base, 'C-3')
+    assert.equal(page.title, 'A változás lapja élőben')
+    assert.ok(page.content.items.some((i) => i.id === 'd-changes-page-readonly' && i.target === 'changes/prd#t-changes-scope'))
+    for (const k of ['problem', 'solution', 'scope', 'outOfScope']) assert.ok(page.html.sections[k], k)
+  })
+})
+
+test('a commit is the Changes module\'s live topic too, so the marks go away on their own', () => {
+  assert.equal(changes.watch('.git/refs/heads/main'), 'changes.commit')
+  assert.equal(changes.watch('.git/HEAD'), 'changes.commit')
+  assert.equal(changes.watch('.git/index'), null)
 })
 
 test('a change file is the Changes module\'s live topic; other files are not', () => {
