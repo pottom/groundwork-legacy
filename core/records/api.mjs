@@ -2,7 +2,8 @@
 // The record store's endpoints, which the core server answers itself (the store is the core's):
 //
 //   GET /api/records[?type=I]   { records: [StoredRecord] }, in id order
-//   GET /api/records/I-5        { record: ShownRecord }: with linkedFrom and the body as safe html;
+//   GET /api/records/I-5        { record: ShownRecord }: with links (resolved, or plain ids), linkedFrom,
+//                               outline (a change's proposed items) and the body as safe html;
 //                               404 when there is none
 //   GET /api/records/core/tech  an id of the Spec (spec-store.mjs): { document: StoredDoc } with its
 //                               sections, items and problems; { part: { id, ...SpecPart, documents } };

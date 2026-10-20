@@ -10,9 +10,15 @@
 //   store.list(prefix?)                 every record (of one type), in id order: StoredRecord
 //   store.get(id)                       one record, or null
 //   store.show(id)                      the record with what is computed from all records, never
-//                                       stored in a file: linkedFrom (who refers to it), html (the body,
-//                                       rendered without raw HTML); null when there is none
-//   store.create(prefix, { fields, body? }, { by? })      the new record
+//                                       stored in a file: links (its link fields' ids, resolved by the
+//                                       id's shape: type, title and file when a declared type has the
+//                                       prefix, else a plain id, so a missing module breaks nothing),
+//                                       linkedFrom (who refers to it: an idea's changes, a milestone's
+//                                       changes), outline (what the type reads from the body, a change's
+//                                       proposed items), html (the body, rendered without raw HTML);
+//                                       null when there is none
+//   store.create(prefix, { fields, body? }, { by? })      the new record (without a body, the type's
+//                                                         template's, if it has one)
 //   store.update(id, { fields?, body? }, { by?, base? })  the record as written
 //   store.spec                          the Spec: its documents and parts (spec-store.mjs)
 //
@@ -49,6 +55,7 @@ import { SPEC_DIR } from './spec-format.mjs'
 /** @typedef {import('./types.mjs').Fields} Fields */
 /** @typedef {import('./types.mjs').FieldValue} FieldValue */
 /** @typedef {import('./types.mjs').Actor} Actor */
+/** @typedef {import('./types.mjs').ResolvedLink} ResolvedLink */
 /**
  * @typedef {Object} Cache
  * @property {number} v
@@ -228,7 +235,9 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     const slug = slugOf(String(next[t.slugFrom ?? 'title'] ?? ''))
     while (fs.existsSync(path.join(root, t.folder, fileName(t.prefix, n, slug)))) n++
     const rel = `${t.folder}/${fileName(t.prefix, n, slug)}`
-    const rec = save(t, rel, { id: `${t.prefix}-${n}`, fields: next, body: String(body ?? ''), history: [`${today()} · ${by} · created`] })
+    const id = `${t.prefix}-${n}`
+    const text = String(body ?? '').trim() || (t.template ? t.template(id) : '')
+    const rec = save(t, rel, { id, fields: next, body: text, history: [`${today()} · ${by} · created`] })
     const after = scan()
     after.cache.last[t.prefix] = Math.max(after.cache.last[t.prefix] ?? 0, n)
     after.cache.git = { ...after.cache.git, [t.prefix]: true }
@@ -268,8 +277,32 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     const all = list()
     const rec = all.find((r) => r.id === id)
     if (!rec) return null
+    const t = typeOf(rec.type)
     const linkedFrom = all.filter((r) => r.id !== id && (typeOf(r.type)?.links ?? []).some((k) => asList(r.fields[k]).includes(id))).map((r) => r.id)
-    return { ...rec, linkedFrom, html: renderMarkdown(rec.body) }
+    /** @type {ShownRecord} */
+    const shown = { ...rec, links: resolveLinks(rec, t, all), linkedFrom, html: renderMarkdown(rec.body) }
+    if (t?.outline) shown.outline = t.outline(rec.body)
+    return shown
+  }
+
+  // The links a record writes, each resolved by its id's shape: a plain id unless a declared type
+  // has its prefix (a missing module's records, or no record id at all, stay plain).
+  /** @param {StoredRecord} rec @param {RecordType | undefined} t @param {StoredRecord[]} all */
+  function resolveLinks(rec, t, all) {
+    /** @type {ResolvedLink[]} */
+    const out = []
+    for (const field of t?.links ?? []) for (const ref of asList(rec.fields[field])) {
+      /** @type {ResolvedLink} */
+      const link = { field, id: ref }
+      const of = typeOf(ID.exec(ref)?.[1] ?? '')
+      if (of) {
+        Object.assign(link, { type: of.prefix, name: of.name })
+        const target = all.find((r) => r.id === ref)
+        if (target) Object.assign(link, { title: String(target.fields.title ?? ''), file: target.file })
+      }
+      out.push(link)
+    }
+    return out
   }
 
   return { types: () => [...types], list, get, show, create, update, spec }
