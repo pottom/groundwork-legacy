@@ -24,7 +24,8 @@ async function withServer(root, fn) {
 // main with one commit; milestone (cut from main, one commit); the worktree folder lives in the
 // temp dir beside the repository, as an agent's would.
 function repo() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-wt-'))
+  // realpath: git reports worktrees by their real path, and on macOS the temp dir is behind a symlink (/var -> /private/var).
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'gw-wt-')))
   const root = path.join(dir, 'app')
   fs.mkdirSync(root)
   git(root, 'init', '-q', '-b', 'main')

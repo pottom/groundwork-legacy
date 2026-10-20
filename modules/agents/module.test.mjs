@@ -15,7 +15,8 @@ import agents, { HOOK } from './module.mjs'
 const DIR = path.join('.groundwork', 'agents')
 
 async function withServer(fn) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-agents-'))
+  // realpath: git reports worktrees by their real path, and on macOS the temp dir is behind a symlink (/var -> /private/var).
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'gw-agents-')))
   const srv = await startServer({ root, modules: [agents], port: 0 })
   try { await fn({ root, srv, base: `http://127.0.0.1:${srv.port}` }) } finally { await srv.close() }
 }
