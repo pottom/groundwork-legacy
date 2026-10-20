@@ -1,6 +1,6 @@
 # Agents module
 
-The Claude Code sessions of a project and their subagents, live, in the shell: each session with its agents, their state (running, done, failed), when they started and how long they ran. It only observes; starting and stopping stay in Claude Code. The plan, in Hungarian: [`docs/product/agents/PRD.md`](../../docs/product/agents/PRD.md), [`TECH.md`](../../docs/product/agents/TECH.md).
+The Claude Code sessions of a project and their subagents, live, in the shell: each session with its agents, their state (running, done, failed), when they started and how long they ran. It only observes; starting and stopping stay in Claude Code. The plan, in Hungarian: [`docs/product/spec/agents/PRD.md`](../../docs/product/spec/agents/PRD.md), [`TECH.md`](../../docs/product/spec/agents/TECH.md).
 
 Agents is a tool, not a step of the workflow: its tab comes after Sketch (`tool: true`).
 

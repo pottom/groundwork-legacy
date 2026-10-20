@@ -12,7 +12,7 @@ Each folder here is one Groundwork module.
 
 ## What a module is
 
-From the plan ([`docs/product/core/TECH.md`](../docs/product/core/TECH.md), Modulszerződés), a module is one folder with:
+From the plan ([`docs/product/spec/core/TECH.md`](../docs/product/spec/core/TECH.md), Modulszerződés), a module is one folder with:
 
 1. a **descriptor**: id, name, version;
 2. **server endpoints** under its own `/api/<module>/` path;
@@ -43,7 +43,7 @@ export default {
   attention: '/api/agents/attention',                    // optional (Agents): what needs the user, counted on the tab and toasted
                                                          // by the shell: { items: [{ key, reason, text: { en, hu } }], recheck }
   moves: { '.prd-maker': '.groundwork/plan' },           // optional: old state the core moves over once
-  watch: (path) => (path === 'docs/product/mindmap.json' ? 'plan.map' : null),  // optional: live-update topic of a changed file
+  watch: (path) => (path.startsWith('docs/product/spec/') ? 'plan.map' : null),  // optional: live-update topic of a changed file
   cli: path.join(HERE, 'plan.mjs'),                      // optional: run by `groundwork plan <args>`
   claude: {                                              // optional: what `groundwork init` installs
     skills: [path.join(HERE, 'skills', 'groundwork-prd-maker')],  // skill folders, copied to .claude/skills/<name>/
@@ -65,7 +65,7 @@ Endpoints answer with `send` from [`core/http.mjs`](../core/http.mjs): never cac
 Modules read each other's data only through small, declared public endpoints, never through the other's files or its full data:
 
 - A module lists in `public` the endpoints another module may read, and its README lists them under "Public endpoints". Each answers exactly what the reader needs and nothing more: today Plan's `GET /api/plan/ids` (the map's ids, not the map), Build's `GET /api/build/prd` (the ticket counts per map item, not the tickets) and `GET /api/build/ideas` (the number and state of the tickets naming each idea), Sketch's `GET /api/sketch/links` (which sketches link to which idea, map node, ticket or sketch, not the drawings) and Agents' `GET /api/agents/tickets` (the running agents per ticket, not the event log). A public endpoint is a `GET`, except a small write the owner takes on another module's behalf: Plan's `POST /api/plan/todo` (an idea from Ideas as a map node; the map is still written by Plan alone). Such a write takes only `content-type: application/json` (`415` otherwise), so no other web site can send it.
-- A module calls no other endpoint of another module, and does not open the files another module owns (Build never reads `mindmap.json`; Plan never reads tickets). A module that needs more asks for a new small endpoint in the other module's `public`, not for its full data.
+- A module calls no other endpoint of another module, and does not open the files another module owns (Build never reads the Spec files; Plan never reads tickets). A module that needs more asks for a new small endpoint in the other module's `public`, not for its full data.
 - Every module works when the other is missing. The core then answers the missing module's endpoints with `404`, and the reader takes any answer that is not `ok`, or no answer, as "nothing to show": no counts, no map, no links into the missing module, and no error on the page.
 
 `modules/alone.test.mjs` checks this: it starts the server with only Plan and with only Build, and scans each module's code for calls to the other's endpoints. The core itself has no user-facing feature of its own; it serves the modules and the shell around them.

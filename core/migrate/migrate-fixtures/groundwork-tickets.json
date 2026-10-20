@@ -1,0 +1,380 @@
+[
+ {
+  "number": 1,
+  "state": "closed",
+  "milestone": "1. Core server",
+  "title": "Core server runs, with the Plan module behind it",
+  "body": "**PRD:** d-one-server, d-mod-manifest, d-mod-api, d-mod-view, d-sec-local, n-node-builtin\n\n## What to build\n\nOne local server starts and serves modules. The first module is Plan: the mind map and the documents work exactly as today, but through the core server, with Plan's API under `/api/plan/`. Plan plugs in through a minimal module contract: a manifest (id, name, version), server endpoints and a view.\n\nThe restructuring this needs is part of this ticket, not a separate step. Today, reading and writing the map and merging browser saves live inside one request handler of Plan's server, while the CLI and the hook reach the same file their own way. That logic moves into one module with a small interface (read, apply ops, save from the browser, take human edits). The CLI, the hook and the core server all use it.\n\nToday Plan's server listens on every network interface and does not check the `Host` header. The core server ends that.\n\n## Acceptance criteria\n\n- [ ] One command starts the core server; the Plan view opens, the map can be edited and the documents are generated as before\n- [ ] Plan's endpoints are under `/api/plan/`\n- [ ] Plan registers with the core through a manifest (id, name, version)\n- [ ] The server listens on `127.0.0.1` only and answers a foreign `Host` header with 403\n- [ ] Only Node built-in modules are used; nothing to install\n- [ ] The groundwork-prd-maker hook and skill still work\n- [ ] `.claude/launch.json`, the hook setting and the README show the new way to start\n- [ ] The implementation links of \"done\" items on the map point to the current `modules/` paths\n- [ ] Reading, writing and merging the map live in one module; the CLI, the hook and the server use it\n- [ ] The merge has `node --test` tests through that module's interface (Claude and the browser write at the same time; the browser saves on top of an old version)\n- [ ] The `Host` check and the `127.0.0.1` binding are covered by a test\n\n## Blocked by\n\n- None (can start immediately)\n"
+ },
+ {
+  "number": 2,
+  "state": "closed",
+  "milestone": "1. Core server",
+  "title": "Build module moves behind the core server",
+  "body": "**PRD:** d-move-dashboard, n-build-ro, d-structure\n\n## What to build\n\nThe development dashboard opens from the same core server as Plan, with its own API under `/api/build/` and read access only. Every view of the dashboard works as today (tickets, dependencies, activity, inconsistencies, documents, branches). The serverless folder-picker mode stays.\n\n## Acceptance criteria\n\n- [ ] The core server serves the Build view, with this project's tickets and git history\n- [ ] Build's endpoints are under `/api/build/`\n- [ ] Build writes nothing into the project\n- [ ] Opened by double click, the dashboard still works with the folder picker (Chromium)\n- [ ] Build's own server is no longer needed; `.claude/launch.json` and the README reflect that\n\n## Blocked by\n\n- #1\n"
+ },
+ {
+  "number": 3,
+  "state": "closed",
+  "milestone": "1. Core server",
+  "title": "The core grants write access; Plan state moves to .groundwork/plan/",
+  "body": "**PRD:** d-mod-writes, d-sec-write, d-state-dir\n\n## What to build\n\nEvery module names the folders it may write to, and nothing else can be written. Modules do not get general file system access: the core hands each module a writer that can only write under the folders its manifest names. A forbidden write is not filtered out afterwards; there is simply no way to make it. Writes are possible only under `docs/product/` and `.groundwork/`.\n\nPlan's local state (browser edits Claude has not read yet) moves from today's `.prd-maker/` to `.groundwork/plan/`; existing state is kept.\n\n## Acceptance criteria\n\n- [ ] The module's manifest lists the folders it may write to\n- [ ] Plan writes through the writer the core gives it, never to the file system directly\n- [ ] A write outside the listed folders (`..`, absolute path, symlink) fails (covered by `node --test`)\n- [ ] Plan's state lives under `.groundwork/plan/`; an existing `.prd-maker/` is moved over and the hook finds it\n- [ ] `.groundwork/` is in the repo's `.gitignore`\n\n## Blocked by\n\n- #1\n"
+ },
+ {
+  "number": 4,
+  "state": "closed",
+  "milestone": "1. Core server",
+  "title": "Every dependency ships in the package and works offline",
+  "body": "**PRD:** d-offline, s-plan-me, s-plan-marked, x-cdn\n\n## What to build\n\nPlan loads Mind Elixir, marked and its fonts from CDNs today, although the technical design says they are part of the package. The dependencies move into the repo and the core server serves them, so Groundwork works fully without a network.\n\n## Acceptance criteria\n\n- [ ] The Plan and Build pages load nothing from an outside host (checked in the network requests)\n- [ ] Without a network the map shows and can be edited, and the documents show\n- [ ] The version and license of every bundled dependency are recorded\n\n## Blocked by\n\n- #1\n"
+ },
+ {
+  "number": 5,
+  "state": "closed",
+  "milestone": "2. Shared look and English UI",
+  "title": "Shared shell: header, navigation, theme follows the OS",
+  "body": "**PRD:** d-mod-view, d-shared-look, d-theme-os, d-core-role\n\n## What to build\n\nThe core provides a shared shell: a header with the project's name and navigation to switch between Plan and Build. Module views show inside the shell. The shell provides shared colours and typography; light or dark follows the operating system. The core has no user-facing feature of its own.\n\n## Acceptance criteria\n\n- [ ] The core server's start page is the shell; both modules open from the navigation\n- [ ] The navigation is built from the module manifests, not listed by hand\n- [ ] The light and dark shell follow the OS setting\n- [ ] The shell provides shared style variables that modules can use\n\n## Blocked by\n\n- #2\n"
+ },
+ {
+  "number": 6,
+  "state": "closed",
+  "milestone": "2. Shared look and English UI",
+  "title": "Plan uses the shared look",
+  "body": "**PRD:** d-shared-look, d-theme-os\n\n## What to build\n\nPlan's view uses the shell's style variables instead of its own colours and fonts, so it fits the shell in light and dark.\n\n## Acceptance criteria\n\n- [ ] Plan defines no base colours of its own; it uses the shell's variables\n- [ ] The map, the PRD panel and the document view are readable in light and dark\n- [ ] Every Plan feature works as before\n\n## Blocked by\n\n- #5\n"
+ },
+ {
+  "number": 7,
+  "state": "closed",
+  "milestone": "2. Shared look and English UI",
+  "title": "Build uses the shared look",
+  "body": "**PRD:** d-shared-look, d-theme-os\n\n## What to build\n\nBuild's view uses the shell's style variables, so it fits the shell in light and dark. In serverless mode (no shell) it still looks right.\n\n## Acceptance criteria\n\n- [ ] Build on the core server uses the shell's variables\n- [ ] In serverless folder-picker mode it stays readable and tidy\n- [ ] Every view is readable in light and dark\n\n## Blocked by\n\n- #5\n"
+ },
+ {
+  "number": 8,
+  "state": "closed",
+  "milestone": "2. Shared look and English UI",
+  "title": "English UI with Hungarian translation: shell and Plan",
+  "body": "**PRD:** d-ui-lang\n\n## What to build\n\nThe core provides a simple translation mechanism. The UI of the shell and of Plan is English by default, with a Hungarian translation, and the language can be switched. The language of the generated documents is a separate matter (see the documents-language ticket).\n\n## Acceptance criteria\n\n- [ ] Every UI string of the shell and Plan goes through the translation mechanism\n- [ ] English is the default; switched to Hungarian, every label is Hungarian\n- [ ] The chosen language survives a reload\n- [ ] The language of the generated documents does not depend on the UI language\n\n## Blocked by\n\n- #6\n"
+ },
+ {
+  "number": 9,
+  "state": "closed",
+  "milestone": "2. Shared look and English UI",
+  "title": "Build's UI is English with Hungarian translation too",
+  "body": "**PRD:** d-ui-lang\n\n## What to build\n\nBuild's UI uses the shared translation mechanism: English by default, with Hungarian, following the language chosen in the shell. It works in serverless mode too.\n\n## Acceptance criteria\n\n- [ ] Every UI string of Build goes through the translation mechanism\n- [ ] It follows the language chosen in the shell\n- [ ] In serverless mode English is the default too, and it can be switched to Hungarian\n\n## Blocked by\n\n- #7\n- #8\n"
+ },
+ {
+  "number": 10,
+  "state": "closed",
+  "milestone": "2. Shared look and English UI",
+  "title": "Generated documents are in the language of the conversation",
+  "body": "**PRD:** d-plan-lang, d-ui-lang\n\n## What to build\n\nEvery fixed text in the generated documents is Hungarian today: the starting section titles, the states (kész, részben, hiányzik), the closing sections (Elvetett megoldások, Későbbre halasztva) and the header sentence. This holds even when the interview is in English. The map gets a language, which the skill sets to the language of the conversation, and the documents are generated in it. The document language is independent of the UI language: it is a different set of strings from the English UI ticket.\n\n## Acceptance criteria\n\n- [ ] The map stores the document language; when it is missing it is Hungarian (existing maps generate unchanged)\n- [ ] Set to English, every fixed text is English in the generated Markdown and in the Plan document panel\n- [ ] The groundwork-prd-maker skill says to set the language to that of the conversation at the start of the interview\n- [ ] A new language can be added by adding a set of strings, without changing the generating code\n- [ ] `node --test` tests: the same map gives the expected Markdown in Hungarian and in English\n\n## Blocked by\n\n- None (can start immediately)\n"
+ },
+ {
+  "number": 11,
+  "state": "closed",
+  "milestone": "3. Plan–Build link",
+  "title": "Build reads GitHub issues as tickets",
+  "body": "**PRD:** d-local-tickets, n-build-conv, f-build-tickets, f-build-deps\n\n## What to build\n\nGroundwork's own tickets live in GitHub issues, and Build cannot show them today: it reads only local Markdown tickets under `.scratch/`. Build learns to read the project's GitHub issues as tickets: state, milestone, labels, and the \"Blocked by\" links (GitHub's own dependency links, or a \"Blocked by\" section in the body). Every existing view (tickets, dependencies, activity, inconsistencies) works with them. Local Markdown tickets keep working.\n\nThe restructuring this needs is part of this ticket. Reading tickets (ticket, state, \"Blocked by\", areas, inconsistencies) is embedded in the Build page today. It moves into a file of its own with one entry point: from a ticket source it returns the ticket model. Local files and GitHub are two sources behind it. The page must still work when opened by double click (`file://`), so this is a plain script, not an ES module, loadable in the browser and under Node.\n\n## Acceptance criteria\n\n- [ ] On the core server Build shows this repo's GitHub issues, with their dependencies and milestones\n- [ ] A project with `.scratch/` tickets shows them as before\n- [ ] GitHub access goes through the server; no token ends up in the page\n- [ ] The ticket reader is a file of its own; the Build page uses it and still works by double click with the folder picker\n- [ ] The ticket reader has `node --test` tests through its interface, for both sources (states, the forms of \"Blocked by\", cross-area references)\n\n## Blocked by\n\n- #2\n\n"
+ },
+ {
+  "number": 12,
+  "state": "closed",
+  "milestone": "3. Plan–Build link",
+  "title": "From a ticket to its PRD item in one click",
+  "body": "**PRD:** f-build-trace, d-trace\n\n## What to build\n\nA `**PRD:**` line in the ticket names the PRD item (the id of the map node) it came from, possibly several. Build reads this line and shows a link on the ticket. The link opens Plan focused on that item. For this, Plan gets a deep link that focuses a node by id. The `**PRD:**` line is parsed in the shared ticket reader, so Plan can use it too.\n\n## Acceptance criteria\n\n- [ ] Build shows the ids from the `**PRD:**` line on each ticket, as links\n- [ ] The link opens Plan with that item focused and highlighted\n- [ ] Plan's deep link also works typed straight into the address bar\n- [ ] For an unknown id Plan says clearly that there is no such item\n- [ ] The ticket reader parses the `**PRD:**` line, covered by `node --test`\n\n## Blocked by\n\n- #11\n"
+ },
+ {
+  "number": 13,
+  "state": "closed",
+  "milestone": "3. Plan–Build link",
+  "title": "Plan shows, per decision, how many tickets it produced and how many are done",
+  "body": "**PRD:** f-plan-trace, d-trace\n\n## What to build\n\nOn the map, Plan shows how many tickets point to each item and how many of them are done. From an item you can get to its tickets in Build. Plan reads the tickets with the same reader as Build, so both modules see the same thing.\n\n## Acceptance criteria\n\n- [ ] Map items show the number of tickets pointing to them and the number done\n- [ ] After a new ticket or a state change the numbers update without a restart\n- [ ] From an item, Build opens filtered to its tickets\n- [ ] Plan and Build use the same ticket reader\n\n## Blocked by\n\n- #12\n"
+ },
+ {
+  "number": 14,
+  "state": "closed",
+  "milestone": "3. Plan–Build link",
+  "title": "After to-tickets Claude adds the PRD reference; Build flags it when missing",
+  "body": "**PRD:** d-trace-how, x-own-tickets, f-build-incons\n\n## What to build\n\nTickets are still made by mattpocock's `to-tickets` skill, unchanged. The groundwork-prd-maker skill says that afterwards Claude adds the `**PRD:**` line to every new ticket, with the ids of the matching map items. Build lists a ticket as an inconsistency when it has no PRD reference, or points to an id that is not on the map.\n\n## Acceptance criteria\n\n- [ ] The groundwork-prd-maker skill describes the step and the format of the PRD reference\n- [ ] Build lists tickets without a PRD reference as inconsistencies\n- [ ] Build lists tickets pointing to an unknown id as inconsistencies\n- [ ] The to-tickets skill is not changed\n\n## Blocked by\n\n- #12\n"
+ },
+ {
+  "number": 15,
+  "state": "closed",
+  "milestone": "4. npm release",
+  "title": "npx groundwork starts the server for the current project",
+  "body": "**PRD:** d-npm, d-semver, d-offline, d-node, d-os\n\n## What to build\n\nGroundwork becomes an npm package. In a project folder, `npx groundwork` starts the core server for that project and opens the browser. The package has one semver version, and the modules are versioned with it. It carries every file it needs, so it starts without a network.\n\n## Acceptance criteria\n\n- [ ] Installed from the packed tarball, `npx groundwork` starts in another project folder, and both Plan and Build work\n- [ ] The package holds only the files it needs (`docs/product/` and `.scratch/` are left out)\n- [ ] The version is set in one place and shows in the UI\n- [ ] Under Node 20 it stops with a clear error message\n- [ ] It starts on Windows, macOS and Linux\n\n## Blocked by\n\n- #2\n- #3\n- #4\n"
+ },
+ {
+  "number": 16,
+  "state": "closed",
+  "milestone": "4. npm release",
+  "title": "npx groundwork init: skills, hook and .gitignore after approval",
+  "body": "**PRD:** d-init, d-mod-skills\n\n## What to build\n\n`npx groundwork init` puts what Claude Code needs into the project: the modules' skills under `.claude/skills/`, the hook into `.claude/settings.json`, and the `.groundwork/` folder into `.gitignore`. It first shows what it will change and writes only after approval. It keeps existing settings and does not duplicate anything when run again.\n\n## Acceptance criteria\n\n- [ ] Before writing it prints the planned changes and asks for approval\n- [ ] Without approval it writes nothing\n- [ ] The other settings and hooks in an existing `.claude/settings.json` are kept\n- [ ] Run a second time it duplicates nothing\n- [ ] It collects the skills from the module manifests, not from a hand-written list\n- [ ] In a fresh project, after init, the groundwork-prd-maker skill and hook work\n\n## Blocked by\n\n- #15\n"
+ },
+ {
+  "number": 17,
+  "state": "closed",
+  "milestone": "5. Shell and UI polish",
+  "title": "A new shell: the Workspace header with a tab per module",
+  "body": "**PRD:** — (no decision yet; the look was chosen from a prototype)\n\n## What to build\n\nA new shell around the modules: the \"Workspace\" direction picked from three prototypes (branch `prototype/shell-look`, `/?variant=A|B|C`; C won). A two-tier header: a bar with the Groundwork logo, the project's name, a live indicator for the server's update stream, the language picker and the version; under it one large tab per module with its icon, name and a one-line tagline. Both the icon and the tagline come from the module's manifest. Work in progress on branch `shell-workspace-look`.\n\n## Acceptance criteria\n\n- [ ] The header shows the logo, \"Groundwork\", the project's name, the live state (connecting / live / offline), the language and the version\n- [ ] Each module's tab shows the icon and tagline from its manifest; a module without them still gets a plain icon and no empty line\n- [ ] The taglines and the live state follow the UI language (English and Hungarian)\n- [ ] Light and dark both look right; narrow windows keep only the essentials\n- [ ] The manifest fields `icon` and `tagline` and the new `--gw-accent-2` theme variable are documented\n\n## Blocked by\n\nNone - can start immediately\n"
+ },
+ {
+  "number": 18,
+  "state": "closed",
+  "milestone": "5. Shell and UI polish",
+  "title": "Every UI surface reviewed by agents, and its problems fixed",
+  "body": "**PRD:** —\n\n## What to build\n\nReview every UI surface of Groundwork with agents, in the new shell: the shell itself, Plan (the map, the documents, the toolbar, the panels) and Build (every tab, the stats, the empty and error states), in light and dark, in English and Hungarian, at desktop and narrow widths. Collect what is broken, inconsistent or ugly, and fix it. Known example: Build repeats the shell's live indicator and version in its own bar.\n\n## Acceptance criteria\n\n- [ ] Each surface was checked in the browser in both themes and both languages, and the findings are listed in a comment on this issue\n- [ ] Every finding is fixed, or split out into its own issue with a reason\n- [ ] Nothing the shell already shows is repeated inside a module\n- [ ] No console errors on any page\n\n## Blocked by\n\n- #17\n"
+ },
+ {
+  "number": 19,
+  "state": "closed",
+  "milestone": "5. Shell and UI polish",
+  "title": "The modules optimised and rethought",
+  "body": "**PRD:** — (to be decided: needs a grilling session first)\n\n## What to build\n\nRethink and optimise the modules now that they live in one shell: what each module is for, what it shows first, what belongs in the shell instead, and where the code or the pages are slow, heavy or duplicated. The outcome is a set of decisions on the mind map (Plan) and follow-up tickets, plus the optimisations that need no decision.\n\n## Acceptance criteria\n\n- [ ] A grilling session on the modules' roles, recorded on the mind map as decisions\n- [ ] Follow-up tickets made from those decisions\n- [ ] Measured load time and size of each module's page, before and after the optimisations\n\n## Blocked by\n\n- #18\n"
+ },
+ {
+  "number": 20,
+  "state": "closed",
+  "milestone": "5. Shell and UI polish",
+  "title": "Module pages split into small ES modules, rendered with lit-html",
+  "body": "**PRD:** d-small-files, d-lit-html, d-vanilla, d-design-system, x-framework, x-build-step\n\n## What to build\n\nKeep Groundwork free of a framework and a build step, but give the module pages structure. Vendor lit-html (exact version, license, under `core/vendor/`, served at `/vendor/`, works offline) and split Plan's and Build's single `index.html` into small ES modules — views, state, data fetching, i18n strings — rendering with lit-html templates and the shared `.gw-*` components of `core/shell/theme.css`. Behaviour and look stay the same.\n\n## Acceptance criteria\n\n- [ ] lit-html is in `core/vendor/` with its version and license in `core/vendor/README.md`; `offline.test.mjs` still passes\n- [ ] `modules/plan/index.html` and `modules/build/index.html` are thin shells; their code lives in small ES modules (no file over ~400 lines)\n- [ ] Views render through lit-html templates instead of hand-built DOM / innerHTML strings\n- [ ] Build still works opened from a file (no server)\n- [ ] No visible change: same look and behaviour in light/dark, EN/HU, desktop and narrow; no console errors\n- [ ] The module page files are listed in the manifests' `view.files` and the package still holds everything it needs\n\n## Blocked by\n\n- #18\n"
+ },
+ {
+  "number": 21,
+  "state": "closed",
+  "milestone": "5. Shell and UI polish",
+  "title": "Modules stay alive when switching tabs",
+  "body": "**PRD:** d-keep-alive, d-shell-owns, d-perf\n\n## What to build\n\nSwitching modules in the shell keeps each visited module alive: the shell holds one frame per visited module and only hides the others, so a switch is instant and the map keeps its zoom, collapse state and selection, and Build its scroll and filters. The URL still follows the current module (`/?module=build`), so reload, Back and deep links work. A hidden module keeps receiving live updates through the shell's relay.\n\n## Acceptance criteria\n\n- [ ] A second visit to a module does not reload its frame; zoom/selection (Plan) and scroll/filters (Build) are kept\n- [ ] Reload, Back/Forward and `/?module=…&…` deep links still open the right module and hand on the rest of the query\n- [ ] Live updates reach hidden modules; the language switch reaches every frame\n- [ ] A tab switch takes under 100 ms (measured)\n\n## Blocked by\n\n- #18\n"
+ },
+ {
+  "number": 22,
+  "state": "closed",
+  "milestone": "5. Shell and UI polish",
+  "title": "Modules read each other only through small declared endpoints",
+  "body": "**PRD:** d-module-endpoints, d-core-role\n\n## What to build\n\nWrite down and enforce how modules read each other's data: through small, declared public endpoints (today `GET /api/plan/ids` and `GET /api/build/prd`), and every module keeps working when the other module is missing. The module contract in `modules/README.md` names this rule and each module's README lists its public endpoints.\n\n## Acceptance criteria\n\n- [ ] `modules/README.md` states the rule; each module README lists its public endpoints\n- [ ] Tests start the server with only Plan and with only Build, and each page and endpoint still works\n- [ ] Neither module reads the other's full data when a small endpoint exists\n\n## Blocked by\n\nNone - can start immediately\n"
+ },
+ {
+  "number": 23,
+  "state": "open",
+  "milestone": null,
+  "title": "Spike: one Markdown renderer for Plan and Build",
+  "body": "**PRD:** p-one-md\n\n## What to build\n\nA spike: can Build's own safe Markdown renderer (`modules/build/page/markdown.mjs`) render Plan's generated documents correctly? If so, move it to `/shell/markdown.mjs`, use it in both modules and drop the vendored `marked` (90 KB). Record the outcome on the map either way.\n\n## Acceptance criteria\n\n- [ ] Every document under `docs/product/` rendered with both renderers and the differences listed\n- [ ] A decision on the map (move or keep both), with the reason\n- [ ] If moved: one renderer, `marked` removed from `core/vendor/`, tests and offline check green\n\n## Blocked by\n\nNone - can start immediately\n"
+ },
+ {
+  "number": 24,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Ideas: numbered ideas on a kanban, added with `groundwork ideas add`",
+  "body": "**PRD:** f-ideas-inbox, f-ideas-kanban, d-ideas-store, d-ideas-module, d-ideas-view, d-ideas-writes, d-ideas-numbers, d-ideas-nfr, d-nav-order\n\n## What to build\n\nThe tracer for the Ideas module. A new module `ideas` (manifest, view, endpoints, `groundwork ideas` command) stores each idea as a Markdown file under `docs/product/ideas/items/` (`I-012-<slug>.md`, fields in the front matter). `groundwork ideas add \"<title>\" [--body … --author claude|human --source … --kind product|engineering]` and `groundwork ideas list` work from the command line; the view shows the ideas as cards on a four-column kanban (New · Considering · To develop · Rejected), read-only for now, and updates live. The shell lists the modules in flow order: Ideas → Plan → Build.\n\n## Acceptance criteria\n\n- [ ] `groundwork ideas add` creates `docs/product/ideas/items/I-<n>-<slug>.md` with the next number; numbers are never reused\n- [ ] The Ideas tab shows the ideas as cards in four columns, with number, title, author and source, and a new idea appears live\n- [ ] The module writes only under `docs/product/ideas/items/`\n- [ ] Shared look, EN/HU, light/dark, desktop and narrow; no console errors\n- [ ] The shell orders the tabs Ideas, Plan, Build\n\n## Blocked by\n\nNone - can start immediately\n"
+ },
+ {
+  "number": 25,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Ideas: the human decides in the browser — move, edit, reject with a reason",
+  "body": "**PRD:** d-ideas-human-decides, d-ideas-ai-limits, d-ideas-edit, d-ideas-fields, f-ideas-reject\n\n## What to build\n\nIdeas become editable in the browser: open a card to edit its fields (title, description, kind, impact, effort, links), move it between columns (drag and drop and a keyboard-accessible menu), and reject it with a required reason. \"To develop\" and \"Rejected\" can be set only here; the `groundwork ideas` command refuses them and may move only between New and Considering.\n\n## Acceptance criteria\n\n- [ ] A card opens in a drawer where every field can be edited; changes are saved to the idea file and appear live elsewhere\n- [ ] Cards move between columns by drag and drop and by keyboard\n- [ ] Rejecting asks for a reason, which is saved and shown on the card\n- [ ] `groundwork ideas move` refuses To develop / Rejected with a clear message\n\n## Blocked by\n\n- #24\n"
+ },
+ {
+  "number": 26,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Ideas: impact–effort matrix view",
+  "body": "**PRD:** f-ideas-matrix\n\n## What to build\n\nA second view of the open ideas (New and Considering): a 2×2 impact–effort matrix with quick wins highlighted. Ideas without an estimate sit in an \"Unestimated\" strip. Dragging a card to another quadrant changes its estimate.\n\n## Acceptance criteria\n\n- [ ] The matrix shows open ideas placed by impact and effort, with the quick-win quadrant highlighted\n- [ ] Unestimated ideas are listed separately\n- [ ] Moving a card between quadrants updates its impact/effort\n- [ ] The view switch (Kanban / Matrix) is remembered\n\n## Blocked by\n\n- #25\n"
+ },
+ {
+  "number": 27,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Ideas: Claude files, estimates and de-duplicates ideas (skill)",
+  "body": "**PRD:** f-ideas-claude, f-ideas-assist, d-ideas-who, d-ideas-ai-limits\n\n## What to build\n\nA `groundwork-ideas` skill, installed by `groundwork init` from the manifest, tells Claude to file side observations as ideas instead of acting on them or losing them, to add an impact/effort estimate with a one-line rationale, and to check for similar existing ideas (`groundwork ideas similar \"<text>\"`) before adding. Similar ideas are linked, not duplicated.\n\n## Acceptance criteria\n\n- [ ] `groundwork init` installs the skill from the Ideas manifest\n- [ ] `groundwork ideas similar` lists likely duplicates with a score\n- [ ] An idea added by Claude carries author `claude`, its source and an estimate\n- [ ] In a fresh project after init, Claude files an idea through the skill\n\n## Blocked by\n\n- #24\n"
+ },
+ {
+  "number": 28,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Ideas: a product idea to develop becomes a todo node on Plan's map",
+  "body": "**PRD:** f-ideas-to-plan, d-ideas-plan-endpoint, d-module-endpoints, f-ideas-reject\n\n## What to build\n\nWhen a product idea is moved to \"To develop\", the Ideas module asks Plan, through a small declared endpoint (`POST /api/plan/todo`), to add a `todo` node; the node links to the idea and the idea to the node. A rejected idea can optionally be sent to Plan as an `excluded` item (a non-goal) with its reason. Plan alone writes the map; both modules keep working when the other is missing.\n\n## Acceptance criteria\n\n- [ ] Moving a product idea to To develop creates a linked `todo` node on the map, visible live in Plan\n- [ ] The idea shows a link to the node, the node to the idea\n- [ ] A rejected idea can be added as an `excluded` item with its reason\n- [ ] Without Plan, Ideas still works and says the map is unavailable\n\n## Blocked by\n\n- #25\n"
+ },
+ {
+  "number": 29,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Ideas: an engineering idea to develop becomes a ticket that links back",
+  "body": "**PRD:** f-ideas-to-build, d-ideas-ticket-line\n\n## What to build\n\nFor an engineering idea moved to \"To develop\", the card offers \"Make a ticket\": it copies a ready prompt for Claude (or Claude does it through the skill) that creates the GitHub issue with an `**Idea:** I-12` line. Build reads that line and shows the idea as a link on the ticket; the idea shows its ticket.\n\n## Acceptance criteria\n\n- [ ] The skill documents making a ticket from an idea with the `**Idea:**` line\n- [ ] Build shows `**Idea:** I-n` as a link to the idea\n- [ ] The idea card shows its ticket number and state once the ticket exists\n\n## Blocked by\n\n- #25\n"
+ },
+ {
+  "number": 30,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Sketch: one Excalidraw sketch, saved in git, packaged without a build step",
+  "body": "**PRD:** s-board-excalidraw, q-board-packaging, f-board-draw, d-board-store, d-board-std-file, d-board-lazy, d-board-theme, d-board-writes, d-nav-order, n-risk-excalidraw\n\n## What to build\n\nThe tracer, and the proof of the packaging risk. Vendor Excalidraw (and the React it needs) under `core/vendor/` so it runs offline and without a build step — decide between the 0.17 UMD build and a once-prepared ESM build, and record the choice on the map (`q-sketch-packaging` → decision). A new module `sketch` shows one sketch, saved as `docs/product/sketches/main.excalidraw`, loaded only when the Sketch tab is opened, following the shell's theme and language. The shell shows Sketch after a separator as a tool: Ideas → Plan → Build | Sketch.\n\n## Acceptance criteria\n\n- [ ] Excalidraw is vendored with versions and licenses in `core/vendor/README.md`; `offline.test.mjs` passes\n- [ ] Drawing on the Sketch tab saves a standard `.excalidraw` file that excalidraw.com opens\n- [ ] Opening Plan or Build loads none of Excalidraw (measured)\n- [ ] Light/dark and EN/HU follow the shell\n- [ ] The packaging decision is on the map\n\n## Blocked by\n\nNone - can start immediately\n\n"
+ },
+ {
+  "number": 31,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Sketch: several named sketches",
+  "body": "**PRD:** f-board-list\n\n## What to build\n\nList, create, rename and open sketches (`docs/product/sketches/<name>.excalidraw`); the last opened sketch is remembered; deep link `/?module=sketch&sketch=<name>`.\n\n## Acceptance criteria\n\n- [ ] A sketch list with create and rename\n- [ ] Deep links open a given sketch\n- [ ] Each sketch is its own file under `docs/product/sketches/`\n\n## Blocked by\n\n- #30\n\n"
+ },
+ {
+  "number": 32,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Sketch: Claude reads and draws on a sketch, live",
+  "body": "**PRD:** f-board-claude-read, f-board-claude-draw, d-board-cli, d-board-image, d-board-merge, f-board-live\n\n## What to build\n\n`groundwork sketch show <name>` prints a text digest of the shapes, texts and arrows (with ids); `groundwork sketch apply <name>` takes ops (add shape/text/arrow, move, update, delete, and a Mermaid flowchart) and writes them. Concurrent edits from the browser and from Claude merge per element by version, and changes appear live in the open sketch. A `groundwork-sketch` skill teaches Claude to use it and to look at the sketch in the browser pane when it needs the picture.\n\n## Acceptance criteria\n\n- [ ] `show` gives a digest Claude can reason about (ids, labels, connections)\n- [ ] `apply` adds, changes and removes elements, and draws a Mermaid flowchart\n- [ ] An edit in the browser and an `apply` at the same time both survive\n- [ ] Claude's drawing appears live in the open sketch\n- [ ] The skill is installed by `groundwork init`\n\n## Blocked by\n\n- #30\n\n"
+ },
+ {
+  "number": 33,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Sketch: threads pinned to shapes",
+  "body": "**PRD:** f-board-threads, d-board-thread-fields, d-board-threads-file\n\n## What to build\n\nA thread can be pinned to a shape: a short conversation with author and time per comment, closable when resolved. Threads live in `<name>.threads.json` next to the sketch, keyed by element id. In the browser a pin marks shapes with threads; Claude reads and answers through `groundwork sketch threads` / `comment`. Live in both directions.\n\n## Acceptance criteria\n\n- [ ] Pin a thread to a shape, add comments, close it — in the browser and from the CLI\n- [ ] Threads are stored in `<name>.threads.json`; the `.excalidraw` file stays standard\n- [ ] A comment from Claude appears live on the open sketch\n- [ ] Deleting a shape keeps its thread as orphaned, not lost\n\n## Blocked by\n\n- #32\n\n"
+ },
+ {
+  "number": 34,
+  "state": "closed",
+  "milestone": "6. Ideas and Sketch",
+  "title": "Sketch: links from sketches and shapes to ideas, map nodes and tickets (nice to have)",
+  "body": "**PRD:** f-board-links, f-board-shape-links\n\n## What to build\n\n_Nice to have, not required for the milestone._\n\nA sketch can link to ideas, map nodes and tickets, and those show the sketch: an idea card and a map node show \"Sketch: <name>\", a ticket line `**Sketch:** <name>` is recognised by Build. Clicking opens the sketch in the shell. A single shape can link too, using Excalidraw's own element link: to an idea, a map node, a ticket or another sketch (`groundwork://idea/I-12`-style targets the shell resolves).\n\n## Acceptance criteria\n\n- [ ] A sketch lists its links; adding one from the sketch works\n- [ ] Idea cards, map nodes and Build tickets show and open linked sketches\n- [ ] A shape can link to an idea, map node, ticket or sketch, and clicking it opens that in the shell\n- [ ] Links survive renaming a sketch\n\n## Blocked by\n\n- #31\n- #24\n\n\n"
+ },
+ {
+  "number": 35,
+  "state": "closed",
+  "milestone": "7. Agents",
+  "title": "Agents: hooks record agent activity; the Agents tab lists agents live",
+  "body": "**PRD:** f-agents-list, f-agents-live, d-agents-hooks, q-agents-hook-fields, q-agents-hook-speed, d-agents-overhead, d-agents-store, d-agents-redact, d-agents-writes, d-agents-observe, x-agents-claude-logs, d-agents-nfr, d-nav-order\n\n## What to build\n\nThe tracer. A new module `agents` declares Claude Code hooks in its manifest (`claude.hooks`), installed by `groundwork init`: session start, subagent start/stop, tool use, notification, stop. Each hook appends a redacted event (tool name, file path, command name; never contents or secrets) to `.groundwork/agents/events.jsonl`. The Agents tab lists sessions and their agents with state (running, done, failed), start and duration, updating live. First settle the two open questions and record them on the map: which hook fields identify a subagent (from the Claude Code hooks documentation and a real run), and how the hook stays under 100 ms per tool call (e.g. a direct `node` path installed by init, or posting to the running server) instead of the ~0.7 s `npx` call. The shell shows Agents after Sketch as a tool.\n\n## Acceptance criteria\n\n- [ ] `groundwork init` installs the Agents hooks next to the existing ones, without duplicates\n- [ ] Running a session with a subagent shows both in the Agents tab live, with state and duration\n- [ ] The event log holds no file contents, prompts or secrets (tested)\n- [ ] A hook call adds under 100 ms (measured) and the choice is recorded on the map\n- [ ] The module writes only under `.groundwork/agents/`\n\n## Blocked by\n\nNone - can start immediately\n"
+ },
+ {
+  "number": 36,
+  "state": "closed",
+  "milestone": "7. Agents",
+  "title": "Agents: a timeline and the final report per agent",
+  "body": "**PRD:** f-agents-timeline, f-agents-report, d-agents-summary, x-agents-transcript\n\n## What to build\n\nOpening an agent shows its timeline: grouped main steps (files touched, test runs with pass/fail where the command output allows, commits, skills used) and, when it has finished, its final report rendered as Markdown. No full transcript.\n\n## Acceptance criteria\n\n- [ ] The timeline groups tool calls into readable steps with times\n- [ ] Test runs and commits stand out\n- [ ] The final report is shown once the agent stops\n- [ ] Nothing beyond the redacted events is stored or shown\n\n## Blocked by\n\n- #35\n"
+ },
+ {
+  "number": 37,
+  "state": "closed",
+  "milestone": "7. Agents",
+  "title": "Agents: agents linked to tickets and branches; Build shows who works on a ticket",
+  "body": "**PRD:** f-agents-ticket-link, d-agents-ticket-from, d-agents-build-endpoint, d-module-endpoints\n\n## What to build\n\nEach agent is linked to its ticket (from the ticket number in its task, its branch name, or its commit messages) and its branch. The Agents module offers a small public endpoint (e.g. `GET /api/agents/tickets`) that Build reads to show a \"being worked on\" badge on a ticket, linking to the agent. Build works unchanged without Agents.\n\n## Acceptance criteria\n\n- [ ] An agent shows its ticket and branch, with links\n- [ ] A ticket in Build shows the agent working on it, live\n- [ ] The endpoint is declared in the manifest `public` field; Build without Agents is unchanged (tested)\n\n## Blocked by\n\n- #35\n"
+ },
+ {
+  "number": 38,
+  "state": "closed",
+  "milestone": "7. Agents",
+  "title": "Agents: worktrees and branches — ahead, behind, merged, ready to clean up",
+  "body": "**PRD:** f-agents-worktrees, d-agents-git\n\n## What to build\n\nA view of the project's git worktrees and branches: for each, its agent and ticket if known, commits ahead/behind the integration branch it was cut from, whether it is merged, uncommitted changes, and whether it can be cleaned up. Read-only: it shows the `git worktree remove` / `git branch -d` commands to copy, it runs nothing.\n\n## Acceptance criteria\n\n- [ ] Every worktree and local branch is listed with ahead/behind and merged state\n- [ ] Worktrees with uncommitted changes are flagged\n- [ ] Merged, clean worktrees are marked as ready to clean up, with the commands to copy\n- [ ] Updates live when refs change\n\n## Blocked by\n\n- #35\n"
+ },
+ {
+  "number": 39,
+  "state": "closed",
+  "milestone": "7. Agents",
+  "title": "Agents: agents that need attention stand out",
+  "body": "**PRD:** f-agents-attention\n\n## What to build\n\nAn agent waiting for permission (notification hook), idle for a long time, or stopped with an error is highlighted in the list and counted on the Agents tab in the shell header; the shell shows a toast when one starts needing attention.\n\n## Acceptance criteria\n\n- [ ] Waiting-for-permission, stalled and failed agents are highlighted with the reason\n- [ ] The Agents tab in the header shows a count of agents needing attention\n- [ ] A toast appears when an agent starts needing attention, once\n\n## Blocked by\n\n- #36\n"
+ },
+ {
+  "number": 40,
+  "state": "open",
+  "milestone": "8. Present",
+  "title": "Present: a deck from a Markdown file, full screen in the shell",
+  "body": "**PRD:** f-present-deck, d-present-store, d-present-module, d-present-writes, d-present-nfr, d-nav-order\n\n## What to build\n\nThe tracer. A new module `present` reads decks from `docs/product/decks/<name>.md` (front matter: title, lang, template; slides split by `---`; speaker notes after `Note:`), renders the slides with the shared look and a safe Markdown renderer, full screen, navigable by keyboard (arrows, space, Home/End, F for full screen), with a slide counter. A deck list shows the available decks; deep link `/?module=present&deck=<name>&slide=<n>`. Changes to the file appear live. The shell lists Present after Agents as a tool.\n\n## Acceptance criteria\n\n- [ ] A deck file renders as slides; keyboard navigation and full screen work\n- [ ] Deep links open a given deck and slide\n- [ ] Editing the file updates the open deck live\n- [ ] Raw HTML and unsafe links in slides are not rendered (tested)\n- [ ] EN/HU UI, light/dark, desktop and narrow; no console errors\n\n## Blocked by\n\nNone - can start immediately\n"
+ },
+ {
+  "number": 41,
+  "state": "open",
+  "milestone": "8. Present",
+  "title": "Present: live data blocks — milestone progress, blockers, decisions, measurements",
+  "body": "**PRD:** f-present-live, d-present-blocks, d-present-snapshot, d-present-missing, d-module-endpoints\n\n## What to build\n\nFenced `gw:` blocks render live data from other modules' declared public endpoints: `gw:milestone <n>` (progress, done/open, blockers), `gw:blockers`, `gw:decisions <section-id>` (from Plan), `gw:status` (open, ready, waiting, blocked). Add the small public endpoints this needs to Build and Plan. A block can be frozen (`gw:milestone 5 @2026-10-19`, or a \"freeze\" action) to store the numbers in the file. When a source module is missing, the block shows a calm placeholder.\n\n## Acceptance criteria\n\n- [ ] Each block type renders current data and updates live\n- [ ] Freezing a block stores its numbers in the deck and shows them from then on\n- [ ] Without Build or Plan the blocks show a placeholder, not an error (tested)\n- [ ] The new endpoints are declared in the manifests' `public` field\n\n## Blocked by\n\n- #40\n"
+ },
+ {
+  "number": 42,
+  "state": "open",
+  "milestone": "8. Present",
+  "title": "Present: templates, and Claude writes the story (skill)",
+  "body": "**PRD:** f-present-templates, f-present-claude\n\n## What to build\n\n`groundwork present new <name> --template project|milestone|status [--milestone N] [--lang hu|en]` scaffolds a deck from a template with the right live blocks. A `groundwork-present` skill (installed by `groundwork init`) tells Claude how to write the narrative and speaker notes from the Plan documents, Build progress and the milestone's tickets, in the deck's language.\n\n## Acceptance criteria\n\n- [ ] The three templates produce a usable deck with live blocks\n- [ ] The skill is installed by `groundwork init` and documents the deck format\n- [ ] In a fresh project, Claude makes a milestone deck through the skill\n\n## Blocked by\n\n- #41\n"
+ },
+ {
+  "number": 43,
+  "state": "open",
+  "milestone": "8. Present",
+  "title": "Present: presenter view — notes, timer, next slide",
+  "body": "**PRD:** f-present-speaker\n\n## What to build\n\nA presenter view in a second window: current and next slide, speaker notes, elapsed time; it stays in sync with the audience window (BroadcastChannel) in both directions.\n\n## Acceptance criteria\n\n- [ ] The presenter view shows current/next slide, notes and a timer\n- [ ] Navigating in either window moves both\n- [ ] Works with full screen on the audience window\n\n## Blocked by\n\n- #40\n"
+ },
+ {
+  "number": 44,
+  "state": "open",
+  "milestone": "8. Present",
+  "title": "Present: create and edit decks in the browser with live preview",
+  "body": "**PRD:** f-present-edit\n\n## What to build\n\nCreate, rename and delete decks from the list; edit a deck's Markdown next to a live preview of the current slide, with a slide outline. Saves to the deck file; concurrent edits by Claude are not lost (conflict notice like Plan's).\n\n## Acceptance criteria\n\n- [ ] Create, rename and delete decks\n- [ ] Editor with live preview and slide outline; saving writes the file\n- [ ] An edit by Claude while editing shows a conflict notice instead of overwriting\n\n## Blocked by\n\n- #40\n"
+ },
+ {
+  "number": 45,
+  "state": "open",
+  "milestone": "8. Present",
+  "title": "Present: save a deck as PDF",
+  "body": "**PRD:** f-present-pdf\n\n## What to build\n\nA print stylesheet lays out one slide per page (16:9), with live blocks rendered and optional speaker notes; \"Save as PDF\" opens the browser's print dialog.\n\n## Acceptance criteria\n\n- [ ] Printing gives one slide per page at 16:9, in light theme\n- [ ] Live blocks print with their current (or frozen) numbers\n- [ ] Optional notes pages\n\n## Blocked by\n\n- #41\n"
+ },
+ {
+  "number": 46,
+  "state": "open",
+  "milestone": "8. Present",
+  "title": "Present: sketches and ideas on slides",
+  "body": "**PRD:** f-present-sources\n\n## What to build\n\nTwo more blocks: `gw:sketch <name>` shows a Sketch drawing on a slide (read-only, fitted), and `gw:ideas [to-develop|new]` lists ideas from the Ideas module, both through their modules' public endpoints.\n\n## Acceptance criteria\n\n- [ ] A sketch renders on a slide and updates live\n- [ ] An ideas block lists the chosen ideas with numbers\n- [ ] Placeholders when Sketch or Ideas is missing\n\n## Blocked by\n\n- #41\n- #31\n- #24\n"
+ },
+ {
+  "number": 47,
+  "state": "open",
+  "milestone": "9. Redesign: record model and conveyor",
+  "title": "Records: core record store, with Ideas on it (tracer)",
+  "body": "**PRD:** d-rec-store-core, d-record-model, d-rec-common, d-rec-manifest, d-rec-md-source, d-rec-flat, d-rec-layout, d-rec-cache, d-rec-ids-case, d-rec-history-section, d-rec-derived-not-stored, d-rec-sec-writes, d-rec-sec-html, d-rec-idea, d-ideas-new, d-ideas-removed, d-typecheck, d-rec-test-roundtrip, x-rec-per-module, x-rec-json-source\n\n## What to build\n\nThe tracer for the record store (C-2, docs/product/records/TECH.md). A shared record store lives in the core: modules declare their record types in a new manifest field `records` (prefix, folder, lifecycle, rules), and the store reads, writes and numbers them. A case record is one Markdown file: front matter plus body, and a `## Történet` (history) list at the end to which the store appends a line (date · who · what) on every lifecycle or link change. The Markdown is the source; the store keeps only a rebuildable JSON cache and index under `.groundwork/` (not in git). Computed data (stage, counts, reverse links) is never written to the files.\n\nNumbers are sequential per prefix and never reused. File names carry a three-digit padded number and a slug (`I-005-….md`), references use the bare id (`I-5`), and the id also stands in the front matter, so renaming a file breaks nothing.\n\nThe browser reads records from `/api/records` (list, one record, live updates over the existing events); Claude uses `groundwork record list|show <id>`.\n\nIdeas is the first type on the store: the Ideas module declares type `I` with its folder `docs/product/ideas/` (no longer `ideas/items/`) and the states new · considering · accepted · rejected · snoozed (`until:`) · duplicate (`duplicate: I-n`). The rule that Claude only moves ideas between new and considering is enforced by the store on every write. The board and `groundwork ideas` keep working on top of the store. Accepting an idea is only a state change until C-3: the call to Plan's `/api/plan/todo` goes away (the board's new decision buttons come with C-3).\n\nType checking starts here: JSDoc types for records and store operations, checked with `tsc --noEmit` at development time (no build step).\n\n## Acceptance criteria\n\n- [ ] A module's `records` declaration is enough for the store to list, read, create and update its records; the store writes only under `docs/product/` and `.groundwork/`\n- [ ] Ideas live in `docs/product/ideas/`, and the board, the CLI and the API work as before on top of the store\n- [ ] The store refuses a Claude/CLI move outside new ↔ considering (tested)\n- [ ] New numbers are never reused, also after a record is deleted (tested)\n- [ ] Every lifecycle or link change appends one history line; the history survives a rewrite\n- [ ] Deleting `.groundwork/` loses nothing: the index is rebuilt from the Markdown\n- [ ] Round trip: read(write(x)) = x and write(read(write(x))) = write(x), byte for byte, for idea records, including generated ones\n- [ ] Record Markdown is rendered without raw HTML (tested)\n- [ ] `tsc --noEmit` passes on the store; `node --test` passes; no console errors\n\n## Blocked by\n\nNone - can start immediately\n"
+ },
+ {
+  "number": 48,
+  "state": "open",
+  "milestone": "9. Redesign: record model and conveyor",
+  "title": "Records: Spec documents as canonical Markdown",
+  "body": "**PRD:** d-rec-md-source, d-rec-tolerant, d-rec-spec-per-doc, d-rec-parts-file, d-rec-ids-spec, d-rec-history-item, d-superseded, d-rec-skills-read-md, d-spec-structure, d-rec-part, d-rec-doc, d-rec-item, d-plan-dissolves, d-rec-test-roundtrip, d-rec-test-tolerant, x-rec-spec-one\n\n## What to build\n\nThe Spec as canonical Markdown, read and written by the record store. Each Spec document is one file: `docs/product/spec/<part>/<KIND>.md`, and the whole system's is `spec/SYSTEM.md`. The parts are listed in `spec/parts.md`, one line per part (name, slug, type, one-sentence description, active / retired).\n\nInside a document the structure is in readable marks, in one canonical form that the store writes and reads back: sections with `{#t-…}`; item lines carrying the id (`d-…`, `f-…`), status, implementation and origin (`C-7`, later changes, `felváltotta: C-9` when superseded), with note and link below; groups, section prose, the human's own paragraphs and progress. Ids are readable and unique across the whole Spec (`core`, `core/tech`, `d-npm`). An item id stands next to its line, so a `**Spec:**` or `**PRD:**` line can be found with grep. A superseded item stays, marked.\n\nThe reader is tolerant: whatever does not fit the canonical form is kept as human text. The next tool write only normalizes the form and never drops content.\n\nPlan's document generator (`documents.mjs`, `doc-strings.mjs`) moves into the store as this writer-reader; documents stay in the document language (hu/en).\n\n## Acceptance criteria\n\n- [ ] `groundwork record show core/tech` (and the API) return a Spec document with its sections and items\n- [ ] Round trip byte for byte (read(write(x)) = x, write(read(write(x))) = write(x)) for every Spec document kind, including randomly generated documents\n- [ ] A collection of real, hand- or agent-broken files (deleted mark, rewritten item line, free paragraph, git conflict markers, implementation updated by an agent): no content is lost, and every non-canonical line is reported\n- [ ] Item ids are unique across the Spec; a superseded item is kept with its marker\n- [ ] `node --test` and `tsc --noEmit` pass\n\n## Blocked by\n\n- #47\n"
+ },
+ {
+  "number": 49,
+  "state": "open",
+  "milestone": "9. Redesign: record model and conveyor",
+  "title": "Records: Change and Milestone records",
+  "body": "**PRD:** d-rec-change, d-rec-milestone, d-rec-change-is-spec, d-change-fields, d-rec-links-once, d-rec-links-reverse, d-rec-missing-module, d-rec-ids-case, d-rec-history-section, x-rec-links-both\n\n## What to build\n\nChange (C-n) and Milestone (M-n) records on the store, so that the migration can write them and later workspaces can show them.\n\nA change file `docs/product/changes/C-007-<slug>.md` reads on its own as a specification, with the structure of the to-spec template:\n- header: title, ideas (`ideas: I-5`), milestone (`milestone: M-9`) and state;\n- body: problem, solution, scope, out of scope, questions, and the proposed items (op, id, → target);\n- the tickets rule (`**Change:** C-7`) instead of a ticket list.\n\nA milestone `docs/product/milestones/M-009-<slug>.md` is a header and a description. Both end in the `## Történet` list.\n\nEvery link is written once, on the later record, toward its source; the store's index computes the other direction (an idea's changes, a milestone's changes, a change's items). The record type comes from the shape of the id. When the module of a type is missing, a link to it shows as a plain id and nothing breaks.\n\n`groundwork record add <type>` creates a record with the next number.\n\n## Acceptance criteria\n\n- [ ] Change and milestone records round-trip byte for byte, like ideas\n- [ ] `groundwork record show I-5` lists the changes that name it, and `record show M-9` lists its changes; both are computed, not written to any file\n- [ ] A change file opened without Groundwork reads as a complete spec (problem, solution, scope, proposed items with targets)\n- [ ] With the declaring module missing, links to its records show as plain ids (tested)\n- [ ] `node --test` and `tsc --noEmit` pass\n\n## Blocked by\n\n- #47\n"
+ },
+ {
+  "number": 50,
+  "state": "open",
+  "milestone": "9. Redesign: record model and conveyor",
+  "title": "Records: record check and renumber",
+  "body": "**PRD:** d-rec-check, d-rec-renumber, d-rec-tolerant, n-rec-mixed-risks\n\n## What to build\n\nQuality checks anyone can run, with or without Groundwork.\n\n`groundwork record check` runs without the server and exits non-zero on an error:\n- a duplicate number (two branches made the same `C-n`);\n- a reference to an unknown or missing record or Spec id;\n- a non-canonical line.\n\n`groundwork record renumber` runs only when started by hand. It gives the newer record a new number and rewrites the references to it under `docs/product/` and in local tickets (`.scratch/`). It does not write GitHub tickets; it lists the lines to change there.\n\n`groundwork init` offers to install `record check` as a pre-commit hook (or shows the CI step), only with approval.\n\nTicket checks (an unknown id on a ticket, `**Change:**` lines) stay in Build's Checks view until C-5.\n\n## Acceptance criteria\n\n- [ ] `record check` reports duplicates, orphan references and non-canonical lines with file and line, and exits non-zero; a clean project exits zero\n- [ ] It runs with no server running (tested as a CLI process)\n- [ ] `record renumber` fixes a duplicate and every reference to it under `docs/product/` and `.scratch/`; it prints the GitHub ticket lines to change and writes nothing outside the project\n- [ ] `init` offers the pre-commit hook and installs it only on a yes\n- [ ] `node --test` and `tsc --noEmit` pass\n\n## Blocked by\n\n- #48\n- #49\n"
+ },
+ {
+  "number": 51,
+  "state": "open",
+  "milestone": "9. Redesign: record model and conveyor",
+  "title": "Plan: the map reads and writes the Spec through the store",
+  "body": "**PRD:** d-deliv-c2, d-plan-dissolves, f-plan-map, f-plan-docs, f-plan-skill, d-rec-md-source, d-rec-skills-read-md\n\n## What to build\n\nUntil the Spec workspace arrives (C-4), Plan's map works on the new source: Plan's map store reads and writes the Spec Markdown through the record store instead of `docs/product/mindmap.json`.\n\nThese keep working as they do today:\n- `plan show`, `plan apply` and its ops;\n- merging the human's browser edits, and the prompt hook that reports them;\n- Build's `GET /api/plan/ids`.\n\nThere is no separate generation step any more: the Spec files are the documents.\n\nThe groundwork-prd-maker skill is updated to match: the Markdown is the source and may be edited by hand; tool writes only normalize the form.\n\n## Acceptance criteria\n\n- [ ] On a project with a Spec under `docs/product/spec/`, the map shows it and browser edits land in the Markdown files\n- [ ] `plan apply` ops change the Markdown; a hand edit to a Spec file shows up live on the open map\n- [ ] The prompt hook still reports the human's map edits, once\n- [ ] Build's Checks resolve `**PRD:**` ids against the Spec as before\n- [ ] The skill text no longer says the documents must not be edited by hand\n- [ ] `node --test` passes; no console errors\n\n## Blocked by\n\n- #48\n"
+ },
+ {
+  "number": 52,
+  "state": "open",
+  "milestone": "9. Redesign: record model and conveyor",
+  "title": "Migrate: an old mindmap.json becomes C-1 Initial state",
+  "body": "**PRD:** d-migrate-cmd, d-migrate-kinds, d-migrate-roadmap, d-start-is-change, d-migrate-old-tickets, d-ideas-new, d-ideas-removed, x-roadmap-stays\n\n## What to build\n\n`groundwork migrate`: one command that moves any project from the old single-map Groundwork to the record model, independent of the project.\n\n- Every old map node becomes Spec content (parts from components, documents, sections, items) with origin C-1 and the implementation state from today's `impl`. Decision, note, excluded and parked items become Spec items; topic groups stay; `inferred` items become Spec items marked \"from code, awaiting confirmation\". Human paragraphs, notes, links, section prose and progress come over unchanged. The from-ideas sections go away.\n- A todo that points to an idea is dropped, because the idea lives in its own record. Every other todo becomes an open question in a separate change, \"Open questions from the migration\", since the Spec cannot hold undecided items.\n- The decisions in the system document's roadmap section (the kind's first section, or `--roadmap <id>`) become milestones M-1…M-n, in order. Parked items there stay Spec items, and the section goes away. Claude proposes each milestone's state from the tickets; the human approves it.\n- Ideas move from `ideas/items/` to `ideas/` with their numbers; `to-develop` becomes `accepted`.\n- The old generated documents move under `spec/`; `mindmap.json` is no longer read.\n- C-1 \"Initial state\" is created as merged, with the migration line in its history. Tickets without a `**Change:**` line, made before C-1, belong to C-1 by the store's rule; no ticket is rewritten.\n\n## Acceptance criteria\n\n- [ ] Running migrate on a fixture map produces the Spec, C-1, the open-questions change and the milestones as described, and `record check` passes on the result\n- [ ] Every node's id, note, link, human paragraph, section prose, progress and impl survives (tested on fixtures)\n- [ ] Idea files move with their numbers and history; `to-develop` becomes `accepted`\n- [ ] Running it a second time is refused or does nothing; it writes only under `docs/product/` and `.groundwork/`\n- [ ] `node --test` and `tsc --noEmit` pass\n\n## Blocked by\n\n- #47\n- #48\n- #49\n"
+ },
+ {
+  "number": 53,
+  "state": "open",
+  "milestone": "9. Redesign: record model and conveyor",
+  "title": "Migrate: --split selected branches into pending changes",
+  "body": "**PRD:** d-migrate-split, d-rec-ids-spec, d-deliv-split\n\n## What to build\n\nMigration can put selected branches into their own changes awaiting approval, instead of C-1. A split plan is a file that lists, for each change, the branch ids, title, idea and milestone; with it, one run makes several changes (the single form is e.g. `--split t-pipe,t-records,c-records --as \"…\" --idea I-5`).\n\nThe nodes of a split branch become proposed items of that change. Each keeps its current place as its target, with implementation missing, and they merge into the Spec with one approval later (the approval list comes with C-3). Proposed item ids already resolve before the merge, so tickets can reference them.\n\nClaude proposes the split before running migrate; the human approves it.\n\n## Acceptance criteria\n\n- [ ] A split plan with several changes produces one pending change per entry, each with its proposed items and targets; the rest goes to C-1\n- [ ] The split items are not in the merged Spec, but `record show <id>` and `record check` resolve their ids through the pending change\n- [ ] A split change reads on its own as a spec (problem, proposed items with targets)\n- [ ] `node --test` passes\n\n## Blocked by\n\n- #52\n"
+ },
+ {
+  "number": 54,
+  "state": "open",
+  "milestone": "9. Redesign: record model and conveyor",
+  "title": "Migrate this repo: C-1, C-2…C-5 and M-1…M-9",
+  "body": "**PRD:** d-migrate-here, d-rec-test-migrate, d-deliv-split, d-deliv-c2, d-deliv-c3, d-deliv-c4, d-deliv-c5, d-deliv-present, x-migrate-all-c1, d-migrate-old-tickets\n\n## What to build\n\nMove this repository to the record model and prove that nothing is lost.\n\nClaude proposes how to split the I-5 decisions into C-2…C-5, by delivery order. The decisions are t-pipe, t-records and c-records, plus the core stack's d-lit and d-typecheck and their rejected alternatives. After the human approves the split, `groundwork migrate` runs with it and produces:\n- C-1 Initial state (Groundwork before I-5);\n- C-2 Record store and Markdown source, C-3 Changes, C-4 Spec workspace and C-5 Tickets and Overview, all with `ideas: I-5` and `milestone: M-9`;\n- the open-questions change;\n- milestones M-1…M-7 done, M-8 Present in progress (#40–#46 stay open and continue after C-5), and M-9 Redesign with C-2…C-5.\n\nLinks that point to the old document paths (READMEs, skills, docs) are updated to the new ones.\n\n## Acceptance criteria\n\n- [ ] A test on this repo's map: all ~390 nodes are present with id, note, link, human paragraph and impl\n- [ ] The `**PRD:**` lines of the 46 old GitHub tickets resolve to the same items; Build's Checks show the same result as before the migration\n- [ ] C-2…C-5 exist as pending changes under M-9, and the ids on the C-2 tickets resolve\n- [ ] `record check` passes on the migrated repo; no link points to an old document path\n- [ ] The human approved the split before migrate ran\n\n## Blocked by\n\n- #50\n- #51\n- #53\n"
+ }
+]
