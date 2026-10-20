@@ -13,6 +13,23 @@ import plan from './module.mjs'
 import { listen } from '../../core/sse-client.test-helper.mjs'
 
 const open = (dir) => openMap(dir, moduleFiles(dir, plan))
+const put = (root, rel, text) => {
+  fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true })
+  fs.writeFileSync(path.join(root, rel), text)
+}
+// A Spec with one part and its PRD: what the map stands for.
+function spec(root, lang = 'en') {
+  const store = open(root)
+  store.init('Product')
+  store.apply([
+    ...(lang === 'en' ? [{ op: 'set', id: 'root', lang: 'en' }] : []),
+    { op: 'add', id: 'app', parent: 'root', topic: 'App', component: 'software' },
+    { op: 'add', id: 'prd', parent: 'app', topic: 'App: Product', doc: 'prd' },
+    { op: 'add', id: 'goal', parent: 'prd', topic: 'Goal' },
+  ])
+  return store
+}
+const PRD = 'docs/product/spec/app/PRD.md'
 
 test('the manifest names the folders Plan may write to', () => {
   assert.deepEqual(plan.writes, ['docs/product', '.groundwork/plan'])
@@ -20,7 +37,7 @@ test('the manifest names the folders Plan may write to', () => {
 
 test('the map round-trips through /api/plan/map and a browser save is merged', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-api-'))
-  open(root).init('Product')
+  spec(root)
   const srv = await startServer({ root, modules: [plan], port: 0 })
   try {
     const base = `http://127.0.0.1:${srv.port}`
@@ -31,10 +48,10 @@ test('the map round-trips through /api/plan/map and a browser save is merged', a
     const { v, data } = await (await fetch(`${base}/api/plan/map`)).json()
     assert.deepEqual(await (await fetch(`${base}/api/plan/map?v=${v}`)).json(), { v, same: true })
 
-    data.nodeData.children.push({ id: 'h', topic: 'From the browser' })
+    index(data).get('goal').node.children = [{ id: 'h', topic: 'From the browser' }]
     const saved = await (await fetch(`${base}/api/plan/map`, { method: 'PUT', body: JSON.stringify({ base: v, data }) })).json()
     assert.notEqual(saved.v, v)
-    assert.equal(open(root).read().data.nodeData.children[0].topic, 'From the browser')
+    assert.match(fs.readFileSync(path.join(root, PRD), 'utf8'), /^- From the browser · `h` · todo$/m, 'the edit is in the Markdown')
     assert.equal(open(root).takeHumanEdits().length, 1)
 
     assert.equal((await fetch(`${base}/api/plan/map`, { method: 'PUT', body: 'not json' })).status, 400)
@@ -50,15 +67,15 @@ test('/api/plan/ids gives the ids of the nodes of the map, for Build to check PR
   try {
     const base = `http://127.0.0.1:${srv.port}`
     assert.equal((await fetch(`${base}/api/plan/ids`)).status, 404, 'no map yet')
-    const store = open(root)
-    store.init('Product')
-    store.apply([{ op: 'add', id: 'doc', parent: 'root', topic: 'Product', doc: 'prd' }, { op: 'add', id: 'goal', parent: 'doc', topic: 'Goal' }])
+    const store = spec(root)
     const { v, ids } = await (await fetch(`${base}/api/plan/ids`)).json()
     assert.equal(v, store.read().v)
-    assert.deepEqual(ids, ['root', 'doc', 'goal'])
+    assert.deepEqual(ids, ['root', 'system', 'app', 'app/prd', 'goal'])
     assert.deepEqual(await (await fetch(`${base}/api/plan/ids?v=${v}`)).json(), { v, same: true })
     store.apply([{ op: 'add', id: 'more', parent: 'goal', topic: 'More' }])
-    assert.deepEqual((await (await fetch(`${base}/api/plan/ids?v=${v}`)).json()).ids, ['root', 'doc', 'goal', 'more'])
+    assert.deepEqual((await (await fetch(`${base}/api/plan/ids?v=${v}`)).json()).ids, ['root', 'system', 'app', 'app/prd', 'goal', 'more'])
+    put(root, PRD, fs.readFileSync(path.join(root, PRD), 'utf8') + '- By hand · `d-hand` · decision\n')
+    assert.ok((await (await fetch(`${base}/api/plan/ids`)).json()).ids.includes('d-hand'), 'an id typed into a Spec file counts')
   } finally {
     await srv.close()
   }
@@ -86,23 +103,50 @@ test('the Plan view uses the shell theme and defines no base colours of its own'
   }
 })
 
-test('the map file is Plan\'s live-update topic; other files are not', () => {
+test('the Spec files (and an old map file) are Plan\'s live-update topic; other files are not', () => {
+  assert.equal(plan.watch('docs/product/spec/app/PRD.md'), 'plan.map')
+  assert.equal(plan.watch('docs/product/spec/SYSTEM.md'), 'plan.map')
+  assert.equal(plan.watch('docs/product/spec/app/PRD.md.1234.1.tmp'), null)
   assert.equal(plan.watch('docs/product/mindmap.json'), 'plan.map')
   assert.equal(plan.watch('GLOSSARY.md'), 'plan.glossary')
-  assert.equal(plan.watch('docs/product/PRD.md'), null, 'the documents follow the map')
+  assert.equal(plan.watch('docs/product/PRD.md'), null)
   assert.equal(plan.watch('.groundwork/plan/edits.jsonl'), null)
 })
 
-test('a change to the map on disk reaches the page through /api/events', async () => {
+test('a change to the Spec on disk, by Claude or by hand, reaches the page through /api/events', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-events-'))
-  open(root).init('Product')
+  spec(root)
   const srv = await startServer({ root, modules: [plan], port: 0 })
   const sse = listen(srv.port)
   try {
     await sse.next((e) => e.event === 'hello')
-    open(root).apply([{ op: 'add', parent: 'root', id: 'x', topic: 'From Claude' }])
+    open(root).apply([{ op: 'add', parent: 'goal', id: 'x', topic: 'From Claude' }])
     await sse.change('plan.map')
+    put(root, PRD, fs.readFileSync(path.join(root, PRD), 'utf8').replace('From Claude', 'Edited by hand'))
+    await sse.change('plan.map')
+    const { data } = await (await fetch(`http://127.0.0.1:${srv.port}/api/plan/map`)).json()
+    assert.equal(index(data).get('x').node.topic, 'Edited by hand')
   } finally { sse.close(); await srv.close() }
+})
+
+test('an old project with only mindmap.json: the map is shown read-only and a browser save is refused', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-old-'))
+  const old = JSON.stringify({ nodeData: { id: 'root', topic: 'Old', children: [{ id: 'd-x', topic: 'X' }] } })
+  put(root, 'docs/product/mindmap.json', old)
+  const srv = await startServer({ root, modules: [plan], port: 0 })
+  const base = `http://127.0.0.1:${srv.port}`
+  try {
+    const { v, data, readOnly } = await (await fetch(`${base}/api/plan/map`)).json()
+    assert.equal(readOnly, true)
+    assert.deepEqual((await (await fetch(`${base}/api/plan/ids`)).json()).ids, ['root', 'd-x'], 'Build still checks against it')
+    data.nodeData.topic = 'Changed'
+    const res = await fetch(`${base}/api/plan/map`, { method: 'PUT', body: JSON.stringify({ base: v, data }) })
+    assert.equal(res.status, 409)
+    const j = await res.json()
+    assert.equal(j.readOnly, true)
+    assert.match(j.error, /groundwork migrate/)
+    assert.equal(fs.readFileSync(path.join(root, 'docs/product/mindmap.json'), 'utf8'), old)
+  } finally { await srv.close() }
 })
 
 // What Ideas sends (POST /api/plan/todo): Plan alone writes the map. A node it adds sits in an "Ideas"
@@ -113,9 +157,7 @@ const post = (base, body, type = 'application/json') => fetch(`${base}/api/plan/
 
 test('POST /api/plan/todo adds a todo node linked to the idea, in an Ideas section of the PRD, once', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-todo-'))
-  const store = open(root)
-  store.init('Product')
-  store.apply([{ op: 'add', id: 'sys', parent: 'root', topic: 'Overview', doc: 'system' }, { op: 'add', id: 'prd', parent: 'root', topic: 'Product', doc: 'prd' }])
+  const store = spec(root, 'hu')
   const srv = await startServer({ root, modules: [plan], port: 0 })
   const sse = listen(srv.port)
   const base = `http://127.0.0.1:${srv.port}`
@@ -127,12 +169,12 @@ test('POST /api/plan/todo adds a todo node linked to the idea, in an Ideas secti
     await sse.change('plan.map')
     const nodes = index(store.read().data)
     const node = nodes.get(id).node
-    assert.deepEqual({ topic: node.topic, status: node.metadata.status, link: node.hyperLink, by: node.metadata.by },
-      { topic: 'Quick tab switching', status: 'todo', link: '/?module=ideas&idea=I-12', by: 'ideas' })
+    assert.deepEqual({ topic: node.topic, status: node.metadata.status, link: node.hyperLink },
+      { topic: 'Quick tab switching', status: 'todo', link: '/?module=ideas&idea=I-12' })
     const section = nodes.get(id).parent
     assert.equal(section.topic, 'Ötletek', 'in the document language')
-    assert.equal(nodes.get(section.id).parent.id, 'prd')
-    assert.match(fs.readFileSync(path.join(root, 'docs/product/PRD.md'), 'utf8'), /Quick tab switching/)
+    assert.equal(nodes.get(section.id).parent.id, 'app/prd')
+    assert.match(fs.readFileSync(path.join(root, PRD), 'utf8'), /Quick tab switching/)
 
     const again = await (await post(base, { idea: 'I-12', title: 'Quick tab switching' })).json()
     assert.equal(again.id, id, 'the same idea gets the same node')
@@ -143,16 +185,14 @@ test('POST /api/plan/todo adds a todo node linked to the idea, in an Ideas secti
 
 test('POST /api/plan/todo makes a rejected idea a non-goal with its reason', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-excluded-'))
-  const store = open(root)
-  store.init('Product')
-  store.apply([{ op: 'add', id: 'prd', parent: 'root', topic: 'Product', doc: 'prd' }, { op: 'set', id: 'root', lang: 'en' }])
+  const store = spec(root)
   const srv = await startServer({ root, modules: [plan], port: 0 })
   const base = `http://127.0.0.1:${srv.port}`
   try {
     const { id } = await (await post(base, { idea: 'I-4', title: 'Offline sync', status: 'excluded', reason: 'Git already syncs' })).json()
     const { node, parent } = index(store.read().data).get(id)
     assert.deepEqual({ status: node.metadata.status, note: node.note, section: parent.topic }, { status: 'excluded', note: 'Git already syncs', section: 'Ideas' })
-    assert.match(fs.readFileSync(path.join(root, 'docs/product/PRD.md'), 'utf8'), /## Non-goals[\s\S]*Offline sync/)
+    assert.match(fs.readFileSync(path.join(root, PRD), 'utf8'), /^- Offline sync · `[0-9a-f]+` · excluded\n  Git already syncs$/m)
 
     // An idea already on the map as a todo, rejected later, becomes the non-goal itself.
     const todo = await (await post(base, { idea: 'I-5', title: 'Tabs' })).json()
@@ -178,7 +218,7 @@ test('POST /api/plan/todo takes only a JSON request with an idea and a title, an
   } finally { await srv.close() }
 })
 
-test('POST /api/plan/todo answers 409 when the map has no document to put the idea in', async () => {
+test('POST /api/plan/todo answers 409 on an old map, which is read-only', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-todo-empty-'))
   fs.mkdirSync(path.join(root, 'docs', 'product'), { recursive: true })
   fs.writeFileSync(path.join(root, 'docs', 'product', 'mindmap.json'), '{}')
@@ -187,7 +227,7 @@ test('POST /api/plan/todo answers 409 when the map has no document to put the id
   try {
     const res = await post(base, { idea: 'I-1', title: 'x' })
     assert.equal(res.status, 409)
-    assert.match((await res.json()).error, /document/)
+    assert.match((await res.json()).error, /groundwork migrate/)
     assert.equal(fs.readFileSync(path.join(root, 'docs', 'product', 'mindmap.json'), 'utf8'), '{}', 'nothing written')
   } finally { await srv.close() }
 })

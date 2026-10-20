@@ -1,6 +1,6 @@
 // The fixed texts of the Spec documents, one set per document language: the record store's
 // (spec-format.mjs writes and reads the canonical Markdown with them), shared with Plan, whose
-// generator (modules/plan/documents.mjs) still writes the old documents from the map, and with
+// document panel computes its closing sections with them (modules/plan/documents.mjs), and with
 // the browser (Plan's document panel loads this file from /core/records/doc-strings.mjs).
 //
 // The map stores its document language on the root (nodeData.metadata.lang); a map without

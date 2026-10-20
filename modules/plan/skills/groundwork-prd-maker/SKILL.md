@@ -1,24 +1,27 @@
 ---
 name: groundwork-prd-maker
-description: Turns a grilling interview into product documentation: a PRD, a technical design, and for systems and services also overview, service, process, operations and rollout documents. While you talk, it draws a live mind map and writes the documents under docs/product/, all visible and editable in the browser pane. Works for new and for half-finished projects. Load it alongside grilling, grill-me or grill-with-docs, whenever the user wants a PRD, a spec of a system or service, or mentions the mind map, and after to-tickets has made tickets from the PRD.
+description: Turns a grilling interview into product documentation: a PRD, a technical design, and for systems and services also overview, service, process, operations and rollout documents. While you talk, it draws a live mind map and writes the Spec documents under docs/product/spec/, all visible and editable in the browser pane. Works for new and for half-finished projects. Load it alongside grilling, grill-me or grill-with-docs, whenever the user wants a PRD, a spec of a system or service, or mentions the mind map, and after to-tickets has made tickets from the PRD.
 ---
 
-The deliverables are Markdown documents under **`docs/product/`**. The mind map is how the human follows along: at any moment it shows where the interview stands and what has been covered. Everything is a view of one file, `docs/product/mindmap.json`.
+The deliverables are the Spec: Markdown documents under **`docs/product/spec/`**. The Markdown is the source. The mind map is how the human follows along: at any moment it shows where the interview stands and what has been covered. The map is a view of the Spec files, so a file edited by hand shows on the map at once.
 
 ## Structure
 
 ```
-root                          the system or product
-├── document                  belongs to the whole: e.g. the overview (SYSTEM.md)
+root                          the system or product: named after the system document's title
+├── system document           belongs to the whole: the overview (spec/SYSTEM.md)
 ├── component                 a part of the system, with a type (software, service, infra, shared)
 │   └── document              e.g. PRD.md and TECH.md for software, SERVICE.md for a service
 │       └── section           a chapter of that document
 │           └── items         decisions, facts, groups…
 ```
 
-- **A plain software product** needs no components: two documents under the root, `prd` and `tech`.
-- **A system or service, or a mix**, gets an overview document (`system`) and one component per part, each with the documents its type needs.
-- **Files.** Each document is written to `docs/product/<component>/<FILE>.md`, or to `docs/product/<FILE>.md` when it belongs to the whole. The component folder is the component's `dir`; give every component a short English `dir` (`core`, `plan`, `billing`) so the folders match the code whatever language the map is in. Without `dir` the folder comes from the component's name. The files are regenerated on every change. Never edit them by hand, and never overwrite a file groundwork-prd-maker did not generate.
+- **A plain software product** is one component (say `app`) with two documents, `prd` and `tech`.
+- **A system or service, or a mix**, fills the overview document (`system`) and gets one component per part, each with the documents its type needs.
+- **Only these go under the root and a component.** The Spec has no place for a loose node under the root or a component, or for a document other than `system` directly under the root: `apply` refuses them with an error.
+- **Files.** Each document is the file `docs/product/spec/<component>/<FILE>.md`; the overview is `docs/product/spec/SYSTEM.md`; the components are listed in `docs/product/spec/parts.md`. The component folder is the component's `dir`; give every component a short English `dir` (`core`, `plan`, `billing`) so the folders match the code whatever language the map is in. Without `dir` the folder comes from the component's name.
+- **The Markdown is the source, and may be edited by hand.** The human (or another tool) may edit a Spec file directly; the map shows it. `apply` and browser edits rewrite only the documents they change, and only normalize their form (the canonical Markdown): they drop nothing. Prefer `apply` yourself, because it merges with edits the human is making on the map at the same moment.
+- **An old project** that only has `docs/product/mindmap.json` is shown read-only, and `apply` refuses with a hint: run `{{groundwork}} migrate` first, which turns it into the Spec.
 - **Other skills' places.** These folders belong to other skills: `GLOSSARY.md`, `GLOSSARY-MAP.md`, `docs/adr/`, `docs/agents/`, `.scratch/` and `.out-of-scope/`. groundwork-prd-maker never writes into them. It reads them and links to them.
 
 ### Document kinds and their starting sections
@@ -38,7 +41,7 @@ The table below shows the English names, while a map without a language is Hunga
 | `ops` | OPERATIONS.md | Monitoring · Incident management · Backup and recovery · Maintenance · Support model |
 | `rollout` | ROLLOUT.md | Schedule · Migration · Training · Communication · Rollback plan |
 
-Any other kind is allowed too; its file name comes from the document's name, or from `file`.
+Any other kind is allowed too; its file name is the kind in capitals (`<KIND>.md`), or `file` (an UPPERCASE `.md` name).
 
 Notes on two of the sections:
 
@@ -53,9 +56,8 @@ Questions, the choices you offered, and your recommendations never go on the map
 - **Only what matters**: decisions, constraints, scope boundaries, facts that later answers depend on. Accepted defaults and small talk stay off the map.
 - **Placed by meaning**: each item goes into the document and section it belongs to, wherever the conversation happened to be. What the user gets belongs in the PRD; what it is built with belongs in TECH; how it is run belongs in OPERATIONS.
 - **Redraw freely**: rename, merge, move or remove nodes so the map always reads as the current state, not as history.
-- **Readable ids**:
-  - `c-<slug>` for components
-  - `doc-<slug>` for documents
+- **Readable ids**, unique across the whole Spec:
+  - a component's id is its `dir` (`app`), a document's is `<dir>/<kind>` (`app/prd`, the overview's `system`): give any id when you add one, `apply` prints the id the Spec gives it (`c-app is app`), and use that one afterwards
   - `t-<slug>` for sections
   - `g-<slug>` for groups
   - `d-<slug>` for decisions
@@ -63,17 +65,17 @@ Questions, the choices you offered, and your recommendations never go on the map
 
 ## Tools
 
-All access goes through `{{groundwork}} plan <command>`, run in the project's root folder. Never write the map or the documents by hand: `apply` merges with edits the human is making at the same moment.
+All access goes through `{{groundwork}} plan <command>`, run in the project's root folder: `apply` merges with edits the human is making on the map at the same moment.
 
-- `init "<name>"`: create an empty map whose root is the system or product name.
+- `init "<name>"`: start the Spec: its overview document, titled with the system or product name (the root's name).
 - `show`: print the outline with ids, statuses, documents and section state, plus any human edits you have not seen yet.
-- `apply`: change the map and the documents, then print the outline. Pass a JSON op array on stdin with a quoted heredoc in the Bash tool. This avoids Windows quoting problems:
+- `apply`: change the map, that is the Spec's Markdown, then print the outline. Pass a JSON op array on stdin with a quoted heredoc in the Bash tool. This avoids Windows quoting problems:
 
   ```bash
   {{groundwork}} plan apply <<'EOF'
-  [{"op":"add","id":"c-app","parent":"root","topic":"Mobilapp","component":"software","dir":"app"},
-   {"op":"add","id":"doc-app-prd","parent":"c-app","topic":"Termék","doc":"prd"},
-   {"op":"add","id":"t-app-users","parent":"doc-app-prd","topic":"Felhasználók","status":"topic"},
+  [{"op":"add","id":"app","parent":"root","topic":"Mobilapp","component":"software","dir":"app"},
+   {"op":"add","id":"app/prd","parent":"app","topic":"Mobilapp: Termék","doc":"prd"},
+   {"op":"add","id":"t-app-users","parent":"app/prd","topic":"Felhasználók"},
    {"op":"set","id":"t-app-users","prose":"…the section text, in Markdown…"}]
   EOF
   ```
@@ -81,13 +83,14 @@ All access goes through `{{groundwork}} plan <command>`, run in the project's ro
   Ops:
   - `{"op":"add","id":"…","parent":"…","topic":"…","status":"…","note":"…","link":"…","impl":"…","component":"…","dir":"…","doc":"…","file":"…"}`
   - `{"op":"set","id":"…", …the same fields…, "prose":"…","progress":"done"}`
-    - `prose` and `progress` are for sections only.
+    - `prose` and `progress` are for sections only. `prose` has no list or heading lines (the Spec would read them as items and sections), and a `note` no list lines: make those nodes.
+    - A document's `topic` is its title (`Mobilapp: Termék`).
     - `lang` is for the root only: the document language, `{"op":"set","id":"root","lang":"en"}`.
     - Set a field to `""` to clear it.
   - `{"op":"move","id":"…","parent":"…"}`
   - `{"op":"remove","id":"…"}`
 
-  `link` paths are relative to the project root (for example `docs/adr/0012.md`). They are rewritten for each document.
+  `link` paths are relative to the project root (for example `docs/adr/0012.md`). In the file they are written relative to the document.
 - Statuses:
   - `topic`: a group inside a section.
   - `decision`: something settled.
@@ -98,13 +101,13 @@ All access goes through `{{groundwork}} plan <command>`, run in the project's ro
   - `inferred`: read from existing code or documents, waiting for the human to confirm. Once confirmed, change it to `decision` (or `note`); if it is wrong, fix or remove it.
 - Implementation (`impl`, independent of the status): `done`, `partial` or `missing`. Use it whenever there is code to compare against.
 
-  Sections with nothing in them are listed among the open questions automatically. Do not create sections for non-goals, open questions or later items; each document generates those.
+  Sections with nothing in them are listed among the open questions automatically. Do not create sections for non-goals, open questions or later items; the document panel computes those.
 
 ## Session flow
 
-1. **Start.** If `docs/product/mindmap.json` is missing, run `init`. Start the core server: with `preview_start` when `.claude/launch.json` has a `groundwork` configuration, otherwise run `{{groundwork}} --no-open` in the background (it prints its address; `--port N` picks another port when 4477 is taken). Open `/plan/`.
+1. **Start.** If `docs/product/spec/` is missing, run `init` (if `docs/product/mindmap.json` is there instead, ask the human to run `{{groundwork}} migrate` first). Start the core server: with `preview_start` when `.claude/launch.json` has a `groundwork` configuration, otherwise run `{{groundwork}} --no-open` in the background (it prints its address; `--port N` picks another port when 4477 is taken). Open `/plan/`.
 
-   Set the document language to the language of the conversation: `{"op":"set","id":"root","lang":"…"}`. `show` prints it on the root line. A map without one is Hungarian (`hu`). Every fixed text of the documents (header, states, closing sections) and the starting sections from `kinds` are then in that language, so the map's own labels and prose must be in it too. The languages there are: `hu`, `en` (the usage line of `{{groundwork}} plan` lists them). If the conversation is in a language with no strings, use `en` and say so. If the conversation switches language for good, change it and translate the map's labels and prose.
+   Set the document language to the language of the conversation: `{"op":"set","id":"root","lang":"…"}`. `show` prints it on the root line. A map without one is Hungarian (`hu`). Every fixed text of the documents (subtitle, state marks, closing sections) and the starting sections from `kinds` are then in that language, so the map's own labels and prose must be in it too. The languages there are: `hu`, `en` (the usage line of `{{groundwork}} plan` lists them). If the conversation is in a language with no strings, use `en` and say so. If the conversation switches language for good, change it and translate the map's labels and prose.
 2. **Existing project?** If there is already code or documentation, read it before asking anything. Dispatch a sub-agent for a thorough analysis:
    - the product: README, specs, glossary, docs;
    - every ADR in `docs/adr/`, with its state;
@@ -125,7 +128,7 @@ All access goes through `{{groundwork}} plan <command>`, run in the project's ro
 7. **Finish.** When the frontier is empty, make a final pass:
    - Reread every section's prose so each document reads as one coherent whole, and the documents agree with each other.
    - Mark every section `done`.
-   - Tell the human the documents are ready under `docs/product/`, and offer to publish them as shareable documents.
+   - Tell the human the documents are ready under `docs/product/spec/`, and offer to publish them as shareable documents.
 
 ## After to-tickets: the PRD reference
 

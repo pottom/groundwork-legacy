@@ -1,23 +1,25 @@
 #!/usr/bin/env node
-// Plan module CLI: a live, human-editable mind map for grilling sessions that
-// writes a PRD (PRD.md) as the interview goes. Its Claude skill is groundwork-prd-maker.
+// Plan module CLI: a live, human-editable mind map for grilling sessions over the Spec, the
+// documents under docs/product/spec/ (Markdown, the source). Its Claude skill is groundwork-prd-maker.
 //
 // Run as `npx @pottom/groundwork plan <command>` (core/commands.mjs), or `node modules/plan/plan.mjs <command>`:
 //
-//   init "<title>"   create mindmap.json in the current dir
-//   apply '<ops>'    apply a JSON op array (or pipe it on stdin)
+//   init "<title>"   start a Spec in the current dir (its system document, named <title>)
+//   apply '<ops>'    apply a JSON op array (or pipe it on stdin): the Spec's Markdown changes
 //   show             print the outline + pending human edits
 //   kinds            print the document kinds and their starting sections, in the map's document language
 //   hook             UserPromptSubmit hook (reads hook JSON on stdin); `groundwork init` installs it
 //
 // The editor is served by the core server: npx @pottom/groundwork
 // Reading, writing and merging the map is in map-store.mjs; the ops are described there.
+// A project with only the old docs/product/mindmap.json is shown read-only: `groundwork migrate`
+// turns it into the Spec.
 
 import fs from 'node:fs'
 import { STATUSES } from './node-types.mjs'
 import { BASE_DIR, KINDS, COMPONENT_TYPES, listDocs, isSection } from './documents.mjs'
 import { DOC_STRINGS, docStrings, langOf } from '../../core/records/doc-strings.mjs'
-import { openMap, walk, index } from './map-store.mjs'
+import { openMap, walk, index, MIGRATE_HINT } from './map-store.mjs'
 import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'
 
@@ -86,7 +88,8 @@ function editsBlock(store, data) {
 
 function cmdInit(dir, title, force) {
   const store = open(dir)
-  try { store.init(title, { force }) } catch (e) { die(e.message) }
+  if (force) console.error('plan init: --force is gone: a Spec is never started again')
+  try { store.init(title) } catch (e) { die(e.message) }
   console.log(`created ${store.file}`)
 }
 
@@ -95,8 +98,10 @@ function cmdApply(dir, arg) {
   const raw = arg ?? fs.readFileSync(0, 'utf8')
   let ops = JSON.parse(raw)
   if (!Array.isArray(ops)) ops = [ops]
-  const { errors, data } = store.apply(ops)
+  const { errors, renamed, data } = store.apply(ops)
   if (errors.length) console.log('errors:\n' + errors.map((e) => '  ' + e).join('\n'))
+  if (!data) process.exit(1)
+  if (renamed.length) console.log('ids in the Spec:\n' + renamed.map(([from, to]) => `  ${from} is ${to}`).join('\n'))
   const edits = editsBlock(store, data)
   if (edits) console.log(edits + '\n')
   console.log(outline(data))
@@ -104,7 +109,9 @@ function cmdApply(dir, arg) {
 
 function cmdShow(dir) {
   const store = open(dir)
-  const { data } = store.read()
+  if (!store.exists()) die('no Spec here yet (docs/product/spec/): run `groundwork plan init "<title>"`')
+  const { data, readOnly } = store.read()
+  if (readOnly) console.log(`note: ${MIGRATE_HINT}\n`)
   const edits = editsBlock(store, data)
   if (edits) console.log(edits + '\n')
   console.log(outline(data))
