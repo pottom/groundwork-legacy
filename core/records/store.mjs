@@ -20,6 +20,8 @@
 //   store.create(prefix, { fields, body? }, { by? })      the new record (without a body, the type's
 //                                                         template's, if it has one)
 //   store.update(id, { fields?, body? }, { by?, base? })  the record as written
+//   store.next(prefix)                  the number a new record of the type would get
+//   store.root                          the project folder, absolute
 //   store.spec                          the Spec: its documents and parts (spec-store.mjs)
 //
 // by is 'human' (the browser) or 'claude' (the command line), and is 'claude' when not given. On
@@ -305,7 +307,15 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     return out
   }
 
-  return { types: () => [...types], list, get, show, create, update, spec }
+  // The number a new record of the type would get (`record renumber` gives it to the newer of two).
+  /** @param {string} prefix */
+  function next(prefix) {
+    const t = typeOf(prefix)
+    if (!t) throw fail(`no record type ${prefix}`, 'missing')
+    return nextNumber(t, scan())
+  }
+
+  return { root, types: () => [...types], list, get, show, create, update, next, spec }
 }
 
 /** @param {string} text */
