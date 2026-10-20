@@ -42,7 +42,7 @@ test('a row: id, title, stage, the counts, and the ideas and milestone as links'
     ],
   }
   assert.deepEqual(changeRow(shown), {
-    id: 'C-7', n: 7, title: 'Record store', status: 'grilling', stage: 'grilling', questions: 1, items: 2,
+    id: 'C-7', n: 7, title: 'Record store', status: 'grilling', stage: 'grilling', questions: 1, items: 2, merged: false,
     ideas: [
       { id: 'I-5', name: 'idea', module: 'ideas', title: 'Redesign' },
       { id: 'I-9', name: 'idea', module: 'ideas' },
@@ -54,6 +54,7 @@ test('a row: id, title, stage, the counts, and the ideas and milestone as links'
 test('a row of a change without ideas and milestone, and links to undeclared types as plain ids', () => {
   const row = changeRow({ id: 'C-1', n: 1, fields: { title: 'Start', status: 'done' }, body: '', links: [{ field: 'ideas', id: 'I-1' }] })
   assert.deepEqual([row.stage, row.questions, row.items, row.ideas, row.milestone], ['done', 0, 0, [{ id: 'I-1' }], null])
+  assert.equal(changeRow({ id: 'C-1', n: 1, fields: { title: 'Start', status: 'done' }, body: '', links: [] }, { merged: true }).merged, true, 'merged is the core\'s answer, passed in')
 })
 
 test('the open questions of a change with a map are its ? nodes, at any depth; the stage follows them', () => {

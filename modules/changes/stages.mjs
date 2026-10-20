@@ -15,8 +15,10 @@
 //                                  grilling, none → awaiting-approval, d-changes-stage-interview);
 //                                  implementing, done and dropped still come from the status field,
 //                                  until the merge (C-5) and the tickets (C-8) can compute them
-//   changeRow(shown) -> Row        { id, n, title, status, stage, questions, items, ideas, milestone }
-//                                  from the store's show(): items is the number of proposed items;
+//   changeRow(shown, { merged? }) -> Row   { id, n, title, status, stage, questions, items, merged,
+//                                  ideas, milestone } from the store's show(): items is the number
+//                                  of proposed items; merged whether they are all in the Spec
+//                                  (store.merged, computed by the core; false when not given);
 //                                  ideas and milestone are the resolved links ({ id, name?, module?,
 //                                  title? }: a plain { id } when no module declares the type)
 
@@ -72,8 +74,9 @@ export const chip = ({ id, name, module, title }) => ({ id, ...(name ? { name } 
 
 /**
  * @param {{ id: string, n: number, fields: Record<string, unknown>, body: string, links: import('../../core/records/types.mjs').ResolvedLink[] }} shown
+ * @param {{ merged?: boolean }} [opts]
  */
-export function changeRow(shown) {
+export function changeRow(shown, { merged = false } = {}) {
   const parts = readChange(shown.body)
   const questions = mapQuestions(parts.thoughts) + openQuestions(parts.questions)
   const status = String(shown.fields.status ?? '')
@@ -86,6 +89,7 @@ export function changeRow(shown) {
     stage: stageOf(status, questions),
     questions,
     items: parts.items.length,
+    merged,
     ideas: shown.links.filter((l) => l.field === 'ideas').map(chip),
     milestone: milestone ? chip(milestone) : null,
   }

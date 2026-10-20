@@ -35,6 +35,8 @@
 //   readParts(text, { lang? })        -> { lang, parts, human, problems }
 //   docIdOf(file)                    -> { id, part, kind } | null     'core/tech', 'system'
 //   docFile(id)                      -> the file of a document id     'docs/product/spec/core/TECH.md'
+//   itemTextOf(text)                 -> { topic, status, impl?, marked }   a proposed item's text
+//                                       (`Topic · döntés · hiányzik`) as an item's words
 //
 // The writer has one canonical form, and the reader reads it back exactly: read(write(x)) = x and
 // write(read(write(x))) = write(x), byte for byte. The reader is patient: whatever does not fit the
@@ -410,6 +412,32 @@ function parseItem(text, i, why, votes) {
     else { item.status = 'decision'; if (!why.has(i)) why.set(i, 'no-status') }
   }
   return item
+}
+
+/**
+ * The words of a proposed item's text (a change's `— Topic · döntés · hiányzik`) as an item's: the
+ * status and implementation marks at its end, in any language, and the topic before them (a bold
+ * topic is a group). Without a status mark an item is a decision; `marked` says whether it had any
+ * mark (a section's title has none).
+ * @param {string} text
+ * @returns {{ topic: string, status: string, impl?: string, marked: boolean }}
+ */
+export function itemTextOf(text) {
+  const words = String(text ?? '').trim().split(' · ')
+  /** @type {{ topic: string, status: string, impl?: string, marked: boolean }} */
+  const out = { topic: '', status: '', marked: false }
+  while (words.length > 1) {
+    const mark = markOf(words[words.length - 1])
+    if (mark?.[0] === 'impl' && !out.impl && !out.status) { out.impl = mark[1]; out.marked = true }
+    else if (mark?.[0] === 'status' && !out.status) { out.status = mark[1]; out.marked = true }
+    else break
+    words.pop()
+  }
+  out.topic = words.join(' · ')
+  const bold = /^\*\*(.+)\*\*$/.exec(out.topic)
+  if (bold) { out.topic = bold[1]; out.status = 'topic'; out.marked = true }
+  else if (!out.status) out.status = 'decision'
+  return out
 }
 
 // An id twice in a document: the later line is reported.

@@ -20,17 +20,24 @@
 //                                       null when there is none
 //   store.create(prefix, { fields, body? }, { by? })      the new record (without a body, the type's
 //                                                         template's, if it has one)
-//   store.update(id, { fields?, body? }, { by?, base? })  the record as written
+//   store.update(id, { fields?, body? }, { by?, base?, event? })  the record as written; event: a
+//                                       history line's own text, before the lifecycle's ('merged')
 //   store.next(prefix)                  the number a new record of the type would get
 //   store.root                          the project folder, absolute
 //   store.spec                          the Spec: its documents and parts (spec-store.mjs)
 //   store.resolve(id)                   what an id means: a record, a Spec id, an item a pending
 //                                       change proposes, or an old id a merged change lists
 //                                       (resolve.mjs), or null
+//   store.merge(id, { by?, base? })     merges change C-n into the Spec, all or nothing, as the human
+//                                       only (merge.mjs); { id, status, documents, items }, or an
+//                                       error with code 'merge' and `problems`, one per item at fault
+//   store.merged(id)                    whether change C-n is merged, computed from the Spec
+//                                       (merge.mjs); null when there is no such change
 //   store.forModule(manifest)           the store as a module gets it: reads are global, writes
 //                                       only the record types its manifest declares, and the Spec
 //                                       only when its `writes` cover docs/product/spec/ (code
-//                                       'forbidden' otherwise)
+//                                       'forbidden' otherwise); merge only for the module that
+//                                       declares the changes and may write the Spec
 //
 // by is 'human' (the browser) or 'claude' (the command line), and is 'claude' when not given. On
 // every write the store enforces the type's lifecycle: Claude moves a record only between the
@@ -58,6 +65,7 @@ import { readRecord, writeRecord, fileName, slugOf } from './format.mjs'
 import { renderMarkdown } from './render.mjs'
 import { openSpec } from './spec-store.mjs'
 import { resolver } from './resolve.mjs'
+import { mergeChange, isMerged } from './merge.mjs'
 import { SPEC_DIR } from './spec-format.mjs'
 
 /** @typedef {import('./types.mjs').RecordType} RecordType */
@@ -262,9 +270,9 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
   /**
    * @param {string} id
    * @param {{ fields?: Fields, body?: string }} input
-   * @param {{ by?: Actor, base?: string }} [opts]
+   * @param {{ by?: Actor, base?: string, event?: string }} [opts]
    */
-  function update(id, { fields = {}, body } = {}, { by = 'claude', base } = {}) {
+  function update(id, { fields = {}, body } = {}, { by = 'claude', base, event: own } = {}) {
     const old = get(id)
     const t = old && typeOf(old.type)
     if (!old || !t) throw fail(`no record ${id}`, 'missing')
@@ -278,7 +286,7 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     }
     if (empty(merged[t.lifecycle.field])) merged[t.lifecycle.field] = t.lifecycle.initial
     const next = check(t, merged, old.fields, id, by)
-    const what = event(t, old.fields, next)
+    const what = [own, event(t, old.fields, next)].filter(Boolean).join('; ')
     const history = what ? [...old.history, `${today()} · ${by} · ${what}`] : old.history
     /** @type {{ id: string, fields: Fields, body: string, history: string[], stray?: string[] }} */
     const rec = { id: old.id, fields: next, body: body !== undefined ? String(body) : old.body, history }
@@ -327,7 +335,14 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     return nextNumber(t, scan())
   }
 
-  const self = { root, types: () => [...types], list, get, show, create, update, next, spec, resolve: (/** @type {string} */ id) => resolver(self).resolve(id), forModule }
+  const self = {
+    root, types: () => [...types], list, get, show, create, update, next, spec, forModule,
+    resolve: (/** @type {string} */ id) => resolver(self).resolve(id),
+    /** @param {string} id @param {{ by?: Actor, base?: string }} [opts] */
+    merge: (id, opts) => mergeChange(self, id, opts),
+    /** @param {string} id */
+    merged: (id) => isMerged(self, id),
+  }
 
   // What one module gets: every read, and writes of the record types it declares only; the Spec
   // only when its manifest's `writes` cover the Spec's folder (Plan's). Refused: code 'forbidden'.
@@ -343,7 +358,9 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
       create: (prefix, input, opts) => (own.has(prefix) ? create(prefix, input, opts) : deny(`a ${prefix} record`)),
       /** @type {typeof update} */
       update: (id, input, opts) => (own.has(ID.exec(String(id))?.[1] ?? '') ? update(id, input, opts) : deny(String(id))),
-      spec: writesSpec ? spec : { ...spec, writeDoc: () => deny('the Spec') },
+      spec: writesSpec ? spec : { ...spec, writeDoc: () => deny('the Spec'), writeMany: () => deny('the Spec') },
+      /** @type {typeof self.merge} */
+      merge: (id, opts) => (writesSpec && own.has('C') ? self.merge(id, opts) : deny(`the Spec from change ${id}`)),
     }
   }
   return self

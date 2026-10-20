@@ -10,8 +10,10 @@
 //                                  the patient form (English headings, `->`) reads the same
 //   baseOf(text)  -> Content|null  the content of a change file's whole text (front matter and all),
 //                                  or null without one
-//   changePage(shown, { base? })   the list's row (stages.mjs: changeRow; questions is the number
-//                                  of open ones) and { file, tickets, history, content, html, marks }
+//   changePage(shown, { base?, merged? })   the list's row (stages.mjs: changeRow; questions is the
+//                                  number of open ones; merged: store.merged's answer) and { file,
+//                                  version, tickets, history, content, html, marks }: version is the
+//                                  file's, which approving sends back as its base
 //                                  shown: the store's show(); base: a Content or null. html holds the
 //                                  rendered Markdown, by key: sections[key], questions[key], notes[id],
 //                                  of the parts shown and of the removed ones the marks keep; raw HTML
@@ -59,17 +61,18 @@ function render(html, sections, questions, items) {
 
 /**
  * @param {import('../../core/records/types.mjs').ShownRecord} shown
- * @param {{ base?: Content | null }} [opts]
+ * @param {{ base?: Content | null, merged?: boolean }} [opts]
  */
-export function changePage(shown, { base = null } = {}) {
+export function changePage(shown, { base = null, merged = false } = {}) {
   const content = contentOf(shown)
   const marks = base ? compareChanges(base, content) : null
   const html = { sections: {}, questions: {}, notes: {} }
   render(html, content.sections, content.questions, content.items)
   if (marks) render(html, marks.removed.sections, marks.removed.questions, marks.removed.items)
   return {
-    ...changeRow(shown),
+    ...changeRow(shown, { merged }),
     file: shown.file,
+    version: shown.version,
     tickets: readChange(shown.body).tickets,
     history: [...shown.history],
     content,

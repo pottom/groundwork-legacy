@@ -104,3 +104,14 @@ test('the UI strings: English and Hungarian have the same keys, a name for every
   assert.deepEqual(Object.keys(UI_STRINGS.hu).sort(), Object.keys(UI_STRINGS.en).sort())
   for (const s of ['grilling', 'awaiting-approval', 'implementing', 'done', 'dropped']) assert.ok(UI_STRINGS.en[`stage.${s}`], s)
 })
+
+test('the page\'s one write is the approval: JSON to /api/changes/approve with the version it shows; a problem goes next to its row', () => {
+  const src = read('view/change-page.mjs')
+  assert.match(src, /fetch\(`\/api\/changes\/approve\?id=\$\{encodeURIComponent\(p\.id\)\}`/)
+  assert.match(src, /'content-type': 'application\/json'/)
+  assert.match(src, /JSON\.stringify\(\{ base: p\.version \}\)/)
+  assert.match(src, /this\.problemOf\(i\.id\)/, 'a row shows the problem with its item id')
+  assert.match(src, /if \(p\.merged\)/, 'a merged change shows no button')
+  const fetches = [...viewSource().matchAll(/method: '(\w+)'/g)].map((m) => m[1])
+  assert.deepEqual(fetches, ['POST'], 'nothing else on the page writes')
+})

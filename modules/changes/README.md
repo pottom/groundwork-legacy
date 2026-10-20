@@ -1,12 +1,12 @@
 # changes
 
-The Changes module: the changes (C-n), what is taking shape between an idea and the Spec (C-3, [`docs/product/changes/C-003-a-valtozas-lapja-eloben.md`](../../docs/product/changes/C-003-a-valtozas-lapja-eloben.md)). A tab with the list of changes, grouped by stage, and each change's own page, read-only, which follows its file live and marks what changed since the last commit.
+The Changes module: the changes (C-n), what is taking shape between an idea and the Spec (C-3, [`docs/product/changes/C-003-a-valtozas-lapja-eloben.md`](../../docs/product/changes/C-003-a-valtozas-lapja-eloben.md)). A tab with the list of changes, grouped by stage, and each change's own page, which follows its file live, marks what changed since the last commit, and is where the human approves the change, merging it into the Spec.
 
 | File | Role |
 |---|---|
-| `module.mjs` | the manifest: the tab, the view, the Change type in `records`, the live topics `changes.items` and `changes.commit`, `GET /api/changes/list` and `GET /api/changes/show?id=C-3` |
+| `module.mjs` | the manifest: the tab, the view, the Change type in `records`, `writes` the Spec's folder (so the store lets it merge), the live topics `changes.items` and `changes.commit`, `GET /api/changes/list`, `GET /api/changes/show?id=C-3` and `POST /api/changes/approve?id=C-3` |
 | `type.mjs` | the Change record type (`CHANGE_TYPE`): its fields, lifecycle and rules. The module declares it, the core's record store keeps the files under `docs/product/changes/`. The body's Markdown (`changeBody`, `readChange`) stays in the core, `core/records/changes.mjs`, because the core reads it too |
-| `stages.mjs` | the stage of a change and the row the list shows for it, shared with nothing in the browser (the server sends the rows ready) |
+| `stages.mjs` | the stage of a change and the row the list shows for it (with `merged`, the core's answer), shared with nothing in the browser (the server sends the rows ready) |
 | `page.mjs` | the change page as the server gives it: every part of the file (read through the core's patient `readChange`), its Markdown rendered, and the marks against a base version |
 | `since.mjs` | the base of the marks: the change file at HEAD (`git show HEAD:./<file>`), or none without git or for an uncommitted file; which changed paths mean a commit |
 | `compare.mjs` | what changed between two versions of a change, per part, question (by its text), proposed item (by its id) and node of the thought map (by its text); shared by the server (the marks) and the page (the flash), so it imports nothing |
@@ -51,15 +51,19 @@ The reader is the core's (`core/records/changes.mjs`: `readChange` gives `though
 
 ## The change page
 
-A change opens from the list at the shell's deep link `/?module=changes&change=C-3`, so the address names it and a reload opens it again. Nothing on it writes: Claude writes the file during the interview, the page shows it. It follows its file live: when the file changes, the page reads it again and what the last write added or changed (a part, a node of the map, a proposed item) is tinted for a few seconds.
+A change opens from the list at the shell's deep link `/?module=changes&change=C-3`, so the address names it and a reload opens it again. Claude writes the file during the interview, the page shows it; the one write from the page is the approval (below). It follows its file live: when the file changes, the page reads it again and what the last write added or changed (a part, a node of the map, a proposed item) is tinted for a few seconds.
 
 At the top is the workspace (d-map-workspace): the change's thought map on the left, read-only (the core's `<gw-mind-map>`, its root the change's title), and the open questions on the right, computed from the map: the latest on top (the ones new since the last commit first, then from the end of the file), each with its options and Claude's recommendation starred. A click on a question scrolls the map to its node. An older change's `## Kérdések` list shows in the panel too. A change awaiting approval, or one without a map, shows the workspace as one line (thought map · n nodes) that opens on a click. Below stay the description and the proposed items. The panel is a list of questions, each with a list of options, so answering from the page (C-7) can turn the options into buttons in place. A read that fails keeps the last good page, with a note.
 
 What changed since the last commit is marked durably, on the map too (per node): new, modified, and removed (struck through, still shown until the next commit). The base is the file at HEAD in git, so nothing is remembered: the marks survive a reload and another machine, and go away on commit (a commit is the live topic `changes.commit`). The commit is heard from `.git/HEAD` and `.git/refs/heads/` under the project folder; in a project that is a subfolder of its repository, or a worktree (where `.git` is a file), the marks follow a commit at the next read instead (a reload, a reconnect, or the next write). Without git, or for a file not committed yet, there are no marks and no error.
 
+## Approval
+
+The proposed items are the approval list (C-5, d-approve-on-page): a row per item with its op, id, target and text, and an Approve button below while the change awaits approval or is implementing (C-3, C-4: d-merge-implementing) and is not merged yet. The button sends `POST /api/changes/approve?id=C-3` (JSON, `{ base }`: the version of the change the page shows), and the core's record store merges the change into the Spec as the human (`store.merge`, `core/records/merge.mjs`): every item at its target, with the change in its origin (`· C-1, C-7`), all or nothing (d-merge-atomic); an awaiting change moves to implementing, and its history gets a `merged` line. A change still grilling (an open question) is refused. When the merge is refused, nothing is written, and the page shows what is wrong next to each row at fault (the answer's `problems`, `[{ id, op, target, code, message }]`, by item id), until the change's next version. Whether a change is merged is computed by the core from the Spec, never stored (d-merged-computed: every item there with this change in its origin; `store.merged`); the page and the list rows carry it as `merged`, and a merged change shows Merged into the Spec instead of the button. Claude cannot merge: the command line has no merge, and the store refuses any writer but the human.
+
 ## Public endpoints
 
-None: no other module reads the Changes module yet. The page reads its own `GET /api/changes/list` and `GET /api/changes/show` and, for live updates, the topics `changes.items` (a change file), `changes.commit` (a commit) and `records` (the core's: an idea's or a milestone's title it shows).
+None: no other module reads the Changes module yet. The page reads its own `GET /api/changes/list` and `GET /api/changes/show`, writes through its own `POST /api/changes/approve`, and, for live updates, the topics `changes.items` (a change file), `changes.commit` (a commit) and `records` (the core's: an idea's or a milestone's title it shows).
 
 ## Without the module
 

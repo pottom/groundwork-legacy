@@ -34,8 +34,8 @@ const snapshot = (root) => Object.fromEntries(fs.readdirSync(root, { recursive: 
   .filter((d) => d.isFile() && !path.relative(root, d.parentPath ?? d.path).startsWith('.git'))
   .map((d) => { const f = path.join(d.parentPath ?? d.path, d.name); return [path.relative(root, f), fs.readFileSync(f, 'utf8')] }))
 
-test('the Changes module declares the Change type in docs/product/changes/ and writes nothing itself', () => {
-  assert.deepEqual(changes.writes, [])
+test('the Changes module declares the Change type in docs/product/changes/ and writes only the Spec, through the store\'s merge', () => {
+  assert.deepEqual(changes.writes, ['docs/product/spec'])
   assert.deepEqual(changes.records.map((t) => [t.prefix, t.folder]), [['C', 'docs/product/changes']])
   assert.deepEqual(CORE_RECORDS.records.map((t) => t.prefix), ['M'], 'the milestone stays in the core')
   assert.throws(() => moduleFiles(project(), changes).write('docs/product/changes/C-001-x.md', 'x'), /may not write/)
@@ -197,4 +197,73 @@ test('the Changes view uses the shell theme and defines no colours of its own', 
     const stray = css.split(/[;{}]/).map((d) => d.trim()).filter((d) => /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i.test(d))
     assert.deepEqual(stray, [])
   })
+})
+
+// A project with a Spec: the system document with one section and one item.
+function withSpec() {
+  const root = project()
+  fs.mkdirSync(path.join(root, 'docs/product/spec'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'docs/product/spec/SYSTEM.md'), '# Groundwork\n\n_Rendszer-áttekintés_\n\n## Cél {#t-goal}\n\n- Egy szerver · `d-one` · döntés · C-1\n')
+  return root
+}
+const approve = (base, id, body = {}, headers = { 'content-type': 'application/json' }) =>
+  fetch(`${base}/api/changes/approve?id=${encodeURIComponent(id)}`, { method: 'POST', headers, body: JSON.stringify(body) })
+
+test('POST /api/changes/approve merges the change into the Spec as the human, and an awaiting change moves to implementing', async () => {
+  const root = withSpec()
+  const store = open(root)
+  store.create('C', { fields: { title: 'Kész terv' }, body: '## Javasolt elemek\n\n- add `d-new` → `system#t-goal` — Új elem · döntés · hiányzik\n' })
+  store.update('C-1', { fields: { status: 'awaiting-approval' } })
+  await withServer(root, [ideas, changes], async (base) => {
+    const page = await show(base, 'C-1')
+    assert.deepEqual([page.stage, page.merged, typeof page.version], ['awaiting-approval', false, 'string'])
+    assert.equal((await fetch(`${base}/api/changes/approve?id=C-1`, { method: 'GET' })).status, 405)
+    assert.equal((await approve(base, 'C-1', {}, { 'content-type': 'text/plain' })).status, 415, 'JSON only: no form from another site')
+    assert.equal((await approve(base, 'C-9')).status, 404)
+    const res = await approve(base, 'C-1', { base: page.version })
+    assert.equal(res.status, 200)
+    assert.deepEqual(await res.json(), { id: 'C-1', status: 'implementing', documents: ['system'], items: [{ id: 'd-new', op: 'add', document: 'system' }] })
+    assert.match(fs.readFileSync(path.join(root, 'docs/product/spec/SYSTEM.md'), 'utf8'), /\n- Új elem · `d-new` · döntés · hiányzik · C-1\n/)
+    const after = await show(base, 'C-1')
+    assert.deepEqual([after.status, after.stage, after.merged], ['implementing', 'implementing', true])
+    assert.match(after.history.at(-1), / · human · merged; status: awaiting-approval → implementing$/)
+    assert.equal((await list(base)).changes[0].merged, true)
+    const again = await approve(base, 'C-1')
+    assert.deepEqual([again.status, (await again.json()).code], [409, 'merged'])
+  })
+})
+
+test('approving an implementing change merges it and keeps its status; a grilling one is refused', async () => {
+  const root = withSpec()
+  const store = open(root)
+  store.create('C', { fields: { title: 'Épül' }, body: '## Javasolt elemek\n\n- add `d-built` → `system#t-goal` — Épül · döntés · részben\n' })
+  store.update('C-1', { fields: { status: 'implementing' } }, { by: 'human' })
+  store.create('C', { fields: { title: 'Még kérdés' }, body: '## Gondolatok\n\n- ? Hol?\n\n## Javasolt elemek\n\n- add `d-q` → `system#t-goal` — Q · döntés · hiányzik\n' })
+  await withServer(root, [ideas, changes], async (base) => {
+    const res = await approve(base, 'C-1')
+    assert.deepEqual([res.status, (await res.json()).status], [200, 'implementing'])
+    const grilling = await approve(base, 'C-2')
+    assert.deepEqual([grilling.status, (await grilling.json()).code], [409, 'state'])
+    assert.equal((await show(base, 'C-2')).merged, false)
+  })
+})
+
+test('approving refuses the whole change on any item at fault, with a problem per item; nothing is written', async () => {
+  const root = withSpec()
+  const store = open(root)
+  store.create('C', { fields: { title: 'Hibás' }, body: '## Javasolt elemek\n\n- add `d-ok` → `system#t-goal` — Jó · döntés · hiányzik\n- add `d-one` → `system#t-goal` — Már van · döntés · hiányzik\n' })
+  store.update('C-1', { fields: { status: 'awaiting-approval' } })
+  const before = snapshot(path.join(root, 'docs'))
+  await withServer(root, [ideas, changes], async (base) => {
+    const res = await approve(base, 'C-1')
+    assert.equal(res.status, 409)
+    const body = await res.json()
+    assert.equal(body.code, 'merge')
+    assert.deepEqual(body.problems.map((p) => [p.id, p.code]), [['d-one', 'duplicate']])
+    assert.match(body.problems[0].message, /d-one is already in system/)
+    const stale = await approve(base, 'C-1', { base: 'not-the-version' })
+    assert.deepEqual([stale.status, (await stale.json()).code], [409, 'stale'])
+  })
+  assert.deepEqual(snapshot(path.join(root, 'docs')), before)
+  assert.equal(open(root).get('C-1').fields.status, 'awaiting-approval')
 })

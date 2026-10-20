@@ -1,6 +1,8 @@
-// <gw-change-page>: one change, read-only (d-changes-page-readonly). A Lit component that renders
-// into the page (no shadow root), so the theme's .gw-* components and changes.css style it. Nothing
-// on it writes: Claude writes the change's file during the interview, and the page shows it.
+// <gw-change-page>: one change (d-changes-page-readonly). A Lit component that renders into the page
+// (no shadow root), so the theme's .gw-* components and changes.css style it. Claude writes the
+// change's file during the interview, and the page shows it; the one write from the page is the
+// human's approval (d-approve-on-page): POST /api/changes/approve, which merges the change into the
+// Spec, all or nothing.
 //
 //   el.page      the change as GET /api/changes/show gives it (page.mjs: changePage); null while
 //                the first read is under way
@@ -17,7 +19,13 @@
 // buttons in place. A change awaiting approval, or one without a map, shows the workspace as one
 // line (thought map · n nodes) that opens on a click.
 // Then the parts in the file's order: problem, solution, scope, out of scope, the proposed items (op,
-// id, → target, text, note), the tickets rule, the history. What changed since the last commit is
+// id, → target, text, note), the tickets rule, the history. The proposed items are the approval
+// list: a row per item, and below them the Approve button while the change awaits approval or is
+// implementing and is not merged yet (page.merged, computed by the core); a merged change shows
+// that instead. A refused approval leaves the change as it was and puts what is wrong next to each
+// row at fault (the server's problems, by item id: row(i) shows problemOf(i.id)); a new version of
+// the change clears them. A row is one <li class="item"> with the item's line, text and note, then
+// its problem, so a later state of a row (waiting for another change, a new target) goes in there. What changed since the last commit is
 // marked (page.marks: new, modified; a removed part, map node or item is shown struck through until
 // the next commit), on the map too; what the last write changed flashes (el.flash).
 // The Markdown arrives rendered by the server, raw HTML shown as text (core/records/render.mjs), so
@@ -39,7 +47,7 @@ const MARK_TONE = { new: 'ok', modified: 'info', removed: 'bad' }
 const md = (rendered) => (rendered ? unsafeHTML(rendered) : nothing)
 
 export class ChangePage extends LitElement {
-  static properties = { page: { attribute: false }, error: { attribute: false }, missing: { attribute: false }, flash: { attribute: false }, lang: {}, open: { state: true } }
+  static properties = { page: { attribute: false }, error: { attribute: false }, missing: { attribute: false }, flash: { attribute: false }, lang: {}, open: { state: true }, approval: { state: true } }
 
   constructor() {
     super()
@@ -54,6 +62,39 @@ export class ChangePage extends LitElement {
     this.lang = ''
     /** @type {boolean | null} the workspace opened or closed by hand; null: as the stage says */
     this.open = null
+    /** @type {{ busy: boolean, error: string | null, problems: Array<{ id: string, code: string, message: string }> }} the last approval */
+    this.approval = { busy: false, error: null, problems: [] }
+  }
+
+  /** a new version of the change (or another change) clears what the last approval said @param {Map<string, unknown>} changed */
+  willUpdate(changed) {
+    const before = /** @type {any} */ (changed.get('page'))
+    if (changed.has('page') && before && (before.id !== this.page?.id || before.version !== this.page?.version) && !this.approval.busy) {
+      this.approval = { busy: false, error: null, problems: [] }
+    }
+  }
+
+  /** @param {string} id */
+  problemOf(id) {
+    return this.approval.problems.find((x) => x.id === id) ?? null
+  }
+
+  // The human approves: the server merges the change into the Spec; the page reads it again when
+  // its file changes (the live topic), and shows the rows at fault when it is refused.
+  async approve() {
+    const p = this.page
+    if (!p || this.approval.busy) return
+    this.approval = { busy: true, error: null, problems: [] }
+    try {
+      const res = await fetch(`/api/changes/approve?id=${encodeURIComponent(p.id)}`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ base: p.version }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (res.ok) this.approval = { busy: false, error: null, problems: [] }
+      else this.approval = { busy: false, error: body.problems?.length ? null : String(body.error ?? `HTTP ${res.status}`), problems: body.problems ?? [] }
+    } catch (e) {
+      this.approval = { busy: false, error: e instanceof Error ? e.message : String(e), problems: [] }
+    }
   }
 
   createRenderRoot() { return this }
@@ -179,14 +220,35 @@ export class ChangePage extends LitElement {
         ${p.content.items.map((/** @type {any} */ i) => this.item(p, i, p.marks?.items?.[i.id]))}
         ${removed.map((/** @type {any} */ i) => this.item(p, i, 'removed'))}
       </ul>` : html`<p class="part__empty">${ui('item.none')}</p>`}
+      ${this.approveBar(p)}
     </section>`
+  }
+
+  // Below the approval list: merged, the Approve button, or why it cannot be approved yet.
+  /** @param {any} p */
+  approveBar(p) {
+    if (p.merged) return html`<div class="approve" data-part="approve"><span class="gw-badge gw-badge--dot gw-badge--ok">${ui('approve.merged')}</span></div>`
+    if (!p.content.items.length || !['awaiting-approval', 'implementing'].includes(p.stage)) {
+      return p.stage === 'grilling' && p.content.items.length ? html`<div class="approve" data-part="approve"><p class="part__empty">${ui('approve.waiting')}</p></div>` : nothing
+    }
+    const { busy, error, problems } = this.approval
+    const n = problems.length
+    return html`<div class="approve" data-part="approve">
+      ${n ? html`<div class="gw-callout gw-callout--bad" role="alert"><div class="gw-callout__body">${ui(n === 1 ? 'approve.failed.one' : 'approve.failed', { n })}</div></div>` : nothing}
+      ${error ? html`<div class="gw-callout gw-callout--bad" role="alert"><div class="gw-callout__body">${ui('approve.error', { error })}</div></div>` : nothing}
+      <div class="approve__bar">
+        <button type="button" class="gw-btn gw-btn--primary" ?disabled=${busy} @click=${() => this.approve()}>${ui(busy ? 'approve.busy' : 'approve.button')}</button>
+        <span class="approve__hint">${ui(p.stage === 'implementing' ? 'approve.hint.implementing' : 'approve.hint')}</span>
+      </div>
+    </div>`
   }
 
   /** @param {any} p @param {any} i @param {string | undefined} mark */
   item(p, i, mark) {
     const gone = mark === 'removed'
     const struck = gone ? 'is-gone' : ''
-    return html`<li class=${`item ${gone ? 'is-removed' : this.marked('items', i.id)}`} data-id=${i.id}>
+    const problem = gone ? null : this.problemOf(i.id)
+    return html`<li class=${`item ${gone ? 'is-removed' : this.marked('items', i.id)} ${problem ? 'has-problem' : ''}`} data-id=${i.id}>
       <div class=${`item__line ${struck}`}>
         <span class=${`gw-badge gw-badge--${OP_TONE[i.op] ?? 'neutral'}`}>${i.op}</span>
         <span class="gw-tag item__id">${i.id}</span><span class="item__arrow" aria-label=${ui('item.to')}>→</span><span class="gw-tag item__target">${i.target}</span>
@@ -194,6 +256,7 @@ export class ChangePage extends LitElement {
       </div>
       ${i.text ? html`<p class=${`item__text ${struck}`}>${i.text}</p>` : nothing}
       ${i.note ? html`<div class=${`md item__note ${struck}`}>${md(p.html.notes[i.id])}</div>` : nothing}
+      ${problem ? html`<p class="item__problem" role="alert"><span class="gw-badge gw-badge--bad">${ui('item.problem')}</span> ${problem.message}</p>` : nothing}
     </li>`
   }
 

@@ -58,6 +58,14 @@ h2, h3, p { margin: 0; }
 .item__note { color: var(--gw-fg-2); font: var(--gw-text-xs) var(--gw-font); line-height: 1.55; }
 .history { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font-mono); }
 
+/* the approval list (d-approve-on-page): what is wrong next to a row, and the Approve button below */
+.item.has-problem { border-color: var(--gw-bad); box-shadow: inset 3px 0 0 var(--gw-bad); }
+.item__problem { margin: 0; color: var(--gw-bad-text); font: var(--gw-text-xs) var(--gw-font); line-height: 1.55; overflow-wrap: anywhere; }
+.approve { margin-top: var(--gw-space); display: flex; flex-direction: column; gap: calc(var(--gw-space) * .75); }
+.approve > .gw-badge { align-self: flex-start; }
+.approve__bar { display: flex; align-items: center; gap: var(--gw-space); flex-wrap: wrap; }
+.approve__hint { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); }
+
 /* the workspace (d-map-workspace): the thought map on the left, the open questions on the right */
 .workspace { display: flex; flex-direction: column; gap: var(--gw-space); border: 1px solid var(--gw-line); border-radius: var(--gw-radius-lg); background: var(--gw-surface); padding: var(--gw-space); min-width: 0; }
 .workspace__bar { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; font: 600 var(--gw-text-small) var(--gw-font); color: var(--gw-fg-2); padding: 2px 4px; border-radius: var(--gw-radius-sm); }

@@ -1,18 +1,28 @@
 // The Changes module as the core server loads it: manifest, view and endpoint (d-changes-module).
 //
 //   GET /changes/              the list of changes (index.html), grouped by stage
-//   GET /changes/?change=C-3   one change's page, read-only (the shell's deep link /?module=changes&change=C-3)
-//   GET /api/changes/list      { stages: STAGES, changes: [{ id: 'C-3', n, title, status, stage, questions, items,
+//   GET /changes/?change=C-3   one change's page, with its approval list (the shell's deep link /?module=changes&change=C-3)
+//   GET /api/changes/list      { stages: STAGES, changes: [{ id: 'C-3', n, title, status, stage, questions, items, merged,
 //                                            ideas: [Chip], milestone: Chip | null }] }, in id order;
 //                              Chip: { id, name?, module?, title? } (stages.mjs: changeRow)
 //   GET /api/changes/show?id=C-3   one change's page (page.mjs: changePage): every part of its file,
 //                              rendered, and the marks of what changed since the last commit (the
 //                              file at HEAD, since.mjs; null without git or for an uncommitted file);
 //                              404 for an id that is no change
+//   POST /api/changes/approve?id=C-3   { base? } (the change's version the page shows) ->
+//                              { id, status, documents, items }: the human approves the change, and
+//                              the core's record store merges it into the Spec (store.merge, as
+//                              'human'; core/records/merge.mjs), all or nothing; a change awaiting
+//                              approval moves to implementing. JSON only (415 otherwise). Refused:
+//                              404 no change; 409 { error, code, problems? }: still grilling (open
+//                              questions, code 'state'), done or dropped, already merged, no items,
+//                              changed since `base` (code 'stale'), or items at fault (code 'merge',
+//                              problems: [{ id, op, target, code, message }], one per item)
 //
 // Changes are records of the core's record store: the manifest declares the type C (`records`,
-// type.mjs), with its folder docs/product/changes/, and the store writes the files; the Changes
-// module writes nothing itself (`writes` is empty). The Milestone type (M) stays in the core.
+// type.mjs), with its folder docs/product/changes/, and the store writes the files. Approving is the
+// module's one write: the store merges the change into the Spec, so `writes` names the Spec's folder
+// (store.forModule lets a module merge only then). The Milestone type (M) stays in the core.
 // The stage is computed (stages.mjs): open questions → Grilling, none → Awaiting approval; the
 // later stages come from the status field until C-5 and C-8.
 //
@@ -23,11 +33,11 @@
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { send } from '../../core/http.mjs'
+import { send, readJson, isJson } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { CHANGES } from '../../core/records/changes.mjs'
 import { CHANGE_TYPE } from './type.mjs'
-import { STAGES, changeRow } from './stages.mjs'
+import { STAGES, changeRow, stageOf } from './stages.mjs'
 import { changePage, baseOf } from './page.mjs'
 import { committed, isCommitPath } from './since.mjs'
 
@@ -41,8 +51,9 @@ export default {
   version: VERSION,   // the package's: one version for Groundwork and its modules
   // The page: a thin index.html and Lit components under view/ (view/main.mjs is the entry).
   view: { dir: HERE, files: ['index.html', 'view/changes.css', 'view/main.mjs', 'view/changes-list.mjs', 'view/change-page.mjs', 'view/strings.mjs', 'ui-strings.mjs', 'compare.mjs', 'thoughts.mjs'] },
-  // The Changes module writes nothing itself: the core's record store writes the change files.
-  writes: [],
+  // The Spec, which approving a change merges into (POST /api/changes/approve): the core's record
+  // store writes it, and the change files, for the module (store.forModule: merge).
+  writes: ['docs/product/spec'],
   // The record type it brings: the core's record store keeps the changes (core/records/store.mjs).
   records: [CHANGE_TYPE],
   // Nothing another module may read yet (modules/README.md).
@@ -51,19 +62,44 @@ export default {
     : isCommitPath(p) ? 'changes.commit' : null),
   api({ root, records }) {
     return async (req, res, sub, url) => {
+      if (sub === '/approve') return approve(records, req, res, url), true
       if (sub !== '/list' && sub !== '/show') return false
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'method not allowed' }), true
       if (sub === '/show') {
         const id = url.searchParams.get('id') ?? ''
         const shown = /^C-\d+$/.test(id) ? records.show(id) : null
         if (!shown || shown.type !== 'C') return send(res, 404, { error: `no change ${id}` }), true
-        return send(res, 200, changePage(shown, { base: baseOf(committed(root, shown.file)) })), true
+        return send(res, 200, changePage(shown, { base: baseOf(committed(root, shown.file)), merged: records.merged(id) ?? false })), true
       }
       const changes = records.list('C').flatMap((r) => {
         const shown = records.show(r.id)
-        return shown ? [changeRow(shown)] : []
+        return shown ? [changeRow(shown, { merged: records.merged(r.id) ?? false })] : []
       })
       return send(res, 200, { stages: STAGES, changes }), true
     }
   },
+}
+
+// The human approves a change from its page: the record store merges it into the Spec.
+/** @param {any} records @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res @param {URL} url */
+async function approve(records, req, res, url) {
+  if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' })
+  // Only a JSON request: another web site cannot send one here without the browser asking first.
+  if (!isJson(req)) return send(res, 415, { error: 'send JSON' })
+  const id = url.searchParams.get('id') ?? ''
+  /** @type {{ base?: unknown }} */
+  let body
+  try { body = (await readJson(req)) ?? {} } catch (e) { return send(res, 400, { error: e instanceof Error ? e.message : String(e) }) }
+  const shown = /^C-\d+$/.test(id) ? records.show(id) : null
+  if (!shown || shown.type !== 'C') return send(res, 404, { error: `no change ${id}` })
+  const row = changeRow(shown)
+  if (stageOf(row.status, row.questions) === 'grilling') return send(res, 409, { error: `${id} still has open questions: it is approved once they are answered`, code: 'state' })
+  try {
+    const base = typeof body.base === 'string' ? body.base : undefined
+    send(res, 200, records.merge(id, { by: 'human', base }))
+  } catch (e) {
+    const err = /** @type {Error & { code?: string, problems?: unknown[] }} */ (e)
+    const code = err.code === 'missing' ? 404 : err.code === 'forbidden' ? 403 : ['merge', 'stale', 'state', 'merged', 'empty'].includes(err.code ?? '') ? 409 : 500
+    send(res, code, { error: err.message, code: err.code, ...(err.problems ? { problems: err.problems } : {}) })
+  }
 }
