@@ -224,9 +224,9 @@ After every write, run `{{groundwork}} record check` and fix what it reports in 
    - Reread its text and the prose of its proposed sections, so the change reads as one coherent whole and agrees with the Spec it changes.
    - Close the interview as "The close" says: no open questions left, stage Awaiting approval.
 
-## After to-tickets: the PRD reference
+## Tickets: the PRD reference, the state and the area
 
-The `to-tickets` skill turns the PRD into tickets; use it as it is. Every ticket it creates then gets a **PRD reference**: the ids of the map items it came from, so Build can link the ticket to Plan and Plan can count the tickets per item. In the same turn as `to-tickets`:
+The `to-tickets` skill turns the PRD into tickets; use it as it is. When you write a ticket yourself instead (a change's slices, a follow-up), give it the same form and everything below. Every ticket then gets a **PRD reference**: the ids of the map items it came from, so Build can link the ticket to Plan and Plan can count the tickets per item. In the same turn as `to-tickets`:
 
 1. Run `show` for the map's ids.
 2. For each new ticket, pick the items it builds or must respect: features, decisions, notes, `excluded` items. A ticket that matches no item is a gap in the PRD: propose the item in the ticket's change first (and its `?` node on the map, when the human has not settled it), then name it. An item the change proposes is named too: `{{groundwork}} record show <id>` finds it.
@@ -238,7 +238,13 @@ The `to-tickets` skill turns the PRD into tickets; use it as it is. Every ticket
 
    Ids exactly as `show` prints them, separated by commas. In a GitHub issue it is the first line of the body (`gh issue edit <n> --body-file <file>`). In a local ticket file (`.scratch/<area>/issues/`) it is a line of its own under the title, before the first `##` section.
 
-Done when every ticket `to-tickets` created carries a PRD line and every id on it appears in `show`. Build's Checks view lists the tickets that miss either.
+4. Give it its **state** and its **area**, which Build reads to place it:
+   - the state, as a label on a GitHub issue (`**Status:** …` in a local ticket file): `ready-for-agent` for work an agent can do, `ready-for-human` for a step only the human takes (an approval, a merge from the page), `needs-info` when something must be settled first. A ticket without one shows under "Waiting for a human" as needing triage. Keep the project's other labels too (`enhancement`, `bug`).
+   - the area, as the issue's milestone: the GitHub milestone of the change's milestone (`M-9` is the one whose title starts with `9.`; `gh api repos/{owner}/{repo}/milestones` lists them). A local ticket's area is its folder.
+
+   `gh issue create --title "…" --body-file <file> --label enhancement,ready-for-agent --milestone "<title>"`, or `gh issue edit <n> --add-label … --milestone …` for one already made.
+
+Done when every new ticket carries a PRD line, a state and an area, and every id on its PRD line appears in `show`. Build's Checks view lists the tickets that miss a PRD line or an id; one without a state shows as needing triage.
 
 ## Human edits are authoritative
 

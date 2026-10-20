@@ -44,7 +44,7 @@ An **engineering** idea the human moved to **Accepted** becomes a GitHub issue. 
    ```
 
    Keep the project's other lines too (`**PRD:** …` when the work belongs to a PRD item).
-3. **Create it**: `gh issue create --title "<title>" --body-file <file>`. Tell the user the issue number.
+3. **Create it** with its state and area, which Build reads to place it: `gh issue create --title "<title>" --body-file <file> --label enhancement,ready-for-agent --milestone "<title>"`. The label is the state (`ready-for-agent` for work an agent can do, `ready-for-human` for a step only the human takes); without one the ticket shows as needing triage. The milestone is the area: the GitHub milestone of the change or milestone the work belongs to (`gh api repos/{owner}/{repo}/milestones` lists them); leave it out when none fits, and say so. Tell the user the issue number.
 
 Build reads the `**Idea:**` line and shows the idea as a link on the ticket; the idea's card shows the ticket's number and state. Do not edit the idea file for this: the link lives in the ticket.
 
