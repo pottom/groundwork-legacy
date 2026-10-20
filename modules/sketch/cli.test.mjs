@@ -114,6 +114,33 @@ test('apply moves, updates and deletes; a moved shape takes its label and its ar
   assert.equal(byId(dir, 'ab').startBinding, null, 'the arrow stays, no longer bound to it')
 })
 
+test('fontFamily and fontSize set a text, and on a shape or an arrow they set its label; a free line through more points has sharp corners', async () => {
+  const dir = project()
+  const r = await apply(dir, [
+    { op: 'add', type: 'rectangle', id: 'a', x: 0, y: 0, label: 'A', fontFamily: 2, fontSize: 16 },
+    { op: 'add', type: 'rectangle', id: 'b', x: 300, y: 0, label: 'B' },
+    { op: 'add', type: 'arrow', id: 'ab', from: 'a', to: 'b', label: 'goes', fontFamily: 2 },
+    { op: 'add', type: 'text', id: 't', x: 0, y: 200, text: 'Note', fontFamily: 2 },
+    { op: 'update', id: 'b', fontFamily: 2, fontSize: 28 },
+  ])
+  assert.equal(r.code, 0, r.stderr)
+  const label = (id) => fileOf(dir).elements.find((e) => e.containerId === id)
+  assert.deepEqual([label('a').fontFamily, label('a').fontSize], [2, 16])
+  assert.deepEqual([label('b').fontFamily, label('b').fontSize], [2, 28])
+  assert.equal(label('ab').fontFamily, 2)
+  assert.equal(byId(dir, 't').fontFamily, 2)
+  assert.equal(byId(dir, 'a').fontFamily, undefined, 'the shape itself has no font')
+  assert.equal((await apply(dir, [{ op: 'update', id: 'a', label: 'One\nTwo' }])).code, 0)
+  const two = label('a')
+  assert.equal(two.height - two.baseline, Math.round(16 * 0.35), 'the baseline is that of the last line, so Excalidraw draws every line inside the shape')
+  assert.equal((await apply(dir, [{ op: 'add', type: 'arrow', id: 'el', points: [[0, 0], [0, 50], [80, 50]] }])).code, 0)
+  assert.equal(byId(dir, 'el').roundness, null, 'a free line through three points turns at sharp corners')
+  assert.ok(byId(dir, 'ab').roundness, 'a two-point arrow keeps its curve')
+  const bad = await apply(dir, [{ op: 'update', id: 't', fontFamily: 9 }])
+  assert.equal(bad.code, 1)
+  assert.match(bad.stderr, /fontFamily/)
+})
+
 test('apply reads its ops from stdin too', async () => {
   const dir = project()
   const r = await runCommand(process.execPath, [BIN, 'sketch', 'apply', 'main'], { cwd: dir, input: JSON.stringify([{ op: 'add', type: 'rectangle', id: 'r', x: 0, y: 0 }]) })

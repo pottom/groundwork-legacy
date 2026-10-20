@@ -39,10 +39,46 @@ Run `{{groundwork}} sketch apply <name> '<ops>'`, the ops a JSON array (or pipe 
 
 - `id` is optional on add; give short meaningful ones (`api`, `db`) so you and the human can refer to them. Mermaid nodes keep their Mermaid ids; an arrow between them is `<from>-<to>`.
 - Without `x` and `y` a new shape or chart goes below the drawing. Leave about 80 px between shapes; read the sketch first so you do not draw over the human's work.
-- Style fields: `strokeColor`, `backgroundColor` (e.g. `"#ffec99"`), `fillStyle` (`solid`, `hachure`), `strokeWidth`, `strokeStyle` (`solid`, `dashed`, `dotted`), `roughness`, `opacity`, `link`.
+- Style fields: `strokeColor`, `backgroundColor` (e.g. `"#e6ebfa"`), `fillStyle` (`solid`, `hachure`), `strokeWidth`, `strokeStyle` (`solid`, `dashed`, `dotted`), `roughness`, `opacity`, `link`.
+- Font fields: `fontFamily` (`1` hand-drawn, `2` normal, `3` code) and `fontSize`. They go on a text, and on a shape or an arrow they set its label.
+- Look: draw in the look of Groundwork's mind map (Colours, below), never with Excalidraw's bright pastels. To make what you add as clean as the interface around it, give it `"roughness":0`, `"strokeWidth":1`, `"fontFamily":2` and `"fontSize":20` on labels. A note is 16, a heading 22 to 24, and the one title 28 to 32: never smaller than 16, so it reads at the zoom that shows the whole drawing.
+- Keep a label short: a name, then one or two short lines (who does it, with what). Put the rest in a small muted text next to the shape.
+- Lay shapes out on a grid, one size for the shapes of one kind and the same gap between them, so arrows run straight. Centre a heading over its column as the label of a shape without outline or fill (`"strokeColor":"transparent"`): a label is always centred. To route an arrow around other shapes, give it `points`: with more than two points it turns at sharp corners.
 - Mermaid: `flowchart`/`graph` with TD, LR, BT or RL; nodes `a[box]`, `a(round)`, `a{decision}`, `a((circle))`; edges `-->`, `---`, `-.->`, `==>`, labels `-->|text|` or `-- text -->`, chains and `&`. It is laid out in layers. Other Mermaid diagrams are refused; draw them with shapes and arrows.
 
-Done when `apply` printed the sketch with your change, and, if the layout matters, you looked at it in the browser pane.
+### Colours
+
+Draw in the look of Groundwork's mind map: rounded boxes, one hue per group, and quiet fills.
+
+Write the light theme's colours. In the dark theme, Excalidraw inverts the canvas: these colours then turn into the map's dark look, with light outlines on dark, tinted fills. A bright pastel fill turns into a muddy dark one, so never use one.
+
+| Hue | `strokeColor` | `backgroundColor` |
+|---|---|---|
+| blue | `#1d4ed8` | `#dbeafe` |
+| emerald | `#047857` | `#d1fae5` |
+| violet | `#6d28d9` | `#ede9fe` |
+| amber | `#b45309` | `#fef3c7` |
+| pink | `#be185d` | `#fce7f3` |
+| cyan | `#0e7490` | `#cffafe` |
+| plain | `#6b6860` | `#f4f3ef` |
+
+- These are the map's branch colours (`modules/plan/map-theme.mjs`), dark enough for the inversion.
+- Pill: a rectangle 72 to 80 px high, for a two-line label. Excalidraw rounds its corners. Use `"fillStyle":"solid"`.
+- Colour by group, as the map colours a branch: one hue for the shapes of one group (a stage, a part, a team), and plain for the rest. Use at most four hues in a drawing.
+- An arrow takes the hue of the group it leaves, with `"strokeWidth":1.5`.
+- Show a state, such as not built yet or optional, with `"strokeStyle":"dashed"` and a small note, never with another hue.
+- Give the drawing's one root or title a filled pill: `"backgroundColor":"#3730a3"`, `"strokeColor":"#3730a3"`, and make its label white with `{"op":"update","id":"<id>-label","strokeColor":"#ffffff"}`.
+- Free text is `#1d1c1a`. A note or a legend is `#6b6860`, 16 px. A group's heading is in the group's hue.
+
+### Quality
+
+What you draw sits next to the human's work, in their tool, so it has to look finished: as polished as the rest of Groundwork. A drawing that only carries the information is not done.
+
+- Before drawing, plan the layout on a grid: the groups, their hues, and where every arrow runs. Arrows must not cross shapes or each other, and labels must not overflow their shapes.
+- After every `apply` that changes the layout, look at the whole drawing in the browser pane, in the dark theme. Zoom out until all of it shows, then judge it as a designer would. Check that it is aligned, evenly spaced, and calm in colour, with nothing cramped, crossed or cut off.
+- Fix what you see and look again. Show the drawing to the human only when you would show it as your own work.
+
+Done when `apply` printed the sketch with your change, and you looked at it in the browser pane and it meets the bar above.
 
 ## Threads on shapes
 

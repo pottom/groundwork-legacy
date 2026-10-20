@@ -10,11 +10,12 @@
 //   { op: 'add', type: 'arrow'|'line', id, from, to, label }       from/to: ids of shapes, bound to them
 //   { op: 'add', type: 'arrow'|'line', id, points: [[x, y], ...] } or free, absolute points
 //   { op: 'move', id, x, y } or { op: 'move', id, dx, dy }        a shape takes its label and arrows along
-//   { op: 'update', id, label | text, width, height, <style> }
+//   { op: 'update', id, label | text, width, height, <style>, <font> }
 //   { op: 'delete', id }                                          a shape's label goes too; its arrows stay, unbound
 //   { op: 'mermaid', source, x, y }                               a Mermaid flowchart, laid out (mermaid.mjs)
 // Style, on add and update: strokeColor, backgroundColor, fillStyle, strokeWidth, strokeStyle,
-// roughness, opacity, link. Without x and y a new shape goes below the drawing.
+// roughness, opacity, link. Font, on add and update of a text, or of a shape's or an arrow's label:
+// fontFamily (1 hand-drawn, 2 normal, 3 code), fontSize. Without x and y a new shape goes below the drawing.
 //
 // Every edit raises the element's version (with a new versionNonce), so it wins the merge with a
 // page that still has the old one (merge.mjs). A deletion keeps the element as isDeleted: true.
@@ -26,6 +27,7 @@ export class OpError extends Error {}
 const SHAPES = ['rectangle', 'ellipse', 'diamond']
 const LINES = ['arrow', 'line']
 const STYLE = ['strokeColor', 'backgroundColor', 'fillStyle', 'strokeWidth', 'strokeStyle', 'roughness', 'opacity', 'link']
+const FONT_FAMILIES = [1, 2, 3]   // Excalidraw's Virgil (hand-drawn), Helvetica (normal), Cascadia (code)
 const FONT_SIZE = 20
 const LINE_HEIGHT = 1.25
 const GAP = 8          // between a shape and the end of its arrow
@@ -35,10 +37,18 @@ const rand = () => Math.floor(Math.random() * 2 ** 31)
 const newId = () => Math.random().toString(36).slice(2, 10)
 const num = (v) => typeof v === 'number' && Number.isFinite(v)
 
-// A text's size as Excalidraw's hand-drawn font roughly takes it.
-export function measure(text, fontSize = FONT_SIZE) {
+// A character's width in em, roughly and erring wide, per font family: the hand-drawn and the code
+// font are wider than the normal one.
+const CHAR_WIDTH = { 1: 0.6, 2: 0.5, 3: 0.6 }
+
+// A text's size as Excalidraw roughly takes it in the given font family (1, the hand-drawn, by default),
+// and its baseline: that of the last line. Excalidraw draws each line that far up from the bottom, so the
+// first line's baseline would lift a text of several lines out of its shape.
+export function measure(text, fontSize = FONT_SIZE, fontFamily = 1) {
   const lines = String(text).split('\n')
-  return { width: Math.ceil(Math.max(...lines.map((l) => l.length)) * fontSize * 0.6) + 2, height: Math.ceil(lines.length * fontSize * LINE_HEIGHT) }
+  const em = CHAR_WIDTH[fontFamily] ?? CHAR_WIDTH[1]
+  const height = Math.ceil(lines.length * fontSize * LINE_HEIGHT)
+  return { width: Math.ceil(Math.max(...lines.map((l) => l.length)) * fontSize * em) + 2, height, baseline: height - Math.round(fontSize * (LINE_HEIGHT - 0.9)) }
 }
 
 const base = (type, id, extra) => ({
@@ -53,7 +63,7 @@ const textElement = (id, text, extra = {}) => {
   const fontSize = extra.fontSize ?? FONT_SIZE
   return base('text', id, {
     ...measure(text, fontSize), text, originalText: text, fontSize, fontFamily: 1, textAlign: 'left', verticalAlign: 'top',
-    containerId: null, lineHeight: LINE_HEIGHT, baseline: Math.round(fontSize * 0.9), ...extra,
+    containerId: null, lineHeight: LINE_HEIGHT, ...extra,
   })
 }
 
@@ -113,7 +123,7 @@ function scene(elements) {
     const t = labelOf(owner)
     if (t && !text) { set(t, { isDeleted: true }); unbind(owner, t.id); return }
     if (!text) return
-    if (t) set(t, { text, originalText: text, ...measure(text, t.fontSize) })
+    if (t) set(t, { text, originalText: text, ...measure(text, t.fontSize, t.fontFamily) })
     else {
       const id = `${owner.id}-label`
       add(textElement(list.some((o) => o.id === id) ? newId() : id, text, { containerId: owner.id, textAlign: 'center', verticalAlign: 'middle' }))
@@ -151,6 +161,27 @@ function style(op) {
   return out
 }
 
+// The font fields of an op, checked: they go on a text, or on the label of a shape or an arrow.
+function font(op) {
+  const out = {}
+  if (op.fontFamily !== undefined) {
+    if (!FONT_FAMILIES.includes(op.fontFamily)) throw new OpError(`fontFamily is one of ${FONT_FAMILIES.join(', ')} (hand-drawn, normal, code)`)
+    out.fontFamily = op.fontFamily
+  }
+  if (op.fontSize !== undefined) {
+    if (!num(op.fontSize) || op.fontSize <= 0) throw new OpError('fontSize is a positive number')
+    out.fontSize = op.fontSize
+  }
+  return out
+}
+
+// A text in the given font, sized for it; a label is centred on its shape or arrow again.
+function setFont(s, t, f) {
+  if (!t || !Object.keys(f).length) return
+  s.set(t, { ...f, ...measure(t.text, f.fontSize ?? t.fontSize, f.fontFamily ?? t.fontFamily) })
+  if (t.containerId) s.placeLabel(s.get(t.containerId))
+}
+
 // A shape just large enough for its label (a diamond or an ellipse needs more room around it).
 function shapeSize(type, label) {
   const text = label ? measure(label) : { width: 0, height: 0 }
@@ -168,6 +199,7 @@ function addShape(s, op) {
   }))
   s.touched.add(shape)
   s.setLabel(shape, op.label)
+  setFont(s, s.labelOf(shape), font(op))
   return shape
 }
 
@@ -188,10 +220,12 @@ function addLine(s, op) {
   } else {
     if (!Array.isArray(op.points) || op.points.length < 2 || !op.points.every((p) => Array.isArray(p) && num(p[0]) && num(p[1])))
       throw new OpError(`an ${op.type} needs "from" and "to" (shape ids) or "points": [[x, y], [x, y], ...]`)
-    s.add(Object.assign(line, withPoints(line, op.points.map(([x, y]) => ({ x, y })))))
+    // a free line through more than two points turns at sharp corners, as drawn, not in a curve
+    s.add(Object.assign(line, withPoints(line, op.points.map(([x, y]) => ({ x, y }))), op.points.length > 2 ? { roundness: null } : {}))
   }
   s.touched.add(line)
   s.setLabel(line, op.label)
+  setFont(s, s.labelOf(line), font(op))
   return line
 }
 
@@ -202,8 +236,9 @@ function add(s, op) {
   if (op.type === 'text') {
     if (typeof op.text !== 'string' || !op.text) throw new OpError('a text needs "text"')
     const at = num(op.x) && num(op.y) ? { x: op.x, y: op.y } : s.bottom()
-    const t = s.add(textElement(op.id ?? newId(), op.text, { x: at.x, y: at.y, ...(num(op.fontSize) ? { fontSize: op.fontSize } : {}), ...style(op) }))
-    if (num(op.fontSize)) Object.assign(t, measure(op.text, op.fontSize))
+    const f = font(op)
+    const t = s.add(textElement(op.id ?? newId(), op.text, { x: at.x, y: at.y, ...f, ...style(op) }))
+    if (f.fontSize || f.fontFamily) Object.assign(t, measure(op.text, t.fontSize, t.fontFamily))
     s.touched.add(t)
     return t
   }
@@ -232,9 +267,10 @@ function update(s, op) {
   if (e.type === 'text') {
     if (op.text !== undefined) {
       if (typeof op.text !== 'string' || !op.text) throw new OpError('a text needs "text"')
-      s.set(e, { text: op.text, originalText: op.text, ...measure(op.text, e.fontSize) })
+      s.set(e, { text: op.text, originalText: op.text, ...measure(op.text, e.fontSize, e.fontFamily) })
       if (e.containerId) s.placeLabel(s.get(e.containerId))
     }
+    setFont(s, e, font(op))
     return
   }
   if (num(op.width) || num(op.height)) {
@@ -243,6 +279,7 @@ function update(s, op) {
     for (const a of s.arrowsOf(e)) s.route(a)
   }
   if (op.label !== undefined) s.setLabel(e, op.label)
+  setFont(s, s.labelOf(e), font(op))
   s.placeLabel(e)
 }
 
