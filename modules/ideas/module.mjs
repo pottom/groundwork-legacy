@@ -14,7 +14,7 @@
 // the files. Ideas itself writes nothing (`writes` is empty). `groundwork ideas add|list|move`
 // (ideas.mjs) goes through the same store. The browser is the human and may set every column; the
 // command is Claude and only New and Considering (d-ideas-ai-limits), which the store enforces.
-// Accepting an idea is a change of status only (a change record comes with C-3).
+// Accepting an idea is a change of status only (a change record comes with C-6).
 //
 // Live updates (core/events.mjs): an idea file changing is the topic "ideas.items" (and the core's
 // "records"); the page then asks /api/ideas/list again.

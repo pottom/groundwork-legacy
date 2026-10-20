@@ -4,7 +4,7 @@ title: "Újratervezés: rekordmodell és futószalag (I-5)"
 status: in-progress
 ---
 
-Műszaki terv: Rekordtár TECH. M-9 lesz, négy változással: C-2 Rekordtár és Markdown-forrás → C-3 Változások → C-4 Spec munkaterület → C-5 Jegyek és Áttekintés.
+Műszaki terv: Rekordtár TECH. Szeletenként épül: minden változás után a következőt már az új felületen csináljuk. C-2 Rekordtár és Markdown-forrás → C-3 A változás lapja élőben → C-4 Gondolattérkép a változásban → C-5 Jóváhagyás és beolvasztás → C-6 Ötletből változás → C-7 Válasz a változás lapjáról → C-8 Jegysorok magától → C-9 Összkép → C-10 Spec-mátrix, a Plan megszűnik → C-11 Jegyek munkaterület → C-12 Áttekintés: futószalag → C-13 Felzárkózás.
 
 </?module=ideas&idea=I-5>
 

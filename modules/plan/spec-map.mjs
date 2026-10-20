@@ -1,6 +1,6 @@
 // The Spec as a mind map, and back: how Plan's map (Mind Elixir data) stands for the Spec
 // documents of the record store (core/records/spec-store.mjs, spec-format.mjs), until the Spec
-// workspace (C-4) takes the map over.
+// workspace (C-10) takes the map over.
 //
 //   specToMap({ docs, parts, name })  -> data        docs: store.spec.docs(), parts: store.spec.parts()
 //   mapToSpec(data)                   -> { docs, parts, errors, renamed }   the SpecDocs and the parts list the map
