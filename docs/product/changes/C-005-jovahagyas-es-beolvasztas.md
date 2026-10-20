@@ -3,7 +3,7 @@ id: C-5
 title: Jóváhagyás és beolvasztás
 ideas: I-5
 milestone: M-9
-status: implementing
+status: done
 ---
 
 ## Probléma
@@ -127,3 +127,4 @@ A jegyek a `**Change:** C-5` sorukkal hivatkoznak erre a változásra.
 - 2026-10-20 · claude · grilled on its map: jóváhagyás a lapon, sorrendben, mind vagy semmi, Máshová… a fájlba írva, eredet listában, beolvasztottság számolva, merge a core-ban, szeletelés a zárásnál; egy változás marad
 - 2026-10-20 · human · approved for implementation (the proposed items wait for its own approval list)
 - 2026-10-20 · human · merged
+- 2026-10-20 · human · done

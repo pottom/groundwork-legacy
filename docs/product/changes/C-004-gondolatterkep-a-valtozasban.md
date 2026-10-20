@@ -3,7 +3,7 @@ id: C-4
 title: Gondolattérkép a változásban
 ideas: I-5
 milestone: M-9
-status: implementing
+status: done
 ---
 
 ## Probléma
@@ -90,3 +90,4 @@ A jegyek a `**Change:** C-4` sorukkal hivatkoznak erre a változásra.
 - 2026-10-20 · claude · grilled: térkép a .md-ben jelekkel, csak olvasható, kérdések a térképen opciókkal, munkafelület panellel, gyökér a cím, közös <gw-mind-map>, kész a C-5 interjújával
 - 2026-10-20 · human · approved for implementation (the proposed items wait for the merge, C-5)
 - 2026-10-20 · human · merged
+- 2026-10-20 · human · done
