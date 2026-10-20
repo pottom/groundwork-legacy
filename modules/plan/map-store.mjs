@@ -5,14 +5,13 @@
 //                                    files: the writer the core grants Plan (core/files.mjs);
 //                                    spec: the record store's Spec (store.spec); by default one
 //                                    opened on `files` (core/records/spec-store.mjs)
-//   store.read()                     -> { v, data, readOnly? }   v: version id of the map
+//   store.read()                     -> { v, data }   v: version id of the map
 //   store.version()                  -> v                 the same v
-//   store.source()                   -> 'spec' | 'mindmap' | null   where the map comes from
+//   store.source()                   -> 'spec' | null   whether there is a Spec yet
 //   store.apply(ops, by?)            -> { errors, renamed, v, data } Claude's ops (see applyOps);
 //                                       renamed: [[id, specId]] nodes whose id is the Spec's now
 //   store.saveFromBrowser(base, data) -> { v, data, changed, errors } merge a browser save made on version `base`
 //                                       or { stale, v, data } when `base` is unknown: nothing written
-//                                       or { readOnly, v, data, error } on an old map: nothing written
 //   store.takeHumanEdits()           -> ops               pending browser edits, collapsed, taken once
 //   store.init(title)
 //
@@ -24,9 +23,6 @@
 // the current Spec, and logged to <dir>/.groundwork/plan/edits.jsonl until Claude reads them
 // (state from before the move, in .prd-maker/, is moved there by the core: see module.mjs).
 //
-// A project that has only the old <dir>/docs/product/mindmap.json (no Spec yet) is shown from it,
-// read-only: every write is refused with "run groundwork migrate", which turns it into the Spec.
-//
 // All file access goes through `io` (paths relative to the project): the writer the core
 // hands the module, which writes only under the folders Plan's manifest names.
 
@@ -34,19 +30,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { setStatus } from './node-types.mjs'
-import { BASE_DIR } from './documents.mjs'
 import { specToMap, mapToSpec, isMapOnly } from './spec-map.mjs'
 import { DOC_STRINGS, DEFAULT_DOC_LANG } from '../../core/records/doc-strings.mjs'
 import { openSpec } from '../../core/records/spec-store.mjs'
 import { writeSpecDoc, writeParts, SPEC_DIR, PARTS_FILE } from '../../core/records/spec-format.mjs'
 
-const MAP = `${BASE_DIR}/mindmap.json` // the old map: read-only until `groundwork migrate`
 const GLOSSARY = 'GLOSSARY.md' // owned by domain-modeling: read and link only
 const STATE = '.groundwork/plan'
 const EDITS = `${STATE}/edits.jsonl`
 const HISTORY = `${STATE}/edits-history.jsonl`
-
-export const MIGRATE_HINT = 'this project\'s map is the old docs/product/mindmap.json: run `groundwork migrate` to turn it into the Spec (docs/product/spec/); until then the map is read-only'
 
 export function openMap(dir, io, { spec } = {}) {
   if (!io) throw new Error('openMap needs the writer the core grants the module (moduleFiles in core/files.mjs)')
@@ -60,27 +52,22 @@ export function openMap(dir, io, { spec } = {}) {
   const hasSpec = () => {
     try { return fs.readdirSync(path.join(dir, SPEC_DIR)).length > 0 } catch { return false }
   }
-  const source = () => (hasSpec() ? 'spec' : io.exists(MAP) ? 'mindmap' : null)
+  const source = () => (hasSpec() ? 'spec' : null)
 
   // The map's text and version, read now; the version is the map's hash, so it changes with any file.
   let last = { text: null, v: null }
   function current() {
-    const from = source()
-    let text
-    if (from === 'spec') {
-      const docs = spec.docs()
-      text = JSON.stringify(specToMap({ docs, parts: spec.parts(), name: path.basename(path.resolve(dir)) }))
-    } else text = io.read(MAP)
+    const text = JSON.stringify(specToMap({ docs: spec.docs(), parts: spec.parts(), name: path.basename(path.resolve(dir)) }))
     if (text !== last.text) {
       last = { text, v: hash(text) }
       remember(last.v, text)
     }
-    return { ...last, readOnly: from === 'mindmap' }
+    return last
   }
 
   function read() {
-    const { text, v, readOnly } = current()
-    return readOnly ? { v, data: JSON.parse(text), readOnly } : { v, data: JSON.parse(text) }
+    const { text, v } = current()
+    return { v, data: JSON.parse(text) }
   }
 
   // Writes the documents and the parts list the map holds that differ from what is on disk now;
@@ -135,11 +122,6 @@ export function openMap(dir, io, { spec } = {}) {
     return { errors, renamed: target.renamed }
   }
 
-  const refuse = () => {
-    const { v, data } = read()
-    return { errors: [MIGRATE_HINT], renamed: [], v, data }
-  }
-
   function logHumanEdits(ops) {
     if (!ops.length) return
     const ts = new Date().toISOString()
@@ -158,13 +140,11 @@ export function openMap(dir, io, { spec } = {}) {
     // parts and documents the project needs. A Spec is never overwritten.
     init(title) {
       if (hasSpec()) throw new Error(`${path.join(dir, SPEC_DIR)} already exists: a Spec is never started again`)
-      if (io.exists(MAP)) throw new Error(MIGRATE_HINT)
       spec.writeDoc({ id: 'system', lang: DEFAULT_DOC_LANG, title: title || 'Grilling', prose: '', human: [], items: [], sections: [] })
       return current().v
     },
 
     apply(ops, by) {
-      if (source() === 'mindmap') return refuse()
       if (!source()) return { errors: ['no Spec yet: run `groundwork plan init "<title>"` first'], renamed: [], v: null, data: null }
       const { data } = read()
       const errors = applyOps(data, ops, by)
@@ -176,7 +156,6 @@ export function openMap(dir, io, { spec } = {}) {
     saveFromBrowser(base, data) {
       delete data.theme // presentation lives in the page (view/), not in the map
       const cur = read()
-      if (cur.readOnly) return { readOnly: true, v: cur.v, data: cur.data, error: MIGRATE_HINT }
       const sent = JSON.stringify(data) // `data` may be mutated below
       // A version this store never saw (e.g. the server restarted meanwhile) cannot be diffed:
       // what the human changed is unknown, and diffing against the current map would undo

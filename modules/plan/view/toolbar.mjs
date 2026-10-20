@@ -63,7 +63,7 @@ export function toolbarView() {
       ${VIEWS.map(([v, icon, key]) => html`<button type="button" data-v=${v} title=${ui(key)} aria-label=${ui(key)}
         aria-pressed=${String(shownView() === v)} @click=${() => setView(v)}>${icon}<span>${ui(key)}</span></button>`)}
     </div>
-    <button id="mode" class="gw-btn" type="button" ?disabled=${state.readOnly} aria-pressed=${String(edit)} title=${modeTitle} aria-label=${modeTitle}
+    <button id="mode" class="gw-btn" type="button" aria-pressed=${String(edit)} title=${modeTitle} aria-label=${modeTitle}
       @click=${() => setMode(edit ? 'view' : 'edit')}>${ICON.edit}<span>${ui('mode.edit')}</span></button>
     <button id="legend-btn" class="gw-btn gw-btn--icon" type="button" aria-controls="legend" title=${ui('legend.title')} aria-label=${ui('legend.title')}
       aria-expanded=${String(state.legendOpen)} aria-pressed=${String(state.legendOpen)} @click=${() => toggleLegend(!state.legendOpen)}>${ICON.info}</button>

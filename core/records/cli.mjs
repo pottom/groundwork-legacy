@@ -14,8 +14,8 @@
 //   groundwork record show core           a part: its line in spec/parts.md and its documents
 //   groundwork record show d-x            an id a pending change adds (not in the Spec yet): the
 //                                         change and its proposed item
-//   groundwork record show c-core         an old id a merged change lists (migrate's C-1: the map's
-//                                         components, documents, roadmap decisions), and what it became
+//   groundwork record show c-core         an old id a merged change lists in its scope (this repo's
+//                                         C-1: the old map's ids), and what it became
 //   groundwork record add <type> --title T [--<field> value ...] [--body text]
 //                                         a new record of the type (prefix C or name change) with the
 //                                         next number, as Claude: prints `C-7 <file>`. A field of the

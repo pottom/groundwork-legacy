@@ -12,14 +12,12 @@
 //
 // The editor is served by the core server: npx @pottom/groundwork
 // Reading, writing and merging the map is in map-store.mjs; the ops are described there.
-// A project with only the old docs/product/mindmap.json is shown read-only: `groundwork migrate`
-// turns it into the Spec.
 
 import fs from 'node:fs'
 import { STATUSES } from './node-types.mjs'
 import { BASE_DIR, KINDS, COMPONENT_TYPES, listDocs, isSection } from './documents.mjs'
 import { DOC_STRINGS, docStrings, langOf } from '../../core/records/doc-strings.mjs'
-import { openMap, walk, index, MIGRATE_HINT } from './map-store.mjs'
+import { openMap, walk, index } from './map-store.mjs'
 import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'
 
@@ -110,8 +108,7 @@ function cmdApply(dir, arg) {
 function cmdShow(dir) {
   const store = open(dir)
   if (!store.exists()) die('no Spec here yet (docs/product/spec/): run `groundwork plan init "<title>"`')
-  const { data, readOnly } = store.read()
-  if (readOnly) console.log(`note: ${MIGRATE_HINT}\n`)
+  const { data } = store.read()
   const edits = editsBlock(store, data)
   if (edits) console.log(edits + '\n')
   console.log(outline(data))

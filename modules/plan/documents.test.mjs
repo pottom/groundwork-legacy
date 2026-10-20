@@ -44,7 +44,7 @@ test('the panel shows a Spec document under its own title, with what is computed
   assert.deepEqual(progressSummary(prd).impl, { done: 1, partial: 0, missing: 0 })
 })
 
-test('an old map (mindmap.json) keeps its own document titles and files', () => {
+test('a map without the Spec mark keeps the kinds\' document titles and files', () => {
   const data = { nodeData: { id: 'root', topic: 'Shop', children: [
     { id: 'c', topic: 'App', metadata: { component: 'software' }, children: [{ id: 'd', topic: 'Product', metadata: { doc: 'prd' }, children: [] }] },
   ] } }

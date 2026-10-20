@@ -53,8 +53,8 @@ test('the package holds the core, the modules and their bundled libraries', asyn
 })
 
 test('the package leaves out what it does not need: the plan, scratch notes, tests and test helpers, the Claude setup', async () => {
-  // Tests are *.test.mjs, their helpers *.test-helper.mjs, their files under spec-fixtures/ and migrate-fixtures/.
-  const extra = (await packed()).filter((f) => /^(docs|\.scratch|\.claude|\.groundwork|\.github)\//.test(f) || /\.test[^/]*\.mjs$/.test(f) || /\/(spec|migrate)-fixtures\//.test(f))
+  // Tests are *.test.mjs, their helpers *.test-helper.mjs, their files under spec-fixtures/.
+  const extra = (await packed()).filter((f) => /^(docs|\.scratch|\.claude|\.groundwork|\.github)\//.test(f) || /\.test[^/]*\.mjs$/.test(f) || /\/spec-fixtures\//.test(f))
   assert.deepEqual(extra, [])
 })
 
@@ -97,8 +97,8 @@ after(async () => {
 // Another project, with nothing of Groundwork in it.
 async function otherProject(name) {
   const projectDir = path.join((await registry()).tmp, name)
-  fs.mkdirSync(path.join(projectDir, 'docs', 'product'), { recursive: true })
-  fs.writeFileSync(path.join(projectDir, 'docs', 'product', 'mindmap.json'), JSON.stringify({ nodeData: { id: 'root', topic: 'Other' } }))
+  fs.mkdirSync(path.join(projectDir, 'docs', 'product', 'spec'), { recursive: true })
+  fs.writeFileSync(path.join(projectDir, 'docs', 'product', 'spec', 'SYSTEM.md'), '# Other\n\n_System overview_\n')
   fs.writeFileSync(path.join(projectDir, 'README.md'), '# Other\n')
   return projectDir
 }

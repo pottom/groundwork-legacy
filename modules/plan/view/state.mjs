@@ -10,7 +10,6 @@ export const state = {
   page: 'loading',        // 'loading' | 'empty' (no map file yet) | 'ready'
   mind: null,             // the Mind Elixir instance, once the map is loaded
   version: null,          // the version of the map the page has (the server's)
-  readOnly: false,        // an old mindmap.json not migrated to the Spec yet: shown, not edited
   dirty: false,           // an edit is waiting to be saved
   saving: false,
   // Per map item, the tickets naming it on their PRD line: { id: { total, done, tickets } } from

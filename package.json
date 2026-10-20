@@ -5,7 +5,7 @@
   "type": "module",
   "license": "MIT",
   "bin": { "groundwork": "core/groundwork.mjs" },
-  "files": ["core/", "modules/", "!**/*.test*.mjs", "!core/records/spec-fixtures/", "!core/migrate/migrate-fixtures/"],
+  "files": ["core/", "modules/", "!**/*.test*.mjs", "!core/records/spec-fixtures/"],
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node core/groundwork.mjs",

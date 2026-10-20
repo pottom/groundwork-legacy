@@ -1,9 +1,8 @@
 // @ts-check
 // What an id means, beyond the records and the Spec the store holds: the ids a pending change
 // proposes (they resolve before the merge, so tickets can name them), and the old ids a merged
-// change lists with what they became (`groundwork migrate` writes such a list into C-1's scope:
-// the map's root, components, documents and roadmap decisions are no Spec ids, but tickets name
-// them). Nothing here knows a project: the lists are read from the changes.
+// change lists with what they became (in its scope: ids that are no Spec ids any more, but
+// tickets name them). Nothing here knows a project: the lists are read from the changes.
 //
 //   const r = resolver(store)      reads the changes once
 //   r.resolve(id) -> Resolved | null, in this order:

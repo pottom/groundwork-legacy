@@ -2,8 +2,8 @@
 // The core's own record types: Change (C-n) and Milestone (M-n). The store (store.mjs) keeps them
 // like any module's type; CORE_RECORDS declares them, and the server and `groundwork record` open
 // the store with it beside the modules. They are the core's for now because the modules that will
-// show them (the Changes and Overview workspaces) come later, and the core's own `migrate` writes
-// them; a module can take a declaration over then, as long as one prefix keeps one type.
+// show them (the Changes and Overview workspaces) come later; a module can take a declaration
+// over then, as long as one prefix keeps one type.
 //
 //   docs/product/changes/C-007-<slug>.md          docs/product/milestones/M-009-<slug>.md
 //   ---                                           ---

@@ -7,7 +7,7 @@ import { subscribe } from '/shell/live.mjs'
 import { listDocs } from '../documents.mjs'
 import { state, editing, fullTree, ele } from './state.mjs'
 import { ui, clock } from './strings.mjs'
-import { update, toast, showNotice } from './chrome.mjs'
+import { update, toast } from './chrome.mjs'
 import { renderPrd, resetFlash, highlightInPrd } from './document.mjs'
 import { createMap, content, decorate, fitMap, reveal } from './map.mjs'
 import { applyFocus, firstDoc, focusLinked } from './focus.mjs'
@@ -77,12 +77,6 @@ async function save() {
       body: JSON.stringify({ base: state.version, data: content(state.mind.getData()) }),
     })
     const j = await r.json()
-    if (j.readOnly) { // an old map, not migrated to the Spec yet: nothing is saved
-      state.version = j.v
-      show(j.data)
-      toast('save', ui('toast.readOnly'), { tone: 'bad', ms: 8000 })
-      return
-    }
     if (j.stale) { // the server does not know the version this edit was made on (it restarted)
       state.version = j.v
       show(j.data)
@@ -158,8 +152,6 @@ async function start() {
     if (!r.ok) { state.page = 'empty'; update(); return } // the live updates say when the map file appears
     state.page = 'ready'
     state.version = j.v
-    state.readOnly = !!j.readOnly
-    if (state.readOnly) { state.mode = 'view'; document.body.dataset.mode = 'view'; showNotice('notice.readOnly') }
     update()
     createMap(content(collapseBig(j.data)), {
       onOperation: schedule,

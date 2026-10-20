@@ -20,7 +20,7 @@
 //                  for `change`/`supersede` the item); a Spec item's origin and superseded-by
 //                  naming a change that does not exist. Record ids are checked only for the types
 //                  some module declares (without the Ideas module an I-n is not checked); Spec ids
-//                  only once the project has a Spec document (before migrate there is none)
+//                  only once the project has a Spec document
 //   not-canonical  a line the canonical writer would not write as it is: the Spec reader's problems
 //                  (stray, conflict, unclosed, no-mark, no-status, unknown-mark, form), and a
 //                  record's lines that differ from writeRecord(readRecord(file)) ('missing' marks

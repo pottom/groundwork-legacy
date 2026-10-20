@@ -21,7 +21,6 @@ root                          the system or product: named after the system docu
 - **Only these go under the root and a component.** The Spec has no place for a loose node under the root or a component, or for a document other than `system` directly under the root: `apply` refuses them with an error.
 - **Files.** Each document is the file `docs/product/spec/<component>/<FILE>.md`; the overview is `docs/product/spec/SYSTEM.md`; the components are listed in `docs/product/spec/parts.md`. The component folder is the component's `dir`; give every component a short English `dir` (`core`, `plan`, `billing`) so the folders match the code whatever language the map is in. Without `dir` the folder comes from the component's name.
 - **The Markdown is the source, and may be edited by hand.** The human (or another tool) may edit a Spec file directly; the map shows it. `apply` and browser edits rewrite only the documents they change, and only normalize their form (the canonical Markdown): they drop nothing. Prefer `apply` yourself, because it merges with edits the human is making on the map at the same moment.
-- **An old project** that only has `docs/product/mindmap.json` is shown read-only, and `apply` refuses with a hint: run `{{groundwork}} migrate` first, which turns it into the Spec.
 - **Other skills' places.** These folders belong to other skills: `GLOSSARY.md`, `GLOSSARY-MAP.md`, `docs/adr/`, `docs/agents/`, `.scratch/` and `.out-of-scope/`. groundwork-prd-maker never writes into them. It reads them and links to them.
 
 ### Document kinds and their starting sections
@@ -105,7 +104,7 @@ All access goes through `{{groundwork}} plan <command>`, run in the project's ro
 
 ## Session flow
 
-1. **Start.** If `docs/product/spec/` is missing, run `init` (if `docs/product/mindmap.json` is there instead, ask the human to run `{{groundwork}} migrate` first). Start the core server: with `preview_start` when `.claude/launch.json` has a `groundwork` configuration, otherwise run `{{groundwork}} --no-open` in the background (it prints its address; `--port N` picks another port when 4477 is taken). Open `/plan/`.
+1. **Start.** If `docs/product/spec/` is missing, run `init`. Start the core server: with `preview_start` when `.claude/launch.json` has a `groundwork` configuration, otherwise run `{{groundwork}} --no-open` in the background (it prints its address; `--port N` picks another port when 4477 is taken). Open `/plan/`.
 
    Set the document language to the language of the conversation: `{"op":"set","id":"root","lang":"…"}`. `show` prints it on the root line. A map without one is Hungarian (`hu`). Every fixed text of the documents (subtitle, state marks, closing sections) and the starting sections from `kinds` are then in that language, so the map's own labels and prose must be in it too. The languages there are: `hu`, `en` (the usage line of `{{groundwork}} plan` lists them). If the conversation is in a language with no strings, use `en` and say so. If the conversation switches language for good, change it and translate the map's labels and prose.
 2. **Existing project?** If there is already code or documentation, read it before asking anything. Dispatch a sub-agent for a thorough analysis:

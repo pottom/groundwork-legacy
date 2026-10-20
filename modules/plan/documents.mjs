@@ -26,8 +26,8 @@
 // The fixed texts (states, closing section titles) are in the map's document language: see
 // core/records/doc-strings.mjs (the record store's).
 //
-// A map of the Spec (root metadata.spec) has its documents under spec/; an old map (mindmap.json,
-// read-only until `groundwork migrate`) keeps the paths and titles its generated files had.
+// A map of the Spec (root metadata.spec) has its documents under spec/; a map without the mark
+// keeps paths relative to docs/product/ and the kinds' titles.
 
 import { docStrings, langOf, KINDS, COMPONENT_TYPES } from '../../core/records/doc-strings.mjs'
 

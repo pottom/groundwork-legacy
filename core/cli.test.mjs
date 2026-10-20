@@ -14,8 +14,8 @@ const BIN = fileURLToPath(new URL('./groundwork.mjs', import.meta.url))
 
 const project = () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-cli-'))
-  fs.mkdirSync(path.join(dir, 'docs', 'product'), { recursive: true })
-  fs.writeFileSync(path.join(dir, 'docs', 'product', 'mindmap.json'), JSON.stringify({ nodeData: { id: 'root', topic: 'Demo' } }))
+  fs.mkdirSync(path.join(dir, 'docs', 'product', 'spec'), { recursive: true })
+  fs.writeFileSync(path.join(dir, 'docs', 'product', 'spec', 'SYSTEM.md'), '# Demo\n\n_System overview_\n')
   return dir
 }
 

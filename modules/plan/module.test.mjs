@@ -122,11 +122,11 @@ test('the Plan view uses the shell theme and defines no base colours of its own'
   }
 })
 
-test('the Spec files (and an old map file) are Plan\'s live-update topic; other files are not', () => {
+test('the Spec files are Plan\'s live-update topic; other files are not', () => {
   assert.equal(plan.watch('docs/product/spec/app/PRD.md'), 'plan.map')
   assert.equal(plan.watch('docs/product/spec/SYSTEM.md'), 'plan.map')
   assert.equal(plan.watch('docs/product/spec/app/PRD.md.1234.1.tmp'), null)
-  assert.equal(plan.watch('docs/product/mindmap.json'), 'plan.map')
+  assert.equal(plan.watch('docs/product/mindmap.json'), null)
   assert.equal(plan.watch('GLOSSARY.md'), 'plan.glossary')
   assert.equal(plan.watch('docs/product/PRD.md'), null)
   assert.equal(plan.watch('.groundwork/plan/edits.jsonl'), null)
@@ -146,26 +146,6 @@ test('a change to the Spec on disk, by Claude or by hand, reaches the page throu
     const { data } = await (await fetch(`http://127.0.0.1:${srv.port}/api/plan/map`)).json()
     assert.equal(index(data).get('x').node.topic, 'Edited by hand')
   } finally { sse.close(); await srv.close() }
-})
-
-test('an old project with only mindmap.json: the map is shown read-only and a browser save is refused', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-old-'))
-  const old = JSON.stringify({ nodeData: { id: 'root', topic: 'Old', children: [{ id: 'd-x', topic: 'X' }] } })
-  put(root, 'docs/product/mindmap.json', old)
-  const srv = await startServer({ root, modules: [plan], port: 0 })
-  const base = `http://127.0.0.1:${srv.port}`
-  try {
-    const { v, data, readOnly } = await (await fetch(`${base}/api/plan/map`)).json()
-    assert.equal(readOnly, true)
-    assert.deepEqual((await (await fetch(`${base}/api/plan/ids`)).json()).ids, ['root', 'd-x'], 'Build still checks against it')
-    data.nodeData.topic = 'Changed'
-    const res = await fetch(`${base}/api/plan/map`, { method: 'PUT', body: JSON.stringify({ base: v, data }) })
-    assert.equal(res.status, 409)
-    const j = await res.json()
-    assert.equal(j.readOnly, true)
-    assert.match(j.error, /groundwork migrate/)
-    assert.equal(fs.readFileSync(path.join(root, 'docs/product/mindmap.json'), 'utf8'), old)
-  } finally { await srv.close() }
 })
 
 // What Ideas sends (POST /api/plan/todo): Plan alone writes the map. A node it adds sits in an "Ideas"
@@ -234,19 +214,5 @@ test('POST /api/plan/todo takes only a JSON request with an idea and a title, an
     assert.equal((await post(base, { idea: 'I-1', title: 'x', status: 'done' })).status, 400)
     assert.equal((await post(base, { idea: 'I-1', title: 'x', status: 'excluded' })).status, 400, 'a non-goal needs its reason')
     assert.equal((await fetch(`${base}/api/plan/todo`)).status, 405)
-  } finally { await srv.close() }
-})
-
-test('POST /api/plan/todo answers 409 on an old map, which is read-only', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-todo-empty-'))
-  fs.mkdirSync(path.join(root, 'docs', 'product'), { recursive: true })
-  fs.writeFileSync(path.join(root, 'docs', 'product', 'mindmap.json'), '{}')
-  const srv = await startServer({ root, modules: [plan], port: 0 })
-  const base = `http://127.0.0.1:${srv.port}`
-  try {
-    const res = await post(base, { idea: 'I-1', title: 'x' })
-    assert.equal(res.status, 409)
-    assert.match((await res.json()).error, /groundwork migrate/)
-    assert.equal(fs.readFileSync(path.join(root, 'docs', 'product', 'mindmap.json'), 'utf8'), '{}', 'nothing written')
   } finally { await srv.close() }
 })

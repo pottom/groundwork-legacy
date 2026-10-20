@@ -1,6 +1,5 @@
 // Tests of the map store through its interface: read, apply, saveFromBrowser, takeHumanEdits.
-// The map is the Spec (docs/product/spec/, read and written through the record store's Spec);
-// a project that only has the old docs/product/mindmap.json is shown read-only.
+// The map is the Spec (docs/product/spec/, read and written through the record store's Spec).
 // Run: node --test modules/
 
 import { test } from 'node:test'
@@ -310,41 +309,6 @@ test('edits left in an old .prd-maker/ folder are moved to .groundwork/plan/ and
   assert.equal(edits[0].topic, 'Edited before the move')
   assert.equal(fs.existsSync(path.join(dir, '.prd-maker')), false)
   assert.ok(fs.existsSync(path.join(dir, '.groundwork/plan/edits-history.jsonl')))
-})
-
-// Until `groundwork migrate` turns it into the Spec, an old project's map is shown as it is.
-const OLD_MAP = { nodeData: { id: 'root', topic: 'Old', children: [{ id: 'd-x', topic: 'X', metadata: { status: 'decision' } }] }, direction: 1 }
-function old() {
-  const dir = project()
-  put(dir, 'docs/product/mindmap.json', JSON.stringify(OLD_MAP, null, 2))
-  return { dir, store: open(dir) }
-}
-
-test('a project with only the old mindmap.json is shown read-only, and every write says to migrate', () => {
-  const { dir, store } = old()
-  const before = file(dir, 'docs/product/mindmap.json')
-  assert.equal(store.exists(), true)
-  assert.equal(store.source(), 'mindmap')
-  const { v, data, readOnly } = store.read()
-  assert.equal(readOnly, true)
-  assert.deepEqual(nodeIds(data), ['root', 'd-x'])
-  const applied = store.apply([{ op: 'set', id: 'd-x', topic: 'Y' }])
-  assert.match(applied.errors[0], /groundwork migrate/)
-  find(data, 'd-x').topic = 'Y'
-  const saved = store.saveFromBrowser(v, data)
-  assert.equal(saved.readOnly, true)
-  assert.match(saved.error, /groundwork migrate/)
-  assert.throws(() => store.init('New'), /groundwork migrate/)
-  assert.equal(file(dir, 'docs/product/mindmap.json'), before, 'nothing written')
-  assert.deepEqual(store.takeHumanEdits(), [])
-})
-
-test('once there is a Spec, the old mindmap.json is not read any more', () => {
-  const { dir } = old()
-  put(dir, 'docs/product/spec/SYSTEM.md', SYSTEM)
-  const store = open(dir)
-  assert.equal(store.source(), 'spec')
-  assert.equal(store.read().data.nodeData.topic, 'Shop')
 })
 
 test('nodeIds lists the ids of the map, the root first and each node before its children', () => {

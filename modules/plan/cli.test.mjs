@@ -47,14 +47,3 @@ test('the prompt hook reports the human\'s browser edits once', async () => {
   assert.match(first.stdout, /added \[h1\] "Human idea" under \[t-goal\] "Goal" with status todo/)
   assert.equal((await gw(dir, ['hook'], input)).stdout.trim(), '', 'reported once')
 })
-
-test('on an old project with only mindmap.json, show prints the map with the migrate hint and apply is refused', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-old-cli-'))
-  fs.mkdirSync(path.join(dir, 'docs/product'), { recursive: true })
-  fs.writeFileSync(path.join(dir, 'docs/product/mindmap.json'), JSON.stringify({ nodeData: { id: 'root', topic: 'Old', children: [] } }))
-  const show = await gw(dir, ['show'])
-  assert.match(show.stdout, /groundwork migrate/)
-  assert.match(show.stdout, /\[root\] Old/)
-  const applied = await gw(dir, ['apply', '[{"op":"add","parent":"root","topic":"x"}]'])
-  assert.match(applied.stdout, /groundwork migrate/)
-})

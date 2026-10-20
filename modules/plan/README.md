@@ -40,7 +40,6 @@ Más típus is használható; ilyenkor a fájlnév a típus nagybetűvel (`<TÍP
 ## Működés
 
 - **A Spec a forrás:** a `docs/product/spec/` Markdown-fájljai (`SYSTEM.md`, `<rész>/<TÍPUS>.md`, `parts.md`), amelyeket a mag Rekordtára olvas és ír a kanonikus formában (`core/records/spec-format.mjs`). A térkép ezek nézete (`spec-map.mjs`): a gyökér a rendszer, alatta a rendszerdokumentum és a részek, a részek alatt a dokumentumaik, azok alatt a fejezetek és az elemek. Nincs külön generálás: a fájlok a dokumentumok. Egy írás (Claude `apply`-a, a böngésző mentése) csak a megváltozott dokumentumokat írja újra, és csak a formájukat normalizálja; a térképről törölt dokumentum fájlja törlődik. Egy kézzel szerkesztett fájl azonnal megjelenik a nyitott térképen.
-- **A régi térkép csak olvasható:** egy projekt, amelyben még csak a `docs/product/mindmap.json` van, a Planben látszik, de nem szerkeszthető, és minden írás arra kér, hogy fusson a `groundwork migrate`, amely a Speccé alakítja. Amint van Spec, a régi fájlt a Plan nem olvassa.
 - **A térkép jegyzet, nem jegyzőkönyv.** A kérdések nem kerülnek fel, csak ami a válaszokból fontos.
 - **Gyűjtő fejezetek dokumentumonként:** a kizárt elemekből például a PRD-ben „Nem célok”, a műszaki tervben „Elvetett megoldások” lesz. Az elhalasztott elemek, a „kérdezz rá” elemek és az érintetlen fejezetek szintén saját fejezetbe gyűlnek.
 - **Dokumentumnyelv:** a térkép a gyökerén tárolja a dokumentumok nyelvét (`lang`: `hu`, `en`); a skill az interjú elején a beszélgetés nyelvére állítja. Nyelv nélkül magyar. A dokumentumok állandó szövegei (fejléc, állapotok, gyűjtő fejezetek, kezdő fejezetek) ezen a nyelven készülnek; ez független a felület nyelvétől. Új nyelvhez elég egy új szövegkészlet a `core/records/doc-strings.mjs`-ben.
@@ -99,7 +98,6 @@ A térkép világos vagy sötét színei a shell témáját követik (a fejlécb
 | `deep-link.mjs` | a közvetlen link (`?node=<azonosító>`): `planLink(id)` elkészíti, `linkTarget(search, map)` megkeresi a csomópontot; `buildLink(id)` a Buildbe visz, az elem jegyeire szűrve |
 | `todo.mjs` | az Ötletek modul ötlete csomópontként (`POST /api/plan/todo`): `todo` vagy `excluded`, az ötletre mutató linkkel, a PRD „Ötletek” fejezetében |
 | `docs/product/spec/` | a Spec: a dokumentumok és a részek listája, ez a forrás (a cél-projektben) |
-| `docs/product/mindmap.json` | a régi térkép, a `groundwork migrate`-ig csak olvasható (a cél-projektben) |
 | `.groundwork/plan/` | helyi állapot: a még fel nem dolgozott kézi szerkesztések (a cél-projektben; egy régi `.prd-maker/` mappát a mag ide költöztet) |
 | `skills/groundwork-prd-maker/SKILL.md` | a munkamenet Claude-nak; az `npx @pottom/groundwork init` a projekt `.claude/skills/` mappájába másolja (a `{{groundwork}}` helyére a csomag verziójára rögzített `npx -y --prefer-offline @pottom/groundwork@<verzió>` kerül; a repó saját példánya ugyanez `node core/groundwork.mjs`-sel) |
 | `.claude/settings.json` | `UserPromptSubmit` hook (`npx -y --prefer-offline @pottom/groundwork@<verzió> plan hook`, az `init` teszi be, a hálózatot csak az első futás éri el; a repóban `node modules/plan/plan.mjs hook`): továbbítja a kézi szerkesztéseket, és grill promptnál emlékeztet a skillre |
@@ -110,7 +108,7 @@ A térkép világos vagy sötét színei a shell témáját követik (a fejlécb
 | Végpont | Válasz |
 |---|---|
 | `GET /api/plan/map[?v=<verzió>]` | a térkép, vagy `{ same: true }`, ha a böngészőnél már ez a verzió van |
-| `PUT /api/plan/map` | `{ base, data }`: a böngésző mentése, összefésülve, a Spec Markdownjába írva; ismeretlen `base` esetén `409` a mostani térképpel; régi (`mindmap.json`) térképen `409 { readOnly, error }`, semmi nem íródik |
+| `PUT /api/plan/map` | `{ base, data }`: a böngésző mentése, összefésülve, a Spec Markdownjába írva; ismeretlen `base` esetén `409` a mostani térképpel |
 | `GET /api/plan/ids[?v=<verzió>]` | `{ v, ids }`: a térkép csomópontjainak azonosítói, utánuk amit a rekordtár ezen felül felold (egy függő változás javasolt elemei, egy lezárt változás régi azonosítói, pl. a C-1 `c-records`-a), a térkép nélkül |
 | `GET /api/plan/glossary` | `{ text }`: a projekt `GLOSSARY.md`-je |
 | `POST /api/plan/todo` | `{ idea: 'I-12', title, status?: 'todo'\|'excluded', reason? }` → `{ id, added }`: egy ötlet csomópontként (`todo.mjs`); `400` hibás kérés, `404` nincs térkép, `409` régi, csak olvasható térkép, `415` nem `application/json` |
