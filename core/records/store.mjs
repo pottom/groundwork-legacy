@@ -23,6 +23,9 @@
 //   store.next(prefix)                  the number a new record of the type would get
 //   store.root                          the project folder, absolute
 //   store.spec                          the Spec: its documents and parts (spec-store.mjs)
+//   store.resolve(id)                   what an id means: a record, a Spec id, an item a pending
+//                                       change proposes, or an old id a merged change lists
+//                                       (resolve.mjs), or null
 //
 // by is 'human' (the browser) or 'claude' (the command line), and is 'claude' when not given. On
 // every write the store enforces the type's lifecycle: Claude moves a record only between the
@@ -49,6 +52,7 @@ import { projectFiles } from '../files.mjs'
 import { readRecord, writeRecord, fileName, slugOf } from './format.mjs'
 import { renderMarkdown } from './render.mjs'
 import { openSpec } from './spec-store.mjs'
+import { resolver } from './resolve.mjs'
 import { SPEC_DIR } from './spec-format.mjs'
 
 /** @typedef {import('./types.mjs').RecordType} RecordType */
@@ -315,7 +319,8 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     return nextNumber(t, scan())
   }
 
-  return { root, types: () => [...types], list, get, show, create, update, next, spec }
+  const self = { root, types: () => [...types], list, get, show, create, update, next, spec, resolve: (/** @type {string} */ id) => resolver(self).resolve(id) }
+  return self
 }
 
 /** @param {string} text */

@@ -50,6 +50,17 @@ test('the change body reads back: its sections and the proposed items (op, id, t
   assert.equal(read.tickets, 'C-7')
 })
 
+test("a proposed item's note is the lines indented under it, blank lines inside included", () => {
+  const items = [
+    { op: 'add', id: 't-x', target: 'core/tech', text: 'A section', note: 'Its prose.\n\nMore of it.' },
+    { op: 'add', id: 'd-x', target: 'core/tech#t-x', text: 'A decision · decision · missing', note: 'Why.\n<core/x.mjs>' },
+    { op: 'add', id: 'd-y', target: 'core/tech#t-x' },
+  ]
+  const body = changeBody({ items }, 'C-2')
+  assert.match(body, /— A section\n {2}Its prose\.\n\n {2}More of it\.\n- add `d-x`/)
+  assert.deepEqual(readChange(body).items, items)
+})
+
 test('a hand-written change body is read patiently: English headings, -> arrows, no backticks, other lines ignored', () => {
   const body = [
     '## Problem', '', 'Too big.', '',

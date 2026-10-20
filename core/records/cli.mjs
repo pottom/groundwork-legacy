@@ -12,6 +12,10 @@
 //                                         and the lines that are not in the canonical form
 //   groundwork record show d-npm          an item (or a section) of the Spec, and its document;
 //   groundwork record show core           a part: its line in spec/parts.md and its documents
+//   groundwork record show d-x            an id a pending change adds (not in the Spec yet): the
+//                                         change and its proposed item
+//   groundwork record show c-core         an old id a merged change lists (migrate's C-1: the map's
+//                                         components, documents, roadmap decisions), and what it became
 //   groundwork record add <type> --title T [--<field> value ...] [--body text]
 //                                         a new record of the type (prefix C or name change) with the
 //                                         next number, as Claude: prints `C-7 <file>`. A field of the
@@ -86,24 +90,7 @@ function run([cmd, ...rest]) {
   } else if (cmd === 'show') {
     only(opts, ['root'])
     if (words.length !== 1) throw new Error('show needs one id: show I-5')
-    const r = store.show(words[0])
-    if (!r) {
-      const found = store.spec.find(words[0])
-      if (!found) throw new Error(`no record ${words[0]}`)
-      return console.log(showSpec(found, store.spec).join('\n'))
-    }
-    const out = [`${r.id} ${r.file}`]
-    for (const [k, v] of Object.entries(r.fields)) out.push(`${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
-    if (r.body) out.push('', r.body)
-    if (r.links.length) {
-      out.push('', 'Links:')
-      for (const l of r.links) out.push(`  ${l.field}: ${l.id}${l.name ? ` (${l.name}${l.title ? `: ${l.title}` : ''})` : ''}`)
-    }
-    const items = /** @type {{ items?: import('./types.mjs').ProposedItem[] } | undefined} */ (r.outline)?.items
-    if (items?.length) out.push('', 'Proposed items:', ...items.map((i) => `  ${i.op} ${i.id} → ${i.target}${i.text ? ` — ${i.text}` : ''}`))
-    if (r.history.length) out.push('', 'History:', ...r.history.map((h) => `  ${h}`))
-    out.push('', `Linked from: ${r.linkedFrom.join(', ') || 'nothing'}`)
-    console.log(out.join('\n'))
+    console.log(showId(store, words[0]).join('\n'))
   } else if (cmd === 'add') {
     if (words.length !== 1) throw new Error('add needs one type: add C (or add change)')
     const t = store.types().find((x) => x.prefix === words[0] || x.name === words[0])
@@ -143,6 +130,53 @@ function run([cmd, ...rest]) {
   } else throw new Error(cmd ? `unknown command: ${cmd}` : 'which command?')
 }
 
+/**
+ * What `record show` prints for a record.
+ * @param {import('./types.mjs').ShownRecord} r
+ * @returns {string[]}
+ */
+function showRecord(r) {
+  const out = [`${r.id} ${r.file}`]
+  for (const [k, v] of Object.entries(r.fields)) out.push(`${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+  if (r.body) out.push('', r.body)
+  if (r.links.length) {
+    out.push('', 'Links:')
+    for (const l of r.links) out.push(`  ${l.field}: ${l.id}${l.name ? ` (${l.name}${l.title ? `: ${l.title}` : ''})` : ''}`)
+  }
+  const items = /** @type {{ items?: import('./types.mjs').ProposedItem[] } | undefined} */ (r.outline)?.items
+  if (items?.length) out.push('', 'Proposed items:', ...items.map((i) => `  ${i.op} ${i.id} → ${i.target}${i.text ? ` — ${i.text}` : ''}`))
+  if (r.history.length) out.push('', 'History:', ...r.history.map((h) => `  ${h}`))
+  out.push('', `Linked from: ${r.linkedFrom.join(', ') || 'nothing'}`)
+  return out
+}
+
+/**
+ * What `record show <id>` prints: a record, a Spec id, an item a pending change proposes, or an old
+ * id a merged change lists (then what it became, below).
+ * @param {Store} store
+ * @param {string} id
+ * @returns {string[]}
+ */
+function showId(store, id) {
+  const r = store.show(id)
+  if (r) return showRecord(r)
+  const found = store.resolve(id)
+  if (!found) throw new Error(`no record ${id}`)
+  /** @param {import('./resolve.mjs').Resolved} x @returns {string[]} */
+  const lines = (x) => {
+    if (x.kind === 'record') { const shown = store.show(x.id); return shown ? showRecord(shown) : [`${x.id} ${x.record.file}`] }
+    if (x.kind === 'spec') return showSpec(x.found, store.spec)
+    if (x.kind === 'proposed') {
+      const c = x.change, i = x.item
+      return [`${x.id}: proposed by ${c.id} ${c.title} (${c.status}) ${c.file}`, `${i.op} ${i.id} → ${i.target}${i.text ? ` — ${i.text}` : ''}`,
+        ...(i.note ? i.note.split('\n').map((l) => (l ? `  ${l}` : '')) : [])]
+    }
+    return [`${x.id}: an old id, listed in ${x.change}${x.note ? ` (${x.note})` : ''} → ${x.to || 'nothing'}`, ...(x.target ? ['', ...lines(x.target)] : [])]
+  }
+  return lines(found)
+}
+
+/** @typedef {ReturnType<typeof openRecords>} Store */
 /** @typedef {import('./spec-format.mjs').SpecItem} SpecItem */
 /** @typedef {import('./spec-format.mjs').SpecSection} SpecSection */
 

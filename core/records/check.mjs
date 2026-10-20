@@ -28,14 +28,15 @@
 //
 // To add a rule, write a function of the context { store, records, docs, known, lines(file) } that
 // returns findings, and append it to RULES. `known(id)` says whether an id is a record or a Spec
-// id (a document, a part, a section, an item); the `known` option of checkRecords adds ids the
-// store does not hold itself, e.g. the items a pending change proposes (#53), and is asked only
-// for ids the store does not know.
+// id (a document, a part, a section, an item), an item a pending change proposes, or an old id a
+// merged change lists with what it became (resolve.mjs); the `known` option of checkRecords adds
+// ids beyond those, and is asked only for ids nothing else knows.
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { readRecord, writeRecord } from './format.mjs'
-import { readChange } from './changes.mjs'
+import { readChange, PARTS_TARGET } from './changes.mjs'
+import { resolver } from './resolve.mjs'
 import { PARTS_FILE } from './spec-format.mjs'
 
 /** @typedef {import('./types.mjs').StoredRecord} StoredRecord */
@@ -153,6 +154,7 @@ function orphans({ store, records, docs, known, lines }) {
 // What is wrong with a proposed item's target (`core/tech`, `core/tech#t-stack`, `d-npm`), or ''.
 /** @param {Store} store @param {(id: string) => boolean} known @param {string} target */
 function missingTarget(store, known, target) {
+  if (target === PARTS_TARGET) return ''   // a proposed part: the list in spec/parts.md
   const [doc, anchor] = target.split('#')
   if (!doc || !known(doc)) return `${doc || target} is not in the Spec`
   if (anchor == null) return ''
@@ -245,8 +247,9 @@ export function checkRecords(store, { known: extra } = {}) {
   const records = store.list()
   const docs = store.spec.docs()
   const ids = new Set(records.map((r) => r.id))
+  const pending = resolver(store)
   /** @param {string} id */
-  const known = (id) => ids.has(id) || store.spec.find(id) != null || (extra ? extra(id) : false)
+  const known = (id) => ids.has(id) || store.spec.find(id) != null || pending.proposed.has(id) || pending.aliases.has(id) || (extra ? extra(id) : false)
   /** @type {Map<string, string[]>} */
   const read = new Map()
   /** @param {string} file */

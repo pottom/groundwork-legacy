@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { planMigration, applyMigration, checkRecords } from './migrate.mjs'
+import { planMigration, applyMigration } from './migrate.mjs'
+import { checkRecords } from '../records/check.mjs'
 import { openRecords } from '../records/store.mjs'
 import { CORE_RECORDS } from '../records/changes.mjs'
 import { IDEA_TYPE } from '../../modules/ideas/store.mjs'
@@ -58,7 +59,7 @@ test('migrate writes the Spec, C-1 merged, the open-questions change and the mil
   ])
   assert.match(store.get('M-1').body, /The MVP\./)
 
-  assert.deepEqual(checkRecords(store), { duplicates: [], problems: [], unknown: [] })
+  assert.deepEqual(checkRecords(store).findings, [])
 })
 
 test("every node's note, link, human paragraph, section prose, progress and impl is in the written Spec", () => {
@@ -157,7 +158,95 @@ test("a map shaped like Groundwork's own migrates, and its records check clean",
   applyMigration(plan, { states: 'proposed' })
   const store = openRecords(root, [...MODULES, CORE_RECORDS], { today })
   assert.equal(store.spec.docs().length, 15)
-  assert.deepEqual(checkRecords(store), { duplicates: [], problems: [], unknown: [] })
+  assert.deepEqual(checkRecords(store).findings, [])
   assert.equal(store.list('M')[8].fields.title, 'Újratervezés: rekordmodell és futószalag (I-5)')
   assert.equal(store.get('C-1').fields.title, 'Kiinduló állapot')
+})
+
+const PLAN = [
+  { title: 'Cart', split: ['d-cart', 't-web-stack'], ideas: ['I-1'], milestone: 'r-3' },
+  { title: 'API', split: ['c-api'], ideas: ['I-2'] },
+]
+
+test('a split plan makes one pending change per entry, with its proposed items and their targets; the rest is C-1', () => {
+  const root = oldProject()
+  const plan = planMigration(root, { modules: MODULES, today, split: PLAN })
+  assert.deepEqual(plan.changes.map((c) => [c.id, c.title, c.status]), [
+    ['C-1', 'Initial state', 'done'],
+    ['C-2', 'Cart', 'awaiting-approval'],
+    ['C-3', 'API', 'awaiting-approval'],
+    ['C-4', 'Open questions from the migration', 'grilling'],
+  ])
+  applyMigration(plan, { states: 'proposed' })
+  const store = openRecords(root, [...MODULES, CORE_RECORDS], { today })
+
+  const c2 = store.show('C-2')
+  assert.deepEqual(c2.fields, { title: 'Cart', ideas: ['I-1'], milestone: 'M-3', status: 'awaiting-approval' })
+  assert.deepEqual(c2.outline.items, [
+    { op: 'add', id: 'd-cart', target: 'web/prd#t-web-scope', text: 'A cart · decision · missing' },
+    { op: 'add', id: 't-web-stack', target: 'web/tech', text: 'Technology stack' },
+  ])
+  assert.deepEqual(store.show('C-3').outline.items, [
+    { op: 'add', id: 'api-server', target: 'parts', text: 'API Server · service' },
+    { op: 'add', id: 'api-server/tech', target: 'api-server', text: 'Shop — API Server: Technical design' },
+    { op: 'add', id: 't-api', target: 'api-server/tech', text: 'Integrations and interfaces' },
+    { op: 'add', id: 'd-api', target: 'api-server/tech#t-api', text: 'REST over HTTPS · decision · missing' },
+  ])
+  assert.match(store.show('C-4').outline.questions, /q-1/)
+
+  // not in the merged Spec, but resolved through the pending change
+  for (const id of ['d-cart', 't-web-stack', 'api-server/tech', 'd-api']) assert.equal(store.spec.find(id), null, id)
+  assert.deepEqual(store.spec.parts().parts.map((p) => p.slug), ['web'])
+  assert.deepEqual([store.resolve('d-cart').kind, store.resolve('d-cart').change.id], ['proposed', 'C-2'])
+  const old = store.resolve('c-api')
+  assert.deepEqual([old.kind, old.to, old.target.kind, old.target.change.id], ['alias', 'api-server', 'proposed', 'C-3'])
+  assert.match(store.get('C-1').body, /`d-cart` → C-2/)
+  assert.match(c2.history[0], /^2026-10-20 · human · created by migrate from docs\/product\/mindmap\.json \(split: d-cart, t-web-stack; 2 proposed items\)$/)
+
+  assert.deepEqual(checkRecords(store).findings, [])
+})
+
+test('a split change reads on its own as a spec: a problem, a solution, the proposed items with their notes', () => {
+  const root = oldProject()
+  applyMigration(planMigration(root, { modules: MODULES, today, split: [{ title: 'Goal', split: ['t-goal'], problem: 'Why we want it.' }] }), { states: 'proposed' })
+  const store = openRecords(root, [...MODULES, CORE_RECORDS], { today })
+  const c2 = store.show('C-2')
+  assert.equal(c2.outline.problem, 'Why we want it.')
+  assert.ok(c2.outline.solution)
+  assert.ok(c2.outline.items.some((i) => i.id === 'g-ux' && i.target === 'system#t-goal' && i.text === '**User experience** · missing'))
+  // the item's note and link, the section's prose and the human's words, under their proposed item
+  assert.match(c2.body, /- add `d-goal` → `system#t-goal` — A small web shop · decision · missing\n {2}First line\.\n {2}Second line\.\n {2}<core\/shop\.mjs>/)
+  assert.match(c2.body, /- add `t-goal` → `system` — Goal and stakeholders\n {2}Sell things online\./)
+  assert.match(c2.body, / {2}<!-- human: hp-1 -->\n {2}The human's own words\.\n {2}<!-- \/human -->/)
+  assert.deepEqual(checkRecords(store).findings, [])
+})
+
+test("Groundwork's own map split into the redesign's changes: C-1, C-2…C-4 under the last milestone, all checking clean", () => {
+  const root = oldProject('groundwork-map.json')
+  const plan = planMigration(root, { modules: MODULES, today, split: [
+    { title: 'Records', split: ['t-records', 'c-records'], milestone: 'r-9' },
+    { title: 'Pipeline', split: ['t-pipe'], milestone: 'r-9' },
+    { title: 'Stack', split: ['d-lit', 'd-typecheck'], milestone: 'r-9' },
+  ] })
+  assert.deepEqual(plan.changes.map((c) => c.id), ['C-1', 'C-2', 'C-3', 'C-4'])
+  applyMigration(plan, { states: 'proposed' })
+  const store = openRecords(root, [...MODULES, CORE_RECORDS], { today })
+  assert.equal(store.spec.docs().length, 14)
+  assert.equal(store.spec.find('d-typecheck'), null)
+  assert.equal(store.resolve('d-typecheck').change.id, 'C-4')
+  assert.equal(store.resolve('c-records').target.change.id, 'C-2')
+  assert.equal(store.resolve('doc-records-tech').target.item.target, 'records')
+  assert.equal(store.get('C-3').fields.milestone, 'M-9')
+  assert.deepEqual(checkRecords(store).findings, [])
+})
+
+test('a split plan is refused for an id not on the map, an id twice, an unknown milestone or idea', () => {
+  const root = oldProject()
+  const refused = (split) => assert.throws(() => planMigration(root, { modules: MODULES, today, split }), (e) => e.code === 'split')
+  refused([{ title: 'X', split: ['nope'] }])
+  refused([{ title: 'X', split: ['d-cart'] }, { title: 'Y', split: ['d-cart'] }])
+  refused([{ title: 'X', split: ['d-cart'], milestone: 'M-7' }])
+  refused([{ title: 'X', split: ['d-cart'], ideas: ['I-9'] }])
+  refused([{ title: '', split: ['d-cart'] }])
+  refused([{ title: 'X', split: [] }])
 })
