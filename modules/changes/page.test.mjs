@@ -152,3 +152,13 @@ test('a change with a thought map: its nodes in the content, its open questions 
   assert.deepEqual(page.marks?.thoughts, { here: 'new', settled: 'new' })
   assert.deepEqual(page.marks?.removed.thoughts.map((t) => t.key), ['gone'])
 })
+
+test('a moved item: its target at the base, to show struck through until the next commit; which rows move, and as what', () => {
+  const body = CANONICAL.replace('- change `d-b`', '- add `t-sec` → `system` — Egy fejezet\n- change `d-b`')
+  const base = baseOf(`---\nid: C-7\ntitle: The change page\nstatus: grilling\n---\n\n${body}\n`)
+  const p = changePage(shown({ body: body.replace('`d-a` → `system#t-x`', '`d-a` → `core/tech#t-sec`') }), { base, targets: [{ target: 'core/tech', kind: 'document', title: 'Mag' }] })
+  assert.deepEqual(p.moved, { 'd-a': 'system#t-x' })
+  assert.deepEqual(p.movable, { 'd-a': 'item', 't-sec': 'section' }, 'a change is found by its id: it does not move')
+  assert.deepEqual(p.targets, [{ target: 'core/tech', kind: 'document', title: 'Mag' }])
+  assert.deepEqual(changePage(shown()).moved, {}, 'without a base nothing is moved')
+})

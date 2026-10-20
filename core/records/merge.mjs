@@ -133,7 +133,7 @@ function locateIn(doc, id) {
 /** @param {Place} p */
 const whereOf = (p) => (p.kind === 'part' ? 'the parts' : p.kind === 'document' ? 'the Spec' : p.doc.id)
 /** @param {string} id */
-const isDocId = (id) => id === 'system' || id.includes('/')
+export const isDocId = (id) => id === 'system' || id.includes('/')
 
 /**
  * @param {StoreLike} store

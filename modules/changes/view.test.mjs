@@ -105,7 +105,7 @@ test('the UI strings: English and Hungarian have the same keys, a name for every
   for (const s of ['grilling', 'awaiting-approval', 'implementing', 'done', 'dropped']) assert.ok(UI_STRINGS.en[`stage.${s}`], s)
 })
 
-test('the page\'s one write is the approval: JSON to /api/changes/approve with the version it shows; a problem goes next to its row', () => {
+test('the page\'s writes are the approval: JSON to /api/changes/approve with the version it shows; a problem goes next to its row', () => {
   const src = read('view/change-page.mjs')
   assert.match(src, /fetch\(`\/api\/changes\/approve\?id=\$\{encodeURIComponent\(p\.id\)\}`/)
   assert.match(src, /'content-type': 'application\/json'/)
@@ -113,7 +113,7 @@ test('the page\'s one write is the approval: JSON to /api/changes/approve with t
   assert.match(src, /this\.problemOf\(i\.id\)/, 'a row shows the problem with its item id')
   assert.match(src, /if \(p\.merged\)/, 'a merged change shows no button')
   const fetches = [...viewSource().matchAll(/method: '(\w+)'/g)].map((m) => m[1])
-  assert.deepEqual(fetches, ['POST'], 'nothing else on the page writes')
+  assert.deepEqual(fetches, ['POST', 'POST'], 'the approval and the move: nothing else on the page writes')
 })
 
 test('an item that waits for another change says which, on load: a link to that change next to its row, and no Approve while anything waits', () => {
@@ -122,4 +122,19 @@ test('an item that waits for another change says which, on load: a link to that 
   assert.match(src, /<gw-record-chip \.record=\$\{\{ id: wait\.waitsFor, name: 'change', module: 'changes', title: wait\.title \}\}>/, 'the change it waits for is a link to its page')
   assert.match(src, /p\.waits\?\.length/, 'the Approve bar knows when something waits')
   for (const k of ['item.waits', 'approve.waits', 'approve.waits.one']) assert.ok(UI_STRINGS.en[k] && UI_STRINGS.hu[k], k)
+})
+
+test('each row: Accept, a look only, and Elsewhere… for a row that moves, a searchable list whose pick is written at once', () => {
+  const src = read('view/change-page.mjs')
+  assert.match(src, /fetch\(`\/api\/changes\/target\?id=\$\{encodeURIComponent\(p\.id\)\}`/)
+  assert.match(src, /JSON\.stringify\(\{ item, target, base: p\.version \}\)/)
+  assert.match(src, /p\.movable\?\.\[i\.id\]/, 'Elsewhere… only on a row that moves')
+  assert.match(src, /<gw-target-picker \.targets=\$\{p\.targets/)
+  assert.match(src, /p\.moved\?\.\[i\.id\]/, 'the old target, struck through')
+  assert.doesNotMatch(src.slice(src.indexOf('async approve()'), src.indexOf('async move(')), /kept/, 'Approve does not look at what was Accepted')
+  const picker = read('view/target-picker.mjs')
+  assert.match(picker, /'pick'/)
+  assert.doesNotMatch(picker, /fetch\(/, 'the picker writes nothing itself')
+  assert.match(picker, /this\.kind === 'item' \|\| t\.kind === 'document'/, 'a section goes into a document only')
+  for (const k of ['item.accept', 'item.accepted', 'item.elsewhere', 'target.search', 'target.none', 'target.from', 'move.error']) assert.ok(UI_STRINGS.en[k] && UI_STRINGS.hu[k], k)
 })

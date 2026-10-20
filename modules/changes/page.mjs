@@ -15,7 +15,13 @@
 //                                  version, tickets, history, content, html, marks, waits }: waits, the
 //                                  items that wait for another change to be merged first
 //                                  (d-merge-in-order; store.waits): [{ id, waitsFor: 'C-3', on, title }],
-//                                  title that change's; version is the
+//                                  title that change's; movable, the rows Elsewhere… moves, by item id:
+//                                  'item' (into a document or a section) or 'section' (into a
+//                                  document; core/records/move.mjs: movableAs); moved, by item id,
+//                                  the target at the base of an item whose target changed since
+//                                  (shown struck through until the next commit); targets, the places
+//                                  to move to (store.targets: [{ target, kind, title, document?,
+//                                  change? }]); version is the
 //                                  file's, which approving sends back as its base
 //                                  shown: the store's show(); base: a Content or null. html holds the
 //                                  rendered Markdown, by key: sections[key], questions[key], notes[id],
@@ -30,10 +36,12 @@ import { CHANGE_TYPE } from './type.mjs'
 import { questionsOf, changeRow } from './stages.mjs'
 import { compareChanges } from './compare.mjs'
 import { flatThoughts } from './thoughts.mjs'
+import { movableAs } from '../../core/records/move.mjs'
 
 /** @typedef {import('./compare.mjs').Content} Content */
 /** @typedef {import('./compare.mjs').Diff} Diff */
 /** @typedef {{ id: string, waitsFor: string, on: string, title: string }} Wait */
+/** @typedef {import('../../core/records/move.mjs').Target} Target */
 
 const TEXT_PARTS = /** @type {const} */ (['problem', 'solution', 'scope', 'outOfScope'])
 
@@ -65,10 +73,16 @@ function render(html, sections, questions, items) {
 
 /**
  * @param {import('../../core/records/types.mjs').ShownRecord} shown
- * @param {{ base?: Content | null, merged?: boolean, waits?: Wait[] }} [opts]
+ * @param {{ base?: Content | null, merged?: boolean, waits?: Wait[], targets?: Target[] }} [opts]
  */
-export function changePage(shown, { base = null, merged = false, waits = [] } = {}) {
+export function changePage(shown, { base = null, merged = false, waits = [], targets = [] } = {}) {
   const content = contentOf(shown)
+  /** @type {Record<string, 'item' | 'section'>} */
+  const movable = {}
+  for (const i of readChange(shown.body).items) { const as = movableAs(i); if (as) movable[i.id] = as }
+  /** @type {Record<string, string>} */
+  const moved = {}
+  for (const i of content.items) { const was = base?.items.find((b) => b.id === i.id); if (was && was.target !== i.target) moved[i.id] = was.target }
   const marks = base ? compareChanges(base, content) : null
   const html = { sections: {}, questions: {}, notes: {} }
   render(html, content.sections, content.questions, content.items)
@@ -83,5 +97,8 @@ export function changePage(shown, { base = null, merged = false, waits = [] } = 
     html,
     marks,
     waits,
+    movable,
+    moved,
+    targets,
   }
 }

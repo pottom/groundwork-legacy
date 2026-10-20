@@ -6,10 +6,12 @@
 //                                            ideas: [Chip], milestone: Chip | null }] }, in id order;
 //                              Chip: { id, name?, module?, title? } (stages.mjs: changeRow)
 //   GET /api/changes/show?id=C-3   one change's page (page.mjs: changePage): every part of its file,
-//                              rendered, and the marks of what changed since the last commit (the
+//                              rendered, the marks of what changed since the last commit (the
 //                              file at HEAD, since.mjs; null without git or for an uncommitted file),
 //                              and `waits`: the items waiting for another change to be merged first
-//                              ([{ id, waitsFor: 'C-1', on, title }], store.waits; d-merge-in-order);
+//                              ([{ id, waitsFor: 'C-1', on, title }], store.waits; d-merge-in-order),
+//                              and for Elsewhere…: `movable`, `moved` (the old targets since the
+//                              commit) and `targets` (store.targets; none once merged);
 //                              404 for an id that is no change
 //   POST /api/changes/approve?id=C-3   { base? } (the change's version the page shows) ->
 //                              { id, status, documents, items }: the human approves the change, and
@@ -21,6 +23,15 @@
 //                              changed since `base` (code 'stale'), or items at fault (code 'merge',
 //                              problems: [{ id, op, target, code, message, waitsFor? }], one per item;
 //                              code 'waiting' with waitsFor: 'C-1' for an item that waits for C-1)
+//   POST /api/changes/target?id=C-3   { item, target, base? } -> { id, item, from, target, version }:
+//                              the human moves a proposed item elsewhere (Elsewhere… on the
+//                              approval list; d-move-writes-change): the store writes the new
+//                              target into the change's file at once (store.move, as 'human';
+//                              core/records/move.mjs), so Claude sees it and it survives a reload.
+//                              JSON only (415). Refused: 404 no change or no such item; 400 an
+//                              item that does not move (code 'bad') or a target not in the list
+//                              or not fitting (code 'target'); 409 done or dropped (code 'state'),
+//                              merged, or changed since `base` (code 'stale')
 //
 // Changes are records of the core's record store: the manifest declares the type C (`records`,
 // type.mjs), with its folder docs/product/changes/, and the store writes the files. Approving is the
@@ -53,7 +64,7 @@ export default {
   icon: '<path d="M6 3v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',   // a branch merging
   version: VERSION,   // the package's: one version for Groundwork and its modules
   // The page: a thin index.html and Lit components under view/ (view/main.mjs is the entry).
-  view: { dir: HERE, files: ['index.html', 'view/changes.css', 'view/main.mjs', 'view/changes-list.mjs', 'view/change-page.mjs', 'view/strings.mjs', 'ui-strings.mjs', 'compare.mjs', 'thoughts.mjs'] },
+  view: { dir: HERE, files: ['index.html', 'view/changes.css', 'view/main.mjs', 'view/changes-list.mjs', 'view/change-page.mjs', 'view/target-picker.mjs', 'view/strings.mjs', 'ui-strings.mjs', 'compare.mjs', 'thoughts.mjs'] },
   // The Spec, which approving a change merges into (POST /api/changes/approve): the core's record
   // store writes it, and the change files, for the module (store.forModule: merge).
   writes: ['docs/product/spec'],
@@ -66,14 +77,16 @@ export default {
   api({ root, records }) {
     return async (req, res, sub, url) => {
       if (sub === '/approve') return approve(records, req, res, url), true
+      if (sub === '/target') return target(records, req, res, url), true
       if (sub !== '/list' && sub !== '/show') return false
       if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'method not allowed' }), true
       if (sub === '/show') {
         const id = url.searchParams.get('id') ?? ''
         const shown = /^C-\d+$/.test(id) ? records.show(id) : null
         if (!shown || shown.type !== 'C') return send(res, 404, { error: `no change ${id}` }), true
+        const merged = records.merged(id) ?? false
         const waits = records.waits(id).map((/** @type {{ id: string, waitsFor: string, on: string }} */ w) => ({ id: w.id, waitsFor: w.waitsFor, on: w.on, title: String(records.get(w.waitsFor)?.fields.title ?? '') }))
-        return send(res, 200, changePage(shown, { base: baseOf(committed(root, shown.file)), merged: records.merged(id) ?? false, waits })), true
+        return send(res, 200, changePage(shown, { base: baseOf(committed(root, shown.file)), merged, waits, targets: merged ? [] : records.targets() })), true
       }
       const changes = records.list('C').flatMap((r) => {
         const shown = records.show(r.id)
@@ -105,5 +118,24 @@ async function approve(records, req, res, url) {
     const err = /** @type {Error & { code?: string, problems?: unknown[] }} */ (e)
     const code = err.code === 'missing' ? 404 : err.code === 'forbidden' ? 403 : ['merge', 'stale', 'state', 'merged', 'empty'].includes(err.code ?? '') ? 409 : 500
     send(res, code, { error: err.message, code: err.code, ...(err.problems ? { problems: err.problems } : {}) })
+  }
+}
+
+// The human moves a proposed item to another target from the approval list (Elsewhere…).
+/** @param {any} records @param {import('node:http').IncomingMessage} req @param {import('node:http').ServerResponse} res @param {URL} url */
+async function target(records, req, res, url) {
+  if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' })
+  if (!isJson(req)) return send(res, 415, { error: 'send JSON' })
+  const id = url.searchParams.get('id') ?? ''
+  /** @type {{ item?: unknown, target?: unknown, base?: unknown }} */
+  let body
+  try { body = (await readJson(req)) ?? {} } catch (e) { return send(res, 400, { error: e instanceof Error ? e.message : String(e) }) }
+  const str = (/** @type {unknown} */ v) => (typeof v === 'string' ? v : undefined)
+  try {
+    send(res, 200, records.move(id, { item: str(body.item) ?? '', target: str(body.target) ?? '', by: 'human', base: str(body.base) }))
+  } catch (e) {
+    const err = /** @type {Error & { code?: string }} */ (e)
+    const code = err.code === 'missing' ? 404 : err.code === 'forbidden' ? 403 : ['bad', 'target'].includes(err.code ?? '') ? 400 : ['stale', 'state', 'merged'].includes(err.code ?? '') ? 409 : 500
+    send(res, code, { error: err.message, code: err.code })
   }
 }

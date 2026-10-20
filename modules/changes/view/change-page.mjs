@@ -2,7 +2,8 @@
 // (no shadow root), so the theme's .gw-* components and changes.css style it. Claude writes the
 // change's file during the interview, and the page shows it; the one write from the page is the
 // human's approval (d-approve-on-page): POST /api/changes/approve, which merges the change into the
-// Spec, all or nothing.
+// Spec, all or nothing; and Elsewhere… on a row, which moves a proposed item to another target in the
+// change's file (POST /api/changes/target).
 //
 //   el.page      the change as GET /api/changes/show gives it (page.mjs: changePage); null while
 //                the first read is under way
@@ -25,7 +26,12 @@
 // that instead. A refused approval leaves the change as it was and puts what is wrong next to each
 // row at fault (the server's problems, by item id: row(i) shows problemOf(i.id)); a new version of
 // the change clears them. A row is one <li class="item"> with the item's line, text and note, then
-// its problem, so a later state of a row (a new target) goes in there. An item that waits for another
+// its problem. While the change can be approved, each row has Accept (a look only: Approve takes
+// every row that was not moved, no row needs ticking) and, for a new item or section (page.movable),
+// Elsewhere…: a searchable list of targets (<gw-target-picker>, page.targets) whose pick is written
+// into the change's file at once (POST /api/changes/target, d-move-writes-change); the moved row
+// shows its new target and the old one struck through until the next commit (page.moved). A new part
+// is not made on the page: Claude proposes one in chat. An item that waits for another
 // change to be merged first (d-merge-in-order; page.waits, computed by the server on every read)
 // shows that change, a link to its page, and what of it it needs, and the Approve button gives way
 // to a note while anything waits. What changed since the last commit is
@@ -38,6 +44,7 @@ import { LitElement, html, nothing } from '/vendor/lit-element/lit-element.js'
 import { unsafeHTML } from '/vendor/lit-html/directives/unsafe-html.js'
 import '/shell/record-chip.mjs'
 import '/shell/mind-map.mjs'
+import './target-picker.mjs'
 import { ui } from './strings.mjs'
 import { TONE } from './changes-list.mjs'
 import { mapTree, mapMarks, openQuestions } from '../thoughts.mjs'
@@ -50,7 +57,7 @@ const MARK_TONE = { new: 'ok', modified: 'info', removed: 'bad' }
 const md = (rendered) => (rendered ? unsafeHTML(rendered) : nothing)
 
 export class ChangePage extends LitElement {
-  static properties = { page: { attribute: false }, error: { attribute: false }, missing: { attribute: false }, flash: { attribute: false }, lang: {}, open: { state: true }, approval: { state: true } }
+  static properties = { page: { attribute: false }, error: { attribute: false }, missing: { attribute: false }, flash: { attribute: false }, lang: {}, open: { state: true }, approval: { state: true }, kept: { state: true }, moving: { state: true } }
 
   constructor() {
     super()
@@ -67,6 +74,10 @@ export class ChangePage extends LitElement {
     this.open = null
     /** @type {{ busy: boolean, error: string | null, problems: Array<{ id: string, code: string, message: string }> }} the last approval */
     this.approval = { busy: false, error: null, problems: [] }
+    /** @type {Set<string>} the rows Accepted: only a look, Approve takes every row that was not moved */
+    this.kept = new Set()
+    /** @type {{ id: string, busy: boolean, error: string | null } | null} the row whose Elsewhere… is open */
+    this.moving = null
   }
 
   /** a new version of the change (or another change) clears what the last approval said @param {Map<string, unknown>} changed */
@@ -103,6 +114,33 @@ export class ChangePage extends LitElement {
     } catch (e) {
       this.approval = { busy: false, error: e instanceof Error ? e.message : String(e), problems: [] }
     }
+  }
+
+  // Elsewhere…: the human picks another target; the server writes it into the change's file at once,
+  // and the page reads the change again when its file changes (the live topic).
+  /** @param {string} item @param {string} target */
+  async move(item, target) {
+    const p = this.page
+    if (!p || this.moving?.busy) return
+    this.moving = { id: item, busy: true, error: null }
+    try {
+      const res = await fetch(`/api/changes/target?id=${encodeURIComponent(p.id)}`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ item, target, base: p.version }),
+      })
+      const body = await res.json().catch(() => ({}))
+      this.moving = res.ok ? null : { id: item, busy: false, error: String(body.error ?? `HTTP ${res.status}`) }
+      if (res.ok) { const kept = new Set(this.kept); kept.delete(item); this.kept = kept }
+    } catch (e) {
+      this.moving = { id: item, busy: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  }
+
+  /** @param {string} id */
+  keep(id) {
+    const kept = new Set(this.kept)
+    if (kept.has(id)) kept.delete(id)
+    else kept.add(id)
+    this.kept = kept
   }
 
   createRenderRoot() { return this }
@@ -264,19 +302,39 @@ export class ChangePage extends LitElement {
     const struck = gone ? 'is-gone' : ''
     const problem = gone ? null : this.problemOf(i.id)
     const wait = gone ? null : this.waitOf(i.id)
-    return html`<li class=${`item ${gone ? 'is-removed' : this.marked('items', i.id)} ${problem ? 'has-problem' : wait ? 'is-waiting' : ''}`} data-id=${i.id}>
+    const was = gone ? null : p.moved?.[i.id]
+    const kept = !gone && this.kept.has(i.id)
+    return html`<li class=${`item ${gone ? 'is-removed' : this.marked('items', i.id)} ${problem ? 'has-problem' : wait ? 'is-waiting' : ''} ${kept ? 'is-kept' : ''}`} data-id=${i.id}>
       <div class=${`item__line ${struck}`}>
         <span class=${`gw-badge gw-badge--${OP_TONE[i.op] ?? 'neutral'}`}>${i.op}</span>
-        <span class="gw-tag item__id">${i.id}</span><span class="item__arrow" aria-label=${ui('item.to')}>→</span><span class="gw-tag item__target">${i.target}</span>
+        <span class="gw-tag item__id">${i.id}</span><span class="item__arrow" aria-label=${ui('item.to')}>→</span>
+        ${was ? html`<s class="gw-tag item__target is-gone" title=${ui('item.moved')}>${was}</s>` : nothing}<span class="gw-tag item__target">${i.target}</span>
         ${this.badge(mark)}
+        ${gone ? nothing : this.actions(p, i, kept)}
       </div>
       ${i.text ? html`<p class=${`item__text ${struck}`}>${i.text}</p>` : nothing}
       ${i.note ? html`<div class=${`md item__note ${struck}`}>${md(p.html.notes[i.id])}</div>` : nothing}
       ${wait && !problem ? html`<p class="item__waits"><span class="gw-badge gw-badge--warn">${ui('item.waits')}</span>
         <gw-record-chip .record=${{ id: wait.waitsFor, name: 'change', module: 'changes', title: wait.title }}></gw-record-chip>
         <span class="gw-tag">${wait.on}</span></p>` : nothing}
+      ${this.moving?.id === i.id ? html`<gw-target-picker .targets=${p.targets ?? []} kind=${p.movable[i.id]} current=${i.target} ?busy=${this.moving.busy}
+        @pick=${(/** @type {CustomEvent} */ e) => this.move(i.id, e.detail.target)} @close=${() => { this.moving = null }}></gw-target-picker>
+        ${this.moving.error ? html`<p class="item__problem" role="alert">${ui('move.error', { error: this.moving.error })}</p>` : nothing}` : nothing}
       ${problem ? html`<p class="item__problem" role="alert"><span class="gw-badge gw-badge--bad">${ui('item.problem')}</span> ${problem.message}</p>` : nothing}
     </li>`
+  }
+
+  // A row's actions while the change can still be approved: Accept (a look only; Approve takes every
+  // row that was not moved) and, for a new item or section, Elsewhere… (page.movable).
+  /** @param {any} p @param {any} i @param {boolean} kept */
+  actions(p, i, kept) {
+    if (p.merged || !['awaiting-approval', 'implementing'].includes(p.stage)) return nothing
+    const open = this.moving?.id === i.id
+    return html`<span class="item__actions">
+      <button type="button" class=${`gw-btn gw-btn--sm ${kept ? 'gw-btn--secondary' : 'gw-btn--ghost'}`} aria-pressed=${kept ? 'true' : 'false'} @click=${() => this.keep(i.id)}>${ui(kept ? 'item.accepted' : 'item.accept')}</button>
+      ${p.movable?.[i.id] ? html`<button type="button" class="gw-btn gw-btn--ghost gw-btn--sm" aria-expanded=${open ? 'true' : 'false'}
+        @click=${() => { this.moving = open ? null : { id: i.id, busy: false, error: null } }}>${ui('item.elsewhere')}</button>` : nothing}
+    </span>`
   }
 
   /** @param {any} p */

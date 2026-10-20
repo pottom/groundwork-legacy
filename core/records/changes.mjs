@@ -41,6 +41,10 @@
 //   readChange(body)       -> parts + { items, tickets }   patient: English headings too, `->` for
 //                                                `→`, ids without backticks; a line that is not an
 //                                                item stays text and is not an item
+//   retargetItem(body, id, target) -> body | null   the body with the proposed item's line written
+//                                                anew in the canonical form with the new target
+//                                                (its note and every other line as they were); null
+//                                                when no proposed item has that id
 //   readThoughts(text)     -> { nodes, unknown, at }   the thought map of a Thoughts section's text;
 //                                                unknown: [{ line, sign }] (0-based in the text), the
 //                                                lines whose first word looks like a sign but is none;
@@ -170,6 +174,34 @@ export function readChange(body) {
     if (t) out[k] = t
   }
   return out
+}
+
+/**
+ * @param {string} body
+ * @param {string} id
+ * @param {string} target
+ * @returns {string | null}
+ */
+export function retargetItem(body, id, target) {
+  const lines = String(body ?? '').split('\n')
+  /** @type {string | null} */
+  let at = null
+  for (let n = 0; n < lines.length; n++) {
+    const line = lines[n].replace(/\r$/, '')
+    const h = HEADING.exec(line)
+    if (h) {
+      const name = h[1].toLowerCase()
+      at = SECTIONS.find((x) => [x.heading, ...x.also].some((y) => y.toLowerCase() === name))?.key ?? null
+      continue
+    }
+    if (at !== 'items') continue
+    const m = ITEM.exec(line.trim())
+    if (!m || !OPS.includes(m[1]) || m[2] !== id) continue
+    const cr = lines[n].endsWith('\r') ? '\r' : ''
+    lines[n] = itemLine({ op: /** @type {ProposedItem['op']} */ (m[1]), id, target, ...(m[4] ? { text: m[4] } : {}) }) + cr
+    return lines.join('\n')
+  }
+  return null
 }
 
 // ---- the thought map ----

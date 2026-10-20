@@ -292,3 +292,52 @@ test('a change whose item targets what another unmerged change brings waits for 
     assert.equal((await show(base, 'C-2')).merged, true)
   })
 })
+
+const retarget = (base, id, body) => fetch(`${base}/api/changes/target?id=${encodeURIComponent(id)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+
+test('POST /api/changes/target moves a proposed item: the change file gets the new target, the old one shows until the next commit, and approving merges it there', async () => {
+  const root = withSpec()
+  fs.appendFileSync(path.join(root, 'docs/product/spec/SYSTEM.md'), '\n## Elvek {#t-rules}\n')
+  const store = open(root)
+  store.create('C', { fields: { title: 'Alap' }, body: '## Javasolt elemek\n\n- add `t-new` → `system` — Új fejezet\n' })
+  store.create('C', { fields: { title: 'Mozgat' }, body: '## Javasolt elemek\n\n- add `d-a` → `system#t-goal` — Egy elem · döntés · hiányzik\n  A jegyzete.\n- change `d-one` → `system#t-goal` — Másképp · döntés · kész\n' })
+  for (const id of ['C-1', 'C-2']) store.update(id, { fields: { status: 'awaiting-approval' } })
+  git(root, 'init', '-q'); git(root, 'add', '-A'); git(root, 'commit', '-qm', 'base')
+  await withServer(root, [ideas, changes], async (base) => {
+    const page = await show(base, 'C-2')
+    assert.deepEqual(page.movable, { 'd-a': 'item' })
+    assert.deepEqual(page.targets.map((t) => [t.target, t.change ?? null]), [['system', null], ['system#t-goal', null], ['system#t-rules', null], ['system#t-new', 'C-1']])
+    assert.equal((await fetch(`${base}/api/changes/target?id=C-2`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{}' })).status, 415)
+    assert.equal((await fetch(`${base}/api/changes/target?id=C-2`)).status, 405)
+    const before = snapshot(path.join(root, 'docs'))
+    for (const [body, status, code] of [
+      [{ item: 'd-a', target: 'system#t-nope' }, 400, 'target'],
+      [{ item: 'd-one', target: 'system#t-rules' }, 400, 'bad'],
+      [{ item: 'd-ghost', target: 'system#t-rules' }, 404, 'missing'],
+      [{ item: 'd-a', target: 'system#t-rules', base: 'old' }, 409, 'stale'],
+      [{ item: 'd-a' }, 400, 'target'],
+    ]) {
+      const res = await retarget(base, 'C-2', body)
+      assert.deepEqual([res.status, (await res.json()).code], [status, code], JSON.stringify(body))
+    }
+    assert.deepEqual(snapshot(path.join(root, 'docs')), before, 'a refused move writes nothing')
+
+    const res = await retarget(base, 'C-2', { item: 'd-a', target: 'system#t-new', base: page.version })
+    assert.equal(res.status, 200)
+    const moved = await res.json()
+    assert.deepEqual([moved.id, moved.item, moved.from, moved.target], ['C-2', 'd-a', 'system#t-goal', 'system#t-new'])
+    assert.match(fs.readFileSync(path.join(root, store.get('C-2').file), 'utf8'), /\n- add `d-a` → `system#t-new` — Egy elem · döntés · hiányzik\n  A jegyzete\.\n/)
+    const after = await show(base, 'C-2')
+    assert.equal(after.version, moved.version)
+    assert.equal(after.content.items[0].target, 'system#t-new')
+    assert.deepEqual(after.moved, { 'd-a': 'system#t-goal' }, 'the old target, from the last commit')
+    assert.equal(after.marks.items['d-a'], 'modified')
+    assert.deepEqual(after.waits.map((w) => [w.id, w.waitsFor]), [['d-a', 'C-1']], 'moved into a pending change: it waits for it')
+
+    assert.equal((await approve(base, 'C-1')).status, 200)
+    assert.equal((await approve(base, 'C-2')).status, 200)
+    assert.match(fs.readFileSync(path.join(root, 'docs/product/spec/SYSTEM.md'), 'utf8'), /## Új fejezet \{#t-new\}\n\n- Egy elem · `d-a` · döntés · hiányzik · C-2\n/)
+    const merged = await retarget(base, 'C-2', { item: 'd-a', target: 'system#t-rules' })
+    assert.deepEqual([merged.status, (await merged.json()).code], [409, 'merged'])
+  })
+})

@@ -36,6 +36,10 @@
 //   store.waits(id)                     the proposed items of change C-n that wait for another
 //                                       pending change to be merged first (d-merge-in-order):
 //                                       [{ id, op, target, waitsFor: 'C-3', on }] (merge.mjs)
+//   store.targets()                     where a proposed item may move: the Spec's documents and
+//                                       sections, then those the pending changes propose (move.mjs)
+//   store.move(id, { item, target, by?, base? })   moves a proposed item of change C-n to another
+//                                       target, written into the change's file (move.mjs)
 //   store.forModule(manifest)           the store as a module gets it: reads are global, writes
 //                                       only the record types its manifest declares, and the Spec
 //                                       only when its `writes` cover docs/product/spec/ (code
@@ -69,6 +73,7 @@ import { renderMarkdown } from './render.mjs'
 import { openSpec } from './spec-store.mjs'
 import { resolver } from './resolve.mjs'
 import { mergeChange, isMerged, waitsOf } from './merge.mjs'
+import { moveItem, targetsOf } from './move.mjs'
 import { SPEC_DIR } from './spec-format.mjs'
 
 /** @typedef {import('./types.mjs').RecordType} RecordType */
@@ -347,6 +352,9 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     merged: (id) => isMerged(self, id),
     /** @param {string} id */
     waits: (id) => waitsOf(self, id),
+    targets: () => targetsOf(self),
+    /** @param {string} id @param {{ item?: string, target?: string, by?: Actor, base?: string }} opts */
+    move: (id, opts) => moveItem(self, id, opts),
   }
 
   // What one module gets: every read, and writes of the record types it declares only; the Spec
@@ -366,6 +374,8 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
       spec: writesSpec ? spec : { ...spec, writeDoc: () => deny('the Spec'), writeMany: () => deny('the Spec') },
       /** @type {typeof self.merge} */
       merge: (id, opts) => (writesSpec && own.has('C') ? self.merge(id, opts) : deny(`the Spec from change ${id}`)),
+      /** @type {typeof self.move} */
+      move: (id, opts) => (own.has('C') ? self.move(id, opts) : deny(String(id))),
     }
   }
   return self
