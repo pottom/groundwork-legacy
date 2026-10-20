@@ -28,7 +28,8 @@ h2, h3, p { margin: 0; }
 .change__title a:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; border-radius: var(--gw-radius-sm); }
 
 /* the page of one change (view/change-page.mjs) */
-#page { display: block; padding: calc(var(--gw-space) * 2); max-width: 860px; margin: 0 auto; min-height: 100vh; }
+#page { display: block; padding: calc(var(--gw-space) * 2); max-width: 1240px; margin: 0 auto; min-height: 100vh; }
+#page .page > :not(.workspace) { max-width: 860px; }
 #page[hidden], #list[hidden] { display: none; }
 .page__back { display: inline-block; margin-bottom: calc(var(--gw-space) * 2); color: var(--gw-muted); text-decoration: none; font: var(--gw-text-xs) var(--gw-font); }
 .page__back:hover { color: var(--gw-fg); }
@@ -61,15 +62,41 @@ h2, h3, p { margin: 0; }
 .item__note { color: var(--gw-fg-2); font: var(--gw-text-xs) var(--gw-font); line-height: 1.55; }
 .history { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font-mono); }
 
+/* the workspace (d-map-workspace): the thought map on the left, the open questions on the right */
+.workspace { display: flex; flex-direction: column; gap: var(--gw-space); border: 1px solid var(--gw-line); border-radius: var(--gw-radius-lg); background: var(--gw-surface); padding: var(--gw-space); min-width: 0; }
+.workspace__bar { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; font: 600 var(--gw-text-small) var(--gw-font); color: var(--gw-fg-2); padding: 2px 4px; border-radius: var(--gw-radius-sm); }
+.workspace__bar:hover { color: var(--gw-fg); }
+.workspace__bar:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; }
+.workspace__chevron { color: var(--gw-muted); width: 1em; }
+.workspace__body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--gw-space); min-height: 440px; }
+.workspace__map { height: 440px; border-radius: var(--gw-radius); background: var(--gw-bg); border: 1px solid var(--gw-line); }
+.workspace__panel { display: flex; flex-direction: column; gap: var(--gw-space); max-height: 440px; overflow: auto; padding: 4px; }
+.open-questions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gw-space); }
+.open-question { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid var(--gw-line); border-radius: var(--gw-radius); background: var(--gw-bg); }
+.open-question__text { all: unset; cursor: pointer; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.open-question__text:hover { color: var(--gw-accent-text); }
+.open-question__text:focus-visible { outline: 2px solid var(--gw-focus); outline-offset: 2px; border-radius: 2px; }
+.open-question__note { color: var(--gw-fg-2); font: var(--gw-text-xs) var(--gw-font); white-space: pre-line; }
+.open-question.is-older { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: var(--gw-space); }
+.options { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.option { display: flex; align-items: baseline; gap: 6px; padding: 4px 8px; border: 1px dashed var(--gw-line-strong); border-radius: var(--gw-radius-sm); font: var(--gw-text-xs) var(--gw-font); color: var(--gw-fg-2); }
+.option.is-recommended { border-style: solid; border-color: var(--gw-info); background: var(--gw-info-soft); color: var(--gw-fg); }
+.option__star { color: var(--gw-info-text); }
+@media (max-width: 760px) {
+  .workspace__body { grid-template-columns: minmax(0, 1fr); }
+  .workspace__panel { max-height: none; }
+  .workspace__map { height: 360px; }
+}
+
 /* marks of what changed since the last commit (d-changes-since-commit): a bar at the left edge and
    the theme's badge with a word; a removed part stays, struck through, until the next commit */
-:is(.part, .question, .item, .page__title).is-new { box-shadow: inset 3px 0 0 var(--gw-ok); }
-:is(.part, .question, .item, .page__title).is-modified { box-shadow: inset 3px 0 0 var(--gw-info); }
+:is(.part, .question, .item, .page__title, .open-question).is-new { box-shadow: inset 3px 0 0 var(--gw-ok); }
+:is(.part, .question, .item, .page__title, .open-question).is-modified { box-shadow: inset 3px 0 0 var(--gw-info); }
 :is(.part, .question, .item).is-removed { box-shadow: inset 3px 0 0 var(--gw-bad); }
 .is-gone { text-decoration: line-through; color: var(--gw-muted); }
 .page__title.is-new, .page__title.is-modified { padding-left: 8px; }
 
 /* what the last write changed: tinted for a moment, then fading (d-changes-flash) */
-:is(.part, .question, .item, .page__title, .change, .md) { transition: background-color .8s; }
+:is(.part, .question, .item, .page__title, .change, .md, .open-question) { transition: background-color .8s; }
 .is-flash { background-color: var(--gw-accent-soft); }
-@media (prefers-reduced-motion: reduce) { :is(.part, .question, .item, .page__title, .change, .md) { transition: none; } }
+@media (prefers-reduced-motion: reduce) { :is(.part, .question, .item, .page__title, .change, .md, .open-question) { transition: none; } }

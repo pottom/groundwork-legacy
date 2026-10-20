@@ -171,13 +171,14 @@ test('a new change on disk reaches the page through /api/events', async () => {
   } finally { sse.close(); await srv.close() }
 })
 
-test('the shell has a Changes tab after Ideas, and serves the page, the chip and Lit', async () => {
+test('the shell has a Changes tab after Ideas, and serves the page, the chip, the mind map and Lit', async () => {
   const ids = MODULES.map((m) => m.id)
   assert.equal(ids.indexOf('changes'), ids.indexOf('ideas') + 1)
   await withServer(project(), MODULES, async (base) => {
     const html = await (await fetch(`${base}/`)).text()
     assert.match(html, /href="\/\?module=changes"/)
     for (const p of ['/changes/', '/shell/record-chip.mjs', '/shell/record-link.mjs', '/vendor/lit-element/lit-element.js',
+      '/shell/mind-map.mjs', '/shell/mind-map-tree.mjs', '/shell/mind-map.css', '/vendor/mind-elixir/MindElixir.js', '/vendor/mind-elixir/MindElixir.css',
       '/vendor/reactive-element/reactive-element.js', '/vendor/reactive-element/css-tag.js']) {
       assert.equal((await fetch(base + p)).status, 200, p)
     }

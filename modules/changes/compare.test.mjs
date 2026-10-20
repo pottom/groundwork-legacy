@@ -61,3 +61,14 @@ test('without an earlier version nothing is marked; NO_CHANGES is frozen', () =>
   assert.deepEqual(d, NO_CHANGES, 'no earlier version: nothing to compare with, so nothing is marked')
   assert.ok(Object.isFrozen(NO_CHANGES))
 })
+
+test('a node of the thought map is new, modified (kind, recommendation, note, link, parent) or removed, by its text', () => {
+  const t = (key, over = {}) => ({ key, id: `t-${key}`, parent: null, kind: 'question', text: key, ...over })
+  const before = content({ thoughts: [t('where?'), t('here', { parent: 'where?', kind: 'option' }), t('apart', { parent: 'where?', kind: 'option' })] })
+  const after = content({ thoughts: [t('where?', { kind: 'decision' }), t('here', { parent: 'where?', kind: 'option', recommended: true }), t('new one', { kind: 'thought' })] })
+  const d = compareChanges(before, after)
+  assert.deepEqual(d.thoughts, { 'where?': 'modified', here: 'modified', 'new one': 'new' })
+  assert.deepEqual(d.removed.thoughts.map((x) => x.key), ['apart'])
+  assert.deepEqual(compareChanges(before, before).thoughts, {})
+  assert.deepEqual(compareChanges(content(), content()).removed.thoughts, [], 'a version without a map has none')
+})

@@ -4,7 +4,8 @@
 // at the last commit, since.mjs; d-changes-since-commit).
 //
 //   contentOf({ fields, body })    the content compare.mjs compares: { title, sections: { problem?,
-//                                  solution?, scope?, outOfScope?, questionsText? }, questions, items }
+//                                  solution?, scope?, outOfScope?, questionsText? }, questions, items,
+//                                  thoughts } (thoughts: the map's nodes, flat, thoughts.mjs)
 //                                  read through the core's readChange, so a file written by hand in
 //                                  the patient form (English headings, `->`) reads the same
 //   baseOf(text)  -> Content|null  the content of a change file's whole text (front matter and all),
@@ -23,6 +24,7 @@ import { renderMarkdown } from '../../core/records/render.mjs'
 import { CHANGE_TYPE } from './type.mjs'
 import { questionsOf, changeRow } from './stages.mjs'
 import { compareChanges } from './compare.mjs'
+import { flatThoughts } from './thoughts.mjs'
 
 /** @typedef {import('./compare.mjs').Content} Content */
 /** @typedef {import('./compare.mjs').Diff} Diff */
@@ -38,7 +40,7 @@ export function contentOf({ fields, body }) {
   const { questions, text } = questionsOf(parts.questions)
   if (text) sections.questionsText = text
   const items = parts.items.map((i) => ({ op: i.op, id: i.id, target: i.target, ...(i.text ? { text: i.text } : {}), ...(i.note ? { note: i.note } : {}) }))
-  return { title: String(fields.title ?? ''), sections, questions, items }
+  return { title: String(fields.title ?? ''), sections, questions, items, thoughts: flatThoughts(parts.thoughts) }
 }
 
 /** @param {string | null | undefined} text @returns {Content | null} */

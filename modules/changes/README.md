@@ -9,9 +9,10 @@ The Changes module: the changes (C-n), what is taking shape between an idea and 
 | `stages.mjs` | the stage of a change and the row the list shows for it, shared with nothing in the browser (the server sends the rows ready) |
 | `page.mjs` | the change page as the server gives it: every part of the file (read through the core's patient `readChange`), its Markdown rendered, and the marks against a base version |
 | `since.mjs` | the base of the marks: the change file at HEAD (`git show HEAD:./<file>`), or none without git or for an uncommitted file; which changed paths mean a commit |
-| `compare.mjs` | what changed between two versions of a change, per part, question (by its text) and proposed item (by its id); shared by the server (the marks) and the page (the flash), so it imports nothing |
+| `compare.mjs` | what changed between two versions of a change, per part, question (by its text), proposed item (by its id) and node of the thought map (by its text); shared by the server (the marks) and the page (the flash), so it imports nothing |
+| `thoughts.mjs` | the thought map on the page: the map's nodes flat, each known by its text (`flatThoughts`), the tree `<gw-mind-map>` draws (`mapTree`, removed nodes under their old parent), and the open questions with their options (`openQuestions`); shared by the server and the page, so it imports nothing |
 | `ui-strings.mjs` | the page's strings, English and Hungarian |
-| `index.html`, `view/` | the page: Lit components (`view/changes-list.mjs`, `<gw-changes-list>`; `view/change-page.mjs`, `<gw-change-page>`) with the core's `<gw-record-chip>` for the ideas and the milestone; Lit's import map in `index.html`. `view/main.mjs` shows the list, or with `?change=C-3` that change's page |
+| `index.html`, `view/` | the page: Lit components (`view/changes-list.mjs`, `<gw-changes-list>`; `view/change-page.mjs`, `<gw-change-page>`) with the core's `<gw-record-chip>` for the ideas and the milestone and `<gw-mind-map>` for the thought map; Lit's import map in `index.html`. `view/main.mjs` shows the list, or with `?change=C-3` that change's page |
 
 ## The stage
 
@@ -50,9 +51,11 @@ The reader is the core's (`core/records/changes.mjs`: `readChange` gives `though
 
 ## The change page
 
-A change opens from the list at the shell's deep link `/?module=changes&change=C-3`, so the address names it and a reload opens it again. Nothing on it writes: Claude writes the file during the interview, the page shows it. It follows its file live: when the file changes, the page reads it again and what the last write added or changed (a part, a question, a proposed item) is tinted for a few seconds. A read that fails keeps the last good page, with a note.
+A change opens from the list at the shell's deep link `/?module=changes&change=C-3`, so the address names it and a reload opens it again. Nothing on it writes: Claude writes the file during the interview, the page shows it. It follows its file live: when the file changes, the page reads it again and what the last write added or changed (a part, a node of the map, a proposed item) is tinted for a few seconds.
 
-What changed since the last commit is marked durably: new, modified, and removed (struck through, still shown until the next commit). The base is the file at HEAD in git, so nothing is remembered: the marks survive a reload and another machine, and go away on commit (a commit is the live topic `changes.commit`). The commit is heard from `.git/HEAD` and `.git/refs/heads/` under the project folder; in a project that is a subfolder of its repository, or a worktree (where `.git` is a file), the marks follow a commit at the next read instead (a reload, a reconnect, or the next write). Without git, or for a file not committed yet, there are no marks and no error.
+At the top is the workspace (d-map-workspace): the change's thought map on the left, read-only (the core's `<gw-mind-map>`, its root the change's title), and the open questions on the right, computed from the map: the latest on top (the ones new since the last commit first, then from the end of the file), each with its options and Claude's recommendation starred. A click on a question scrolls the map to its node. An older change's `## Kérdések` list shows in the panel too. A change awaiting approval, or one without a map, shows the workspace as one line (thought map · n nodes) that opens on a click. Below stay the description and the proposed items. The panel is a list of questions, each with a list of options, so answering from the page (C-7) can turn the options into buttons in place. A read that fails keeps the last good page, with a note.
+
+What changed since the last commit is marked durably, on the map too (per node): new, modified, and removed (struck through, still shown until the next commit). The base is the file at HEAD in git, so nothing is remembered: the marks survive a reload and another machine, and go away on commit (a commit is the live topic `changes.commit`). The commit is heard from `.git/HEAD` and `.git/refs/heads/` under the project folder; in a project that is a subfolder of its repository, or a worktree (where `.git` is a file), the marks follow a commit at the next read instead (a reload, a reconnect, or the next write). Without git, or for a file not committed yet, there are no marks and no error.
 
 ## Public endpoints
 

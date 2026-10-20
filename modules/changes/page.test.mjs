@@ -142,3 +142,13 @@ test('a base that is no change file (or none) gives no marks', () => {
   assert.equal(baseOf(null), null)
   assert.equal(changePage(shown(), { base: null }).marks, null)
 })
+
+test('a change with a thought map: its nodes in the content, its open questions in the stage, the marks per node', () => {
+  const body = '## Gondolatok\n\n- ? Where?\n  - ~! Here\n- = Settled\n'
+  const shown = { id: 'C-4', n: 4, type: 'C', file: 'docs/product/changes/C-004-map.md', fields: { title: 'Map', status: 'grilling' }, body, history: [], links: [] }
+  const page = changePage(shown, { base: contentOf({ fields: { title: 'Map' }, body: '## Gondolatok\n\n- ? Where?\n- ~ Gone\n' }) })
+  assert.deepEqual(page.content.thoughts.map((t) => [t.key, t.kind, t.parent]), [['where?', 'question', null], ['here', 'option', 'where?'], ['settled', 'decision', null]])
+  assert.deepEqual([page.stage, page.questions], ['grilling', 1])
+  assert.deepEqual(page.marks?.thoughts, { here: 'new', settled: 'new' })
+  assert.deepEqual(page.marks?.removed.thoughts.map((t) => t.key), ['gone'])
+})
