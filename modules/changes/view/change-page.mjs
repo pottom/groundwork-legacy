@@ -25,7 +25,10 @@
 // that instead. A refused approval leaves the change as it was and puts what is wrong next to each
 // row at fault (the server's problems, by item id: row(i) shows problemOf(i.id)); a new version of
 // the change clears them. A row is one <li class="item"> with the item's line, text and note, then
-// its problem, so a later state of a row (waiting for another change, a new target) goes in there. What changed since the last commit is
+// its problem, so a later state of a row (a new target) goes in there. An item that waits for another
+// change to be merged first (d-merge-in-order; page.waits, computed by the server on every read)
+// shows that change, a link to its page, and what of it it needs, and the Approve button gives way
+// to a note while anything waits. What changed since the last commit is
 // marked (page.marks: new, modified; a removed part, map node or item is shown struck through until
 // the next commit), on the map too; what the last write changed flashes (el.flash).
 // The Markdown arrives rendered by the server, raw HTML shown as text (core/records/render.mjs), so
@@ -72,6 +75,11 @@ export class ChangePage extends LitElement {
     if (changed.has('page') && before && (before.id !== this.page?.id || before.version !== this.page?.version) && !this.approval.busy) {
       this.approval = { busy: false, error: null, problems: [] }
     }
+  }
+
+  /** what an item waits for (another change, not merged yet), as the server computed it @param {string} id */
+  waitOf(id) {
+    return this.page?.waits?.find((/** @type {any} */ w) => w.id === id) ?? null
   }
 
   /** @param {string} id */
@@ -233,6 +241,13 @@ export class ChangePage extends LitElement {
     }
     const { busy, error, problems } = this.approval
     const n = problems.length
+    // changes merge in order (d-merge-in-order): while an item waits for another change, no Approve
+    if (p.waits?.length) {
+      const ids = [...new Set(p.waits.map((/** @type {any} */ w) => w.waitsFor))]
+      return html`<div class="approve" data-part="approve">
+        <div class="gw-callout gw-callout--warn" role="status"><div class="gw-callout__body">${ui(ids.length === 1 ? 'approve.waits.one' : 'approve.waits', { ids: ids.join(', ') })}</div></div>
+      </div>`
+    }
     return html`<div class="approve" data-part="approve">
       ${n ? html`<div class="gw-callout gw-callout--bad" role="alert"><div class="gw-callout__body">${ui(n === 1 ? 'approve.failed.one' : 'approve.failed', { n })}</div></div>` : nothing}
       ${error ? html`<div class="gw-callout gw-callout--bad" role="alert"><div class="gw-callout__body">${ui('approve.error', { error })}</div></div>` : nothing}
@@ -248,7 +263,8 @@ export class ChangePage extends LitElement {
     const gone = mark === 'removed'
     const struck = gone ? 'is-gone' : ''
     const problem = gone ? null : this.problemOf(i.id)
-    return html`<li class=${`item ${gone ? 'is-removed' : this.marked('items', i.id)} ${problem ? 'has-problem' : ''}`} data-id=${i.id}>
+    const wait = gone ? null : this.waitOf(i.id)
+    return html`<li class=${`item ${gone ? 'is-removed' : this.marked('items', i.id)} ${problem ? 'has-problem' : wait ? 'is-waiting' : ''}`} data-id=${i.id}>
       <div class=${`item__line ${struck}`}>
         <span class=${`gw-badge gw-badge--${OP_TONE[i.op] ?? 'neutral'}`}>${i.op}</span>
         <span class="gw-tag item__id">${i.id}</span><span class="item__arrow" aria-label=${ui('item.to')}>→</span><span class="gw-tag item__target">${i.target}</span>
@@ -256,6 +272,9 @@ export class ChangePage extends LitElement {
       </div>
       ${i.text ? html`<p class=${`item__text ${struck}`}>${i.text}</p>` : nothing}
       ${i.note ? html`<div class=${`md item__note ${struck}`}>${md(p.html.notes[i.id])}</div>` : nothing}
+      ${wait && !problem ? html`<p class="item__waits"><span class="gw-badge gw-badge--warn">${ui('item.waits')}</span>
+        <gw-record-chip .record=${{ id: wait.waitsFor, name: 'change', module: 'changes', title: wait.title }}></gw-record-chip>
+        <span class="gw-tag">${wait.on}</span></p>` : nothing}
       ${problem ? html`<p class="item__problem" role="alert"><span class="gw-badge gw-badge--bad">${ui('item.problem')}</span> ${problem.message}</p>` : nothing}
     </li>`
   }

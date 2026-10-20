@@ -7,7 +7,9 @@
 //                              Chip: { id, name?, module?, title? } (stages.mjs: changeRow)
 //   GET /api/changes/show?id=C-3   one change's page (page.mjs: changePage): every part of its file,
 //                              rendered, and the marks of what changed since the last commit (the
-//                              file at HEAD, since.mjs; null without git or for an uncommitted file);
+//                              file at HEAD, since.mjs; null without git or for an uncommitted file),
+//                              and `waits`: the items waiting for another change to be merged first
+//                              ([{ id, waitsFor: 'C-1', on, title }], store.waits; d-merge-in-order);
 //                              404 for an id that is no change
 //   POST /api/changes/approve?id=C-3   { base? } (the change's version the page shows) ->
 //                              { id, status, documents, items }: the human approves the change, and
@@ -17,7 +19,8 @@
 //                              404 no change; 409 { error, code, problems? }: still grilling (open
 //                              questions, code 'state'), done or dropped, already merged, no items,
 //                              changed since `base` (code 'stale'), or items at fault (code 'merge',
-//                              problems: [{ id, op, target, code, message }], one per item)
+//                              problems: [{ id, op, target, code, message, waitsFor? }], one per item;
+//                              code 'waiting' with waitsFor: 'C-1' for an item that waits for C-1)
 //
 // Changes are records of the core's record store: the manifest declares the type C (`records`,
 // type.mjs), with its folder docs/product/changes/, and the store writes the files. Approving is the
@@ -69,7 +72,8 @@ export default {
         const id = url.searchParams.get('id') ?? ''
         const shown = /^C-\d+$/.test(id) ? records.show(id) : null
         if (!shown || shown.type !== 'C') return send(res, 404, { error: `no change ${id}` }), true
-        return send(res, 200, changePage(shown, { base: baseOf(committed(root, shown.file)), merged: records.merged(id) ?? false })), true
+        const waits = records.waits(id).map((/** @type {{ id: string, waitsFor: string, on: string }} */ w) => ({ id: w.id, waitsFor: w.waitsFor, on: w.on, title: String(records.get(w.waitsFor)?.fields.title ?? '') }))
+        return send(res, 200, changePage(shown, { base: baseOf(committed(root, shown.file)), merged: records.merged(id) ?? false, waits })), true
       }
       const changes = records.list('C').flatMap((r) => {
         const shown = records.show(r.id)

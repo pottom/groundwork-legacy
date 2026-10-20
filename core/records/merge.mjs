@@ -25,8 +25,19 @@
 //         missing     no change with that id          stale    the change changed since `base`
 //         state       a change done or dropped        merged   already merged
 //         empty       no proposed items               merge    the items at fault: `problems`,
-//                     [{ id, op, target, code, message }], one per proposed item, in the file's
-//                     order (code: target, duplicate, missing, superseded, bad, stale)
+//                     [{ id, op, target, code, message, waitsFor? }], one per proposed item, in the
+//                     file's order (code: waiting, target, duplicate, missing, superseded, bad, stale)
+//       Changes merge in order (d-merge-in-order): an item that waits for another change (below)
+//       is code 'waiting', with `waitsFor: 'C-3'`, and the merge is refused like any other problem.
+//   waitsOf(store, 'C-5') -> [{ id, op, target, waitsFor, on }]
+//       the proposed items that wait for another change, in the file's order: what the item needs
+//       (a change's or supersede's own id; the target, and its document and section or item part,
+//       `records/tech#t-rec-data` needs records/tech and t-rec-data; a new document's part) is not
+//       in the Spec, and another pending change (not done, not dropped; the lowest id when several)
+//       adds it: `on` is that id, `waitsFor` that change. What the Spec holds never waits, even when
+//       a pending change mentions it too; what this change adds itself waits only when the item
+//       adding it waits (for the same change). A merged change brings nothing to wait for: what it
+//       adds is in the Spec. [] for a change that is merged, done, dropped, or no change
 //   isMerged(store, 'C-5') -> boolean | null
 //       computed, never stored: every proposed item is in the Spec with this change in its origin
 //       (a superseded one marked by it; a part, document or section is there); false for a change
@@ -45,11 +56,16 @@ import { DEFAULT_DOC_LANG } from './doc-strings.mjs'
 /** @typedef {import('./types.mjs').Actor} Actor */
 /**
  * What is wrong with one proposed item: the page shows it next to the item's row.
- * @typedef {{ id: string, op: string, target: string, code: string, message: string }} MergeProblem
+ * @typedef {{ id: string, op: string, target: string, code: string, message: string, waitsFor?: string }} MergeProblem
+ */
+/**
+ * A proposed item that waits for another change to be merged first (d-merge-in-order).
+ * @typedef {{ id: string, op: string, target: string, waitsFor: string, on: string }} Wait
  */
 /**
  * What merge needs of the store.
  * @typedef {{
+ *   list: (prefix?: string) => import('./types.mjs').StoredRecord[],
  *   get: (id: string) => import('./types.mjs').StoredRecord | null,
  *   update: (id: string, input: { fields?: Record<string, any> }, opts: { by: Actor, event?: string }) => import('./types.mjs').StoredRecord,
  *   spec: {
@@ -136,6 +152,7 @@ export function mergeChange(store, id, { by = 'claude', base } = {}) {
   if (mergedIn(store.spec, id, items)) throw fail(`${id} is already merged`, 'merged')
 
   const work = workingSpec(store.spec)
+  const waits = new Map(waitsIn(store, id, items, work.locate).map((w) => [w.id, w]))
   /** @type {Set<string>} */
   const touched = new Set()
   let partsTouched = false
@@ -148,6 +165,11 @@ export function mergeChange(store, id, { by = 'claude', base } = {}) {
   for (const it of items) {
     /** @param {string} code @param {string} message */
     const refuse = (code, message) => { problems.push({ id: it.id, op: it.op, target: it.target, code, message }) }
+    const wait = waits.get(it.id)
+    if (wait) {
+      problems.push({ id: it.id, op: it.op, target: it.target, code: 'waiting', message: `${it.id} waits for ${wait.waitsFor}: ${wait.on} is in ${wait.waitsFor}, not merged yet`, waitsFor: wait.waitsFor })
+      continue
+    }
     const text = String(it.text ?? '').trim()
     const at = work.locate(it.id)
 
@@ -271,4 +293,61 @@ export function isMerged(store, id) {
   const rec = /^C-\d+$/.test(String(id)) ? store.get(id) : null
   if (!rec || rec.type !== 'C') return null
   return mergedIn(store.spec, id, readChange(rec.body).items)
+}
+
+// What a proposed item needs before it can go into the Spec, in the order it is checked.
+/** @param {ProposedItem} it @returns {string[]} */
+function needsOf(it) {
+  if (it.target === PARTS_TARGET) return it.op === 'add' ? [] : [it.id]
+  const [docId, anchor] = it.target.split('#')
+  const target = [docId, ...(anchor ? [anchor] : [])]
+  if (it.op === 'add') return target
+  return [it.id, ...target]
+}
+
+/**
+ * @param {Pick<StoreLike, 'list'>} store @param {string} id @param {ProposedItem[]} items
+ * @param {(id: string) => Place | null} locate where an id is in the Spec
+ * @returns {Wait[]}
+ */
+function waitsIn(store, id, items, locate) {
+  /** @type {Map<string, string>} an id another pending change adds -> that change */
+  const others = new Map()
+  for (const c of store.list('C')) {
+    if (c.id === id || CLOSED.includes(String(c.fields.status ?? ''))) continue
+    for (const it of readChange(c.body).items) if (it.op === 'add' && !others.has(it.id)) others.set(it.id, c.id)
+  }
+  /** @type {Map<string, ProposedItem>} */
+  const own = new Map()
+  for (const it of items) if (it.op === 'add' && !own.has(it.id)) own.set(it.id, it)
+  /** @type {Map<ProposedItem, { waitsFor: string, on: string } | null>} */
+  const memo = new Map()
+  /** @param {ProposedItem} it @returns {{ waitsFor: string, on: string } | null} */
+  const waitOf = (it) => {
+    if (memo.has(it)) return memo.get(it) ?? null
+    memo.set(it, null)   // a cycle waits for nothing
+    let found = null
+    for (const need of needsOf(it)) {
+      if (locate(need)) continue
+      const mine = own.get(need)
+      if (mine) { if (mine !== it && (found = waitOf(mine))) break; continue }
+      const by = others.get(need)
+      if (by) { found = { waitsFor: by, on: need }; break }
+    }
+    memo.set(it, found)
+    return found
+  }
+  return items.flatMap((it) => {
+    const w = waitOf(it)
+    return w ? [{ id: it.id, op: it.op, target: it.target, ...w }] : []
+  })
+}
+
+/** @param {StoreLike} store @param {string} id @returns {Wait[]} */
+export function waitsOf(store, id) {
+  const rec = /^C-\d+$/.test(String(id)) ? store.get(id) : null
+  if (!rec || rec.type !== 'C' || CLOSED.includes(String(rec.fields.status ?? ''))) return []
+  const items = readChange(rec.body).items
+  if (!items.length || mergedIn(store.spec, id, items)) return []
+  return waitsIn(store, id, items, workingSpec(store.spec).locate)
 }

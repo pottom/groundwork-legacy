@@ -10,9 +10,12 @@
 //                                  the patient form (English headings, `->`) reads the same
 //   baseOf(text)  -> Content|null  the content of a change file's whole text (front matter and all),
 //                                  or null without one
-//   changePage(shown, { base?, merged? })   the list's row (stages.mjs: changeRow; questions is the
-//                                  number of open ones; merged: store.merged's answer) and { file,
-//                                  version, tickets, history, content, html, marks }: version is the
+//   changePage(shown, { base?, merged?, waits? })   the list's row (stages.mjs: changeRow; questions
+//                                  is the number of open ones; merged: store.merged's answer) and { file,
+//                                  version, tickets, history, content, html, marks, waits }: waits, the
+//                                  items that wait for another change to be merged first
+//                                  (d-merge-in-order; store.waits): [{ id, waitsFor: 'C-3', on, title }],
+//                                  title that change's; version is the
 //                                  file's, which approving sends back as its base
 //                                  shown: the store's show(); base: a Content or null. html holds the
 //                                  rendered Markdown, by key: sections[key], questions[key], notes[id],
@@ -30,6 +33,7 @@ import { flatThoughts } from './thoughts.mjs'
 
 /** @typedef {import('./compare.mjs').Content} Content */
 /** @typedef {import('./compare.mjs').Diff} Diff */
+/** @typedef {{ id: string, waitsFor: string, on: string, title: string }} Wait */
 
 const TEXT_PARTS = /** @type {const} */ (['problem', 'solution', 'scope', 'outOfScope'])
 
@@ -61,9 +65,9 @@ function render(html, sections, questions, items) {
 
 /**
  * @param {import('../../core/records/types.mjs').ShownRecord} shown
- * @param {{ base?: Content | null, merged?: boolean }} [opts]
+ * @param {{ base?: Content | null, merged?: boolean, waits?: Wait[] }} [opts]
  */
-export function changePage(shown, { base = null, merged = false } = {}) {
+export function changePage(shown, { base = null, merged = false, waits = [] } = {}) {
   const content = contentOf(shown)
   const marks = base ? compareChanges(base, content) : null
   const html = { sections: {}, questions: {}, notes: {} }
@@ -78,5 +82,6 @@ export function changePage(shown, { base = null, merged = false } = {}) {
     content,
     html,
     marks,
+    waits,
   }
 }

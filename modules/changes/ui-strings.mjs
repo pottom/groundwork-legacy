@@ -62,6 +62,9 @@ export const UI_STRINGS = {
     'approve.failed': 'Nothing was merged: {n} proposed items cannot go into the Spec. What is wrong is next to each.',
     'approve.failed.one': 'Nothing was merged: 1 proposed item cannot go into the Spec. What is wrong is next to it.',
     'approve.error': 'Could not approve the change: {error}',
+    'item.waits': 'Waits for',
+    'approve.waits': 'Changes merge in order: this one can be approved once {ids} are merged. What waits for which is next to each item.',
+    'approve.waits.one': 'Changes merge in order: this one can be approved once {ids} is merged. What waits for it is next to each item.',
   },
   hu: {
     'list.label': 'Változások szakaszonként',
@@ -123,5 +126,8 @@ export const UI_STRINGS = {
     'approve.failed': 'Semmi nem olvadt be: {n} javasolt elem nem kerülhet a Specbe. A hiba mindegyik mellett ott áll.',
     'approve.failed.one': 'Semmi nem olvadt be: 1 javasolt elem nem kerülhet a Specbe. A hiba mellette áll.',
     'approve.error': 'Nem sikerült jóváhagyni a változást: {error}',
+    'item.waits': 'Erre vár:',
+    'approve.waits': 'A változások sorrendben olvadnak be: ez akkor hagyható jóvá, ha ezek már beolvadtak: {ids}. Hogy melyik elem mire vár, az mellette áll.',
+    'approve.waits.one': 'A változások sorrendben olvadnak be: ez akkor hagyható jóvá, ha a(z) {ids} már beolvadt. Hogy melyik elem vár rá, az mellette áll.',
   },
 }

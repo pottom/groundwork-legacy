@@ -167,3 +167,66 @@ test('Claude (the command line, by default) cannot merge; a module may only when
   assert.throws(() => store.forModule({ id: 'changes', records: changesModule.records, writes: [] }).merge('C-1', { by: 'human' }), { code: 'forbidden' })
   assert.equal(store.forModule(changesModule).merge('C-1', { by: 'human' }).status, 'implementing')
 })
+
+// Changes merge in order (d-merge-in-order): an item whose target another pending change brings
+// waits for that change, and the merge is refused until that one is merged.
+function chained() {
+  const root = project()
+  put(root, 'docs/product/spec/SYSTEM.md', SYSTEM)
+  put(root, 'docs/product/spec/core/TECH.md', CORE_TECH)
+  put(root, 'docs/product/spec/parts.md', PARTS)
+  const store = open(root)
+  // C-1 brings a part, its document and a section, and an item
+  store.create('C', { fields: { title: 'Alap' }, body: ['## Javasolt elemek', '',
+    '- add `records` → `parts` — Rekordtár · software · A rekordok.',
+    '- add `records/tech` → `records` — Rekordtár: Műszaki terv',
+    '- add `t-rec-data` → `records/tech` — Adatok',
+    '- add `d-base` → `system#t-goal` — Alap · döntés · hiányzik', ''].join('\n') })
+  // C-2 builds on it, and on what is in the Spec already
+  store.create('C', { fields: { title: 'Ráépül' }, body: ['## Javasolt elemek', '',
+    '- add `d-fine` → `system#t-goal` — A Specben van a célja · döntés · hiányzik',
+    '- add `d-rec` → `records/tech#t-rec-data` — A C-1 fejezetébe · döntés · hiányzik',
+    '- add `t-more` → `records/tech` — A C-1 dokumentumába',
+    '- add `d-more` → `records/tech#t-more` — A saját fejezetébe, ami a C-1 dokumentumában van · döntés · hiányzik',
+    '- change `d-base` → `system#t-goal` — A C-1 eleme, másképp · döntés · hiányzik',
+    '- add `d-own` → `system#d-fine` — A saját eleme alá · döntés · hiányzik',
+    '- change `d-one` → `system#t-goal` — Ezt a C-1 is említhetné, de a Specben van · döntés · kész', ''].join('\n') })
+  for (const id of ['C-1', 'C-2']) store.update(id, { fields: { status: 'awaiting-approval' } }, { by: 'human' })
+  return { root, store }
+}
+
+test('an item whose target a pending change brings waits for it: the merge is refused, nothing is written', () => {
+  const { root, store } = chained()
+  const waits = store.waits('C-2')
+  assert.deepEqual(waits.map((w) => [w.id, w.waitsFor]), [['d-rec', 'C-1'], ['t-more', 'C-1'], ['d-more', 'C-1'], ['d-base', 'C-1']])
+  assert.deepEqual(waits[0], { id: 'd-rec', op: 'add', target: 'records/tech#t-rec-data', waitsFor: 'C-1', on: 'records/tech' })
+  assert.deepEqual(store.waits('C-1'), [], 'C-1 waits for nothing')
+  const before = snapshot(root)
+  assert.throws(() => store.merge('C-2', { by: 'human' }), (e) => {
+    assert.equal(e.code, 'merge')
+    assert.deepEqual(e.problems.map((p) => [p.id, p.code, p.waitsFor]), [['d-rec', 'waiting', 'C-1'], ['t-more', 'waiting', 'C-1'], ['d-more', 'waiting', 'C-1'], ['d-base', 'waiting', 'C-1']])
+    assert.match(e.problems[0].message, /d-rec waits for C-1: records\/tech is in C-1, not merged yet/)
+    return true
+  })
+  assert.deepEqual(snapshot(root), before, 'nothing written')
+  assert.equal(store.merged('C-2'), false)
+})
+
+test('once the change it waits for is merged, the waiting one merges', () => {
+  const { root, store } = chained()
+  store.merge('C-1', { by: 'human' })
+  assert.deepEqual(store.waits('C-2'), [])
+  assert.equal(store.merge('C-2', { by: 'human' }).status, 'implementing')
+  assert.match(read(root, 'docs/product/spec/records/TECH.md'), /- A C-1 fejezetébe · `d-rec` · döntés · hiányzik · C-2\n/)
+  assert.match(read(root, 'docs/product/spec/SYSTEM.md'), /- A C-1 eleme, másképp · `d-base` · döntés · hiányzik · C-1, C-2\n/)
+  assert.equal(store.merged('C-2'), true)
+})
+
+test('a dropped or done change brings nothing to wait for; a target in a grilling change waits too', () => {
+  const { store } = chained()
+  store.update('C-1', { fields: { status: 'grilling' } }, { by: 'human' })
+  assert.equal(store.waits('C-2').length, 4)
+  store.update('C-1', { fields: { status: 'dropped' } }, { by: 'human' })
+  assert.deepEqual(store.waits('C-2'), [])
+  assert.throws(() => store.merge('C-2', { by: 'human' }), (e) => e.code === 'merge' && e.problems.every((p) => p.code !== 'waiting'))
+})

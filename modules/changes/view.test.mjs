@@ -115,3 +115,11 @@ test('the page\'s one write is the approval: JSON to /api/changes/approve with t
   const fetches = [...viewSource().matchAll(/method: '(\w+)'/g)].map((m) => m[1])
   assert.deepEqual(fetches, ['POST'], 'nothing else on the page writes')
 })
+
+test('an item that waits for another change says which, on load: a link to that change next to its row, and no Approve while anything waits', () => {
+  const src = read('view/change-page.mjs')
+  assert.match(src, /this\.waitOf\(i\.id\)/, 'a row shows what it waits for by its item id (page.waits)')
+  assert.match(src, /<gw-record-chip \.record=\$\{\{ id: wait\.waitsFor, name: 'change', module: 'changes', title: wait\.title \}\}>/, 'the change it waits for is a link to its page')
+  assert.match(src, /p\.waits\?\.length/, 'the Approve bar knows when something waits')
+  for (const k of ['item.waits', 'approve.waits', 'approve.waits.one']) assert.ok(UI_STRINGS.en[k] && UI_STRINGS.hu[k], k)
+})

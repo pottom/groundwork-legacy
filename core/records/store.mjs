@@ -33,6 +33,9 @@
 //                                       error with code 'merge' and `problems`, one per item at fault
 //   store.merged(id)                    whether change C-n is merged, computed from the Spec
 //                                       (merge.mjs); null when there is no such change
+//   store.waits(id)                     the proposed items of change C-n that wait for another
+//                                       pending change to be merged first (d-merge-in-order):
+//                                       [{ id, op, target, waitsFor: 'C-3', on }] (merge.mjs)
 //   store.forModule(manifest)           the store as a module gets it: reads are global, writes
 //                                       only the record types its manifest declares, and the Spec
 //                                       only when its `writes` cover docs/product/spec/ (code
@@ -65,7 +68,7 @@ import { readRecord, writeRecord, fileName, slugOf } from './format.mjs'
 import { renderMarkdown } from './render.mjs'
 import { openSpec } from './spec-store.mjs'
 import { resolver } from './resolve.mjs'
-import { mergeChange, isMerged } from './merge.mjs'
+import { mergeChange, isMerged, waitsOf } from './merge.mjs'
 import { SPEC_DIR } from './spec-format.mjs'
 
 /** @typedef {import('./types.mjs').RecordType} RecordType */
@@ -342,6 +345,8 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     merge: (id, opts) => mergeChange(self, id, opts),
     /** @param {string} id */
     merged: (id) => isMerged(self, id),
+    /** @param {string} id */
+    waits: (id) => waitsOf(self, id),
   }
 
   // What one module gets: every read, and writes of the record types it declares only; the Spec
