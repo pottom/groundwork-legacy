@@ -107,7 +107,7 @@
               {
                 "id": "d-nav-order",
                 "topic": "Fejléc: Ideas → Plan → Build | Sketch · Agents · Present",
-                "note": "Az első három a folyamat, a többi eszköz, elválasztva.",
+                "note": "Az első három a folyamat, a többi eszköz, elválasztva. Az I-5 szerint felváltja: Overview | Ideas → Changes → Spec → Tickets | Sketch · Present.",
                 "metadata": {
                   "status": "decision"
                 }
@@ -184,7 +184,17 @@
                 "topic": "8. Present",
                 "metadata": {
                   "status": "decision"
-                }
+                },
+                "note": "A #40–46 nyitott; az I-5 szerint a C-5 után folytatódik, a rekordtárra írva (d-deliv-present)."
+              },
+              {
+                "id": "r-9",
+                "topic": "9. Újratervezés: rekordmodell és futószalag (I-5)",
+                "note": "Műszaki terv: Rekordtár TECH. M-9 lesz, négy változással: C-2 Rekordtár és Markdown-forrás → C-3 Változások → C-4 Spec munkaterület → C-5 Jegyek és Áttekintés.",
+                "metadata": {
+                  "status": "decision"
+                },
+                "hyperLink": "/?module=ideas&idea=I-5"
               }
             ]
           },
@@ -231,6 +241,419 @@
                 "note": "A Sketch első jegye bizonyítja, hogy megoldható.",
                 "metadata": {
                   "status": "note"
+                }
+              }
+            ]
+          },
+          {
+            "id": "t-pipe",
+            "topic": "Ötlettől a produktumig",
+            "metadata": {
+              "status": "topic",
+              "prose": "A Groundwork egy cső: az egyik végén bejön egy ötlet, a másikon kijön a produktum, legyen az szoftver, rendszerterv vagy szolgáltatás. Segédeszköz a cél eléréséhez: bármikor látszik, mi készül és hol tart, és ebből tervezni és bemutatni is lehet. A csövek egymásba fűződnek: egy alapötletből rendszerterv lesz, a tervből megvalósítás, és mindkettőhöz jöhetnek újabb ötletek.\n\nA korábbi modell gyökérhibája az volt, hogy az ötletnek a terv szerkezetében kellett helyet keresnie, mielőtt kidolgozták volna; sok dokumentumnál ez önkényes helyre vitte (az első PRD-be), és egy nagy térképen a jó helyet keresgélni sem lehetett. Ezért két dolgot külön tartunk nyilván: a **Specet**, ami most igaz, és a **változásokat**, ami most alakul (a kutatás alapján, OpenSpec-mintára).\n\nAz ötletnél az ember csak dönt: elfogadja, elveti, szundiztatja vagy duplikátumnak jelöli, és elfogadáskor utat választ (Grilling vagy Egyenesen jegy). Az elfogadott ötletből azonnal egy változás (C-n) lesz. Az interjú ezt tölti meg: Claude kérdez, a válaszokból javasolt Spec-elemek lesznek, mindegyik mellett egy javasolt célfejezettel. A hely tehát az utolsó lépés, elemenként, egy rövid jóváhagyó listán (Elfogad · Máshová… · Új rész), és ugyanígy működik egy és húsz dokumentummal. Jóváhagyáskor az elemek egyszerre olvadnak be a Specbe, eredetként a változás azonosítójával; a Spec tartalma csak így változik, a megfogalmazása közvetlenül is javítható. A szakaszokat senki nem állítja kézzel: a kapcsolatokból számolódnak, és mindig oda mutatnak, ahol a munka tart.",
+              "progress": "done"
+            },
+            "children": [
+              {
+                "id": "d-pipe",
+                "topic": "A Groundwork egy cső: ötlet be, produktum ki, közben látszik, hol tart",
+                "note": "Segédeszköz a cél eléréséhez: látszik, mi készül és hol tart; tervezni és bemutatni lehet belőle.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-map-is-product",
+                "topic": "Egy projekt egy Spec: a produktum jóváhagyott leírása",
+                "note": "Szoftver, rendszerterv, szolgáltatás vagy bármi más; ami a Specben van, az készül, a megvalósítási állapot mutatja, mennyi épült meg.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-idea-one-decision",
+                "topic": "Az ötletnél az ember csak dönt: elfogadja, elveti, szundiztatja vagy duplikátumnak jelöli",
+                "note": "Azt nem kell eldönteni, hová kerül a Specben.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-stage-derived",
+                "topic": "A szakaszok a kapcsolatokból számolódnak, nem kézzel állítják",
+                "note": "Változás: Grilling (nyitott kérdések) → Jóváhagyásra vár → Megvalósítás (x/n elem kész) → Kész (minden eleme kész). Az ötlet a döntéssel lezárul; a kártyáján a változásai szakasza látszik.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-focus-banner",
+                "topic": "Minden szűrt nézet kiírja, mit rejt, és egy kattintással visszaáll az egészre",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "x-first-prd",
+                "topic": "Az ötlet az első PRD-be kerül",
+                "note": "Több PRD-nél önkényes hely.",
+                "metadata": {
+                  "status": "excluded"
+                }
+              },
+              {
+                "id": "x-per-prd-targets",
+                "topic": "PRD-nkénti célpontok a Kidolgozásra oszlopban",
+                "note": "Az Ideasnak nem kell ismernie a térkép szerkezetét; 20 PRD-nél 20 célpont lenne.",
+                "metadata": {
+                  "status": "excluded"
+                }
+              },
+              {
+                "id": "d-place-on-map",
+                "topic": "A hely az utolsó lépés, elemenként: a rendszer célfejezetet javasol, az ember jóváhagyja",
+                "note": "Jóváhagyó lista: Elfogad · Máshová… (kereshető lista) · Új rész; Claude ugyanezzel dolgozik. Keresgélni a térképen nem kell.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "x-drag-place",
+                "topic": "Az ember a térképen húzza a helyére az ötletet",
+                "note": "Nagy térképen keresgélés; már 285 csomópontnál is használhatatlan.",
+                "metadata": {
+                  "status": "excluded"
+                }
+              },
+              {
+                "id": "q-map-scale",
+                "topic": "A Spec nyitólapja az Összkép, mellette a részek × dokumentumfajták mátrixa; a részletes térkép lencse",
+                "metadata": {
+                  "status": "decision"
+                },
+                "note": "Az Összkép (d-big-picture) mondja meg, mi ez és miből áll; a mátrixból látszik, hány dokumentum van, melyik részhez melyik tartozik, mi hiányzik és melyik részt melyik változás alakítja. Kutatás: a valós mind mapek mediánja 31 csomópont; overview first (Shneiderman), fisheye (Furnas). Keresés mindenhol."
+              },
+              {
+                "id": "d-grilling-always",
+                "topic": "Minden Specet érintő változás interjún (grillingen) megy át",
+                "note": "Döntés a Specbe csak interjúból születik; a mérete a változáshoz igazodik (d-interview-size).",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-idea-dissolves",
+                "topic": "A beolvasztott elem eredete egy mező: change: C-7; az ötleteket a változás tudja",
+                "note": "Későbbi módosításnál az eredet frissül, a régi változás a történetben marad.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-three-loops",
+                "topic": "A lánc: ötlet (Ideas) → változás (Changes) → Spec-elemek (Spec) → jegyek (Tickets)",
+                "note": "Az ötlet a születésétől a döntésig él; onnan a változás viszi tovább. Hivatkozások: a változás az ötleteire, az elem a változására (change: C-n), a jegy a változására és az elemeire (**Change:**, **Spec:**). A megvalósítás közben született új ötlet elölről kezdi.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-idea-summary",
+                "topic": "Az elfogadott ötlet kártyáján kiszámolt összefoglaló: változásai és hol tartanak",
+                "note": "Pl. → C-12 · Megvalósítás, 4 elem a Specben · 2/5 jegy kész, linkekkel; nem kell vezetni.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-board-columns",
+                "topic": "Ideas munkapad: New · Considering · Accepted · Closed (összecsukva, szűrhető)",
+                "note": "Accepted kártyán: → C-12 · Grilling. Döntések csak az embernél: Accept (Grilling / Egyenesen jegy), Reject indoklással, Snooze dátumig (utána vissza New-ba), Duplicate of I-n. 90 napnál régebben Considering-ben álló ötlet régi jelzést kap és figyelmet kér, de magától nem mozdul.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-route-choice",
+                "topic": "Elfogadáskor az ember választ utat: Grilling vagy Egyenesen jegy; a kind csak az alapértéket adja",
+                "note": "A tervbe kerülő ötlethez mindig grilling kell; az egyenesen jegy út minimális változást hoz létre egy jeggyel (d-all-work-is-change).",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "n-research-flow",
+                "topic": "Kutatás: ötlettől a produktumig (Shape Up, Torres, Linear, OpenSpec, Shneiderman…)",
+                "hyperLink": "docs/product/research/idea-to-product-flow.md",
+                "metadata": {
+                  "status": "note"
+                }
+              },
+              {
+                "id": "d-spec-change",
+                "topic": "Két dolgot tartunk nyilván: a Specet (ami most igaz) és a Változásokat (ami most alakul)",
+                "note": "A gyökérhiba az volt, hogy az ötletnek a szerkezetben kellett helyet keresni, mielőtt kidolgozták volna (OpenSpec: specs + changes).",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-change-own-id",
+                "topic": "A változásnak saját azonosítója van (C-n); ötletek és változások hivatkoznak egymásra",
+                "note": "Alapból egy elfogadott ötletből azonnal egy változás lesz; később más ötlet hozzácsatolható, egy nagy változás kettévágható.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "x-inbox-doc",
+                "topic": "Beérkezett tálca a térképen, az ötletre egy céldokumentum, abban Ötletek fejezet",
+                "note": "A hely túl korán és túl durván dőlne el, és minden dokumentumban Ötletek fejezet nőne (kutatás, 3. döntés).",
+                "metadata": {
+                  "status": "excluded"
+                }
+              },
+              {
+                "id": "d-change-without-idea",
+                "topic": "Változás ötlet nélkül is indulhat (grillingből, munka közben)",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-spec-via-change",
+                "topic": "A spec tartalma csak változáson át módosul, a megfogalmazása közvetlenül is",
+                "note": "Ami azt változtatja, mit építünk (elem be, módosul, ki), az változás; elírás, pontosítás, átrendezés közvetlenül. Kézi tartalmi szerkesztésnél a felület felajánlja a változás nyitását.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-merge-on-approval",
+                "topic": "A változás elemei egyszer, az interjú végén, egy jóváhagyó lépésben olvadnak be a Specbe",
+                "note": "A jóváhagyó listán dől el minden elem helye; beolvasztva hiányzik állapottal kerülnek a specbe, utána jönnek a jegyek. A spec a tervezett produktum, a megvalósítási állapot mutatja, mi épült meg (az OpenSpec-kel ellentétben nem a megvalósítás után).",
+                "metadata": {
+                  "status": "decision"
+                }
+              }
+            ]
+          },
+          {
+            "id": "t-records",
+            "topic": "Rekordmodell",
+            "metadata": {
+              "status": "topic",
+              "prose": "A Groundwork rekordtípusokra épül, ahogy egy ServiceNow-szerű rendszer: ötlet (I-n), változás (C-n), mérföldkő (M-n), rész, dokumentum, Spec-elem és jegy, mellettük az eszközök rekordjai (vázlat, agent-futás, diasor). Mindegyiknek van azonosítója, életciklusa, típusos hivatkozásai és története, így a „hol tart?” kérdésre mindig ugyanúgy felelünk. Minden munka változás: az egyenesen jegy út is egy minimális változást hoz létre, és a projekt kezdete is az (új projektnél az első ötletből, meglévő kódnál a Kiinduló állapotból).\n\nA munkaterületek ezek nézetei: **Overview | Ideas → Changes → Spec → Tickets | Sketch · Present**. Az Overview egy futószalag (Ötletek → Grilling → Jóváhagyásra vár → Megvalósítás → Kész), amelyen a változások haladnak; az állomásokra kattintva a munkapadjuk nyílik, a torlódást WIP-limit jelzi. A Spec nem állomás, hanem a tervrajz-tár: az egész és egy szint rész, mindegyiknek a típusa szerinti dokumentumai; nyitólapja egy részek × dokumentumfajták mátrix, a térkép csak lencse. A felülírt Spec-sor felváltva jelet kap, nem tűnik el.\n\nAz interjú (grilling, magyarul Interjú) a Claude Code chatben zajlik, a változás lapja közben élőben töltődik a mezőkkel (cím, honnan, probléma, keret, kihagyjuk, mérföldkő), a nyitott kérdésekkel és a javasolt elemekkel; méretét Claude igazítja a változáshoz, és az ember bármikor lezárhatja. Később a lapról is lehet majd válaszolni. Minden rekord lapján egy kis gráf mutatja a láncát (miből lett, mi lett belőle), mérföldkövenként egy nagyobb is. A jegyen kötelező a változás (**Change:**), és ha Spec-elemet valósít meg, az elemek (**Spec:**).",
+              "progress": "done"
+            },
+            "children": [
+              {
+                "id": "d-record-model",
+                "topic": "A Groundwork rekordtípusokra épül; a modulok ezek nézetei (munkaterületek)",
+                "note": "Mint a ServiceNow-ban (Idea, Demand, Change Request, CMDB); nem a meglévő modulokból indulunk ki.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "g-record-types",
+                "topic": "Rekordtípusok",
+                "metadata": {
+                  "status": "topic"
+                },
+                "children": [
+                  {
+                    "id": "d-rec-idea",
+                    "topic": "Ötlet (I-n): New → Considering → Accepted / Rejected / Snoozed / Duplicate",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-change",
+                    "topic": "Változás (C-n): Grilling → Jóváhagyásra vár → Megvalósítás → Kész / Elvetve",
+                    "metadata": {
+                      "status": "decision"
+                    },
+                    "note": "A grilling magyar felirata: Interjú."
+                  },
+                  {
+                    "id": "d-rec-part",
+                    "topic": "Rész (a mai összetevő): aktív / kivezetett",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-doc",
+                    "topic": "Dokumentum: egy rész (vagy az egész) fejezetekre bontott leírása",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-item",
+                    "topic": "Spec-elem: érvényes / felváltva; megvalósítás: hiányzik → részben → kész",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-ticket",
+                    "topic": "Jegy (#n): nyitott → folyamatban → kész; változásra és elemekre hivatkozik",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-tools",
+                    "topic": "Eszköz-rekordok (vázlat, agent-futás, diasor) bármire hivatkozhatnak",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-milestone",
+                    "topic": "Mérföldkő (M-n): változások csoportja, haladása a változásaiból számolódik",
+                    "note": "Egy változás legfeljebb egy mérföldkőhöz tartozik; a jegyek a változásukon át számítanak. Tervezett → Folyamatban → Kész; átvihető változás, a történetben látszik.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "d-rec-common",
+                "topic": "Minden rekordban közös: azonosító, típus, életciklus-állapot, típusos hivatkozások, történet",
+                "note": "A hol tart? mindig ugyanúgy válaszolható: a rekord állapota és a hivatkozásai.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "q-workspaces",
+                "topic": "Munkaterületek: Overview | Ideas → Changes → Spec → Tickets | Sketch · Present",
+                "metadata": {
+                  "status": "decision"
+                },
+                "note": "Overview: mérföldkövek, futó változások, ami figyelmet kér (ebből a bemutató). Ideas: ötletek, döntés. Changes: grilling, javasolt elemek célhellyel, jóváhagyás. Spec: mátrix, dokumentum-vázlat, térkép-lencse, keresés. Tickets: jegyek, ágak, a rajtuk dolgozó agentek. Magyarul: Áttekintés | Ötletek → Változások → Spec → Jegyek | Vázlat · Prezentáció."
+              },
+              {
+                "id": "p-rec-goal",
+                "topic": "Cél / Kimenet rekordtípus",
+                "metadata": {
+                  "status": "parked"
+                }
+              },
+              {
+                "id": "d-all-work-is-change",
+                "topic": "Minden munka változás: az egyenesen jegy út is minimális változást hoz létre",
+                "note": "Grilling és spec-elem nélkül, csak egy jeggyel; így a mérföldkő, az áttekintés és a hol tart? kivétel nélkül változásokat számol.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-term-spec",
+                "topic": "Egy szó: Spec, a fogalomra és a munkaterületre is",
+                "note": "A produktum jóváhagyott, most érvényes leírása (részek, dokumentumok, elemek); a Product szót nem használjuk rá.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-conveyor",
+                "topic": "Az Overview egy futószalag: Ötletek → Grilling → Jóváhagyásra vár → Megvalósítás → Kész",
+                "note": "A szalagon a változás halad, az ötlet a nyersanyag. Egy állomásra kattintva a munkapadja nyílik (Ideas, Changes, Tickets); a Spec nem állomás, hanem a tervrajz-tár, amelybe a jóváhagyó állomás beolvaszt. Számolt gyári mérőszámok: átfutási idő, torlódás (WIP-limit), túl régóta váró darab.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-spec-structure",
+                "topic": "A Spec: az egész és egy szint rész; mindegyiknek a típusa szerinti dokumentumai",
+                "note": "Sima terméknél nincs rész, csak az egész (PRD, TECH): a mátrix egy sor. Az Új rész a jóváhagyó listán új sort hoz a típusához illő üres dokumentumokkal. Alrészek később, ha kellenek.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "p-subparts",
+                "topic": "Alrészek (rész a részben)",
+                "metadata": {
+                  "status": "parked"
+                }
+              },
+              {
+                "id": "d-start-is-change",
+                "topic": "A kezdet is változás: új projektnél az első ötletből C-1, meglévő kódnál C-1 Kiinduló állapot",
+                "note": "Új projektnél a grilling a szerkezetet (részek, dokumentumok) is javasolja; meglévő kódnál kódból jelölésű elemeket megvalósítási állapottal. Így a Spec minden eleme változásból születik.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-ticket-lines",
+                "topic": "A jegyen kötelező **Change:** C-n, és **Spec:** <elemek>, ha spec-elemet valósít meg",
+                "note": "A régi **PRD:** sort a rendszer a Spec sor régi neveként elfogadja; az **Idea:** sor helyét a Change veszi át (d-ticket-old-lines).",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-lineage-graph",
+                "topic": "Kapcsolati gráf: minden rekord lapján a lánca (miből lett, mi lett belőle), és mérföldkövenként egy gráf",
+                "note": "Pl. I-2 → C-12 → két Spec-sor → #61 kész, #62 agent dolgozik; minden pontja kattintható. Egyetlen nagy, közös gráf nincs: az is olvashatatlan lenne.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-superseded",
+                "topic": "A felülírt vagy kivett Spec-sor felváltva jelet kap (felváltotta: C-n), nem tűnik el",
+                "note": "A dokumentum alapból csak az érvényes sorokat mutatja, kapcsolóval a felváltottakat is; a gráfon is látszik (ADR-elv).",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-interview-size",
+                "topic": "Az interjút Claude méretezi a változáshoz, az ember bármikor lezárhatja (jó így)",
+                "note": "Elején megmondja, kicsi (2–3 kérdés) vagy nagy (több kör); a legfontosabb kérdéssel kezd. Lezáráskor a nyitva maradt kérdések a változáson látszanak.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-interview-chat",
+                "topic": "Az interjú a Claude Code chatben zajlik, a változás lapja élőben töltődik",
+                "note": "Indítás a változás lapjáról (kész prompt) vagy a chatből; Claude kérdésenként javaslatot ad; a lapon a nyitott kérdések és a javasolt elemek célhellyel látszanak.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-interview-browser",
+                "topic": "Később: válasz a változás lapjáról is (Claude javaslatai gombként, vagy saját válasz)",
+                "note": "Meg akarjuk építeni, második lépésként; ehhez Claude-nak figyelnie kell a lapot.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-change-fields",
+                "topic": "A változás mezői: cím, honnan, probléma, keret, kihagyjuk, mérföldkő",
+                "note": "Claude tölti ki az interjúban a válaszokból (a keret = az interjú mérete); a lapon élőben látszik és átírható. A kihagyjuk jóváhagyáskor a Spec nem céljai közé kerül.",
+                "metadata": {
+                  "status": "decision"
+                }
+              },
+              {
+                "id": "d-wip-signal",
+                "topic": "WIP-limit állomásonként, csak jelzés: alapból nincs, túllépéskor torlódást jelez",
+                "note": "Új változás ettől még indítható; az Overview-n figyelmet kér.",
+                "metadata": {
+                  "status": "decision"
                 }
               }
             ]
@@ -386,7 +809,7 @@
                   {
                     "id": "d-module-endpoints",
                     "topic": "A modulok egymás kis, deklarált végpontjait olvassák",
-                    "note": "Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót.",
+                    "note": "Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót. Az I-5 szerint felváltja: a munkaterületek a rekordtáron (/api/records) át látják egymást (d-rec-api-only).",
                     "metadata": {
                       "status": "decision",
                       "impl": "done"
@@ -688,6 +1111,38 @@
                       "status": "decision",
                       "impl": "done"
                     }
+                  },
+                  {
+                    "id": "d-lit",
+                    "topic": "Lit (LitElement) a munkaterületek közös komponenseihez",
+                    "note": "Az I-5-tel: térképszerkesztő, rekordkártya, hivatkozás-chip, jóváhagyó lista mint web-komponens (pl. <gw-record-chip>). Fordítás nélkül fut, vendorolva a core/vendor/ alatt, kb. 15 KB; a mai lit-html sablonok változatlanul futnak benne, az áttérés fokozatos.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-typecheck",
+                    "topic": "JSDoc-típusok és tsc --noEmit ellenőrzés fejlesztési időben",
+                    "note": "A rekordtárban és a modulszerződésben (rekordtípusok, op-ok, manifestek). Csak fejlesztői függőség, a csomagba nem kerül, a kód .mjs marad; az implement skill típusellenőrzése ezt futtatja.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-svelte-react",
+                    "topic": "Svelte vagy React a munkaterületekhez (újragondolva az I-5-nél)",
+                    "note": "Build-lépést és eszközláncot kívánna minden fejlesztőtől és agenttől; a párhuzamos worktree-kben dolgozó agenteknek az azonnali kör többet ér.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "x-server-framework",
+                    "topic": "Szerver-keretrendszer (NestJS, Fastify)",
+                    "note": "A szerver kicsi, zömmel tartománylogika; a HTTP-réteg nem fáj.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
                   }
                 ]
               }
@@ -795,7 +1250,7 @@
                   {
                     "id": "d-trace-how",
                     "topic": "A to-tickets után Claude írja be a PRD-hivatkozást",
-                    "note": "A to-tickets változatlan marad.",
+                    "note": "A to-tickets változatlan marad. Az I-5 szerint a beírt sorok: **Change:** és **Spec:** (d-ticket-write).",
                     "metadata": {
                       "status": "decision"
                     }
@@ -832,6 +1287,43 @@
                     "metadata": {
                       "status": "decision"
                     }
+                  }
+                ]
+              },
+              {
+                "id": "from-ideas",
+                "topic": "Ötletek",
+                "metadata": {
+                  "by": "ideas"
+                },
+                "children": [
+                  {
+                    "id": "1079afb747d1",
+                    "topic": "Sketch browser: list, open and delete sketches",
+                    "hyperLink": "/?module=ideas&idea=I-1",
+                    "metadata": {
+                      "status": "todo",
+                      "by": "ideas"
+                    }
+                  },
+                  {
+                    "id": "0b29ae294444",
+                    "topic": "Sketch read-only mode",
+                    "hyperLink": "/?module=ideas&idea=I-2",
+                    "metadata": {
+                      "status": "todo",
+                      "by": "ideas"
+                    }
+                  },
+                  {
+                    "id": "17338b463049",
+                    "topic": "To develop has a drop target per PRD",
+                    "hyperLink": "/?module=ideas&idea=I-3",
+                    "metadata": {
+                      "status": "excluded",
+                      "by": "ideas"
+                    },
+                    "note": "Felváltja az I-5: az ötletnek nem kell dokumentumot választania."
                   }
                 ]
               }
@@ -1409,7 +1901,8 @@
                     "topic": "A jegyben **Idea:** I-12 sor; a Build hivatkozásként mutatja",
                     "metadata": {
                       "status": "decision"
-                    }
+                    },
+                    "note": "Az I-5 szerint felváltja a **Change:** sor; a régi **Idea:** sort a tár az ötlet változásaként olvassa (d-ticket-old-lines)."
                   }
                 ]
               },
@@ -2349,6 +2842,776 @@
                   {
                     "id": "d-present-writes",
                     "topic": "Csak a docs/product/decks/ alá írhat; a Markdown nyers HTML nélkül jelenik meg",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-records",
+        "topic": "Rekordtár",
+        "note": "Az I-5 műszaki terve: a rekordok tárolása, a munkaterületek és az átállás.",
+        "metadata": {
+          "component": "software",
+          "dir": "records"
+        },
+        "children": [
+          {
+            "id": "doc-records-tech",
+            "topic": "Műszaki terv",
+            "metadata": {
+              "doc": "tech"
+            },
+            "children": [
+              {
+                "id": "t-rec-arch",
+                "topic": "Architektúra és komponensek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Groundwork rekordtípusokra épül (t-records), ezért a rekordokat egyetlen közös tár kezeli a Magban. A tár nem felhasználói funkció, hanem infrastruktúra, mint a szerver vagy az élő frissítés: a modulok a manifestjükben jelentik be, milyen rekordtípust hoznak, a tár pedig olvassa, írja és számozza őket, betartatja a szabályaikat, és a hivatkozásokat mindkét irányban ismeri.\n\nÍgy a „hol tart?” kérdésre minden rekordnál ugyanúgy van válasz: a rekord állapota és a hivatkozásai, egy helyről. A munkaterületek (Áttekintés, Ötletek, Változások, Spec, Jegyek) ennek a tárnak a nézetei; a böngésző a `/api/records` felületen, Claude a `groundwork record` parancson át éri el, a forrás pedig mindig a `docs/product/` alatti Markdown.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-rec-store-core",
+                    "topic": "Közös rekordtár a Magban; a munkaterületek a nézetei",
+                    "note": "A modulok a manifestben jelentik be a rekordtípusaikat (előtag, mappa, életciklus); a tár olvas, ír, számoz és mindkét irányban ismeri a hivatkozásokat. Felülete: /api/records a böngészőnek, groundwork record … Claude-nak. Infrastruktúra, nem felhasználói funkció, így a Mag-elv (d-core-role) marad.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-rec-per-module",
+                    "topic": "Minden munkaterület maga tárolja a rekordjait",
+                    "note": "A hol tart? válaszhoz az egész gráfot minden nézetnek végpontokból kellene összeraknia.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-data",
+                "topic": "Adatok és tárolás",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Minden a projekt `docs/product/` mappájában él, gitben. Az első szint a modellt mutatja: minden rekordtípusnak saját mappája van (`ideas/`, `changes/`, `milestones/`), a Specnek is (`spec/`), az eszköz-rekordok pedig a maguk helyén maradnak (`sketches/`, `decks/`). Így egy rész neve soha nem ütközik rekordmappával.\n\nMinden rekord és minden Spec-dokumentum egyetlen Markdown-fájl, és ez maga a forrás. A szerkezet (fejezetek, elemek, állapot, megvalósítás, eredet, célhely) olvasható jelölésekben van benne, kanonikus formában, amelyet a tár ír és visszaolvas. Ennek oka a vegyes csapat: aki a Groundworkot nem használja (egy csapattárs, egy agent, egy CI-lépés), az a Markdownt látja és azt szerkeszti, és ezzel a forrást szerkeszti, nem egy másolatot. Szétcsúszni így nincs mi. A tár türelmesen olvas: ami nem illik a kanonikus formába, emberi szövegként megmarad, a következő eszközös írás csak a formát igazítja. Gépi JSON csak gyorsítótárként él a `.groundwork/` alatt, gitben nincs.\n\nA skillek (`implement`, `implement-spec`) ugyanezt a Markdownt olvassák. Minden elem mellett ott az azonosítója, hogy egy jegy `**Spec:**` sora egyetlen kereséssel a helyére találjon. Az `implement-spec` „spec”-je pedig nem a teljes Spec, hanem egy változás fájlja, amely a `to-spec` sablon szerkezetével önmagában olvasható specifikáció; a jegyei rá hivatkoznak.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-rec-layout",
+                    "topic": "Rekordtípusonként és a Specnek külön gyökérmappa a docs/product/ alatt",
+                    "note": "ideas/, changes/, milestones/, spec/ (a Spec dokumentumai, pl. spec/core/TECH.md), sketches/, decks/. Rész neve így nem ütközhet rekordmappával; az első szintről látszik a modell.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-rec-layout-old",
+                    "topic": "A generált dokumentumok a mai helyükön, a rekordok egy records/ alá",
+                    "note": "Egy ideas vagy changes nevű rész ütközne; ma emiatt van az ideas/items/.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "x-rec-spec-one",
+                    "topic": "Egy közös Spec-fájl (mint a mindmap.json)",
+                    "note": "300 csomópont fölött nehezen olvasható diff, ágakon mindig ütközik.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-rec-skills-read-md",
+                    "topic": "A skillek (implement, implement-spec) ugyanazt a Markdownt olvassák, ami a forrás",
+                    "note": "Minden elem mellett ott az azonosítója (pl. `d-npm`), így egy **Spec:** sor grep-pel megtalálható.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-change-is-spec",
+                    "topic": "Az implement-spec specje a változás fájlja",
+                    "note": "changes/C-007-….md önmagában olvasható, a to-spec sablon szerkezetével: fejlécben cím, ötletek, mérföldkő; törzsben probléma, megoldás, keret, kihagyjuk, kérdések, a javasolt elemek (op, azonosító, → cél), jegyek. Indítás: /implement-spec docs/product/changes/C-007-….md; a jegyek **Change:** C-7-tel mutatnak rá.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-flat",
+                    "topic": "Az ötlet és a mérföldkő a legegyszerűbb eset: fejléc és leírás",
+                    "note": "Ahogy ma az ötletek.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-derived-not-stored",
+                    "topic": "Ami számolható, az nem kerül a fájlokba: szakasz, haladás, jegylista, gráf, visszafelé hivatkozás",
+                    "note": "A fájlban csak tény áll (döntés, állapot, eredet); a számolt adat a nézetekben és a record show kimenetében. Így az eszköz nélkül dolgozó sem lát elavult számot. A változás .md-je a jegyekre csak keresési szabályt ír: a jegyek: **Change:** C-7.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-md-source",
+                    "topic": "Minden rekord és Spec-dokumentum egyetlen Markdown-fájl, és ez a forrás",
+                    "note": "Egy igazság, egy fájl: aki eszköz nélkül szerkeszt (ember vagy agent), a forrást szerkeszti, a Groundwork utána olvas. A szerkezet olvasható jelölésekben, kanonikus formában (fejezet {#t-…}, elemsor `d-…` · állapot · megvalósítás · C-n, alatta jegyzet és link).",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-tolerant",
+                    "topic": "Türelmes olvasó: ami nem olvasható vissza, emberi szövegként megmarad",
+                    "note": "Az eszközös írás normalizálja a formát, de tartalmat nem dob el; a record check megmutatja a nem kanonikus sorokat.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-cache",
+                    "topic": "JSON csak gyorsítótár és index a .groundwork/ alatt, gitben nincs",
+                    "note": "Bármikor újraépül a Markdownból.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-rec-json-source",
+                    "topic": "JSON-forrás és mellette generált Markdown",
+                    "note": "Két fájl egy igazságra: aki a Groundworkot nem használja (csapattárs, agent), a .md-t írja át, és a JSON csendben elavul; a hash csak jelezni tudja.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "x-rec-ci-forbid",
+                    "topic": "JSON-forrás, a .md kézi szerkesztését a CI tiltja",
+                    "note": "Az eszközt nem használókra kényszerítene egy szabályt, amit nem ismernek.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-rec-spec-per-doc",
+                    "topic": "A Spec dokumentumonként egy fájl: spec/<rész>/<FAJTA>.md, az egészé spec/SYSTEM.md",
+                    "note": "Két ágon csak azonos dokumentum ütközik; a beolvasztás több fájlt ír egy lépésben.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-parts-file",
+                    "topic": "A részek listája: spec/parts.md, soronként egy rész",
+                    "note": "Név, slug, típus, egymondatos leírás, aktív / kivezetett.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-mixed",
+                "topic": "Vegyes csapat: munka a Groundwork nélkül",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A Groundworkos projektben is dolgozhat olyan ember vagy agent, aki az eszközt nem használja. Ő a Markdownt látja: olvassa, szerkeszti, kódot ír, jegyet nyit vagy nem nyit. Mivel a Markdown a forrás, ettől semmi nem csúszik szét, de keletkezhet olyan munka, ami a láncon kívül esik: tartalmi Spec-módosítás változás nélkül, megvalósítás a Spec frissítése nélkül, árva jegy. A fájlokban ezért csak tény áll; ami számolt (szakasz, haladás, jegylista), az a nézetekben él, így elavult számot senki nem lát.\n\nAmikor a Groundwork újra megnyílik, a tár a legutóbb látott commit óta történteket nézi meg. Ha az eszközön kívül változott valami, Claude felzárkózás-változást javasol: egyetlen változást, amely a kívülről jött módosításokat, az eltérő megvalósítási állapotokat és az árva jegyeket rendezi, és amelyet az ember ugyanúgy hagy jóvá, mint bármely más változást. A Spec így a Groundwork nélküli időszak után is csak változáson át módosul, és a történetben látszik, melyik rész volt felzárkózás.\n\nA `groundwork record check` szerver nélkül is fut, így pre-commit hookként vagy CI-lépésként bárki gépén jelezheti a minőségi hibákat, akkor is, ha ő maga a Groundworkot nem használja.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "n-rec-mixed-risks",
+                    "topic": "Kockázatok, ha valaki a Groundwork nélkül dolgozik",
+                    "note": "Kód a Spec frissítése nélkül (hamis megvalósítási állapot); Spec-tartalom változás nélkül (eredet nélküli elem, nyomtalan törlés); jegy **Change:** nélkül; szabad formázás, új fájl, átnevezés; ötlet a láncon kívül.",
+                    "metadata": {
+                      "status": "note"
+                    }
+                  },
+                  {
+                    "id": "d-rec-catch-up",
+                    "topic": "Felzárkózás-változás: ami eszközön kívül történt, változásként jön be, ember hagyja jóvá",
+                    "note": "A tár a docs/product/.groundwork-seen fájlban követi a legutóbb látott commitot. Ha azóta eszköz nélkül változott a docs/product/ vagy a kód, Claude a gitből és a kódból egy javasolt változást ír (C-n Felzárkózás, dátum–dátum): a kívülről jött elemek kódból jelölést kapnak, a törölt elemek felváltás-javaslatot, az eltérő állapotok javítást, az árva jegyek ide kötődnek. Ugyanaz a minta, mint a C-1 Kiinduló állapot.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-rec-catch-up-auto",
+                    "topic": "A kívülről jött módosítások kérdés nélküli besorolása",
+                    "note": "Az emberé a döntés (d-idea-one-decision).",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "x-rec-check-only",
+                    "topic": "Csak a record check jelez, a rendezés kézi",
+                    "note": "A hibák listája megvan, de a Specbe kerülésük útja nincs.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-rec-check",
+                    "topic": "groundwork record check: szerver nélkül is fut, hibánál nem nullával lép ki",
+                    "note": "Ismeretlen id egy jegyen, kettőzött szám, árva hivatkozás, nem kanonikus sor. Az init felajánlja pre-commit hookként vagy CI-lépésként, jóváhagyással.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-ids",
+                "topic": "Azonosítók és hivatkozások",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Az ügy-rekordok (ötlet, változás, mérföldkő) folyamatos sorszámot kapnak az előtagjukkal, és egy szám soha nem használódik újra. A fájlnév a számot és egy olvasható slugot visel, de az azonosító a fejlécben is ott van, így egy átnevezés semmit nem tör el.\n\nA Spec azonosítói olvashatók: a rész a slugja, a dokumentum a rész és a fajta, az elem a mai `d-…`, `f-…` alakú id. Az elem azonosítója már a javasolt változásban megszületik, így a jegyek a beolvadás előtt is hivatkozhatnak rá, és mivel a felváltott elem megmarad, egy id soha nem jelent mást, mint amit egyszer jelentett.\n\nMinden hivatkozás egyszer van leírva: azon a rekordon, amelyik később született, a forrása felé (a változás az ötleteire, az elem a változására, a jegy a változására és az elemeire). A másik irányt a tár indexe számolja, így eszköz nélküli szerkesztés után sincs mit összehangolni. A rekord típusát az azonosító alakja adja.\n\nKét ágon születhet azonos szám. Ezt a `record check` jelzi, a `record renumber` pedig kézi indításra javítja, a hivatkozásokkal együtt; a GitHubon élő jegyekhez csak listát ad, mert azokat nem írja.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-rec-ids-case",
+                    "topic": "I-n, C-n, M-n: folyamatos, soha újra nem használt sorszám",
+                    "note": "Fájlnévben háromjegyű kitöltéssel és sluggal (C-007-sketch-bongeszo.md), hivatkozásban kitöltés nélkül (C-7). Az azonosító a fejlécben is áll, így az átnevezés nem változtatja.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-ids-spec",
+                    "topic": "Spec: rész = slug (core), dokumentum = rész/fajta (core/tech, az egészé system), elem = olvasható id",
+                    "note": "Az elem-id (d-…, f-…, t-…) az egész Specben egyedi és újra nem használható, mert a felváltott elem megmarad. A javasolt elem már a változásban megkapja, így a jegy beolvadás előtt is hivatkozhat rá.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-renumber",
+                    "topic": "Ütközés két ágon: a record check jelzi, a record renumber javítja, kézi indításra",
+                    "note": "Az újabb kap új számot; a rá mutató hivatkozások a docs/product/ alatt és a helyi jegyekben átíródnak, a GitHub-jegyek átírandó sorait kilistázza.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-links-once",
+                    "topic": "Minden hivatkozás egyszer áll: a később született rekordon, a forrása felé",
+                    "note": "Változás fejlécében ideas: I-5, milestone: M-2; Spec-elemsoron C-7 (felváltásnál felváltotta: C-9); jegyen **Change:** és **Spec:**; vázlat és diasor a saját helyén; ötleten duplicate: I-3. A típust az id alakja adja (I-, C-, M-, #, Spec-id, vázlatnév).",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-links-reverse",
+                    "topic": "A visszafelé irányt a tár indexe számolja, sehová nem írja",
+                    "note": "Mi lett az ötletből, a változás elemei, mely jegyek dolgoznak egy elemen. Az ötlet links: mezője csak szabad lásd még hivatkozás marad.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-rec-links-both",
+                    "topic": "Kétirányú tárolás",
+                    "note": "Elcsúszik, főleg eszköz nélküli szerkesztésnél.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-history",
+                "topic": "Történet",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Minden ügy-rekord (ötlet, változás, mérföldkő) maga mondja el a saját életét: a fájl végén egy Történet lista áll, amelyhez a tár minden életciklus- és hivatkozásváltáskor egy sort ír. Ez a git nélkül is olvasható, és nem tűnik el, ha a commitokat összevonják; a részletes szöveges diff ettől még a gitben marad.\n\nA Spec-elemnek nincs külön listája: az elemsoron áll az eredete, az őt később érintő változások és, ha felváltották, a felváltó változás. A Spec teljes története így a változások sora, mert minden változás fájlja a beolvasztás után is megtartja, mit javasolt és hová került. Ha valaki eszköz nélkül vált állapotot, a felzárkózás veszi észre, és javasol hozzá történetsort.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-rec-history-section",
+                    "topic": "Az ügy-rekord fájljának végén ## Történet lista, a tár írja hozzá",
+                    "note": "Minden életciklus- és hivatkozásváltáskor egy sor: dátum · ki · mi történt (pl. 2026-10-22 · human · jóváhagyva, beolvasztva (4 elem)). Eszköz és git nélkül is olvasható, és a squash-commit sem viszi el.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-history-item",
+                    "topic": "A Spec-elem története az elemsoron: eredet, érintő változások, felváltotta",
+                    "note": "Pl. C-7, C-12 · felváltotta: C-15. A Spec teljes története a változások sora: a változás fájlja a beolvasztás után is megtartja, mit javasolt és hová került.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-history-outside",
+                    "topic": "Eszköz nélküli állapotváltás: a felzárkózás javasol hozzá történetsort",
+                    "note": "Kívülről, commit abc123.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-rec-history-git",
+                    "topic": "Történet csak a gitből",
+                    "note": "Életciklus-eseményt nem mond, squash után elvész; a részletes diff ettől még a gitben marad.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "x-rec-history-log",
+                    "topic": "Központi eseménynapló a docs/product/ alatt",
+                    "note": "Ágakon állandóan ütközne.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-workspaces",
+                "topic": "Munkaterületek és a mai modulok",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A munkaterületek a rekordtár nézetei, és nem a mai modulhatárokat követik. A Plan eredetileg arra készült, hogy egy ködös ötletből Claude-dal közösen gondolatokat építsünk; ennek a helye most a változás, mert ott formálódik az, ami még nem igaz. Ezért a gondolattérkép a változás saját felülete: a gyökere az ötlet, az ágain gondolatok, kérdések, lehetőségek és döntések nőnek, és ami beérik, abból javasolt elem lesz célhellyel. A térkép így kicsi marad, mert egy változásé.\n\nA nagy képet a Spec adja, de nem a teljes, részletes térképpel. A Spec nyitólapja az Összkép: a produktum célja, a részei egy-egy mondattal, részenként néhány fő képesség és a rajtuk dolgozó változások, legfeljebb 30–40 csomóponton. A rész leírása és a fő jelölés is Spec-tartalom, ezért változáson át frissül, és Claude a jóváhagyáskor javasolja. A mátrix a második fül, a részletes térkép egy kattintásra nyílik. Az Összkép kipróbálásra készül: használat közben derül ki, elég-e.\n\nA Plan modul megszűnik: a térképszerkesztő közös komponens lesz (a Változások szerkesztve, a Spec olvasva használja), a dokumentumgenerálás pedig a Rekordtár kanonikus Markdown író-olvasója. A Build és az Agents egyetlen Jegyek munkaterület lesz, mert az agent mindig jegyen és ágon dolgozik; a Build áttekintője az Áttekintésbe, a dokumentumnézete a Specbe költözik. Az Ötletek modul az új állapotokkal él tovább, és az elfogadás egy lépésben változást nyit. A Vázlat és a Prezentáció eszköz marad.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "n-plan-purpose",
+                    "topic": "A Plan eredeti célja: ködös ötletből Claude-dal közösen gondolatokat építeni",
+                    "metadata": {
+                      "status": "note"
+                    }
+                  },
+                  {
+                    "id": "d-map-in-change",
+                    "topic": "A gondolattérkép a változás saját felülete",
+                    "note": "Gyökere a ködös ötlet; ágain gondolatok, kérdések, lehetőségek, döntések. Ember és Claude együtt építi. A beérett ágakból (döntés, megkötés, kihagyjuk) javasolt elem lesz célhely-javaslattal; a többi a változásban marad. Forrása a változás .md-jének Gondolatok vázlata. Kicsi marad, mert egy változásé.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-map-tool",
+                    "topic": "A térkép önálló eszköz, mint a Vázlat",
+                    "note": "A gondolkodás a változásban történik; külön eszközként csak hivatkozás lenne rá.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "x-map-one-big",
+                    "topic": "Marad a mai Plan: egy nagy térkép a Spec fölött mint szerkesztőfelület",
+                    "note": "300 elem fölött nem gondolkodási felület (q-map-scale).",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-big-picture",
+                    "topic": "Összkép: legfeljebb 30–40 csomópont, négy szinten",
+                    "note": "Gyökér (név, cél egy mondatban) → részek (egy mondat, állapotjel) → részenként legfeljebb 5–7 fő képesség (az elem fő jelölése) → a változások jelvényként azon, amit alakítanak (C-7 · Interjú). Kattintásra a részletes Spec-térkép nyílik. Kipróbálásra elfogadva: meglátjuk, mennyire működik.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-big-picture-sync",
+                    "topic": "A rész leírása és a fő jelölés Spec-tartalom: változáson át módosul, Claude javasolja jóváhagyáskor",
+                    "note": "Így az összkép nem kézzel karbantartott rajz, és nem avul el csendben.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-big-picture-full",
+                    "topic": "A nagy kép a teljes, részletes Spec-térkép",
+                    "note": "Túl részletes, nem érthető; a részletes térkép marad, de a részre kattintva nyílik.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "x-big-picture-free",
+                    "topic": "Claude szabadon írja meg az összképet",
+                    "note": "Nem determinisztikus, csendben elavul.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-spec-home",
+                    "topic": "A Spec nyitólapja az Összkép; a mátrix a második fül",
+                    "note": "Aki a Specet megnyitja, előbb azt lássa, mi ez és miből áll; a mátrix a dokumentumokról szól (mi van, mi hiányzik, milyen állapotban). A q-map-scale pontosítása.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-big-picture-overview",
+                    "topic": "Az Összkép az Áttekintésen",
+                    "note": "Az Áttekintés a mi történik most kérdésre felel, az Összkép a mi ez kérdésre: az a Spec dolga.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-plan-dissolves",
+                    "topic": "A Plan modul megszűnik, a kódja három helyre kerül",
+                    "note": "A térképszerkesztő (Mind Elixir, op-alapú szerkesztés, emberi szerkesztések összefésülése, az ember bekezdéseinek védelme) közös komponens: a Változások szerkesztve (gondolattérkép), a Spec olvasva (Összkép, részletes térkép) használja. A documents.mjs és a doc-strings.mjs a Rekordtárba, a kanonikus Markdown író-olvasóként. A groundwork-prd-maker skill a változás térképét és javasolt elemeit tölti a groundwork record-on át.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-plan-stays",
+                    "topic": "A Plan modulként megmarad, a többiek a végpontjain kérik a térképet",
+                    "note": "A hiánya két munkaterületet törne el; a térkép nézet, nem hely.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-tickets-merge",
+                    "topic": "Build + Agents = Jegyek munkaterület, két kódterülettel",
+                    "note": "A Buildből: jegyolvasó (.scratch, GitHub), függések, ellenőrzések, ágak gráfja, aktivitás. Az Agentsből: hook, eseménynapló, idővonal, záró jelentés, worktree-k, figyelmet kér. A jegyen a változása, a Spec-elemei és a dolgozó agent; külön fül az Agenteknek és a Worktree-knek. Az Agents fejlécfüle megszűnik, a figyelmet kérő szám a Jegyek fülére kerül.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-build-views-move",
+                    "topic": "A Build áttekintője az Áttekintésbe, a Dokumentumok nézete (specek, ADR-ek, fogalomtár) a Specbe költözik",
+                    "note": "Az ADR-ek és a fogalomtár az egészhez tartozó dokumentumként látszanak a Specben.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-agents-own",
+                    "topic": "Az Agents külön modul és fül marad",
+                    "note": "Az agent mindig jegyen és ágon dolgozik; a hol tart ez a jegy? egy helyen válaszolható.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-ideas-new",
+                    "topic": "Ötletek: új mappa, új állapotok, az elfogadás változást nyit",
+                    "note": "docs/product/ideas/ (az items/ alól). Állapotok: new · considering · accepted · rejected · snoozed (until:) · duplicate (duplicate: I-3); a to-develop accepted lesz. Csak az ember fogad el, a böngészőben; Claude továbbra is csak new és considering között mozgat. Interjú út: a tár egy lépésben létrehozza a C-n-t (ideas: I-n), elfogadottra állítja az ötletet, mindkettő történetébe ír, és megnyitja a változás lapját kész prompttal. Egyenesen jegy út: minimális változás, a lap a jegyíráshoz ad promptot (**Change:** C-n).",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ideas-removed",
+                    "topic": "Megszűnik: /api/plan/todo, a from-ideas fejezet, az elvetett ötlet Nem cél-be vitele",
+                    "note": "Ha egy elvetett ötletből nem cél lesz, az egy változás kihagyjuk tétele. Marad: hatás–ráfordítás mátrix, hasonló ötletek, 90 napos régi jelzés, groundwork ideas.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-new-modules",
+                    "topic": "Új modul: Áttekintés és Változások; marad: Ötletek, Vázlat, Prezentáció",
+                    "note": "Áttekintés: futószalag, mérföldkövek, figyelmet kér (a Build áttekintőjéből). Változások: a változás lapja, gondolattérkép, javasolt elemek célhellyel, jóváhagyó lista. Spec: a Plan helyén. Jegyek: Build + Agents.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-int",
+                "topic": "Integrációk és interfészek",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A modulszerződés marad: a modul egy mappa leíróval, nézettel, végpontokkal, írási joggal és skillekkel. Két új mezőt kap: a `records` bejelenti a modul rekordtípusait (előtag, mappa, életciklus és a rájuk vonatkozó szabályok), a `workspace` a modul helyét a fejlécben. A tár a Magé, a típus ismerete a modulé: az Ötletek modul mondja meg, mely állapotok között mozgathat Claude, a tár pedig minden írásnál betartatja.\n\nA munkaterületek egymás adatait csak a rekordtáron át látják. A mai modulközi végpontok megszűnnek; aki egy rekordot, a hivatkozásait vagy a számolt szakaszát keresi, a `/api/records`-ot kérdezi. A jegy is rekord, de a forrása a jegykezelő marad: a Jegyek modul adja be a tárnak a jegyolvasót, a tár pedig csak olvas.\n\nHa egy típus modulja hiányzik, a rá mutató hivatkozás sima azonosítóként látszik, és semmi nem törik el.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-rec-manifest",
+                    "topic": "Két új manifest-mező: records (bejelentett típusok) és workspace (a fejlécbeli hely)",
+                    "note": "records: előtag, mappa, életciklus és szabályok (pl. Claude csak new ↔ considering között mozgat ötletet); a tár minden írásnál betartatja. A típus ismerete a modulé, a tár a Magé. Sorrend: Áttekintés | Ötletek → Változások → Spec → Jegyek | Vázlat · Prezentáció.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-api-only",
+                    "topic": "A munkaterületek egymás adatait csak a /api/records-on át látják",
+                    "note": "Rekord, hivatkozások, számolt szakasz. Megszűnik: plan/ids, build/prd, build/ideas, plan/todo, agents/tickets.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-ticket-source",
+                    "topic": "A jegy rekord a tárban, de a forrása a jegykezelő marad",
+                    "note": "A jegyolvasót (.scratch, GitHub) a Jegyek modul adja be a tárnak; a tár csak olvassa.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-missing-module",
+                    "topic": "Hiányzó modul: a típusára mutató hivatkozás sima azonosítóként látszik",
+                    "note": "Link és számolás nélkül; semmi nem törik el. A d-module-endpoints helyett ez a működjön a másik nélkül szabály.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-rec-endpoints-stay",
+                    "topic": "Maradnak a modulközi végpontok, a tár csak az ügy-rekordokat kezeli",
+                    "note": "A végpontok egyenkénti karbantartása nem skálázódott.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-ticket-write",
+                    "topic": "Jegysorok írása: a to-tickets változatlan, utána Claude írja be a **Change:** és **Spec:** sort",
+                    "note": "A **Spec:** a mai **PRD:** szabályával olvasódik (-, nincs, none = nem valósít meg Spec-elemet).",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ticket-old-lines",
+                    "topic": "Régi sorok: **PRD:** = **Spec:**, **Idea:** I-n = az ötlet változása; a tár soha nem írja át őket",
+                    "note": "Ha az ötletnek több változása van, a Checks választást kér. Sor nélküli, C-1 előtti jegy C-1 (d-migrate-old-tickets).",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ticket-scratch-slug",
+                    "topic": "Helyi jegyek: .scratch/<a változás fájlneve>/issues/",
+                    "note": "Pl. .scratch/C-007-sketch-bongeszo/issues/; az igazság ettől még a **Change:** sor.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-ticket-checks",
+                    "topic": "Checks: no-change, unknown-change, unknown-spec hiba; spec-not-in-change figyelmeztetés; a no-prd megszűnik",
+                    "note": "A spec-not-in-change csak figyelmeztet: egy jegy jogosan érinthet régebbi elemet, amit tiszteletben kell tartania.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-migrate",
+                "topic": "Átállás a régi térképről",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Aki a régi, egyetlen térképes Groundworkról áll át, egy paranccsal teszi: a `groundwork migrate` a régi térképből a Spec dokumentumait írja, és minden elemet a C-1 Kiinduló állapot változáshoz köt, a mai megvalósítási állapottal. A fajták megmaradnak; ami eldöntetlen volt, az nem kerülhet a Specbe, ezért nyitott kérdésként egy külön változásba megy, ami pedig egy ötletre mutatott, az az ötlet rekordjában él tovább. Az ütemterv-fejezet döntéseiből mérföldkövek lesznek, a régi jegyek pedig átírás nélkül a C-1-hez tartoznak.\n\nA parancs kiválasztott ágakat külön, jóváhagyásra váró változásba is tehet. Ebben a projektben ez választja szét a két korszakot: a C-1 az I-5 előtti, nagyrészt megépült Groundwork, a C-2 az újratervezés mai döntései, amelyek egy jóváhagyással, még megvalósítatlanul olvadnak be. Az újratervezés jegyei így már a C-2-re hivatkoznak, és az új modell első változása saját maga.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-migrate-cmd",
+                    "topic": "groundwork migrate: bármely régi mindmap.json-ból C-1 Kiinduló állapot",
+                    "note": "Projektfüggetlen: minden régi csomópont a Spec-be kerül, eredete C-1, a megvalósítási állapot a mai impl szerint; a C-1 beolvasztva, a történetében az átállás sora.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-migrate-split",
+                    "topic": "Kiválasztott ágak külön, jóváhagyásra váró változásba is mehetnek",
+                    "note": "Pl. --split t-pipe,t-records,c-records --as \"Újratervezés: rekordmodell és futószalag\" --idea I-5: ezek javasolt elemek lesznek a mai helyükkel mint célhellyel, és egy jóváhagyással olvadnak be, hiányzik állapottal.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-migrate-here",
+                    "topic": "Ebben a projektben: C-1 Kiinduló állapot (I-5 előtt) és az újratervezés változásai (ideas: I-5)",
+                    "note": "Az I-5 döntései (t-pipe, t-records, c-records, a Mag stackjének d-lit és d-typecheck döntése és elvetett párjaik) a C-2…C-5 változásokba kerülnek a szállítás sorrendje szerint (d-deliv-split); az újratervezés jegyei ezekre hivatkoznak. Az új modell első változásai saját maguk.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-migrate-all-c1",
+                    "topic": "Minden a C-1-be",
+                    "note": "A kiinduló állapot jelentése hamis lenne, az újratervezés munkája nem látszana változásként.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  },
+                  {
+                    "id": "d-migrate-kinds",
+                    "topic": "Fajták átállása: a döntés, jegyzet, kizárt, félretett Spec-elem lesz C-1 eredettel",
+                    "note": "A topic csoport marad. Az inferred Spec-elem kódból, megerősítésre vár jelöléssel, a Spec listázza. Az ötletre mutató todo elmarad (az ötlet a saját rekordjában él); minden más todo nyitott kérdés egy külön C-n Nyitott kérdések az átállásból változásban, mert a Specben nem lehet eldöntetlen. A from-ideas fejezetek megszűnnek. Emberi bekezdés, jegyzet, link, fejezetszöveg, progress változatlanul átjön.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-migrate-roadmap",
+                    "topic": "Az ütemterv-fejezet döntéseiből mérföldkövek lesznek; a fejezet megszűnik",
+                    "note": "Projektfüggetlenül: a system dokumentum ütemterv-fejezetének (a fajta kezdő fejezete, vagy --roadmap <id>) döntés-elemei M-n mérföldkövek, sorrendben; a félretett elemek Spec-elemek maradnak. Az állapotot (Tervezett, Folyamatban, Kész) Claude javasolja a jegyekből, az ember hagyja jóvá. Itt: M-1…M-7 Kész, M-8 Present Folyamatban (#40–46 nyitott), M-9 Újratervezés a C-2-vel; a p-export Spec-elem marad.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-migrate-old-tickets",
+                    "topic": "Change nélküli, PRD soros, a C-1 előtt született jegy a C-1-hez tartozik",
+                    "note": "A tár szabálya, a jegyeket nem írjuk át (itt 46 GitHub-issue).",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "x-roadmap-stays",
+                    "topic": "Az ütemterv Spec-fejezet marad, mérföldkövek csak az új munkától",
+                    "note": "Egy dolog két helyen lenne.",
+                    "metadata": {
+                      "status": "excluded"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-delivery",
+                "topic": "Szállítás sorrendje",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "Az újratervezés négy egymásra épülő változásban érkezik, egy közös mérföldkő alatt, és mindegyik után használható a Groundwork. Először a rekordtár és a Markdown-forrás készül el az átállással együtt, mert ez a legkockázatosabb, és mert minden más erre épül; ekkor a régi felület még az új adatokon fut. Utána a Változások munkaterület hozza el a fő hurkot (ötlet, interjú, jóváhagyás, Spec), így a további két változás már a saját futószalagján megy végig. Harmadikként a Spec munkaterület érkezik az Összképpel, végül a Jegyek és az Áttekintés.\n\nA Present addig vár: az élő blokkjai a megszűnő végpontokra épülnének, ezért a C-5 után, a rekordtárra írva folytatódik.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-deliv-split",
+                    "topic": "Az újratervezés négy változás egy mérföldkő (M-9 Újratervezés) alatt",
+                    "note": "Az implement-spec egy változást visz végig egy integrációs ágon; egy óriás változás óriás ág lenne. Mindegyik után használható a Groundwork. A szétválasztást a migrate --split előtt Claude javasolja, az ember hagyja jóvá.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-deliv-c2",
+                    "topic": "1. C-2 Rekordtár és Markdown-forrás",
+                    "note": "Rekordtár a Magban, kanonikus Markdown író-olvasó, index, record check / renumber, migrate (C-1, a további változások, M-1…M-9); az Ötletek a tárra költöznek; a Plan térképe ideiglenesen a tárból olvas és ír. Elöl, mert ez a legkockázatosabb (türelmes olvasó, átállás).",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-deliv-c3",
+                    "topic": "2. C-3 Változások",
+                    "note": "A változás lapja, gondolattérkép a változásban, javasolt elemek célhellyel, jóváhagyó lista és beolvasztás, az új prd-maker skill, elfogadáskor változás az ötletből. Utána a fő hurok működik, és a C-4, C-5 már ezen az úton jöhet.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-deliv-c4",
+                    "topic": "3. C-4 Spec munkaterület",
+                    "note": "Összkép, mátrix, dokumentum-vázlat, részletes térkép lencseként, Lit-komponensek; a Plan modul megszűnik.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-deliv-c5",
+                    "topic": "4. C-5 Jegyek és Áttekintés",
+                    "note": "Build + Agents = Jegyek, új jegysorok és Checks, futószalag, mérföldkövek, új fejléc, felzárkózás-változás.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-deliv-present",
+                    "topic": "A Present (M-8) a C-5 után folytatódik, a rekordtárra írva",
+                    "note": "Az élő blokkjai a Build mai végpontjaiból olvasnának, amelyek a C-5-ben megszűnnek; a #40–46 addig vár.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-sec",
+                "topic": "Biztonság",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A rekordtár a meglévő biztonsági szabályokat viszi tovább: csak a projekt `docs/product/` és `.groundwork/` mappájába írhat, a jegykezelőt (helyi fájlok, GitHub) csak olvassa, és a rekordok Markdownját nyers HTML nélkül jeleníti meg, mert azt eszköz nélkül bárki szerkesztheti.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-rec-sec-writes",
+                    "topic": "A tár csak a docs/product/ és a .groundwork/ alá ír; a jegykezelőt csak olvassa",
+                    "note": "A d-sec-write és a modulonkénti writes szerint.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-sec-html",
+                    "topic": "A rekordok Markdownja nyers HTML nélkül jelenik meg",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "t-rec-test",
+                "topic": "Tesztelés és minőség",
+                "metadata": {
+                  "status": "topic",
+                  "prose": "A legkockázatosabb rész a Markdown mint forrás, ezért a C-2 négy tesztréteggel bizonyít, `node --test`-tel. Az oda-vissza tesztek azt mutatják meg, hogy amit a tár ír, azt pontosan visszaolvassa, és a második írás már nem változtat. A türelmes olvasás tesztjei valódi, kézzel vagy agenttel elrontott fájlokon ellenőrzik, hogy tartalom nem vész el, és a hiba látszik. Az átállást ezen a repón próbáljuk ki, a teljes mai térképpel és a régi jegyekkel; végül egy forgatókönyv-teszt a vegyes csapatot játssza el, eszköz nélküli szerkesztéstől a felzárkózásig. Mellette a típusellenőrzés (d-typecheck) a rekordtípusokat és op-okat fogja.",
+                  "progress": "done"
+                },
+                "children": [
+                  {
+                    "id": "d-rec-test-roundtrip",
+                    "topic": "Oda-vissza: olvas(ír(x)) = x és ír(olvas(ír(x))) = ír(x), bájtra",
+                    "note": "Minden rekordtípusra és Spec-dokumentumra, véletlen generált rekordokon is.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-test-tolerant",
+                    "topic": "Türelmes olvasás: valódi, kézzel elrontott fájlok gyűjteménye",
+                    "note": "Törölt jelölés, átírt elemsor, szabad bekezdés, git-ütközés jelei, agent által frissített megvalósítás: tartalom nem vész el, a record check pontosan jelez.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-test-migrate",
+                    "topic": "Átállás ezen a repón: a mai térkép minden adata megvan, a régi jegyek PRD sora ugyanoda talál",
+                    "note": "390 csomópont: id, jegyzet, link, emberi bekezdés, impl; 46 GitHub-jegy.",
+                    "metadata": {
+                      "status": "decision"
+                    }
+                  },
+                  {
+                    "id": "d-rec-test-mixed",
+                    "topic": "Vegyes csapat forgatókönyv: eszköz nélküli szerkesztés után a felzárkózás pontosan azt javasolja, ami történt",
                     "metadata": {
                       "status": "decision"
                     }

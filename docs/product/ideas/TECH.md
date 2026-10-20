@@ -2,7 +2,7 @@
 
 # Groundwork — Ötletek modul: Műszaki terv
 
-_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
+_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md), [Rekordtár: Műszaki terv](../records/TECH.md)._
 
 > Állapot: 4 kész, 0 folyamatban, 0 érintetlen fejezet.
 
@@ -25,7 +25,7 @@ Minden ötlet egy saját Markdown-fájl a docs/product/ideas/items/ alatt: a fej
 A termékötletből a Plan saját, kis végpontja készít todo csomópontot, a térképet tehát továbbra is csak a Plan írja; a csomópont hivatkozik az ötletre, az ötlet a csomópontra. A mérnöki ötletből Claude készít jegyet, amelynek első sorai között szerepel az **Idea:** I-12 hivatkozás, a Build pedig ezt linkként mutatja.
 
 - A Plan egy kis végponton vesz fel todo csomópontot (POST /api/plan/todo) — A d-module-endpoints szerint; a térképet továbbra is csak a Plan írja.
-- A jegyben **Idea:** I-12 sor; a Build hivatkozásként mutatja
+- A jegyben **Idea:** I-12 sor; a Build hivatkozásként mutatja — Az I-5 szerint felváltja a **Change:** sor; a régi **Idea:** sort a tár az ötlet változásaként olvassa (d-ticket-old-lines).
 
 ## 4. Biztonság
 

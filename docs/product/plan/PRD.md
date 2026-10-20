@@ -2,9 +2,9 @@
 
 # Groundwork — Plan modul: Termék
 
-_Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
+_Termékkövetelmény-dokumentum (PRD). A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Mag: Műszaki terv](../core/TECH.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md), [Rekordtár: Műszaki terv](../records/TECH.md)._
 
-> Állapot: 2 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 6 kész, 3 részben, 0 hiányzik.
+> Állapot: 2 kész, 1 folyamatban, 0 érintetlen fejezet. Megvalósítás: 6 kész, 3 részben, 0 hiányzik.
 
 ## 1. Hatókör és fő funkciók
 
@@ -20,7 +20,7 @@ A Plan modul a prd-maker prototípusból születik. Egy grilling-interjú közbe
 - groundwork-prd-maker skill + hook `részben` — A hook élesben még nem futott. ([.claude/skills/groundwork-prd-maker/SKILL.md](../../../.claude/skills/groundwork-prd-maker/SKILL.md))
 - Dokumentumok a beszélgetés nyelvén `részben` — Magyar és angol szövegkészlet van; más nyelvű beszélgetésnél a dokumentumok angolul készülnek. ([modules/plan/doc-strings.mjs](../../../modules/plan/doc-strings.mjs))
 - Döntésenként látszik, hány jegy lett és mennyi kész `kész` ([modules/build/project-tickets.mjs](../../../modules/build/project-tickets.mjs))
-- A to-tickets után Claude írja be a PRD-hivatkozást — A to-tickets változatlan marad.
+- A to-tickets után Claude írja be a PRD-hivatkozást — A to-tickets változatlan marad. Az I-5 szerint a beírt sorok: **Change:** és **Spec:** (d-ticket-write).
 - A térkép van elöl; üres térképnél indítókártya `kész`
 
 ## 2. Felhasználók és használati esetek
@@ -29,6 +29,16 @@ A Plan felhasználója a Claude Code-ot használó fejlesztő, aki egyedül vagy
 
 - Claude Code-ot használó fejlesztő, egyedül vagy kis csapatban
 
+## 3. Ötletek
+
+_Még nem beszéltük át._
+
 ## Nem célok
 
 - Saját jegykészítő skill _(Hatókör és fő funkciók)_
+- To develop has a drop target per PRD — Felváltja az I-5: az ötletnek nem kell dokumentumot választania. ([/?module=ideas&idea=I-3](/?module=ideas&idea=I-3)) _(Ötletek)_
+
+## Nyitott kérdések
+
+- Sketch browser: list, open and delete sketches ([/?module=ideas&idea=I-1](/?module=ideas&idea=I-1)) _(Ötletek)_
+- Sketch read-only mode ([/?module=ideas&idea=I-2](/?module=ideas&idea=I-2)) _(Ötletek)_

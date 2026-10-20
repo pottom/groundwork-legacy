@@ -2,7 +2,7 @@
 
 # Groundwork — Mag: Műszaki terv
 
-_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md)._
+_Műszaki terv. A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek. Kapcsolódó: [Áttekintés](../SYSTEM.md), [Plan modul: Termék](../plan/PRD.md), [Plan modul: Műszaki terv](../plan/TECH.md), [Build modul: Termék](../build/PRD.md), [Build modul: Műszaki terv](../build/TECH.md), [Ötletek modul: Termék](../ideas/PRD.md), [Ötletek modul: Műszaki terv](../ideas/TECH.md), [Sketch modul: Termék](../sketch/PRD.md), [Sketch modul: Műszaki terv](../sketch/TECH.md), [Agents modul: Termék](../agents/PRD.md), [Agents modul: Műszaki terv](../agents/TECH.md), [Present modul: Termék](../present/PRD.md), [Present modul: Műszaki terv](../present/TECH.md), [Rekordtár: Műszaki terv](../records/TECH.md)._
 
 > Állapot: 7 kész, 0 folyamatban, 0 érintetlen fejezet. Megvalósítás: 21 kész, 1 részben, 0 hiányzik.
 
@@ -31,7 +31,7 @@ Az első verzióban minden modul a csomagon belül él, de a szerződés úgy k�
   - Nézet a közös keretben `kész` — A nézetet a Mag szolgálja ki a /<module>/ alatt, a közös keretben (fejléc, navigáció). ([core/shell/shell.mjs](../../../core/shell/shell.mjs))
   - Opcionális skillek és hookok (az init telepíti)
   - Mappák, ahová írhat (a Mag ellenőrzi) `kész` ([core/files.mjs](../../../core/files.mjs))
-- A modulok egymás kis, deklarált végpontjait olvassák `kész` — Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót. ([modules/README.md](../../../modules/README.md))
+- A modulok egymás kis, deklarált végpontjait olvassák `kész` — Pl. plan/ids és build/prd; egy modulnak akkor is működnie kell, ha a másik hiányzik. A core nem kap felhasználói funkciót. Az I-5 szerint felváltja: a munkaterületek a rekordtáron (/api/records) át látják egymást (d-rec-api-only). ([modules/README.md](../../../modules/README.md))
 
 ## 3. Közös keret (fejléc, navigáció, téma)
 
@@ -88,6 +88,8 @@ A felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a cs
 - Modulonként több kisebb fájl, nem egy óriásfájl `kész` — A Plan oldala a modules/plan/view/, a Buildé a modules/build/page/ alatti kis ES-modulokból áll; build-lépés nincs, a böngésző a szerverről tölti be őket. A közös téma is több fájl: a theme.css a tokeneket tartja és importálja a komponenseket.
 - Deklaratív nézetek lit-html-lel, a csomagba téve `kész` — lit-html 3.2.1, kb. 7 KB, a core/vendor/ alatt; fordítási lépés nélkül fut, offline is. ([core/vendor/lit-html/lit-html.js](../../../core/vendor/lit-html/lit-html.js))
 - Közös dizájnrendszer a theme.css-ben (.gw-* komponensek) `kész` ([core/shell/theme.css](../../../core/shell/theme.css))
+- Lit (LitElement) a munkaterületek közös komponenseihez — Az I-5-tel: térképszerkesztő, rekordkártya, hivatkozás-chip, jóváhagyó lista mint web-komponens (pl. <gw-record-chip>). Fordítás nélkül fut, vendorolva a core/vendor/ alatt, kb. 15 KB; a mai lit-html sablonok változatlanul futnak benne, az áttérés fokozatos.
+- JSDoc-típusok és tsc --noEmit ellenőrzés fejlesztési időben — A rekordtárban és a modulszerződésben (rekordtípusok, op-ok, manifestek). Csak fejlesztői függőség, a csomagba nem kerül, a kód .mjs marad; az implement skill típusellenőrzése ezt futtatja.
 
 ## Elvetett megoldások
 
@@ -98,6 +100,8 @@ A felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a cs
 - Saját token- vagy jelszókezelés (bekérés, tárolás) _(Biztonság)_
 - Keretrendszer (React, Svelte, …) _(Technológiai stack)_
 - Fordítási lépés _(Technológiai stack)_
+- Svelte vagy React a munkaterületekhez (újragondolva az I-5-nél) — Build-lépést és eszközláncot kívánna minden fejlesztőtől és agenttől; a párhuzamos worktree-kben dolgozó agenteknek az azonnali kör többet ér. _(Technológiai stack)_
+- Szerver-keretrendszer (NestJS, Fastify) — A szerver kicsi, zömmel tartománylogika; a HTTP-réteg nem fáj. _(Technológiai stack)_
 
 ## Későbbre halasztva
 
