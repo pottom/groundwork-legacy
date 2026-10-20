@@ -135,9 +135,15 @@ Editing offline; done when an edit made offline reaches the server after reconne
 
 Offline sign-in.
 
-## Kérdések
+## Gondolatok
 
-- Does a sync conflict ask the user, or does the newer edit win?
+- Edits made on the train must not be lost
+- ? Does a sync conflict ask the user, or does the newer edit win?
+  Two devices can edit the same note offline.
+  - ~! The newer edit wins, the older stays in the history
+  - ~ The user picks one
+- = Edits wait in a queue until the network is back → `d-offline-queue`
+  - x Editing without a queue, straight against the server
 
 ## Javasolt elemek
 
@@ -158,20 +164,37 @@ A jegyek a `**Change:** C-7` sorukkal hivatkoznak erre a változásra.
 
 What goes where, as the interview moves:
 
-- **Questions** (`## Kérdések`): one list line per open question, written as it comes up, removed once the answer settles it; a question the human ticks (`- [x]`) is settled too. What the answer settled goes into the items and the text, so the list holds only what is still open.
+- **The thought map** (`## Gondolatok`): the change's train of thought, a nested list. Its root is not written: it is the change's title. Indentation (two spaces a level) gives the branches; the sign at the start of a line gives the node's kind, the same in every document language:
+
+  | Sign | Kind |
+  |---|---|
+  | `?` | question: an open question |
+  | `~` | option: a possible answer, a child of its question |
+  | `~!` | the option you recommend (one per question) |
+  | `=` | decision |
+  | `!` | constraint |
+  | `x` | out of scope, or an alternative left aside |
+  | (none) | a plain thought |
+
+  A node's note is the lines indented under it, before its children (never start a note line with `- `: it would read as a child). A node may end in `` → `<id>` ``, the proposed item it became.
+  - **A question** goes onto the map where it belongs in the train of thought: under the thought or decision it comes from, or at the top for a new branch. Its options are its `~` children, the one you recommend `~!`. Write it when you ask it, in the same turn. The open questions of the change are exactly the map's `?` nodes; the page lists them beside the map, with their options.
+  - **When the human answers**, the question node itself becomes the answer: rewrite its line as what was settled, with `=` (a decision), `!` (a constraint) or `x` (out of scope). If the question itself matters, keep it in the answer's note. Its options go: a serious alternative left aside stays as an `x` child (it becomes a rejected alternative in the Spec); a filler option is removed. The map shows the state now, not the history: what an answer changed shows on the page as the marks since the last commit.
+  - **A settled node that matures into a Spec item** gets its proposed item in the list below, and the node links to it: `` - = Edits wait in a queue → `d-offline-queue` ``. Not every node becomes an item: plain thoughts and small steps stay on the map.
+  - Keep the map small and loose: it is one change's thinking, not the Spec. Thoughts the human says in passing go on as plain nodes where they belong.
+  - An older change may still have a `## Kérdések` list. Do not write to it; when you work on such a change, move its open questions onto the map as `?` nodes and remove the list.
 - **Proposed items** (`## Javasolt elemek`): one line per Spec item the answers settle, `` - <op> `<id>` → `<target>` — <text> ``, its note in the lines under it, indented two spaces.
   - `op`: `add` a new id; `change` an id the Spec has, with its new wording; `supersede` an id the Spec has, replaced by this change.
   - `target`, where the item goes: `parts` for a part, the part's id for a document, the document's id for a section (`app/prd`), and `<document>#<section or parent item>` for an item (`app/prd#t-app-offline`). An item may target an item or section this same change proposes.
   - `text`: an item's topic, then its status and implementation after ` · ` in the document language, as the Spec writes them (`· döntés · hiányzik`, `· decision · missing`); a part, a document or a section has only its name, and a section's prose is its note.
   - Ids and labels follow the rules of "The map is meeting notes"; `{{groundwork}} plan show` gives the Spec's ids and the targets to pick from. Rewrite or remove an item line freely: the list reads as the change's current proposal, not as history.
 - **Problem, solution, scope, out of scope** (`## Probléma`, `## Megoldás`, `## Keret`, `## Kihagyjuk`): rewritten as they sharpen, as the change reads **now**, in the language of the conversation. The scope ends in what done means.
-- **Front matter and history**: leave `id`, `title`, `ideas`, `milestone` and `status` as they are unless the human changes them: the interview's stage is computed from the questions.
+- **Front matter and history**: leave `id`, `title`, `ideas`, `milestone` and `status` as they are unless the human changes them: the interview's stage is computed from the map's open questions.
 
-After every write, run `{{groundwork}} record check` and fix what it reports in the change's file before you ask on: a target that is not in the Spec, a `change` or `supersede` of an id that is not there, a line not in the canonical form. Done when it prints `no errors`; a finding in another file is the human's, so name it to them instead.
+After every write, run `{{groundwork}} record check` and fix what it reports in the change's file before you ask on: a target that is not in the Spec, a `change` or `supersede` of an id that is not there, a line not in the canonical form; on the map, an unknown sign, a `→` to an id the change does not propose, a line not in the map's canonical form. Done when it prints `no errors`; a finding in another file is the human's, so name it to them instead.
 
 **The close.** The interview closes when its frontier is empty or when the human closes it. Then:
 
-1. `## Kérdések` holds no open question, so the change's stage is Awaiting approval (`awaiting-approval`), computed from the empty list. When the human closes it with questions still open, they stay on the list, and the change stays in Grilling.
+1. The map holds no `?` node, so the change's stage is Awaiting approval (`awaiting-approval`), computed from the map. When the human closes it with questions still open, they stay on the map, and the change stays in Grilling.
 2. Append a history line: `- <today> · claude · grilled: <what was settled, in a few words>`.
 3. Tell the human the change awaits their approval; the Spec takes its items when they approve and merge it.
 
@@ -189,11 +212,11 @@ After every write, run `{{groundwork}} record check` and fix what it reports in 
    - the features, with their implementation state;
    - the inconsistencies between docs and code.
 
-   Write the result into the change as proposed items with the status `inferred` (in the document language, as the Spec writes it), their `impl` and their evidence links in the note. Write the inconsistencies as questions. The first grilling round then confirms the inferred items, document by document; only after that move on to what is missing.
+   Write the result into the change as proposed items with the status `inferred` (in the document language, as the Spec writes it), their `impl` and their evidence links in the note. Write the inconsistencies as `?` nodes on the change's map. The first grilling round then confirms the inferred items, document by document; only after that move on to what is missing.
 3. **What are we building?** The first real question decides the structure: a software product, a system, a service, or a mix, and which parts it consists of. From the answer, propose the components, their documents and the documents' sections as proposed items (targets `parts`, the part, the document). Ask the human to confirm or change them, in chat or in the change's file.
 4. **Steer by the documents.** The grilling frontier must cover every section of every document the change touches. Prefer questions that fill untouched or thin sections.
-5. **Each round.** Ask the round in chat, and write its questions into the change. When the answers arrive, in the same turn and before the next round:
-   1. Remove the questions they settled, and add or rewrite the proposed items.
+5. **Each round.** Ask the round in chat, and write its questions onto the change's map, each with its options and your recommendation. When the answers arrive, in the same turn and before the next round:
+   1. Turn each answered question into its answer (`=`, `!` or `x`), keep the serious alternatives as `x` children and remove the filler options; add or rewrite the proposed items, and link the nodes that became items.
    2. Rewrite the prose (the note of a proposed section) of every section the answers touched, and the change's problem, solution and scope. Write it as it reads **now**: complete, polished text, not a log of the conversation. The prose gives the context, the reasoning and the scenarios. The list under it holds the atomic decisions, so do not repeat them one by one. Use Markdown, in the language of the conversation, typically one to three short paragraphs.
    3. Run the check, as after every write.
 6. **ADRs and glossary (grill-with-docs).** domain-modeling writes ADRs to `docs/adr/` and terms to `GLOSSARY.md`. groundwork-prd-maker does not write them itself. When an ADR appears, propose it in the change for the Decision log section, and give its path in the note of the matching decision. The glossary is shown automatically in the PRD and the overview.
@@ -206,7 +229,7 @@ After every write, run `{{groundwork}} record check` and fix what it reports in 
 The `to-tickets` skill turns the PRD into tickets; use it as it is. Every ticket it creates then gets a **PRD reference**: the ids of the map items it came from, so Build can link the ticket to Plan and Plan can count the tickets per item. In the same turn as `to-tickets`:
 
 1. Run `show` for the map's ids.
-2. For each new ticket, pick the items it builds or must respect: features, decisions, notes, `excluded` items. A ticket that matches no item is a gap in the PRD: propose the item in the ticket's change first (and its question, when the human has not settled it), then name it. An item the change proposes is named too: `{{groundwork}} record show <id>` finds it.
+2. For each new ticket, pick the items it builds or must respect: features, decisions, notes, `excluded` items. A ticket that matches no item is a gap in the PRD: propose the item in the ticket's change first (and its `?` node on the map, when the human has not settled it), then name it. An item the change proposes is named too: `{{groundwork}} record show <id>` finds it.
 3. Add the line, written exactly so:
 
    ```
@@ -228,4 +251,4 @@ The prompt hook and `show` both report what the human changed in the browser. Ac
   - Status changed: treat it as the human's statement. `inferred` set to `decision` means confirmed.
 - **The human's paragraphs** (shown as "the human's own PRD paragraphs"): never edit or repeat them. Adapt your prose so it neither contradicts nor duplicates them. If one conflicts with a later answer, ask about it in the next round instead of overriding it.
 - **The human took over your text** (your `prose` was removed and reappears among their paragraphs): do not recreate it. Write only what is still missing from the section, or nothing.
-- **The human's edits of the change's file** are theirs as well: read the file again before each write, and keep what they wrote. A question they removed is settled or dropped; an item they rewrote keeps their wording.
+- **The human's edits of the change's file** are theirs as well: read the file again before each write, and keep what they wrote. A question they removed is settled or dropped; a node they rewrote or moved on the map keeps their wording and place; an item they rewrote keeps their wording.
