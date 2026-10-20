@@ -1,8 +1,12 @@
 // The Plan module as the core server loads it: manifest, view and endpoints.
 //
-//   GET /api/plan/map[?v=<version>]  the map, or { same: true } when the browser already has that version
-//   PUT /api/plan/map                { base, data }: a browser save made on version `base`, merged;
-//                                    409 with the current map when `base` is unknown (nothing saved)
+//   GET /api/plan/map[?v=<version>]  { v, data, readOnly? }: the map (the Spec under docs/product/spec/,
+//                                    or read-only an old docs/product/mindmap.json not migrated yet),
+//                                    or { same: true } when the browser already has that version
+//   PUT /api/plan/map                { base, data }: a browser save made on version `base`, merged into the
+//                                    Spec's Markdown -> { v, data, changed, errors };
+//                                    409 with the current map when `base` is unknown (nothing saved),
+//                                    409 { readOnly, error, v, data } on an old map (nothing saved)
 //   GET /api/plan/ids[?v=<version>]  { v, ids }: the ids of the map's nodes, or { v, same: true } as above;
 //                                    what Build checks the tickets' PRD lines against, without the map
 //   GET /api/plan/glossary           { text } of the project's GLOSSARY.md
@@ -12,23 +16,27 @@
 //                                    415 not sent as application/json
 //                                    (so no other web site can post one)
 //
-// Live updates (core/events.mjs): the map file changing is the topic "plan.map", the glossary
-// "plan.glossary"; the page then asks /api/plan/map again (the documents follow the map).
+// Live updates (core/events.mjs): a Spec file (or the old map file) changing is the topic "plan.map",
+// the glossary "plan.glossary"; the page then asks /api/plan/map again. The Spec files are the
+// documents: a hand edit of one shows on the open map.
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { send, readJson, isJson } from '../../core/http.mjs'
-import { openMap, nodeIds } from './map-store.mjs'
+import { openMap, nodeIds, MIGRATE_HINT } from './map-store.mjs'
 import { addIdea } from './todo.mjs'
 import { VERSION } from '../../core/version.mjs'
+import { SPEC_DIR } from '../../core/records/spec-format.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
+const NO_MAP = (root) => `no Spec (docs/product/spec/) in ${root}`
+const isSpecFile = (p) => p.startsWith(`${SPEC_DIR}/`) && p.endsWith('.md')
 
 // A GET of the map, or of what is made from it: 404 without a map; { v, same: true } when the
 // browser already has version ?v=; else answer({ v, data }). The version and the answer come from
 // one read of the file, so they always belong together.
 function sendFromMap(store, root, res, url, answer) {
-  if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` })
+  if (!store.exists()) return send(res, 404, { error: NO_MAP(root) })
   const map = store.read()
   if (url.searchParams.get('v') === map.v) return send(res, 200, { v: map.v, same: true })
   send(res, 200, answer(map))
@@ -48,7 +56,7 @@ export default {
     'view/chrome.mjs', 'view/toolbar.mjs', 'view/legend.mjs', 'view/dock.mjs', 'view/document.mjs', 'view/editor.mjs',
     'node-types.mjs', 'documents.mjs','ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs', 'view-rules.mjs', 'markdown.mjs',
   ] },
-  // The folders Plan may write to: the map and its documents, and its local state.
+  // The folders Plan may write to: the Spec (docs/product/spec/, its documents are the map), and its local state.
   writes: ['docs/product', '.groundwork/plan'],
   // What another module may use (modules/README.md): the map's ids, for Build's PRD checks; and the
   // one write another module may ask for, an idea as a node, for Ideas.
@@ -62,9 +70,10 @@ export default {
     skills: [path.join(HERE, 'skills', 'groundwork-prd-maker')],
     hooks: [{ event: 'UserPromptSubmit', run: 'plan hook' }],   // installed as `<RUNNER> plan hook`
   },
-  watch: (p) => (p === 'docs/product/mindmap.json' ? 'plan.map' : p === 'GLOSSARY.md' ? 'plan.glossary' : null),
-  api({ root, files }) {
-    const store = openMap(root, files)
+  watch: (p) => (isSpecFile(p) || p === 'docs/product/mindmap.json' ? 'plan.map' : p === 'GLOSSARY.md' ? 'plan.glossary' : null),
+  // records: the core's record store; the map reads and writes its Spec (store.spec).
+  api({ root, files, records }) {
+    const store = openMap(root, files, { spec: records?.spec })
     return async (req, res, sub, url) => {
       if (sub === '/glossary' && req.method === 'GET') return send(res, 200, { text: store.glossary() }), true
       if (sub === '/ids' && req.method === 'GET') return sendFromMap(store, root, res, url, ({ v, data }) => ({ v, ids: nodeIds(data) })), true
@@ -72,7 +81,8 @@ export default {
         if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' }), true
         // Only a JSON request: another web site cannot send one here without the browser asking first.
         if (!isJson(req)) return send(res, 415, { error: 'send JSON' }), true
-        if (!store.exists()) return send(res, 404, { error: `no mindmap.json in ${root}` }), true
+        if (!store.exists()) return send(res, 404, { error: NO_MAP(root) }), true
+        if (store.source() === 'mindmap') return send(res, 409, { error: MIGRATE_HINT }), true
         try {
           send(res, 200, addIdea(store, await readJson(req)))
         } catch (e) {
@@ -86,7 +96,7 @@ export default {
         try {
           const { base, data } = await readJson(req)
           const saved = store.saveFromBrowser(base, data)
-          send(res, saved.stale ? 409 : 200, saved)
+          send(res, saved.stale || saved.readOnly ? 409 : 200, saved)
         } catch (e) {
           send(res, 400, { error: e.message })
         }
