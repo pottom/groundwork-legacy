@@ -177,3 +177,32 @@ test('a record read and written again is the same file, byte for byte, for ideas
     assert.equal(fs.readFileSync(path.join(root, idea.file), 'utf8'), text, idea.id)
   }
 })
+
+test('each change that names an idea comes with what became of it, computed on each read: its stage, merged, its items in the Spec', async () => {
+  const { default: changesModule } = await import('../changes/module.mjs')
+  const root = project()
+  const put = (rel, text) => { fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); fs.writeFileSync(path.join(root, rel), text) }
+  put('docs/product/spec/SYSTEM.md', '# Groundwork\n\n_Rendszer-áttekintés_\n\n## Cél {#t-goal}\n\n- Egy szerver · `d-one` · döntés · kész · C-1\n')
+  const records = openRecords(root, [ideasModule, changesModule])
+  const ideas = openIdeas(records)
+  ideas.add({ title: 'Quick tabs' })
+  // C-1 names the idea: one of its two items is in the Spec already; its map has an open question
+  records.create('C', { fields: { title: 'Tabs', ideas: ['I-1'] }, body: [
+    '## Gondolatok', '', '- ? Which keys?', '',
+    '## Javasolt elemek', '',
+    '- add `d-one` → `system#t-goal` — Egy szerver · döntés · kész',
+    '- add `d-tabs` → `system#t-goal` — Tabs · döntés · hiányzik', '',
+  ].join('\n') })
+  records.update('C-1', { fields: { status: 'awaiting-approval' } }, HUMAN)
+  const [idea] = ideas.list()
+  assert.deepEqual(idea.changes, [{ id: 'C-1', title: 'Tabs', status: 'awaiting-approval', stage: 'grilling', merged: false, items: 2, inSpec: 1 }],
+    'the stage the Changes page shows (an open question: Grilling), not the stored status')
+
+  // answered, and without the item the Spec has already, it merges
+  const body = records.get('C-1').body.replace('- ? Which keys?', '- = Ctrl+1..9').replace(/^- add `d-one`.*\n/m, '')
+  records.update('C-1', { body }, HUMAN)
+  assert.deepEqual(ideas.list()[0].changes.map((c) => [c.stage, c.merged, c.items, c.inSpec]), [['awaiting-approval', false, 1, 0]])
+  records.merge('C-1', { by: 'human' })
+  assert.deepEqual(ideas.list()[0].changes, [{ id: 'C-1', title: 'Tabs', status: 'implementing', stage: 'implementing', merged: true, items: 1, inSpec: 1 }])
+  assert.deepEqual(ideas.update('I-1', { title: 'Quick tab switching' }, HUMAN).changes, ideas.list()[0].changes, 'a save answers the same')
+})

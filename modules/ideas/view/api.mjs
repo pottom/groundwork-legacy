@@ -13,6 +13,9 @@
 //   ideaTickets()               { 'I-12': [{ label, title, status, closed, url? }] }: the tickets naming
 //                               each idea, from Build's public GET /api/build/ideas; {} without Build
 //                               or without an answer (nothing to show, no error)
+//   changeTickets()             { 'C-6': { total, done } }: the tickets naming each change on their
+//                               "**Change:**" line, done out of all, from Build's public
+//                               GET /api/build/changes; {} without Build or without an answer
 
 export async function listIdeas() {
   const res = await fetch('/api/ideas/list', { cache: 'no-store' })
@@ -58,6 +61,15 @@ export async function acceptIdea(idea, route) {
     return { ok: true, idea: body.idea, change: body.change }
   } catch (e) {
     return { error: e.message }
+  }
+}
+
+export async function changeTickets() {
+  try {
+    const res = await fetch('/api/build/changes', { cache: 'no-store' })
+    return res.ok ? ((await res.json()).items ?? {}) : {}
+  } catch {
+    return {}
   }
 }
 

@@ -20,7 +20,7 @@ A ticket may also name the sketches it goes with, on a line of its own: `**Sketc
 
 Plan shows, on each map item, how many tickets name it and how many of them are done; it gets the counts from `/api/build/prd`, which reads the tickets on the server with the same `ticket-reader.mjs` (`project-tickets.mjs`). Clicking the count opens Build with only that item's tickets, closed ones too (`/?module=build&prd=<id>`; the filter shows above the list and can be cleared).
 
-A ticket made from an idea of the Ideas module names it the same way: `**Idea:** I-12` (several separated by commas; `I-012` reads as `I-12`). Build shows the ideas on the ticket and in its details as links that open Ideas on that idea (`/?module=ideas&idea=I-12`). The reader keeps them as `ticket.ideas` and lists the tickets per idea in `model.byIdea`; `/api/build/ideas` gives Ideas each idea's tickets with their number and state, so the idea's card shows them.
+A ticket made from an idea of the Ideas module names it the same way: `**Idea:** I-12` (several separated by commas; `I-012` reads as `I-12`). Build shows the ideas on the ticket and in its details as links that open Ideas on that idea (`/?module=ideas&idea=I-12`). The reader keeps them as `ticket.ideas` and lists the tickets per idea in `model.byIdea`; `/api/build/ideas` gives Ideas each idea's tickets with their number and state, so the idea's card shows them. A ticket that implements a change names it on a `**Change:** C-6` line; the reader keeps it as `ticket.changes` (`model.byChange`), and `/api/build/changes` gives Ideas each change's tickets done out of all (a dropped one does not count), for the summary on an accepted idea's card.
 
 ## The page
 
@@ -57,7 +57,7 @@ On the core server the page follows the core's live updates through `subscribe` 
 | `ui-strings.mjs` | the UI strings (`BUILD_STRINGS`), English and Hungarian; no markup, code in backticks |
 | `module.mjs` | the manifest and the read-only endpoints under `/api/build/` |
 | `project-reader.mjs` | reads the project: the Markdown files inside the root, and the git history |
-| `project-tickets.mjs` | the tickets read on the server with `ticket-reader.mjs`: per PRD item how many name it and how many are done (for Plan), per idea the tickets naming it (for Ideas) |
+| `project-tickets.mjs` | the tickets read on the server with `ticket-reader.mjs`: per PRD item how many name it and how many are done (for Plan), per idea the tickets naming it and per change how many are done (for Ideas) |
 | `github-source.mjs` | fetches the GitHub issues on the server (with their dependency links), in the shape the ticket reader takes |
 
 ## Run
@@ -75,6 +75,7 @@ npx @pottom/groundwork                          # in the project folder; then Bu
 | `GET /api/build/issues?known=F` | the GitHub issues of the `origin` repository, or `{ available: false, reason }` |
 | `GET /api/build/prd` | `{ items: { <id>: { total, done, tickets } } }`: per PRD item, the tickets naming it (a dropped one, wontfix or legacy, does not count; done, resolved and closed are done) |
 | `GET /api/build/ideas` | `{ items: { 'I-12': [{ path, label, title, status, closed, url? }] } }`: per idea, the tickets naming it on their `**Idea:**` line (dropped ones too) |
+| `GET /api/build/changes` | `{ items: { 'C-6': { total, done } } }`: per change, the tickets naming it on their `**Change:**` line, done out of all (a dropped one does not count) |
 
 ### Public endpoints
 
@@ -84,6 +85,7 @@ Other modules may read only these (the manifest's `public`, see [`modules/README
 |---|---|
 | `GET /api/build/prd` | Plan, for the ticket counts on the map |
 | `GET /api/build/ideas` | Ideas, for the tickets on an idea's card |
+| `GET /api/build/changes` | Ideas, for the ticket counts in an accepted idea's summary |
 
 Build itself reads only Plan's `GET /api/plan/ids`, Sketch's `GET /api/sketch/links` and Agents' `GET /api/agents/tickets`. Without Sketch a ticket shows only the sketches of its own `**Sketch:**` line. Without Agents no ticket shows a "Being worked on" badge; with it, a ticket an agent is working on shows one per agent, linking to it in Agents, live (topic `agents.events`). Without Plan (or without a map) the Checks view counts no PRD id as unknown and the ids on a ticket show as plain tags instead of links into Plan.
 

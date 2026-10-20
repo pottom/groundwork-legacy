@@ -184,14 +184,23 @@ test('the route\'s default follows the kind: product → Grilling, engineering �
   assert.deepEqual(ROUTES, CORE_ROUTES, 'the page offers the routes the core takes')
 })
 
-test('a card shows the changes its idea opened, → C-n · <stage>, linking to the change\'s page in the shell', () => {
+test('a card shows the changes its idea opened, one summary line each, linking to the change\'s page in the shell', () => {
   const board = read('view/board.mjs')
-  assert.match(board, /\$\{changePart\(idea\)\}/)
+  assert.match(board, /\$\{changePart\(idea, state\.changeTickets\)\}/)
   const part = read('view/changes.mjs')
   assert.match(part, /recordHref\(\{ id: c\.id, name: 'change', module: 'changes' \}\)/, '/?module=changes&change=C-n')
   assert.match(part, /target="_top"/)
-  assert.match(part, /ui\(`change\.\$\{c\.status\}`\)/)
-  assert.match(read('view/main.mjs'), /topics\.includes\('records'\)/, 'the card follows its change live')
+  assert.match(part, /changeSummary\(c, tickets\?\.\[c\.id\], ui\)/, 'the line of summary.mjs, in the page\'s language')
+  assert.match(read('view/main.mjs'), /topics\.includes\('records'\)/, 'the card follows its change live, and the Spec (a Spec file is the topic records too)')
+})
+
+test('the summary\'s ticket counts come from Build\'s public GET /api/build/changes, read again when Build\'s tickets change; without Build, none', () => {
+  const api = read('view/api.mjs')
+  assert.match(api, /export async function changeTickets\(\)[\s\S]*?fetch\('\/api\/build\/changes'[\s\S]*?catch \{\s*return \{\}/)
+  const main = read('view/main.mjs')
+  assert.match(main, /async function readTickets\(\) \{[\s\S]*?ideaTickets\(\), changeTickets\(\)/, 'both read together')
+  assert.match(main, /topics\.includes\('build\.files'\) \|\| topics\.includes\('build\.issues'\)\) readTickets\(\)/)
+  assert.match(main, /changeTickets: \{\}/, 'none before the first answer')
 })
 
 test('every stage of a change has a label on the card', async () => {

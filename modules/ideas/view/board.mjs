@@ -83,7 +83,7 @@ const card = (idea, state, act) => html`
     ${idea.status === 'rejected' && idea.reason ? html`<p class="idea__reason"><span class="idea__reason-label">${ui('card.reason')}</span> ${idea.reason}</p>` : nothing}
     ${idea.status === 'snoozed' && idea.until ? html`<p class="idea__reason">${ui('card.until', { date: idea.until })}</p>` : nothing}
     ${idea.status === 'duplicate' && idea.duplicate ? html`<p class="idea__reason">${ui('card.duplicate', { id: idea.duplicate })}</p>` : nothing}
-    ${changePart(idea)}
+    ${changePart(idea, state.changeTickets)}
     ${ticketPart(idea, state.tickets?.[idea.id], act)}
   </li>`
 

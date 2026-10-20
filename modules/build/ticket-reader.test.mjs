@@ -240,6 +240,26 @@ test('the Idea line names the ideas a ticket was made from, in both sources', ()
   assert.deepEqual(m.byIdea.get('I-12').map((t) => t.label), ['core 01', '#4']);
 });
 
+test('the Change line names the change (C-n) a ticket implements, in both sources', () => {
+  const m = readTickets({
+    ...local({
+      '.scratch/core/issues/01-one.md': '# One\n\nStatus: ready-for-agent\n**Change:** C-6\n',
+      '.scratch/core/issues/02-two.md': '# Two\n\nStatus: done\n- Change: `C-006`, C-7 (the follow-up)\n',
+      '.scratch/core/issues/03-three.md': '# Three\n\nStatus: ready-for-agent\n',
+    }),
+    github: { repo: 'acme/app', issues: [
+      issue(4, { body: '**PRD:** d-trace\n**Change:** C-6\n\n## What to build\n\nIt.\n' }),
+      issue(5, { body: '## What to build\n\nLike **Change:** C-9 said.\n' }),
+    ] },
+  });
+  assert.deepEqual(byLabel(m, 'core 01').changes, ['C-6']);
+  assert.deepEqual(byLabel(m, 'core 02').changes, ['C-6', 'C-7'], 'the number as people say it, each once');
+  assert.deepEqual(byLabel(m, 'core 03').changes, []);
+  assert.deepEqual(byLabel(m, '#4').changes, ['C-6']);
+  assert.deepEqual(byLabel(m, '#5').changes, [], 'only a Change line of its own counts');
+  assert.deepEqual(m.byChange.get('C-6').map((t) => t.label), ['core 01', 'core 02', '#4']);
+});
+
 // The ids of the PRD map (Plan's docs/product/mindmap.json), when the page could read the map.
 const withMap = (src, ids) => ({ ...src, mapIds: ids });
 const prdProblems = (m) => m.problems.filter((p) => /prd/.test(p.kind)).map((p) => [p.kind, p.tickets.map((t) => t.label).join(' '), p.key, p.params])

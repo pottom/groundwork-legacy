@@ -17,9 +17,10 @@
 // a ticket, or the link on the idea's node on Plan's map) opens that idea in the drawer.
 //
 // A move to Accepted asks for the route (accept.mjs), Grilling or Straight to a ticket, the idea's
-// kind giving the default; accepting opens the change, and the card then links to it (changes.mjs).
-// The board reads again when any record changes (the core's topic "records"), so the card follows
-// its change's stage.
+// kind giving the default; accepting opens the change, and the card then links to it with a summary
+// of where it is (changes.mjs: its stage, its items in the Spec, and its tickets done out of all from
+// Build's GET /api/build/changes, read with the idea's tickets). The board reads again when any
+// record or Spec file changes (the core's topic "records"), so the card follows its change.
 //
 // A card shows the sketches that link to its idea (the Sketch module's GET /api/sketch/links, topic
 // "sketch.links"), each opening that sketch.
@@ -28,7 +29,7 @@ import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
 import { createToasts } from '/shell/toasts.mjs'
 import { i18n, ui } from './strings.mjs'
-import { listIdeas, saveIdea, acceptIdea, ideaTickets, sketchLinks } from './api.mjs'
+import { listIdeas, saveIdea, acceptIdea, ideaTickets, changeTickets, sketchLinks } from './api.mjs'
 import { board } from './board.mjs'
 import { matrix } from './matrix.mjs'
 import { estimateFor } from '../matrix.mjs'
@@ -46,7 +47,7 @@ const VIEWS = ['kanban', 'matrix']
 function recallView() { try { return localStorage.getItem(VIEW_KEY) } catch { return null } }
 function rememberView(view) { try { localStorage.setItem(VIEW_KEY, view) } catch {} }
 
-const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null, tickets: {}, sketches: {},
+const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: null, tickets: {}, changeTickets: {}, sketches: {},
   view: VIEWS.includes(recallView()) ? recallView() : 'kanban' }
 let draft = null    // the idea open in the drawer: { idea, values, saving, error }
 let ask = null      // the reason a move to Rejected asks for: { idea, reason, error }
@@ -104,7 +105,8 @@ async function read() {
 }
 
 async function readTickets() {
-  state.tickets = await ideaTickets()
+  const [tickets, byChange] = await Promise.all([ideaTickets(), changeTickets()])
+  Object.assign(state, { tickets, changeTickets: byChange })
   draw()
 }
 
