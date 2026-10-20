@@ -1,9 +1,9 @@
 // <gw-change-page>: one change (d-changes-page-readonly). A Lit component that renders into the page
 // (no shadow root), so the theme's .gw-* components and changes.css style it. Claude writes the
-// change's file during the interview, and the page shows it; the one write from the page is the
-// human's approval (d-approve-on-page): POST /api/changes/approve, which merges the change into the
-// Spec, all or nothing; and Elsewhere… on a row, which moves a proposed item to another target in the
-// change's file (POST /api/changes/target).
+// change's file during the interview, and the page shows it. The page writes twice, both the
+// human's: the approval (d-approve-on-page), POST /api/changes/approve, which merges the change into
+// the Spec, all or nothing; and Elsewhere… on a row, which moves a proposed item to another target in
+// the change's file (POST /api/changes/target).
 //
 //   el.page      the change as GET /api/changes/show gives it (page.mjs: changePage); null while
 //                the first read is under way

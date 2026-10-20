@@ -20,8 +20,9 @@
 //                                       null when there is none
 //   store.create(prefix, { fields, body? }, { by? })      the new record (without a body, the type's
 //                                                         template's, if it has one)
-//   store.update(id, { fields?, body? }, { by?, base?, event? })  the record as written; event: a
-//                                       history line's own text, before the lifecycle's ('merged')
+//   store.update(id, { fields?, body? }, { by?, base?, event?, dry? })  the record as written; event:
+//                                       a history line's own text, before the lifecycle's ('merged');
+//                                       dry: every check, nothing written (the record it would write)
 //   store.next(prefix)                  the number a new record of the type would get
 //   store.root                          the project folder, absolute
 //   store.spec                          the Spec: its documents and parts (spec-store.mjs)
@@ -278,9 +279,9 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
   /**
    * @param {string} id
    * @param {{ fields?: Fields, body?: string }} input
-   * @param {{ by?: Actor, base?: string, event?: string }} [opts]
+   * @param {{ by?: Actor, base?: string, event?: string, dry?: boolean }} [opts]
    */
-  function update(id, { fields = {}, body } = {}, { by = 'claude', base, event: own } = {}) {
+  function update(id, { fields = {}, body } = {}, { by = 'claude', base, event: eventText, dry = false } = {}) {
     const old = get(id)
     const t = old && typeOf(old.type)
     if (!old || !t) throw fail(`no record ${id}`, 'missing')
@@ -294,11 +295,12 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     }
     if (empty(merged[t.lifecycle.field])) merged[t.lifecycle.field] = t.lifecycle.initial
     const next = check(t, merged, old.fields, id, by)
-    const what = [own, event(t, old.fields, next)].filter(Boolean).join('; ')
+    const what = [eventText, event(t, old.fields, next)].filter(Boolean).join('; ')
     const history = what ? [...old.history, `${today()} · ${by} · ${what}`] : old.history
     /** @type {{ id: string, fields: Fields, body: string, history: string[], stray?: string[] }} */
     const rec = { id: old.id, fields: next, body: body !== undefined ? String(body) : old.body, history }
     if (old.stray) rec.stray = old.stray
+    if (dry) return { ...old, fields: next, body: rec.body, history }
     return save(t, old.file, rec)
   }
 

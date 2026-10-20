@@ -10,7 +10,7 @@
 //                                  the patient form (English headings, `->`) reads the same
 //   baseOf(text)  -> Content|null  the content of a change file's whole text (front matter and all),
 //                                  or null without one
-//   changePage(shown, { base?, merged?, waits? })   the list's row (stages.mjs: changeRow; questions
+//   changePage(shown, { base?, merged?, waits?, targets? })   the list's row (stages.mjs: changeRow; questions
 //                                  is the number of open ones; merged: store.merged's answer) and { file,
 //                                  version, tickets, history, content, html, marks, waits }: waits, the
 //                                  items that wait for another change to be merged first

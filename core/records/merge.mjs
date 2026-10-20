@@ -18,9 +18,10 @@
 //       All or nothing: every write is put together on a copy of the Spec and checked first (a
 //       target not there, an id already in the Spec, an id to change that is not there, an item
 //       already superseded; then the Spec writer's own refusals: an id used elsewhere, a document
-//       changed meanwhile, a superseded item dropped), and nothing is written on any error. Then
-//       the change moves to implementing (one already implementing stays), with the history line
-//       `merged` for the human. Refused, with the code:
+//       changed meanwhile, a superseded item dropped; and the change's own write, a dry run), and
+//       nothing is written on any error. Then, the Spec written first, the change moves to
+//       implementing (one already implementing stays), with the history line `merged` for the
+//       human. Refused, with the code (or the store's own, should the change's write be refused):
 //         forbidden   by is not 'human': Claude (the command line) never merges
 //         missing     no change with that id          stale    the change changed since `base`
 //         state       a change done or dropped        merged   already merged
@@ -40,11 +41,12 @@
 //       adds is in the Spec. [] for a change that is merged, done, dropped, or no change
 //   isMerged(store, 'C-5') -> boolean | null
 //       computed, never stored: every proposed item is in the Spec with this change in its origin
-//       (a superseded one marked by it; a part, document or section is there); false for a change
-//       without items, null for no change
+//       (a superseded one marked by it); a new part, document or section is there, and a changed
+//       one holds the wording the merge writes (its title and prose, or its part line); false for
+//       a change without items, null for no change
 
-import { readChange, PARTS_TARGET } from './changes.mjs'
-import { itemTextOf, docIdOf, docFile } from './spec-format.mjs'
+import { readChange, PARTS_TARGET, CLOSED, changeOf } from './changes.mjs'
+import { itemTextOf, docIdOf, docFile, isDocId } from './spec-format.mjs'
 import { DEFAULT_DOC_LANG } from './doc-strings.mjs'
 
 /** @typedef {import('./types.mjs').ProposedItem} ProposedItem */
@@ -67,7 +69,7 @@ import { DEFAULT_DOC_LANG } from './doc-strings.mjs'
  * @typedef {{
  *   list: (prefix?: string) => import('./types.mjs').StoredRecord[],
  *   get: (id: string) => import('./types.mjs').StoredRecord | null,
- *   update: (id: string, input: { fields?: Record<string, any> }, opts: { by: Actor, event?: string }) => import('./types.mjs').StoredRecord,
+ *   update: (id: string, input: { fields?: Record<string, any> }, opts: { by: Actor, event?: string, dry?: boolean }) => import('./types.mjs').StoredRecord,
  *   spec: {
  *     docs: () => StoredDoc[],
  *     parts: () => { lang: string, parts: SpecPart[], human: import('./spec-format.mjs').HumanText[] },
@@ -83,8 +85,6 @@ import { DEFAULT_DOC_LANG } from './doc-strings.mjs'
  *   | { kind: 'section', section: SpecSection, doc: SpecDoc }
  *   | { kind: 'item', item: SpecItem, doc: SpecDoc }} Place
  */
-
-const CLOSED = ['done', 'dropped']
 
 /** @param {string} msg @param {string} code @param {object} [more] */
 const fail = (msg, code, more = {}) => Object.assign(new Error(msg), { code, ...more })
@@ -132,8 +132,17 @@ function locateIn(doc, id) {
 
 /** @param {Place} p */
 const whereOf = (p) => (p.kind === 'part' ? 'the parts' : p.kind === 'document' ? 'the Spec' : p.doc.id)
-/** @param {string} id */
-export const isDocId = (id) => id === 'system' || id.includes('/')
+
+// The wording a `change` gives a part: its text, `Name · type · description`, over the part's own.
+/** @param {SpecPart} part @param {string} text @returns {SpecPart} */
+function partChanged(part, text) {
+  if (!text) return part
+  const [name, type, ...description] = text.split(' · ')
+  return { ...part, name: name || part.name, type: type ?? part.type, description: description.join(' · ') }
+}
+// The wording a `change` gives a section or a document: its text the title, its note the prose.
+/** @param {{ title: string, prose: string }} node @param {string} text @param {ProposedItem} it */
+const nodeChanged = (node, text, it) => ({ title: text || node.title, prose: it.note || node.prose })
 
 /**
  * @param {StoreLike} store
@@ -142,14 +151,19 @@ export const isDocId = (id) => id === 'system' || id.includes('/')
  */
 export function mergeChange(store, id, { by = 'claude', base } = {}) {
   if (by !== 'human') throw fail(`only a human merges ${id} into the Spec (approving it on its page, in the browser)`, 'forbidden')
-  const rec = /^C-\d+$/.test(String(id)) ? store.get(id) : null
-  if (!rec || rec.type !== 'C') throw fail(`no change ${id}`, 'missing')
+  const rec = changeOf(store, id)
+  if (!rec) throw fail(`no change ${id}`, 'missing')
   if (base != null && base !== rec.version) throw fail(`${id} changed since it was read`, 'stale')
   const status = String(rec.fields.status ?? '')
   if (CLOSED.includes(status)) throw fail(`${id} is ${status}: it is not merged any more`, 'state')
   const items = readChange(rec.body).items
   if (!items.length) throw fail(`${id} proposes no items`, 'empty')
   if (mergedIn(store.spec, id, items)) throw fail(`${id} is already merged`, 'merged')
+  // The change's own write, checked before anything is written (a dry run of every check the store
+  // makes), so it cannot be refused once the Spec is: an awaiting change moves to implementing.
+  const moveTo = status === 'implementing' ? undefined : 'implementing'
+  const changeFields = { fields: moveTo ? { status: moveTo } : {} }
+  store.update(id, changeFields, { by: 'human', event: 'merged', dry: true })
 
   const work = workingSpec(store.spec)
   const waits = new Map(waitsIn(store, id, items, work.locate).map((w) => [w.id, w]))
@@ -183,7 +197,7 @@ export function mergeChange(store, id, { by = 'claude', base } = {}) {
       } else if (it.op === 'change') {
         const part = at?.kind === 'part' ? at.part : null
         if (!part) { refuse('missing', `${it.id} is not a part of the Spec`); continue }
-        if (text) Object.assign(part, { name: name || part.name, type: type ?? part.type, description: description.join(' · ') })
+        Object.assign(part, partChanged(part, text))
       } else { refuse('bad', `a part is not superseded: ${it.id} stays in the parts, retired by changing it`); continue }
       partsTouched = true
       continue
@@ -241,8 +255,7 @@ export function mergeChange(store, id, { by = 'claude', base } = {}) {
       if (!at.item.origin.includes(rec.id)) at.item.origin = [...at.item.origin, rec.id]
     } else {
       const node = at.kind === 'section' ? at.section : at.doc
-      if (text) node.title = text
-      if (it.note) node.prose = it.note
+      Object.assign(node, nodeChanged(node, text, it))
     }
     touched.add(at.doc.id)
   }
@@ -264,8 +277,11 @@ export function mergeChange(store, id, { by = 'claude', base } = {}) {
     throw fail(`${id} is not merged: ${problems.length === 1 ? '1 proposed item' : `${problems.length} proposed items`} cannot go into the Spec; nothing was written`, 'merge', { problems })
   }
 
-  const next = status === 'implementing' ? undefined : 'implementing'
-  const saved = store.update(id, { fields: next ? { status: next } : {} }, { by: 'human', event: 'merged' })
+  // The Spec first, then the change: were the change's write lost (the process gone between the
+  // two), the Spec still holds the merge, which is computed from it (isMerged), and only the status
+  // and the history line are missing; the other way round, a change would say merged with nothing
+  // in the Spec.
+  const saved = store.update(id, changeFields, { by: 'human', event: 'merged' })
   return {
     id,
     status: String(saved.fields.status ?? ''),
@@ -274,7 +290,8 @@ export function mergeChange(store, id, { by = 'claude', base } = {}) {
   }
 }
 
-// Whether every item is in the Spec with this change in its origin (a superseded one marked by it).
+// Whether every item is in the Spec with this change in its origin (a superseded one marked by it);
+// a new part, document or section is there, a changed one holds the wording the merge writes.
 /** @param {StoreLike['spec']} spec @param {string} id @param {ProposedItem[]} items */
 function mergedIn(spec, id, items) {
   if (!items.length) return false
@@ -282,16 +299,30 @@ function mergedIn(spec, id, items) {
   return items.every((it) => {
     const at = locate(it.id)
     if (!at) return false
-    if (it.target === PARTS_TARGET) return at.kind === 'part' && at.part != null
-    if (at.kind !== 'item') return at.kind !== 'part'
+    const text = String(it.text ?? '').trim()
+    if (it.target === PARTS_TARGET) {
+      if (at.kind !== 'part' || !at.part) return false
+      if (it.op === 'add') return true
+      if (it.op !== 'change') return false
+      const want = partChanged(at.part, text)
+      return want.name === at.part.name && want.type === at.part.type && want.description === at.part.description
+    }
+    if (at.kind === 'part') return false
+    if (at.kind !== 'item') {
+      if (it.op === 'add') return true
+      if (it.op !== 'change') return false
+      const node = at.kind === 'section' ? at.section : at.doc
+      const want = nodeChanged(node, text, it)
+      return want.title === node.title && want.prose === node.prose
+    }
     return it.op === 'supersede' ? at.item.supersededBy === id : at.item.origin.includes(id)
   })
 }
 
 /** @param {StoreLike} store @param {string} id @returns {boolean | null} */
 export function isMerged(store, id) {
-  const rec = /^C-\d+$/.test(String(id)) ? store.get(id) : null
-  if (!rec || rec.type !== 'C') return null
+  const rec = changeOf(store, id)
+  if (!rec) return null
   return mergedIn(store.spec, id, readChange(rec.body).items)
 }
 
@@ -345,8 +376,8 @@ function waitsIn(store, id, items, locate) {
 
 /** @param {StoreLike} store @param {string} id @returns {Wait[]} */
 export function waitsOf(store, id) {
-  const rec = /^C-\d+$/.test(String(id)) ? store.get(id) : null
-  if (!rec || rec.type !== 'C' || CLOSED.includes(String(rec.fields.status ?? ''))) return []
+  const rec = changeOf(store, id)
+  if (!rec || CLOSED.includes(String(rec.fields.status ?? ''))) return []
   const items = readChange(rec.body).items
   if (!items.length || mergedIn(store.spec, id, items)) return []
   return waitsIn(store, id, items, workingSpec(store.spec).locate)

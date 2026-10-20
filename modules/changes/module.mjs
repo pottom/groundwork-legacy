@@ -34,9 +34,10 @@
 //                              merged, or changed since `base` (code 'stale')
 //
 // Changes are records of the core's record store: the manifest declares the type C (`records`,
-// type.mjs), with its folder docs/product/changes/, and the store writes the files. Approving is the
-// module's one write: the store merges the change into the Spec, so `writes` names the Spec's folder
-// (store.forModule lets a module merge only then). The Milestone type (M) stays in the core.
+// type.mjs), with its folder docs/product/changes/, and the store writes the files. The module's two
+// writes are the human's, both through the store: approving, which merges the change into the Spec,
+// so `writes` names the Spec's folder (store.forModule lets a module merge only then), and
+// Elsewhere…, which writes a new target into the change's file. The Milestone type (M) stays in the core.
 // The stage is computed (stages.mjs): open questions → Grilling, none → Awaiting approval; the
 // later stages come from the status field until C-5 and C-8.
 //
@@ -56,6 +57,11 @@ import { changePage, baseOf } from './page.mjs'
 import { committed, isCommitPath } from './since.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
+// The HTTP status of a refusal of the store, by its code (approve and target); anything else is 500.
+/** @type {Record<string, number>} */
+const REFUSED = { missing: 404, forbidden: 403, bad: 400, target: 400, merge: 409, stale: 409, state: 409, merged: 409, empty: 409 }
+/** @param {{ code?: string }} err */
+const statusOf = (err) => REFUSED[err.code ?? ''] ?? 500
 
 export default {
   id: 'changes',
@@ -85,7 +91,8 @@ export default {
         const shown = /^C-\d+$/.test(id) ? records.show(id) : null
         if (!shown || shown.type !== 'C') return send(res, 404, { error: `no change ${id}` }), true
         const merged = records.merged(id) ?? false
-        const waits = records.waits(id).map((/** @type {{ id: string, waitsFor: string, on: string }} */ w) => ({ id: w.id, waitsFor: w.waitsFor, on: w.on, title: String(records.get(w.waitsFor)?.fields.title ?? '') }))
+        // a merged change has nothing to wait for and nowhere to move: the Spec is not read again
+        const waits = (merged ? [] : records.waits(id)).map((/** @type {{ id: string, waitsFor: string, on: string }} */ w) => ({ id: w.id, waitsFor: w.waitsFor, on: w.on, title: String(records.get(w.waitsFor)?.fields.title ?? '') }))
         return send(res, 200, changePage(shown, { base: baseOf(committed(root, shown.file)), merged, waits, targets: merged ? [] : records.targets() })), true
       }
       const changes = records.list('C').flatMap((r) => {
@@ -116,8 +123,7 @@ async function approve(records, req, res, url) {
     send(res, 200, records.merge(id, { by: 'human', base }))
   } catch (e) {
     const err = /** @type {Error & { code?: string, problems?: unknown[] }} */ (e)
-    const code = err.code === 'missing' ? 404 : err.code === 'forbidden' ? 403 : ['merge', 'stale', 'state', 'merged', 'empty'].includes(err.code ?? '') ? 409 : 500
-    send(res, code, { error: err.message, code: err.code, ...(err.problems ? { problems: err.problems } : {}) })
+    send(res, statusOf(err), { error: err.message, code: err.code, ...(err.problems ? { problems: err.problems } : {}) })
   }
 }
 
@@ -135,7 +141,6 @@ async function target(records, req, res, url) {
     send(res, 200, records.move(id, { item: str(body.item) ?? '', target: str(body.target) ?? '', by: 'human', base: str(body.base) }))
   } catch (e) {
     const err = /** @type {Error & { code?: string }} */ (e)
-    const code = err.code === 'missing' ? 404 : err.code === 'forbidden' ? 403 : ['bad', 'target'].includes(err.code ?? '') ? 400 : ['stale', 'state', 'merged'].includes(err.code ?? '') ? 409 : 500
-    send(res, code, { error: err.message, code: err.code })
+    send(res, statusOf(err), { error: err.message, code: err.code })
   }
 }

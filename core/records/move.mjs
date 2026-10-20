@@ -23,9 +23,9 @@
 //         bad       an item that does not move    target   a target not in targetsOf, or one that
 //                                                            does not fit (a section into a section)
 
-import { readChange, retargetItem, PARTS_TARGET } from './changes.mjs'
-import { itemTextOf } from './spec-format.mjs'
-import { isMerged, isDocId } from './merge.mjs'
+import { readChange, retargetItem, PARTS_TARGET, CLOSED, changeOf } from './changes.mjs'
+import { itemTextOf, isDocId } from './spec-format.mjs'
+import { isMerged } from './merge.mjs'
 
 /** @typedef {import('./types.mjs').ProposedItem} ProposedItem */
 /** @typedef {import('./types.mjs').Actor} Actor */
@@ -36,8 +36,6 @@ import { isMerged, isDocId } from './merge.mjs'
  *   update: (id: string, input: { fields?: Record<string, any>, body?: string }, opts: { by: Actor, base?: string, event?: string }) => import('./types.mjs').StoredRecord,
  * }} StoreLike
  */
-
-const CLOSED = ['done', 'dropped']
 
 /** @param {string} msg @param {string} code */
 const fail = (msg, code) => Object.assign(new Error(msg), { code })
@@ -78,8 +76,8 @@ export function targetsOf(store) {
  * @param {{ item?: string, target?: string, by?: Actor, base?: string }} opts
  */
 export function moveItem(store, id, { item = '', target = '', by = 'claude', base } = {}) {
-  const rec = /^C-\d+$/.test(String(id)) ? store.get(id) : null
-  if (!rec || rec.type !== 'C') throw fail(`no change ${id}`, 'missing')
+  const rec = changeOf(store, id)
+  if (!rec) throw fail(`no change ${id}`, 'missing')
   if (base != null && base !== rec.version) throw fail(`${id} changed since it was read`, 'stale')
   const status = String(rec.fields.status ?? '')
   if (CLOSED.includes(status)) throw fail(`${id} is ${status}: its items do not move any more`, 'state')

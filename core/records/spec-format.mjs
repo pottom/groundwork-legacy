@@ -35,6 +35,7 @@
 //   readParts(text, { lang? })        -> { lang, parts, human, problems }
 //   docIdOf(file)                    -> { id, part, kind } | null     'core/tech', 'system'
 //   docFile(id)                      -> the file of a document id     'docs/product/spec/core/TECH.md'
+//   isDocId(id)                      -> whether an id names a document ('core/tech', 'system')
 //   itemTextOf(text)                 -> { topic, status, impl?, marked }   a proposed item's text
 //                                       (`Topic · döntés · hiányzik`) as an item's words
 //
@@ -136,6 +137,10 @@ export function docIdOf(file) {
   const kind = kindOf(parts[1])
   return kind ? { id: `${parts[0]}/${kind}`, part: parts[0], kind } : null
 }
+
+// A document's id has its part and kind (core/tech), or is the whole system's.
+/** @param {string} id */
+export const isDocId = (id) => id === 'system' || id.includes('/')
 
 /** @param {string} id @returns {string} */
 export function docFile(id) {

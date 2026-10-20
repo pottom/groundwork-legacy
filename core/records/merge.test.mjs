@@ -230,3 +230,32 @@ test('a dropped or done change brings nothing to wait for; a target in a grillin
   assert.deepEqual(store.waits('C-2'), [])
   assert.throws(() => store.merge('C-2', { by: 'human' }), (e) => e.code === 'merge' && e.problems.every((p) => p.code !== 'waiting'))
 })
+
+test('a change of a section, a document or a part is merged only once the Spec holds its new wording', () => {
+  const { root, store } = seeded([
+    '- change `t-sec` → `core/tech` — Biztonság és írás',
+    '  Csak a docs/product/ alá ír.',
+    '- change `core/tech` → `core` — Mag: Műszaki terv (új)',
+    '- change `core` → `parts` — Mag · software · A szerver és a tár.',
+  ])
+  assert.equal(store.merged('C-1'), false, 'the ids are there, the wording is not: not merged yet')
+  store.merge('C-1', { by: 'human' })
+  const tech = read(root, 'docs/product/spec/core/TECH.md')
+  assert.match(tech, /^# Mag: Műszaki terv \(új\)\n/)
+  assert.match(tech, /\n## Biztonság és írás \{#t-sec\}\n\nCsak a docs\/product\/ alá ír\.\n/)
+  assert.match(read(root, 'docs/product/spec/parts.md'), /\n- Mag · `core` · software · A szerver és a tár\. · aktív\n/)
+  assert.equal(store.merged('C-1'), true)
+  assert.throws(() => store.merge('C-1', { by: 'human' }), { code: 'merged' })
+  // a hand edit of the wording makes it unmerged again
+  put(root, 'docs/product/spec/parts.md', PARTS)
+  assert.equal(store.merged('C-1'), false)
+})
+
+test('the change\'s own write is checked before the Spec is written: a change the store would refuse merges nothing', () => {
+  const { root, store } = seeded(['- add `d-a` → `system#t-goal` — A · döntés · hiányzik'])
+  const file = store.get('C-1').file
+  put(root, file, read(root, file).replace(/^status: /m, 'milestone: nine\nstatus: '))
+  const before = snapshot(root)
+  assert.throws(() => store.merge('C-1', { by: 'human' }), /milestone/)
+  assert.deepEqual(snapshot(root), before, 'not the Spec, not the change')
+})

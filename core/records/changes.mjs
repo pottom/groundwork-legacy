@@ -52,6 +52,8 @@
 //   thoughtsText(nodes)    -> Markdown           the canonical list of a thought map
 //   SIGNS                  sign → { kind, recommended? }
 //   OPS                    the ops of a proposed item: add, change, supersede
+//   CLOSED                 the closed states of a change: done, dropped
+//   changeOf(store, id)    the change C-n, or null (no such id, or a record of another type)
 //   PARTS_TARGET           'parts': the target of a proposed part (the list in spec/parts.md); a
 //                          proposed document's target is its part, a section's its document, an
 //                          item's `<document>#<section or parent item>`
@@ -78,6 +80,18 @@ export const CHANGES = 'docs/product/changes'
 export const MILESTONES = 'docs/product/milestones'
 export const OPS = ['add', 'change', 'supersede']
 export const PARTS_TARGET = 'parts'
+// The states of a change that are closed: its items are neither merged nor moved any more.
+export const CLOSED = ['done', 'dropped']
+
+/**
+ * A change by its id (C-5), or null for an id that is none or no change.
+ * @param {{ get: (id: string) => import('./types.mjs').StoredRecord | null }} store
+ * @param {string} id
+ */
+export const changeOf = (store, id) => {
+  const rec = /^C-\d+$/.test(String(id)) ? store.get(id) : null
+  return rec && rec.type === 'C' ? rec : null
+}
 
 // The sections of a change, in order: the heading written, and the ones read too.
 /** @type {Array<{ key: 'problem' | 'solution' | 'scope' | 'outOfScope' | 'thoughts' | 'questions' | 'items' | 'tickets', heading: string, also: string[] }>} */
