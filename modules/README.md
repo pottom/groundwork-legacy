@@ -36,7 +36,9 @@ export default {
     fields: ['title', 'links', 'status', ...], lists: ['links'], links: ['links'],  // front-matter order, comma lists, references
     lifecycle: { field: 'status', states: [...], initial: 'new', claude: ['new', 'considering'] },  // Claude moves only between `claude`
     rules: (fields, { before, id, by, today, exists }) => fields,   // checks and tidies every write; throws to refuse it
-  }],
+    template: (id) => body, outline: (body) => object,  // optional: a new record's body; what show() reads from the body
+  }],                                                    // the core's own types, changes (C) and milestones (M), are in core/records/changes.mjs;
+                                                         // a link to a type no module declares shows as a plain id
   public: ['GET /api/plan/ids', 'POST /api/plan/todo'],  // the endpoints other modules may use (see below)
   attention: '/api/agents/attention',                    // optional (Agents): what needs the user, counted on the tab and toasted
                                                          // by the shell: { items: [{ key, reason, text: { en, hu } }], recheck }

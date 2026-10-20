@@ -62,6 +62,41 @@
  * @property {Lifecycle} lifecycle
  * @property {(next: Fields, ctx: RuleContext) => Fields} [rules]   checks and tidies the fields of a
  *                                      write; throws to refuse it
+ * @property {(id: string) => string} [template]   the body of a new record created without one
+ * @property {(body: string) => object} [outline]   what the body holds, read for show() (a change's
+ *                                      sections and proposed items); never written
+ */
+
+/**
+ * An item a change proposes for the Spec: `- add \`d-x\` → \`core/tech#t-arch\` — text`.
+ * @typedef {Object} ProposedItem
+ * @property {'add' | 'change' | 'supersede'} op
+ * @property {string} id                the Spec item's id, born in the change ('d-rec-change')
+ * @property {string} target            where it goes: a document, section or item ('records/tech#t-rec-data')
+ * @property {string} [text]            what it says
+ */
+
+/**
+ * The parts of a change's body (changes.mjs).
+ * @typedef {Object} ChangeParts
+ * @property {string} [problem]
+ * @property {string} [solution]
+ * @property {string} [scope]
+ * @property {string} [outOfScope]
+ * @property {string} [questions]
+ * @property {ProposedItem[]} [items]
+ */
+
+/**
+ * A link a record writes, resolved by the id's shape: type and title only when a declared type has
+ * that prefix (else a plain id: the declaring module is missing, or it is no record id at all).
+ * @typedef {Object} ResolvedLink
+ * @property {string} field             the field it stands in ('ideas')
+ * @property {string} id                'I-5'
+ * @property {string} [type]            the prefix of a declared type
+ * @property {string} [name]            that type's name ('idea')
+ * @property {string} [title]           the record's title, when it exists
+ * @property {string} [file]            the record's file, when it exists
  */
 
 /**
@@ -80,7 +115,9 @@
 
 /**
  * A record with what is computed from all records, never written to a file.
- * @typedef {StoredRecord & { linkedFrom: string[], html: string }} ShownRecord
+ * links: what the record's link fields name, resolved (a plain id when no declared type has its
+ * prefix); linkedFrom: the records whose links name it; outline: what the type reads from the body.
+ * @typedef {StoredRecord & { links: ResolvedLink[], linkedFrom: string[], html: string, outline?: object }} ShownRecord
  */
 
 export {}
