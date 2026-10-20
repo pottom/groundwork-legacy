@@ -66,7 +66,7 @@ export function isLocalHost(header) {
 export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
 export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
 // The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
-const SHELL_BROWSER_FILES = new Set(['theme.css', 'theme.js', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs', 'frames.mjs', 'toasts.mjs', 'attention.mjs', 'record-chip.mjs', 'record-link.mjs', 'logo.svg'])
+const SHELL_BROWSER_FILES = new Set(['theme.css', 'theme.js', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs', 'frames.mjs', 'toasts.mjs', 'attention.mjs', 'record-chip.mjs', 'record-link.mjs', 'mind-map.mjs', 'mind-map-tree.mjs', 'mind-map.css', 'logo.svg'])
 // The record store's files a page may load, at /core/records/: the documents' fixed texts.
 export const RECORDS_DIR = fileURLToPath(new URL('./records/', import.meta.url))
 const RECORDS_BROWSER_FILES = new Set(['doc-strings.mjs'])

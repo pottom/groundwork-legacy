@@ -1,0 +1,72 @@
+/* <gw-mind-map> (mind-map.mjs): Mind Elixir's nodes, lines and zoom toolbar in the shell's design
+   system, after the Plan's map (modules/plan/view/map.css). A kind's colour and icon: --k and
+   --gw-mm-i-<kind> (set by the component); marks: data-mark, data-flash, data-focus. */
+
+gw-mind-map { display: block; position: relative; min-height: 240px; overflow: hidden; }
+/* Mind Elixir sets the canvas relative and sizes its container: the canvas fills the box all the same */
+gw-mind-map .gw-mind-map__canvas { position: absolute !important; inset: 0; }
+gw-mind-map .gw-mind-map__canvas > .map-container { height: 100%; }
+gw-mind-map .map-container { font-family: var(--gw-font) !important; cursor: grab; }
+gw-mind-map .map-container me-tpc { cursor: default; font-family: var(--gw-font); transition: box-shadow .2s, background-color .8s, opacity .2s; }
+gw-mind-map .map-container .lines path { stroke-width: 3px; stroke-linecap: round; }
+gw-mind-map .map-container .subLines path { stroke-width: 2px; stroke-linecap: round; opacity: .75; }
+gw-mind-map .map-container me-tpc .tags { display: none; }
+gw-mind-map .map-container me-children me-parent > me-epd { top: calc(50% - 9px) !important; left: auto !important; right: calc(var(--node-gap-x) - 9px) !important; }
+
+/* the zoom toolbar, as glass chrome; the layout trio is not used (the map grows to the right) */
+gw-mind-map .mind-elixir-toolbar.lt { display: none !important; }
+gw-mind-map .mind-elixir-toolbar.rb {
+  right: 10px !important; bottom: 10px !important; padding: 3px !important; display: flex; gap: 2px;
+  background: color-mix(in srgb, var(--gw-surface) 80%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--gw-line) 75%, transparent); border-radius: var(--gw-radius) !important;
+  box-shadow: var(--gw-shadow) !important; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+}
+gw-mind-map .mind-elixir-toolbar.rb span { display: grid !important; place-items: center; width: 26px; height: 26px; margin: 0 !important; border-radius: var(--gw-radius-sm); color: var(--gw-fg-2); cursor: pointer; }
+gw-mind-map .mind-elixir-toolbar.rb span:hover { background: var(--gw-sunken); color: var(--gw-fg); }
+gw-mind-map .mind-elixir-toolbar.rb svg { width: 14px !important; height: 14px !important; color: currentColor; fill: currentColor; }
+
+/* the root: the change's title, the shell's gradient */
+gw-mind-map .map-container me-root me-tpc {
+  background: var(--gw-gradient-fill); color: var(--gw-accent-fg); font-size: 16px; font-weight: 700;
+  padding: 10px 20px; border: 0; border-radius: 999px;
+  box-shadow: 0 12px 30px -14px color-mix(in srgb, var(--gw-accent) 80%, transparent);
+}
+
+/* every node: a card with its kind's icon in its kind's colour */
+gw-mind-map .map-container me-main > me-wrapper > me-parent > me-tpc,
+gw-mind-map .map-container me-children me-tpc {
+  background: var(--gw-surface); color: var(--gw-fg);
+  border: 1px solid color-mix(in srgb, var(--k, var(--gw-line)) 40%, var(--gw-line)); border-radius: var(--gw-radius);
+  padding: 6px 12px; font-size: 13.5px; font-weight: 500; box-shadow: var(--gw-shadow);
+}
+gw-mind-map .map-container me-main > me-wrapper > me-parent > me-tpc { font-size: 14px; font-weight: 600; }
+gw-mind-map .map-container me-tpc[data-kind]::before {
+  content: ''; display: inline-block; flex: none; width: 15px; height: 15px; margin-right: 7px; vertical-align: -3px;
+  background: var(--k, var(--gw-fg-2));
+  -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat;
+}
+gw-mind-map me-tpc[data-kind="thought"]    { --k: var(--gw-fg-2);  --ico: var(--gw-mm-i-thought); }
+gw-mind-map me-tpc[data-kind="question"]   { --k: var(--gw-warn);  --ico: var(--gw-mm-i-question); }
+gw-mind-map me-tpc[data-kind="option"]     { --k: var(--gw-info);  --ico: var(--gw-mm-i-option); }
+gw-mind-map me-tpc[data-kind="decision"]   { --k: var(--gw-ok);    --ico: var(--gw-mm-i-decision); }
+gw-mind-map me-tpc[data-kind="constraint"] { --k: var(--gw-violet); --ico: var(--gw-mm-i-constraint); }
+gw-mind-map me-tpc[data-kind="excluded"]   { --k: var(--gw-muted); --ico: var(--gw-mm-i-excluded); }
+gw-mind-map .map-container me-tpc[data-kind="question"] { background: color-mix(in srgb, var(--gw-warn) 9%, var(--gw-surface)); border-width: 1.5px; }
+gw-mind-map .map-container me-tpc[data-kind="decision"] { background: linear-gradient(90deg, color-mix(in srgb, var(--gw-ok) 10%, var(--gw-surface)), var(--gw-surface) 70%); }
+gw-mind-map .map-container me-tpc[data-kind="option"] { border-style: dashed; }
+gw-mind-map .map-container me-tpc[data-kind="excluded"] { background: transparent; box-shadow: none; border-style: dashed; color: var(--gw-muted); }
+/* the recommended option: a solid border and a star */
+gw-mind-map .map-container me-tpc[data-recommended] { border-style: solid; border-width: 1.5px; border-color: var(--gw-info); background: color-mix(in srgb, var(--gw-info) 9%, var(--gw-surface)); }
+gw-mind-map .map-container me-tpc[data-recommended]::after { content: '★'; margin-left: 6px; color: var(--gw-info-text); font-size: 12px; }
+/* a node with a note shows it on hover; it gets a dotted underline */
+gw-mind-map .map-container me-tpc[title] { text-decoration: underline dotted color-mix(in srgb, var(--gw-muted) 60%, transparent); text-underline-offset: 3px; }
+/* the item a node became */
+gw-mind-map .gw-mind-map__link { margin-left: 8px; padding: 1px 6px; border-radius: var(--gw-radius-sm); background: var(--gw-sunken); color: var(--gw-fg-2); font: 11px var(--gw-font-mono); text-decoration: none; }
+
+/* marks set from outside: what changed since the last commit, what the last write changed, a jump */
+gw-mind-map .map-container me-tpc[data-mark="new"] { box-shadow: inset 3px 0 0 var(--gw-ok), var(--gw-shadow); }
+gw-mind-map .map-container me-tpc[data-mark="modified"] { box-shadow: inset 3px 0 0 var(--gw-info), var(--gw-shadow); }
+gw-mind-map .map-container me-tpc[data-mark="removed"] { box-shadow: inset 3px 0 0 var(--gw-bad); text-decoration: line-through; color: var(--gw-muted); opacity: .75; }
+gw-mind-map .map-container me-tpc[data-flash] { background: var(--gw-accent-soft) !important; }
+gw-mind-map .map-container me-tpc[data-focus] { outline: 2px solid var(--gw-focus); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { gw-mind-map .map-container me-tpc { transition: none; } }
