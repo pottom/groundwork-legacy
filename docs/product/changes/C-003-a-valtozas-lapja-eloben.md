@@ -3,7 +3,7 @@ id: C-3
 title: A változás lapja élőben
 ideas: I-5
 milestone: M-9
-status: awaiting-approval
+status: implementing
 ---
 
 ## Probléma
@@ -107,3 +107,4 @@ A jegyek a `**Change:** C-3` sorukkal hivatkoznak erre a változásra.
 - 2026-10-20 · human · created by migrate from docs/product/mindmap.json (split: t-pipe, d-interview-size, d-interview-chat, d-interview-browser, d-all-work-is-change, d-map-in-change, x-map-tool, n-plan-purpose; 30 proposed items)
 - 2026-10-20 · claude · re-sliced: C-3…C-5 cut into C-3…C-13, each a slice the next one already uses (human approved)
 - 2026-10-20 · claude · grilled: module, read-only page, direct writes, live highlight and since-commit marks, interview stages, Lit scope, done criteria
+- 2026-10-20 · human · approved for implementation (the proposed items wait for the merge, C-5)
