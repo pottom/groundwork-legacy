@@ -61,7 +61,7 @@ gw-mind-map .map-container me-tpc[data-recommended]::after { content: '★'; mar
 /* a node with a note shows it on hover; it gets a dotted underline */
 gw-mind-map .map-container me-tpc[title] { text-decoration: underline dotted color-mix(in srgb, var(--gw-muted) 60%, transparent); text-underline-offset: 3px; }
 /* the item a node became */
-gw-mind-map .gw-mind-map__link { margin-left: 8px; padding: 1px 6px; border-radius: var(--gw-radius-sm); background: var(--gw-sunken); color: var(--gw-fg-2); font: 11px var(--gw-font-mono); text-decoration: none; }
+gw-mind-map .gw-mind-map__link { margin-left: 8px; text-decoration: none; }   /* the theme's .gw-tag */
 
 /* marks set from outside: what changed since the last commit, what the last write changed, a jump */
 gw-mind-map .map-container me-tpc[data-mark="new"] { box-shadow: inset 3px 0 0 var(--gw-ok), var(--gw-shadow); }

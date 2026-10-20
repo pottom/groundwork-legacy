@@ -5,7 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readChange } from '../../core/records/changes.mjs'
-import { flatThoughts, idOf, mapTree, openQuestions } from './thoughts.mjs'
+import { flatThoughts, idOf, mapTree, mapMarks, openQuestions } from './thoughts.mjs'
 
 const BODY = [
   '## Gondolatok', '',
@@ -59,4 +59,11 @@ test('the open questions with their options, the latest on top: new since the co
   assert.equal(openQuestions(f)[1].options[0].recommended, true)
   assert.deepEqual(openQuestions(f, { thoughts: { 'where does the map live?': 'new' } }).map((q) => q.key), ['where does the map live?', 'which name?'])
   assert.deepEqual(openQuestions([]), [])
+})
+
+test('a Diff\'s marks of the map, by the ids the map knows', () => {
+  const gone = { key: 'gone', id: idOf('gone'), parent: null, kind: 'thought', text: 'Gone' }
+  assert.deepEqual(mapMarks({ thoughts: { here: 'new', there: 'modified' }, removed: { thoughts: [gone] } }),
+    { [idOf('here')]: 'new', [idOf('there')]: 'modified', [gone.id]: 'removed' })
+  assert.deepEqual(mapMarks(null), {})
 })

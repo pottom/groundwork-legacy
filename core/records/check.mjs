@@ -231,13 +231,12 @@ function thoughtMaps({ records, lines }) {
     if (end < 0) end = ls.length
     const section = ls.slice(start + 1, end)
     const at = (/** @type {number} */ i) => start + 2 + i   // a section line's 1-based line in the file
-    const { nodes, unknown } = readThoughts(section.join('\n'))
+    const { nodes, unknown, at: placed } = readThoughts(section.join('\n'))
     for (const u of unknown) out.push(finding(r.file, at(u.line), 'not-canonical', section[u.line], `unknown sign ${u.sign} (the signs: ${Object.keys(SIGNS).join(' ')})`))
     const proposed = new Set(readChange(r.body).items.map((i) => i.id))
-    section.forEach((l, i) => {
-      const link = /(?:→|->)\s+`?([\w./#-]+)`?\s*$/.exec(l)
-      if (link && /^\s*[-*+]\s/.test(l) && !proposed.has(link[1])) out.push(finding(r.file, at(i), 'orphan', l, `→ ${link[1]}: the change proposes no ${link[1]}`))
-    })
+    for (const { line, node } of placed) {
+      if (node.item && !proposed.has(node.item)) out.push(finding(r.file, at(line), 'orphan', section[line], `→ ${node.item}: the change proposes no ${node.item}`))
+    }
     const canonical = thoughtsText(nodes).split('\n')
     const { inA } = alignLines(section, canonical)
     const flagged = new Set(unknown.map((u) => u.line))

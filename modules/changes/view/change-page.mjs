@@ -29,7 +29,7 @@ import '/shell/record-chip.mjs'
 import '/shell/mind-map.mjs'
 import { ui } from './strings.mjs'
 import { TONE } from './changes-list.mjs'
-import { mapTree, openQuestions, idOf } from '../thoughts.mjs'
+import { mapTree, mapMarks, openQuestions } from '../thoughts.mjs'
 
 const TEXT_PARTS = ['problem', 'solution', 'scope', 'outOfScope']
 const OP_TONE = { add: 'ok', change: 'info', supersede: 'warn' }
@@ -133,13 +133,13 @@ export class ChangePage extends LitElement {
       <button class="workspace__bar" type="button" aria-expanded="false" @click=${toggle}>
         <span class="workspace__chevron" aria-hidden="true">▸</span>${ui('ws.map')} · ${count}${p.questions ? html` · ${ui(p.questions === 1 ? 'row.questions.one' : 'row.questions', { n: p.questions })}` : nothing}</button>
     </section>`
-    /** @type {Record<string, string>} */
-    const marks = {}
-    for (const [key, mark] of Object.entries(p.marks?.thoughts ?? {})) marks[idOf(key)] = mark
-    for (const t of removed) marks[t.id] = 'removed'
-    const flash = Object.keys(this.flash?.thoughts ?? {}).map(idOf)
+    const marks = mapMarks(p.marks)
+    const flash = Object.keys(mapMarks(this.flash))
     const questions = openQuestions(thoughts, p.marks)
+    // an older change's Questions list: its open questions, its prose, and the ones removed since the commit
     const older = p.content.questions.filter((/** @type {any} */ q) => !q.done)
+    const olderGone = p.marks?.removed?.questions ?? []
+    const prose = p.content.sections.questionsText
     return html`<section class="workspace" data-part="workspace">
       <button class="workspace__bar" type="button" aria-expanded="true" @click=${toggle}>
         <span class="workspace__chevron" aria-hidden="true">▾</span>${ui('ws.map')} · ${count}</button>
@@ -147,7 +147,8 @@ export class ChangePage extends LitElement {
         <gw-mind-map class="workspace__map" .tree=${mapTree(p.title, thoughts, removed)} .marks=${marks} .flash=${flash}></gw-mind-map>
         <aside class="workspace__panel" aria-labelledby="ws-questions">
           <h2 class="part__title" id="ws-questions">${ui('ws.questions')}<span class="gw-badge gw-badge--count">${p.questions}</span></h2>
-          ${questions.length || older.length ? html`<ol class="open-questions">
+          ${prose ? html`<div class=${`md ${this.marked('sections', 'questionsText')}`}>${md(p.html.sections.questionsText)}</div>` : nothing}
+          ${questions.length || older.length || olderGone.length ? html`<ol class="open-questions">
             ${questions.map((q) => html`<li class=${`open-question ${this.marked('thoughts', q.key)}`} data-id=${q.id}>
               <button class="open-question__text" type="button" title=${ui('ws.jump')} @click=${() => this.jump(q.id)}>${q.text}</button>${this.badge(p.marks?.thoughts?.[q.key])}
               ${q.note ? html`<p class="open-question__note">${q.note}</p>` : nothing}
@@ -156,7 +157,9 @@ export class ChangePage extends LitElement {
             </li>`)}
             ${older.map((/** @type {any} */ q) => html`<li class=${`open-question is-older ${this.marked('questions', q.key)}`} data-key=${q.key}>
               <div class="md">${md(p.html.questions[q.key])}</div><span class="gw-badge gw-badge--neutral">${ui('ws.older')}</span></li>`)}
-          </ol>` : html`<p class="part__empty">${ui('ws.none')}</p>`}
+            ${olderGone.map((/** @type {any} */ q) => html`<li class="open-question is-older is-removed" data-key=${q.key}>
+              <div class="md is-gone">${md(p.html.questions[q.key])}</div>${this.badge('removed')}</li>`)}
+          </ol>` : prose ? nothing : html`<p class="part__empty">${ui('ws.none')}</p>`}
         </aside>
       </div>
     </section>`

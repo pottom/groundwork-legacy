@@ -49,11 +49,7 @@ h2, h3, p { margin: 0; }
 .md p, .md ul, .md ol { margin: 0 0 .5em; }
 .md a { color: var(--gw-accent-text); }
 
-.questions, .items, .history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.question { display: flex; align-items: flex-start; gap: var(--gw-space); padding: 4px 6px; border-radius: var(--gw-radius-sm); }
-.question .md { flex: 1; }
-.question__box { flex: none; width: 16px; height: 16px; margin-top: 3px; border: 1.5px solid var(--gw-line-strong); border-radius: 4px; display: grid; place-items: center; font-size: 11px; color: var(--gw-ok-text); }
-.question.is-done .md { color: var(--gw-muted); }
+.items, .history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .item { padding: calc(var(--gw-space) * .75) var(--gw-space); border: 1px solid var(--gw-line); border-radius: var(--gw-radius); background: var(--gw-surface); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .item__line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
 .item__id, .item__target { overflow-wrap: anywhere; }
@@ -90,13 +86,13 @@ h2, h3, p { margin: 0; }
 
 /* marks of what changed since the last commit (d-changes-since-commit): a bar at the left edge and
    the theme's badge with a word; a removed part stays, struck through, until the next commit */
-:is(.part, .question, .item, .page__title, .open-question).is-new { box-shadow: inset 3px 0 0 var(--gw-ok); }
-:is(.part, .question, .item, .page__title, .open-question).is-modified { box-shadow: inset 3px 0 0 var(--gw-info); }
+:is(.part, .item, .page__title, .open-question).is-new { box-shadow: inset 3px 0 0 var(--gw-ok); }
+:is(.part, .item, .page__title, .open-question).is-modified { box-shadow: inset 3px 0 0 var(--gw-info); }
 :is(.part, .question, .item).is-removed { box-shadow: inset 3px 0 0 var(--gw-bad); }
 .is-gone { text-decoration: line-through; color: var(--gw-muted); }
 .page__title.is-new, .page__title.is-modified { padding-left: 8px; }
 
 /* what the last write changed: tinted for a moment, then fading (d-changes-flash) */
-:is(.part, .question, .item, .page__title, .change, .md, .open-question) { transition: background-color .8s; }
+:is(.part, .item, .page__title, .change, .md, .open-question) { transition: background-color .8s; }
 .is-flash { background-color: var(--gw-accent-soft); }
-@media (prefers-reduced-motion: reduce) { :is(.part, .question, .item, .page__title, .change, .md, .open-question) { transition: none; } }
+@media (prefers-reduced-motion: reduce) { :is(.part, .item, .page__title, .change, .md, .open-question) { transition: none; } }

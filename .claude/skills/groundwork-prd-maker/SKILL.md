@@ -51,7 +51,7 @@ Notes on two of the sections:
 
 ## The map is meeting notes, not a transcript
 
-Questions, the choices you offered, and your recommendations never go on the map. It keeps only what matters:
+Questions, the choices you offered, and your recommendations never go on the Spec's map (they go on the change's thought map while it is grilled, see below). It keeps only what matters:
 
 - **Short labels**, a few words, in the language of the conversation. A rationale goes in `note`.
 - **Only what matters**: decisions, constraints, scope boundaries, facts that later answers depend on. Accepted defaults and small talk stay off the map.

@@ -41,9 +41,10 @@
 //   readChange(body)       -> parts + { items, tickets }   patient: English headings too, `->` for
 //                                                `→`, ids without backticks; a line that is not an
 //                                                item stays text and is not an item
-//   readThoughts(text)     -> { nodes, unknown }   the thought map of a Thoughts section's text;
+//   readThoughts(text)     -> { nodes, unknown, at }   the thought map of a Thoughts section's text;
 //                                                unknown: [{ line, sign }] (0-based in the text), the
-//                                                lines whose first word looks like a sign but is none
+//                                                lines whose first word looks like a sign but is none;
+//                                                at: [{ line, node }], the line of every node
 //   thoughtsText(nodes)    -> Markdown           the canonical list of a thought map
 //   SIGNS                  sign → { kind, recommended? }
 //   OPS                    the ops of a proposed item: add, change, supersede
@@ -193,14 +194,14 @@ const width = (s) => s.replace(/\t/g, '  ').length
  * The thought map of a Thoughts section's text, read patiently: any of `-*+` as bullet, any deeper
  * indent as a child, `->` for `→`, an id without backticks.
  * @param {string} section
- * @returns {{ nodes: ThoughtNode[], unknown: Array<{ line: number, sign: string }> }}
+ * @returns {{ nodes: ThoughtNode[], unknown: Array<{ line: number, sign: string }>, at: Array<{ line: number, node: ThoughtNode }> }}
  */
 export function readThoughts(section) {
   /** @type {ThoughtNode[]} */
   const nodes = []
   /** @type {Array<{ line: number, sign: string }>} */
   const unknown = []
-  /** @typedef {{ indent: number, node: ThoughtNode, note: string[] }} Open */
+  /** @typedef {{ indent: number, node: ThoughtNode, note: string[], line: number }} Open */
   /** @type {Open[]} */
   const stack = []
   /** @type {Open[]} */
@@ -227,7 +228,7 @@ export function readThoughts(section) {
     const link = LINK.exec(node.text)
     if (link) { node.text = node.text.slice(0, link.index).trim(); node.item = link[1] }
     ;(stack.length ? stack[stack.length - 1].node.children : nodes).push(node)
-    target = { indent, node, note: [] }
+    target = { indent, node, note: [], line: i }
     stack.push(target)
     all.push(target)
   })
@@ -235,7 +236,7 @@ export function readThoughts(section) {
     const text = note.join('\n').replace(/^\n+|\n+$/g, '')
     if (text) node.note = text
   }
-  return { nodes, unknown }
+  return { nodes, unknown, at: all.map(({ line, node }) => ({ line, node })) }
 }
 
 /** @param {ThoughtNode} n */

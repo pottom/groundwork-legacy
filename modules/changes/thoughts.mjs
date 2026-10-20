@@ -12,12 +12,15 @@
 //   mapTree(title, thoughts, removed?)  -> the tree <gw-mind-map> draws (core/shell/mind-map-tree.mjs):
 //                                       the root is the title; removed nodes (struck through until the
 //                                       next commit) stand under their old parent, or at the top
+//   mapMarks(diff)       -> { [id]: 'new' | 'modified' | 'removed' }   a Diff's marks of the map
+//                                       (compare.mjs), by the ids <gw-mind-map> knows; {} for none
 //   openQuestions(thoughts, marks?)  -> [{ id, key, text, note?, options: [{ id, text, recommended? }] }]
 //                                       the ? nodes with their ~ children, the latest on top: the ones
 //                                       new or modified since the last commit first, then the later in
 //                                       the file before the earlier
 
-/** @typedef {{ kind: string, text: string, recommended?: boolean, note?: string, item?: string, children?: ThoughtNode[] }} ThoughtNode */
+// the core's ThoughtNode (core/records/types.mjs), written out: the page loads only this module's files
+/** @typedef {{ kind: 'thought' | 'question' | 'option' | 'decision' | 'constraint' | 'excluded', text: string, recommended?: boolean, note?: string, item?: string, children?: ThoughtNode[] }} ThoughtNode */
 /** @typedef {{ key: string, id: string, parent: string | null, kind: string, recommended?: boolean, text: string, note?: string, item?: string }} Thought */
 
 /** @param {string} text */
@@ -68,6 +71,15 @@ export function mapTree(title, thoughts, removed = []) {
     ;(t.parent != null && byKey.get(t.parent) ? byKey.get(t.parent).children : root.children).push(node)
   }
   return root
+}
+
+/** @param {{ thoughts?: Record<string, string>, removed?: { thoughts?: Thought[] } } | null | undefined} diff */
+export function mapMarks(diff) {
+  /** @type {Record<string, string>} */
+  const out = {}
+  for (const [key, mark] of Object.entries(diff?.thoughts ?? {})) out[idOf(key)] = mark
+  for (const t of diff?.removed?.thoughts ?? []) out[t.id] = 'removed'
+  return out
 }
 
 /** @param {Thought[]} thoughts @param {{ thoughts?: Record<string, string> } | null} [marks] */

@@ -208,7 +208,7 @@ export class MindMap extends LitElement {
       let badge = tpc.querySelector(':scope > .gw-mind-map__link')
       if (!n?.link) badge?.remove()
       else {
-        if (!badge) { badge = document.createElement('span'); badge.className = 'gw-mind-map__link'; tpc.appendChild(badge) }
+        if (!badge) { badge = document.createElement('span'); badge.className = 'gw-tag gw-mind-map__link'; tpc.appendChild(badge) }
         if (badge.textContent !== `→ ${n.link}`) badge.textContent = `→ ${n.link}`
       }
     }

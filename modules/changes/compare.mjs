@@ -24,7 +24,7 @@
 
 /** @typedef {{ key: string, text: string, done: boolean }} Question */
 /** @typedef {{ op: string, id: string, target: string, text?: string, note?: string }} Item */
-/** @typedef {{ key: string, id: string, parent: string | null, kind: string, recommended?: boolean, text: string, note?: string, item?: string }} Thought */
+/** @typedef {import('./thoughts.mjs').Thought} Thought */
 /** @typedef {{ title?: string, sections: Record<string, string | undefined>, questions: Question[], items: Item[], thoughts?: Thought[] }} Content */
 /** @typedef {'new' | 'modified' | 'removed'} Mark */
 /**
