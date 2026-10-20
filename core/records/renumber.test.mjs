@@ -83,7 +83,7 @@ test('renumber gives the newer of two C-2 a new number and rewrites the referenc
   const beta = open(dir).get('C-3')
   assert.equal(beta.fields.title, 'Beta')
   assert.equal(beta.file, 'docs/product/changes/C-003-beta.md')
-  assert.match(beta.history.at(-1), /· renumbered: C-2 → C-3$/)
+  assert.match(beta.history.at(-1), / · human · renumbered: C-2 → C-3$/, 'only a human starts a renumber')
   assert.match(read(dir, 'docs/product/changes/C-003-beta.md'), /^id: C-3$/m)
   assert.equal(open(dir).get('C-2').fields.title, 'Alpha')
   assert.equal(read(dir, '.scratch/records/issues/beta.md'), '# Beta ticket\n\n**Change:** C-3 ([file](../../../docs/product/changes/C-003-beta.md))\n**Spec:** d-beta\n')

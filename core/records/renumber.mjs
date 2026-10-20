@@ -137,7 +137,7 @@ export function renumber(store, { today = new Date().toISOString().slice(0, 10),
     text = text.replace(new RegExp(escape(path.posix.basename(move.fromFile)), 'g'), path.posix.basename(move.toFile)).replace(mention(move.from), move.to)
     const rec = readRecord(text, t)
     rec.id = move.to
-    rec.history = [...rec.history, `${today} · claude · renumbered: ${move.from} → ${move.to}`]
+    rec.history = [...rec.history, `${today} · human · renumbered: ${move.from} → ${move.to}`]
     files.write(move.toFile, writeRecord(rec, t))
     files.remove(move.fromFile)
     move.github = lookup(move.from)

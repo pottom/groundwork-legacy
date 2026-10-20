@@ -349,22 +349,18 @@ export function applyMigration(plan, { states } = {}) {
     files.remove(idea.from)
     moved.push(`${idea.from} → ${idea.rel}`)
   }
-  removeEmpty(root, OLD_IDEAS)
+  // A folder under docs/product/ left empty by the migration goes too (through the writer's checks).
+  /** @param {string} rel */
+  const removeEmpty = (rel) => { if (rel.startsWith('docs/product/') && rel.split('/').length >= 3) files.removeEmptyDir(rel) }
+  removeEmpty(OLD_IDEAS)
   for (const rel of plan.remove) {
     files.remove(rel)
-    removeEmpty(root, path.posix.dirname(rel))
+    removeEmpty(path.posix.dirname(rel))
   }
   write(plan.mapTo, fs.readFileSync(path.join(root, plan.map), 'utf8'))
   files.remove(plan.map)
   moved.push(`${plan.map} → ${plan.mapTo}`)
   return { written, removed: plan.remove, moved }
-}
-
-// A folder under docs/product/ left empty by the migration goes too.
-/** @param {string} root @param {string} rel */
-function removeEmpty(root, rel) {
-  if (!rel.startsWith('docs/product/') || rel.split('/').length < 3) return
-  try { fs.rmdirSync(path.join(root, rel)) } catch { /* not empty, or gone */ }
 }
 
 export { ORIGIN, CORE_RECORDS }

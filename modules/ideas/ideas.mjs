@@ -14,12 +14,14 @@
 // core's record store refuses them for the command, with a message saying so.
 //
 // The project folder is --root, else MINDMAP_DIR, else the current folder. Every write goes through
-// the core's record store (core/records/store.mjs), so it lands only under docs/product/ideas/.
+// the core's record store, opened as the server opens it (core/records/project.mjs: every type, so a
+// link to a change or a milestone is known) and as Ideas gets it (forModule: it writes ideas only),
+// so it lands only under docs/product/ideas/.
 // A wrong call prints a message and exits with 1.
 
 import path from 'node:path'
-import { openRecords } from '../../core/records/store.mjs'
-import { MODULES } from '../../core/modules.mjs'
+import { openProjectRecords } from '../../core/records/project.mjs'
+import manifest from './module.mjs'
 import { openIdeas } from './store.mjs'
 import { similar } from './similar.mjs'
 import { CLI_STATUSES } from './fields.mjs'
@@ -48,7 +50,7 @@ function parse(args) {
 function run([cmd, ...rest]) {
   const { words, opts } = parse(rest)
   const root = path.resolve(opts.root ?? (process.env.MINDMAP_DIR || process.cwd()))
-  const store = openIdeas(openRecords(root, MODULES))
+  const store = openIdeas(openProjectRecords(root).forModule(manifest))
   const by = 'claude'
   if (cmd === 'add') {
     if (words.length !== 1) throw new Error('add needs one title, in quotes')

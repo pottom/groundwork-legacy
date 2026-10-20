@@ -27,7 +27,7 @@ import { MODULES } from '../modules.mjs'
 import { planMigration, applyMigration } from './migrate.mjs'
 import { readSplitPlan } from './split.mjs'
 import { checkRecords, formatFinding } from '../records/check.mjs'
-import { openRecords } from '../records/store.mjs'
+import { openProjectRecords } from '../records/project.mjs'
 import { CORE_RECORDS } from '../records/changes.mjs'
 
 const USAGE = [
@@ -114,7 +114,7 @@ function run(argv) {
     return
   }
   const done = applyMigration(plan, { states: /** @type {string | undefined} */ (opts.milestones) })
-  const { findings } = checkRecords(openRecords(root, modules))
+  const { findings } = checkRecords(openProjectRecords(root))
   console.log([
     `Migrated: ${done.written.length} files written, ${done.removed.length} generated documents removed.`,
     ...done.moved.map((m) => `  ${m}`),

@@ -8,6 +8,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runCommand } from '../../core/cli-process.test-helper.mjs'
+import { openProjectRecords } from '../../core/records/project.mjs'
 
 const BIN = fileURLToPath(new URL('../../core/groundwork.mjs', import.meta.url))
 const ITEMS = path.join('docs', 'product', 'ideas')
@@ -122,6 +123,15 @@ test('an idea Claude adds carries author claude, its source, an impact/effort es
   assert.match(text, /\nlinks: I-1\n/)
   const list = await ideas(dir, 'list')
   assert.match(list.stdout, /I-2\s+new\s+Quick tab switching\s+\(claude, review of #24\)\s+impact medium, effort low\s+~ I-1/)
+})
+
+test('the command knows the core\'s records too: an idea may link a change that exists', async () => {
+  const dir = project()
+  openProjectRecords(dir).create('C', { fields: { title: 'Record store' } })
+  const r = await ideas(dir, 'add', 'Idea', '--links', 'C-1')
+  assert.equal(r.code, 0, r.stderr)
+  assert.match(fs.readFileSync(path.join(dir, ITEMS, 'I-001-idea.md'), 'utf8'), /\nlinks: C-1\n/)
+  assert.equal((await ideas(dir, 'add', 'Other', '--links', 'C-9')).code, 1, 'a change that does not exist')
 })
 
 test('Claude cannot file an idea without its source and estimate, nor link an idea that does not exist', async () => {
