@@ -16,6 +16,7 @@ import build, { buildModule } from './build/module.mjs'
 import ideas from './ideas/module.mjs'
 import sketch from './sketch/module.mjs'
 import agents from './agents/module.mjs'
+import changes from './changes/module.mjs'
 
 // A project with a map and a ticket that names an item.
 function project() {
@@ -90,6 +91,24 @@ test('with only Sketch, its page and endpoints work; the modules it links to are
     assert.equal((await get('/api/sketch/links')).status, 200)
     assert.equal((await get('/api/sketch/scene?name=main')).status, 200)
     for (const p of ['/api/ideas/list', '/api/plan/ids', '/api/build/prd']) assert.equal((await get(p)).status, 404, p)
+  })
+})
+
+test('with only Changes, its page and list work, and it needs no other module', async () => {
+  await withServer([changes], async (get) => {
+    assert.deepEqual(tabs(await (await get('/')).text()), ['changes'])
+    assert.match(await (await get('/changes/')).text(), /<html/i)
+    assert.deepEqual((await (await get('/api/changes/list')).json()).changes, [])
+    for (const p of ['/api/ideas/list', '/api/plan/ids', '/api/build/prd', '/api/sketch/links']) assert.equal((await get(p)).status, 404, p)
+  })
+})
+
+test('without Changes the other modules work, and the record store has no change type', async () => {
+  await withServer(MODULES.filter((m) => m !== changes), async (get) => {
+    assert.ok(!tabs(await (await get('/')).text()).includes('changes'))
+    assert.equal((await get('/api/changes/list')).status, 404)
+    assert.equal((await get('/api/ideas/list')).status, 200)
+    assert.deepEqual((await (await get('/api/records?type=C')).json()).records, [])
   })
 })
 
@@ -173,5 +192,6 @@ test('no module reads the files of Ideas or Sketch, nor do they read another mod
     assert.doesNotMatch(text, /mindmap\.json|ticket-reader|project-tickets/, file)
   }
   assert.deepEqual(ideas.public, [])
+  assert.deepEqual(changes.public, [])
   assert.deepEqual(sketch.public, ['GET /api/sketch/links'])
 })

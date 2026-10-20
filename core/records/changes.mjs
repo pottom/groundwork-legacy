@@ -1,9 +1,11 @@
 // @ts-check
-// The core's own record types: Change (C-n) and Milestone (M-n). The store (store.mjs) keeps them
-// like any module's type; CORE_RECORDS declares them, and the server and `groundwork record` open
-// the store with it beside the modules. They are the core's for now because the modules that will
-// show them (the Changes and Overview workspaces) come later; a module can take a declaration
-// over then, as long as one prefix keeps one type.
+// The Markdown of a change (C-n), and the core's own record type, Milestone (M-n). The Changes
+// module declares the Change type (modules/changes/type.mjs) with the body format here, which the
+// core reads too: resolve.mjs (the ids a pending change proposes) and check.mjs (its proposed
+// items). Without the Changes module there is no C type, and a change id is a plain id. The store
+// (store.mjs) keeps the milestones like any module's type; CORE_RECORDS declares them, and the
+// server and `groundwork record` open the store with it beside the modules. They are the core's
+// until the Overview workspace takes the declaration over (one prefix keeps one type).
 //
 //   docs/product/changes/C-007-<slug>.md          docs/product/milestones/M-009-<slug>.md
 //   ---                                           ---
@@ -27,7 +29,8 @@
 // of a ticket list, the rule that finds its tickets. Every link is written once, on the later record
 // toward its source (a change names its ideas and its milestone); the store computes the other way.
 //
-//   CHANGE_TYPE, MILESTONE_TYPE, CORE_RECORDS   the types, and the manifest-like entry declaring them
+//   MILESTONE_TYPE, CORE_RECORDS   the type, and the manifest-like entry declaring it
+//   needsTitle(next, what)         a type's rule: tidies the title, refuses a record without one
 //   changeBody(parts, id)  -> Markdown           parts: { problem?, solution?, scope?, outOfScope?,
 //                                                questions?, items?: [ProposedItem] }
 //   readChange(body)       -> parts + { items, tickets }   patient: English headings too, `->` for
@@ -38,9 +41,8 @@
 //                          proposed document's target is its part, a section's its document, an
 //                          item's `<document>#<section or parent item>`
 //
-// States. Change: grilling → awaiting-approval → implementing → done / dropped; Claude moves a change
-// only between grilling and awaiting-approval (the human approves, closes and drops). Milestone:
-// planned → in-progress → done; Claude proposes, the human moves it (Claude only creates one).
+// States. Milestone: planned → in-progress → done; Claude proposes, the human moves it (Claude only
+// creates one). A change's states are its type's (modules/changes/type.mjs).
 
 /** @typedef {import('./types.mjs').RecordType} RecordType */
 /** @typedef {import('./types.mjs').Fields} Fields */
@@ -145,33 +147,9 @@ export function readChange(body) {
 }
 
 /** @param {Fields} next @param {string} what */
-function needsTitle(next, what) {
+export function needsTitle(next, what) {
   if (next.title != null) next.title = String(next.title).replace(/\s+/g, ' ').trim()
   if (!next.title) throw new Error(`a ${what} needs a title`)
-}
-
-/** @type {RecordType} */
-export const CHANGE_TYPE = {
-  prefix: 'C',
-  name: 'change',
-  folder: CHANGES,
-  fields: ['title', 'ideas', 'milestone', 'status'],
-  lists: ['ideas'],
-  links: ['ideas', 'milestone'],
-  lifecycle: { field: 'status', states: ['grilling', 'awaiting-approval', 'implementing', 'done', 'dropped'], initial: 'grilling', claude: ['grilling', 'awaiting-approval'] },
-  template: (id) => changeBody({}, id),
-  outline: (body) => readChange(body),
-  rules(next) {
-    needsTitle(next, 'change')
-    const ideas = next.ideas == null ? [] : Array.isArray(next.ideas) ? next.ideas : String(next.ideas).split(',')
-    next.ideas = ideas.map((s) => String(s).trim()).filter(Boolean)
-    for (const i of next.ideas) if (!/^I-\d+$/.test(i)) throw new Error(`ideas: a change names ideas by id (I-5), not ${i}`)
-    if (next.milestone != null) {
-      next.milestone = String(next.milestone).trim()
-      if (next.milestone && !/^M-\d+$/.test(next.milestone)) throw new Error(`milestone: a change belongs to at most one milestone (M-9), not ${next.milestone}`)
-    }
-    return next
-  },
 }
 
 /** @type {RecordType} */
@@ -187,5 +165,5 @@ export const MILESTONE_TYPE = {
   },
 }
 
-// What the store is opened with beside the modules: the core's own types.
-export const CORE_RECORDS = { id: 'core', records: [CHANGE_TYPE, MILESTONE_TYPE] }
+// What the store is opened with beside the modules: the core's own type.
+export const CORE_RECORDS = { id: 'core', records: [MILESTONE_TYPE] }

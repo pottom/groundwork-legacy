@@ -1,0 +1,25 @@
+/* The Changes page (index.html). The look is the shell's design system (/shell/theme.css): the
+   --gw-* tokens and the .gw-* components (card, tag, badge, section header, empty state, record
+   chip). This sheet only lays out the list with them: a group per stage, a card per change. */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--gw-bg); color: var(--gw-fg); font: var(--gw-text-small) var(--gw-font); overflow-x: hidden; }
+h2, h3, p { margin: 0; }
+
+#list { display: block; padding: calc(var(--gw-space) * 2); max-width: 960px; margin: 0 auto; min-height: 100vh; }
+#list > .gw-empty { max-width: 520px; margin: calc(var(--gw-space) * 6) auto 0; }
+.changes__loading { color: var(--gw-muted); padding: var(--gw-space); }
+
+.changes { display: flex; flex-direction: column; gap: calc(var(--gw-space) * 3); }
+.stage { display: flex; flex-direction: column; gap: var(--gw-space); }
+.changes__rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--gw-space); }
+
+.change { padding: calc(var(--gw-space) * 1.5); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.change__head { display: flex; align-items: center; gap: var(--gw-space); flex-wrap: wrap; min-width: 0; }
+.change__title { flex: 1; min-width: 12ch; font: 600 var(--gw-text) var(--gw-font); overflow-wrap: anywhere; }
+.change__facts { display: flex; gap: calc(var(--gw-space) * 2); flex-wrap: wrap; color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); }
+.change__count.is-open { color: var(--gw-fg-2); font-weight: 600; }
+.change__links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.change__label { color: var(--gw-muted); font: var(--gw-text-xs) var(--gw-font); }
+.change__label:not(:first-child) { margin-left: var(--gw-space); }

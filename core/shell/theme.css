@@ -89,6 +89,9 @@
      .gw-badge--count a count in a tab or heading: sunken, tabular numbers (<span class="gw-badge gw-badge--count">17</span>)
    .gw-tag            mono, for things one copies: #17, d-trace, branch names, paths; an <a class="gw-tag">
                       turns accent on hover
+   .gw-record-chip    a record (I-5, M-9) as a tag: its id, then its title; drawn by <gw-record-chip .record=…>
+                      (record-chip.mjs, a Lit component), a link to its module when it has one;
+                      parts .gw-record-chip__id .gw-record-chip__title (cut with an ellipsis when narrow)
    .gw-dot            an 8 px status dot: .gw-dot--ok .gw-dot--warn .gw-dot--bad .gw-dot--info
                       .gw-dot--violet .gw-dot--accent .gw-dot--neutral; .gw-dot--pulse breathes (live)
    .gw-seg            a segmented control: <div class="gw-seg" role="group"> of <button>s (or <a>s);

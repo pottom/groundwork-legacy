@@ -6,7 +6,7 @@
 //   GET  /api/records[/<id>]   the record store's records and Spec documents (records/api.mjs); a
 //                              record file changing is the live topic "records"
 //   *    /api/<module>/...     the module's endpoints
-//   GET  /shell/...            the shared look (theme.css with controls.css and feedback.css, shell.css, the light/dark switch theme.js), the logo and favicon (logo.svg), the UI translation (i18n.mjs, strings.mjs), the live relay (live.mjs), the kept module frames (frames.mjs), the toasts (toasts.mjs) and the tabs' attention counts (attention.mjs)
+//   GET  /shell/...            the shared look (theme.css with controls.css and feedback.css, shell.css, the light/dark switch theme.js), the logo and favicon (logo.svg), the UI translation (i18n.mjs, strings.mjs), the live relay (live.mjs), the kept module frames (frames.mjs), the toasts (toasts.mjs), the tabs' attention counts (attention.mjs) and the shared Lit components (record-chip.mjs, with record-link.mjs)
 //   GET  /core/records/...     the record store's files a page shares (doc-strings.mjs: the documents' fixed texts)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
 //   GET  /<module>/...         the module's view (only the files its manifest lists)
@@ -66,7 +66,7 @@ export function isLocalHost(header) {
 export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
 export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
 // The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
-const SHELL_BROWSER_FILES = new Set(['theme.css', 'theme.js', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs', 'frames.mjs', 'toasts.mjs', 'attention.mjs', 'logo.svg'])
+const SHELL_BROWSER_FILES = new Set(['theme.css', 'theme.js', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs', 'frames.mjs', 'toasts.mjs', 'attention.mjs', 'record-chip.mjs', 'record-link.mjs', 'logo.svg'])
 // The record store's files a page may load, at /core/records/: the documents' fixed texts.
 export const RECORDS_DIR = fileURLToPath(new URL('./records/', import.meta.url))
 const RECORDS_BROWSER_FILES = new Set(['doc-strings.mjs'])

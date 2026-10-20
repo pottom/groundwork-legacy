@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { openRecords } from './store.mjs'
 import { CORE_RECORDS } from './changes.mjs'
+import changesModule from '../../modules/changes/module.mjs'
 
 const today = () => '2026-10-20'
 // A project whose merged C-1 lists, in its scope, the old ids and what they became.
@@ -25,7 +26,7 @@ const project = () => {
   }
   return root
 }
-const open = (root) => openRecords(root, [CORE_RECORDS], { today })
+const open = (root) => openRecords(root, [changesModule, CORE_RECORDS], { today })
 
 test("an old id resolves through a merged change's list of what the ids became", () => {
   const store = open(project())

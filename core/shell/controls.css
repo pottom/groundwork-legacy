@@ -68,6 +68,12 @@
 a.gw-tag { transition: color .15s, background .15s; }
 a.gw-tag:hover { color: var(--gw-accent-text); background: var(--gw-accent-soft); }
 
+/* a record chip (<gw-record-chip>, record-chip.mjs): a tag with the id, then the title in the interface font */
+gw-record-chip { display: inline-flex; max-width: 100%; min-width: 0; }
+.gw-record-chip { display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%; min-width: 0; }
+.gw-record-chip__id { font-weight: 600; flex: none; }
+.gw-record-chip__title { font: var(--gw-text-xs) var(--gw-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
 .gw-dot {
   display: inline-block;
   width: 8px; height: 8px;

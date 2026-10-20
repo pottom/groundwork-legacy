@@ -96,6 +96,9 @@ test('every bundled dependency is recorded with its version and license', () => 
   for (const [dir, name, version] of [
     ['mind-elixir', 'mind-elixir', '5.15.1'],
     ['marked', 'marked', '12.0.2'],
+    ['lit-html', 'lit-html', '3.2.1'],
+    ['lit-element', 'lit-element', '4.1.1'],
+    ['reactive-element', '@lit/reactive-element', '2.0.4'],
     ['fonts/inter', '@fontsource-variable/inter', '5.3.0'],
     ['fonts/source-serif-4', '@fontsource-variable/source-serif-4', '5.3.1'],
     ['excalidraw', '@excalidraw/excalidraw', '0.17.6'],

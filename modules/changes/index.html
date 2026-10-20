@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groundwork Changes</title>
+<script src="/shell/theme.js"></script>
+<!-- Lit names its dependencies by package name; the map points them at core/vendor (core/vendor/README.md) -->
+<script type="importmap">{ "imports": { "lit-html": "/vendor/lit-html/lit-html.js", "@lit/reactive-element": "/vendor/reactive-element/reactive-element.js" } }</script>
+<link rel="stylesheet" href="/shell/theme.css">
+<link rel="stylesheet" href="./view/changes.css">
+<!-- every module the page imports, fetched side by side instead of one import level after another (a test keeps the list whole) -->
+<link rel="modulepreload" href="/vendor/lit-element/lit-element.js"><link rel="modulepreload" href="/vendor/lit-html/lit-html.js">
+<link rel="modulepreload" href="/vendor/reactive-element/reactive-element.js"><link rel="modulepreload" href="/vendor/reactive-element/css-tag.js">
+<link rel="modulepreload" href="/shell/i18n.mjs"><link rel="modulepreload" href="/shell/live.mjs">
+<link rel="modulepreload" href="/shell/record-chip.mjs"><link rel="modulepreload" href="/shell/record-link.mjs">
+<link rel="modulepreload" href="./view/changes-list.mjs"><link rel="modulepreload" href="./view/strings.mjs"><link rel="modulepreload" href="./ui-strings.mjs">
+</head>
+<body data-state="loading">
+<!-- view/main.mjs fills the list (view/changes-list.mjs) from /api/changes/list -->
+<gw-changes-list id="list"></gw-changes-list>
+<script type="module" src="./view/main.mjs"></script>
+</body>
+</html>

@@ -12,6 +12,7 @@ import { listen } from '../sse-client.test-helper.mjs'
 import { openRecords } from './store.mjs'
 import { recordTopic } from './api.mjs'
 import { CORE_RECORDS } from './changes.mjs'
+import changesModule from '../../modules/changes/module.mjs'
 
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-records-api-'))
 const THING = {
@@ -64,24 +65,30 @@ test('/api/records/<id> gives a Spec document with its sections and items, and f
 test('a module api gets the shared store', async () => {
   let seen
   const mod = { ...MODULE, api: ({ records }) => { seen = records; return () => false } }
-  await withServer(project(), [mod], async () => {
-    assert.deepEqual(seen.types().map((t) => t.prefix), ['T', 'C', 'M'], 'the modules\' types, then the core\'s own')
+  await withServer(project(), [mod, changesModule], async () => {
+    assert.deepEqual(seen.types().map((t) => t.prefix), ['T', 'C', 'M'], 'the modules\' types (the Changes module\'s C), then the core\'s own')
   })
 })
 
 test('the core\'s changes and milestones are on /api/records with their links; a missing module\'s ids stay plain', async () => {
   const root = project()
-  const store = openRecords(root, [MODULE, CORE_RECORDS])
+  const store = openRecords(root, [MODULE, changesModule, CORE_RECORDS])
   store.create('T', { fields: { title: 'A thing' } })
   store.create('M', { fields: { title: 'Redesign' } })
   store.create('C', { fields: { title: 'Record store', ideas: ['I-5'], milestone: 'M-1' } })
-  await withServer(root, [MODULE], async (base) => {
+  await withServer(root, [MODULE, changesModule], async (base) => {
     const { records } = await (await fetch(`${base}/api/records`)).json()
     assert.deepEqual(records.map((r) => r.id), ['T-1', 'C-1', 'M-1'])
     const { record } = await (await fetch(`${base}/api/records/C-1`)).json()
     assert.deepEqual(record.links.map((l) => [l.id, l.title ?? null]), [['I-5', null], ['M-1', 'Redesign']])
     assert.equal(record.outline.tickets, 'C-1')
     assert.deepEqual((await (await fetch(`${base}/api/records/M-1`)).json()).record.linkedFrom, ['C-1'])
+  })
+  // without the Changes module there is no C type: no change records, and nothing links the milestone
+  await withServer(root, [MODULE], async (base) => {
+    assert.deepEqual((await (await fetch(`${base}/api/records`)).json()).records.map((r) => r.id), ['T-1', 'M-1'])
+    assert.equal((await fetch(`${base}/api/records/C-1`)).status, 404)
+    assert.deepEqual((await (await fetch(`${base}/api/records/M-1`)).json()).record.linkedFrom, [])
   })
 })
 
@@ -112,11 +119,11 @@ test('a Spec document or the parts list is the topic "records" too', () => {
 
 test('/api/records/<id> resolves an id a pending change adds, and an old id a merged change lists', async () => {
   const root = project()
-  const store = openRecords(root, [CORE_RECORDS])
+  const store = openRecords(root, [changesModule, CORE_RECORDS])
   store.create('C', { fields: { title: 'Pending' }, body: '## Javasolt elemek\n\n- add `d-new` → `core/tech#t-x` — New thing\n  Its note.' })
   store.create('C', { fields: { title: 'Merged' }, body: '## Keret\n\n- `old-1` → `d-new` (rész)' })
   store.update('C-2', { fields: { status: 'done' } }, { by: 'human' })
-  await withServer(root, [], async (base) => {
+  await withServer(root, [changesModule], async (base) => {
     const { proposed } = await (await fetch(`${base}/api/records/d-new`)).json()
     assert.deepEqual(proposed, { op: 'add', id: 'd-new', target: 'core/tech#t-x', text: 'New thing', note: 'Its note.', change: { id: 'C-1', title: 'Pending', status: 'grilling', file: 'docs/product/changes/C-001-pending.md' } })
     const old = await (await fetch(`${base}/api/records/old-1`)).json()

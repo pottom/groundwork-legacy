@@ -10,6 +10,7 @@ import { startServer } from '../../core/server.mjs'
 import { openMap, index } from './map-store.mjs'
 import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'
+import changes from '../changes/module.mjs'
 import { listen } from '../../core/sse-client.test-helper.mjs'
 
 const open = (dir) => openMap(dir, moduleFiles(dir, plan))
@@ -87,7 +88,8 @@ test('/api/plan/ids also gives the ids a pending change proposes and the old ids
   put(root, 'docs/product/changes/C-001-start.md', '---\nid: C-1\ntitle: Start\nstatus: done\n---\n\n## Keret\n\n- `c-old` → `app` (rész)\n\n## Történet\n')
   const pending = '---\nid: C-2\ntitle: Next\nstatus: awaiting-approval\n---\n\n## Javasolt elemek\n\n- add `d-new` → `app/prd#goal` — New\n\n## Történet\n'
   put(root, 'docs/product/changes/C-002-next.md', pending)
-  const srv = await startServer({ root, modules: [plan], port: 0 })
+  // the Changes module declares the change type; without it a change is no record, and its ids are unknown
+  const srv = await startServer({ root, modules: [plan, changes], port: 0 })
   try {
     const base = `http://127.0.0.1:${srv.port}`
     const { v, ids } = await (await fetch(`${base}/api/plan/ids`)).json()

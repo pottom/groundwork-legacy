@@ -11,7 +11,8 @@
 //   store.get(id)                       one record, or null
 //   store.show(id)                      the record with what is computed from all records, never
 //                                       stored in a file: links (its link fields' ids, resolved by the
-//                                       id's shape: type, title and file when a declared type has the
+//                                       id's shape: type, name, the declaring module ('core' for the
+//                                       core's own), title and file when a declared type has the
 //                                       prefix, else a plain id, so a missing module breaks nothing),
 //                                       linkedFrom (who refers to it: an idea's changes, a milestone's
 //                                       changes), outline (what the type reads from the body, a change's
@@ -94,6 +95,8 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
   root = path.resolve(root)
   /** @type {RecordType[]} */
   const types = []
+  /** @type {Map<string, string>} the module that declares each prefix */
+  const owners = new Map()
   for (const m of modules) for (const t of m.records ?? []) {
     const folder = String(t.folder ?? '')
     const norm = path.posix.normalize(folder)
@@ -103,6 +106,7 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     if (!/^[A-Z]+$/.test(t.prefix)) throw new Error(`${m.id}: a record prefix is capital letters, not ${t.prefix}`)
     if (types.some((o) => o.prefix === t.prefix)) throw new Error(`${m.id}: record type ${t.prefix} is declared twice`)
     types.push(t)
+    owners.set(t.prefix, m.id)
   }
   const files = projectFiles(root, [...types.map((t) => t.folder), SPEC_DIR, path.posix.dirname(CACHE)])
   const spec = openSpec(root, files)
@@ -306,7 +310,7 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
       const link = { field, id: ref }
       const of = typeOf(ID.exec(ref)?.[1] ?? '')
       if (of) {
-        Object.assign(link, { type: of.prefix, name: of.name })
+        Object.assign(link, { type: of.prefix, name: of.name, module: owners.get(of.prefix) })
         const target = all.find((r) => r.id === ref)
         if (target) Object.assign(link, { title: String(target.fields.title ?? ''), file: target.file })
       }

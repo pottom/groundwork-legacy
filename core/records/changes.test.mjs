@@ -9,8 +9,10 @@ import os from 'node:os'
 import path from 'node:path'
 import { readRecord, writeRecord } from './format.mjs'
 import { openRecords } from './store.mjs'
-import { CHANGE_TYPE, MILESTONE_TYPE, CORE_RECORDS, changeBody, readChange } from './changes.mjs'
+import { MILESTONE_TYPE, CORE_RECORDS, changeBody, readChange } from './changes.mjs'
 import ideasModule from '../../modules/ideas/module.mjs'
+import changesModule from '../../modules/changes/module.mjs'
+import { CHANGE_TYPE } from '../../modules/changes/type.mjs'
 
 const C7 = {
   problem: 'Ideas have nowhere to go before they fit the structure.',
@@ -132,7 +134,7 @@ test('a change\'s header names its ideas, its milestone and its state; a milesto
 // On the store, beside the Ideas module: links written once, the other way computed.
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-changes-'))
 const read = (root, file) => fs.readFileSync(path.join(root, file), 'utf8')
-const open = (root, modules = [ideasModule, CORE_RECORDS]) => openRecords(root, modules, { today: () => '2026-10-20' })
+const open = (root, modules = [ideasModule, changesModule, CORE_RECORDS]) => openRecords(root, modules, { today: () => '2026-10-20' })
 
 function seed(root) {
   const store = open(root)
@@ -173,8 +175,8 @@ test('a change shows its links resolved by the id\'s shape, and its proposed ite
   store.update('C-1', { body: changeBody(C7, 'C-1') })
   const c = store.show('C-1')
   assert.deepEqual(c.links, [
-    { field: 'ideas', id: 'I-1', type: 'I', name: 'idea', title: 'Record model', file: 'docs/product/ideas/I-001-record-model.md' },
-    { field: 'milestone', id: 'M-1', type: 'M', name: 'milestone', title: 'Redesign', file: 'docs/product/milestones/M-001-redesign.md' },
+    { field: 'ideas', id: 'I-1', type: 'I', name: 'idea', module: 'ideas', title: 'Record model', file: 'docs/product/ideas/I-001-record-model.md' },
+    { field: 'milestone', id: 'M-1', type: 'M', name: 'milestone', module: 'core', title: 'Redesign', file: 'docs/product/milestones/M-001-redesign.md' },
   ])
   assert.deepEqual(c.outline.items, C7.items)
   assert.equal(store.show('I-1').outline, undefined, 'only a type with an outline has one')
@@ -183,17 +185,21 @@ test('a change shows its links resolved by the id\'s shape, and its proposed ite
 test('with the declaring module missing, links to its records show as plain ids and nothing breaks', () => {
   const root = project()
   seed(root)
-  const store = open(root, [CORE_RECORDS])
+  const store = open(root, [changesModule, CORE_RECORDS])
   assert.deepEqual(store.list().map((r) => r.id), ['C-1', 'C-2', 'M-1'])
   assert.deepEqual(store.show('C-1').links, [
     { field: 'ideas', id: 'I-1' },
-    { field: 'milestone', id: 'M-1', type: 'M', name: 'milestone', title: 'Redesign', file: 'docs/product/milestones/M-001-redesign.md' },
+    { field: 'milestone', id: 'M-1', type: 'M', name: 'milestone', module: 'core', title: 'Redesign', file: 'docs/product/milestones/M-001-redesign.md' },
   ])
   assert.equal(store.get('I-1'), null)
   assert.equal(store.update('C-1', { fields: { title: 'Record store, renamed', ideas: ['I-1', 'I-7'] } }).fields.title, 'Record store, renamed')
   assert.equal(store.create('C', { fields: { title: 'Another', ideas: ['I-1'] } }).id, 'C-3')
-  // and the other way: without the core's types an idea still shows; its changes are not known
-  const ideasOnly = open(root, [ideasModule])
+  // and the other way: without the Changes module an idea still shows; its changes are not known,
+  // and a link to a change is a plain id
+  const ideasOnly = open(root, [ideasModule, CORE_RECORDS])
+  assert.deepEqual(ideasOnly.list().map((r) => r.id), ['I-1', 'M-1'])
   assert.deepEqual(ideasOnly.show('I-1').linkedFrom, [])
   assert.equal(ideasOnly.show('I-1').fields.title, 'Record model')
+  ideasOnly.update('I-1', { fields: { links: ['C-1'] } }, { by: 'human' })
+  assert.deepEqual(ideasOnly.show('I-1').links, [{ field: 'links', id: 'C-1' }])
 })

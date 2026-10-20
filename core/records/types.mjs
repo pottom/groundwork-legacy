@@ -97,6 +97,8 @@
  * @property {string} id                'I-5'
  * @property {string} [type]            the prefix of a declared type
  * @property {string} [name]            that type's name ('idea')
+ * @property {string} [module]          the id of the module that declares the type ('ideas'; 'core'
+ *                                      for the core's own): a page opens the record there
  * @property {string} [title]           the record's title, when it exists
  * @property {string} [file]            the record's file, when it exists
  */
