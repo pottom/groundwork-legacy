@@ -199,3 +199,12 @@ test('every stage of a change has a label on the card', async () => {
   const { UI_STRINGS } = await import('./ui-strings.mjs')
   for (const s of CHANGE_TYPE.lifecycle.states) assert.ok(UI_STRINGS.en[`change.${s}`] && UI_STRINGS.hu[`change.${s}`], s)
 })
+
+test('a card shows its quiet marks from the list (date passed, old) as neutral badges; a mark moves nothing', () => {
+  const board = read('view/board.mjs')
+  assert.match(board, /idea\.marks/)
+  assert.match(board, /class="gw-badge gw-badge--neutral idea__mark"/)
+  assert.match(board, /'snooze-passed': \[ui\('mark\.snooze-passed'\), ui\('mark\.snooze-passed-title'\)\]/)
+  assert.match(board, /stale: \[ui\('mark\.stale'\), ui\('mark\.stale-title'\)\]/)
+  assert.doesNotMatch(viewSource(), /marks[^\n]*act\.move/)
+})

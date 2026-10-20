@@ -3,8 +3,8 @@
 //   GET /ideas/               the kanban (index.html)
 //   GET /api/ideas/list       { ideas: [{ id: 'I-12', n, file, version, title, body, author, source, kind,
 //                                         impact, effort, status, reason, until, duplicate, links, created, history,
-//                                         changes: [{ id: 'C-7', title, status }] }] }; changes: the changes that
-//                             name the idea (store.mjs)
+//                                         changes: [{ id: 'C-7', title, status }], marks: ['snooze-passed' | 'stale'] }] };
+//                             changes: the changes that name the idea (store.mjs); marks: computed on each read (marks.mjs)
 //   PUT /api/ideas/item/I-12  { base: version, changes: { title?, body?, source?, kind?, impact?, effort?,
 //                                status?, reason?, until?, duplicate?, links? } } -> { idea }; 409 { error, idea }
 //                             when the file changed since `base`; 400 a wrong value (Rejected needs a
@@ -35,6 +35,7 @@ import { fileURLToPath } from 'node:url'
 import { send, readJson, isJson } from '../../core/http.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { IDEAS, IDEA_TYPE, openIdeas } from './store.mjs'
+import { marks } from './marks.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -64,10 +65,13 @@ export default {
   watch: (p) => (p.startsWith(IDEAS + '/') && /^I-\d+[^/]*\.md$/.test(p.slice(IDEAS.length + 1)) ? 'ideas.items' : null),
   api({ records }) {
     const store = openIdeas(records)
+    // Each idea as the page gets it: with its quiet marks (marks.mjs), computed now, never written.
+    /** @param {any} idea */
+    const shown = (idea) => idea && { ...idea, marks: marks(idea, new Date()) }
     return async (req, res, sub, url) => {
       if (sub === '/list') {
         if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'method not allowed' }), true
-        return send(res, 200, { ideas: store.list() }), true
+        return send(res, 200, { ideas: store.list().map(shown) }), true
       }
       if (sub === '/accept') return accept(store, req, res, url), true
       const item = /^\/item\/(I-\d+)$/.exec(sub)
@@ -81,9 +85,9 @@ export default {
         if (changes?.status === 'accepted' && was && was.status !== 'accepted') {
           return send(res, 400, { error: `${item[1]} is accepted on a route, which opens its change: POST /api/ideas/accept`, code: 'accept' }), true
         }
-        send(res, 200, { idea: store.update(item[1], changes ?? {}, { base, by: 'human' }) })
+        send(res, 200, { idea: shown(store.update(item[1], changes ?? {}, { base, by: 'human' })) })
       } catch (e) {
-        if (e.code === 'stale') send(res, 409, { error: e.message, idea: store.list().find((i) => i.id === item[1]) })
+        if (e.code === 'stale') send(res, 409, { error: e.message, idea: shown(store.list().find((i) => i.id === item[1])) })
         else send(res, e.code === 'missing' ? 404 : e.code === 'forbidden' ? 403 : 400, { error: e.message })
       }
       return true

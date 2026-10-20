@@ -47,6 +47,15 @@ const moveMenu = (idea, act) => html`
     </ul>
   </div>`
 
+// A card's quiet marks, which the server computes on each read (marks.mjs): a label and its title.
+// They only tell; nothing moves the idea or asks for attention (d-snooze-manual, d-stale-quiet).
+const MARKS = () => ({
+  'snooze-passed': [ui('mark.snooze-passed'), ui('mark.snooze-passed-title')],
+  stale: [ui('mark.stale'), ui('mark.stale-title')],
+})
+const markBadges = (idea) => (idea.marks ?? []).map((m) => MARKS()[m]).filter(Boolean)
+  .map(([label, title]) => html`<span class="gw-badge gw-badge--neutral idea__mark" title=${title}>${label}</span>`)
+
 const card = (idea, state, act) => html`
   <li class="gw-card idea${state.fresh.has(idea.id) ? ' is-fresh' : ''}" data-idea=${idea.id} draggable="true"
     @dragstart=${(e) => { e.dataTransfer.setData(DRAG_TYPE, idea.id); e.dataTransfer.effectAllowed = 'move' }}
@@ -54,6 +63,7 @@ const card = (idea, state, act) => html`
     <div class="idea__head">
       <span class="gw-tag">${idea.id}</span>
       ${idea.author ? html`<span class="gw-badge gw-badge--${AUTHOR_TONES[idea.author] ?? 'neutral'}">${ui(`author.${idea.author}`)}</span>` : nothing}
+      ${markBadges(idea)}
       <span class="idea__spacer"></span>
       <button type="button" class="gw-btn gw-btn--icon gw-btn--ghost gw-btn--sm idea__move" aria-haspopup="menu"
         aria-expanded=${state.menu === idea.id ? 'true' : 'false'} aria-controls=${`move-${idea.id}`}
