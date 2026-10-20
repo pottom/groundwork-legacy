@@ -53,8 +53,8 @@ test('the package holds the core, the modules and their bundled libraries', asyn
 })
 
 test('the package leaves out what it does not need: the plan, scratch notes, tests and test helpers, the Claude setup', async () => {
-  // Tests are *.test.mjs, their helpers *.test-helper.mjs.
-  const extra = (await packed()).filter((f) => /^(docs|\.scratch|\.claude|\.groundwork|\.github)\//.test(f) || /\.test[^/]*\.mjs$/.test(f))
+  // Tests are *.test.mjs, their helpers *.test-helper.mjs, their files under spec-fixtures/ and migrate-fixtures/.
+  const extra = (await packed()).filter((f) => /^(docs|\.scratch|\.claude|\.groundwork|\.github)\//.test(f) || /\.test[^/]*\.mjs$/.test(f) || /\/(spec|migrate)-fixtures\//.test(f))
   assert.deepEqual(extra, [])
 })
 
@@ -174,7 +174,7 @@ test('`npx -y @pottom/groundwork init` sets up another project: its hook and ski
   assert.match(r.stdout, /No similar ideas/)
   r = await ideas('add "Quick tab switching" --author claude --source "package test" --kind product --impact medium --effort low --rationale "One key handler."')
   assert.equal(r.code, 0, r.stderr)
-  assert.match(r.stdout, /^I-1 docs\/product\/ideas\/items\/I-001-quick-tab-switching\.md/)
+  assert.match(r.stdout, /^I-1 docs\/product\/ideas\/I-001-quick-tab-switching\.md/)
   r = await ideas('similar "switch tabs"')
   assert.match(r.stdout, /^I-1\s+\d\.\d\d\s+new\s+Quick tab switching/)
 })

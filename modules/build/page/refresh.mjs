@@ -163,7 +163,8 @@ async function refreshIssues() {
 }
 
 // The ids of Plan's map, which the reader checks the tickets' PRD lines against: Plan sends only
-// the ids (GET /api/plan/ids, "same" while unchanged). No map (none in the project, Plan not
+// the ids (GET /api/plan/ids, "same" while unchanged), with the ids the record store resolves beyond
+// the map (proposed by a pending change, old ids a merged change lists). No map (none in the project, Plan not
 // running): ids null, and no PRD id counts as unknown.
 async function refreshMap() {
   if (!app.source) return;

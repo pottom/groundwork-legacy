@@ -8,7 +8,7 @@ Groundwork takes a project from idea to delivery, in one portable package that w
 - **Modules**: Plan and Build sit on a small shared core (one local server, one shell). More modules can be added later.
 
 > **Status: early.** Both modules exist as working prototypes, served by the one core server.
-> The full plan is in [`docs/product/`](docs/product/SYSTEM.md); it is written in Hungarian. The roadmap has four steps:
+> The full plan is in [`docs/product/spec/`](docs/product/spec/SYSTEM.md); it is written in Hungarian. The roadmap has four steps:
 > 1. one shared server for both modules;
 > 2. a shared look with an English UI;
 > 3. linking Plan and Build;

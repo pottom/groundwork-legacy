@@ -3,6 +3,10 @@
 //   groundwork [--root DIR] [--port N] [--no-open]   start the server for a project (start.mjs)
 //   groundwork init [--root DIR] [--yes]             set the project up for Claude Code (init.mjs);
 //                                                     `init` may stand anywhere among the options
+//   groundwork record list|show <id>|add <type>      the record store (records/cli.mjs), what Claude
+//                                                     reads and creates records with
+//   groundwork migrate [--yes --milestones S]         the old map to the record model (migrate/cli.mjs);
+//                                                     without --yes it only prints the plan
 //   groundwork <module> ...                           a module's own command (its manifest's `cli`),
 //                                                     e.g. `groundwork plan apply`, which its skill uses;
 //                                                     only as the first argument, the rest is the module's
@@ -41,7 +45,13 @@ function parse(args) {
 const args = process.argv.slice(2)
 const mod = MODULES.find((m) => m.cli && m.id === args[0])
 
-if (mod) {
+if (args[0] === 'record') {
+  process.argv.splice(2, 1)   // the store's command sees its own arguments only
+  await import('./records/cli.mjs')
+} else if (args[0] === 'migrate') {
+  process.argv.splice(2, 1)
+  await import('./migrate/cli.mjs')
+} else if (mod) {
   process.argv.splice(2, 1)   // the module's command sees its own arguments only
   await import(pathToFileURL(mod.cli).href)
 } else {

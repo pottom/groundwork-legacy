@@ -37,6 +37,7 @@ test('every file the page loads from the module is listed in the manifest, so th
     ].filter(local)
     for (const ref of refs) {
       const target = path.posix.normalize(path.posix.join(path.posix.dirname(f), ref))
+      if (target.startsWith('../../core/records/')) continue   // the store's shared files, served at /core/records/
       assert.ok(listed.has(target), `${f} loads ${ref}: ${target} is in view.files`)
       if (!seen.has(target)) { seen.add(target); queue.push(target) }
     }
@@ -44,12 +45,13 @@ test('every file the page loads from the module is listed in the manifest, so th
   for (const f of listed) assert.ok(seen.has(f), `${f} is listed and the page loads it`)
 })
 
-// Every ES module the page imports, its own and the core's (/shell/, /vendor/), as the page names
-// them: './view/main.mjs', '/vendor/lit-html/lit-html.js'.
+// Every ES module the page imports, its own and the core's (/shell/, /vendor/, /core/records/), as
+// the page names them: './view/main.mjs', '/vendor/lit-html/lit-html.js'.
 function moduleGraph() {
   const core = path.join(plan.view.dir, '..', '..', 'core')
   const file = (url) => (url.startsWith('/shell/') ? path.join(core, 'shell', url.slice(7))
-    : url.startsWith('/vendor/') ? path.join(core, 'vendor', url.slice(8)) : path.join(plan.view.dir, url))
+    : url.startsWith('/vendor/') ? path.join(core, 'vendor', url.slice(8))
+    : url.startsWith('/core/') ? path.join(core, url.slice(6)) : path.join(plan.view.dir, url))
   const seen = new Set()
   const queue = ['/plan/view/main.mjs']
   while (queue.length) {

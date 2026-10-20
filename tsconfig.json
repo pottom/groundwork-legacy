@@ -1,0 +1,19 @@
+{
+  // The type check at development time (d-typecheck): `npm run typecheck` runs tsc --noEmit on the
+  // JSDoc types of the files that opt in with a `// @ts-check` first line (the record store, to start
+  // with); the files they import are read for their types but not checked. Nothing is built: the
+  // code stays plain .mjs, and TypeScript is a devDependency only, not in the package.
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["core/**/*.mjs", "modules/**/*.mjs"],
+  "exclude": ["node_modules", "core/vendor", "**/*.test.mjs", "**/*.test-helper.mjs"]
+}

@@ -34,7 +34,7 @@ test('every key the view uses has a text, and every column, author and kind has 
   assert.ok(keys.length > 5)
   for (const k of keys) assert.ok(en[k], k)
   for (const k of [...STATUSES.map((s) => `status.${s}`), ...AUTHORS.map((a) => `author.${a}`), ...KINDS.map((k) => `kind.${k}`)]) assert.ok(en[k] && hu[k], k)
-  assert.deepEqual(STATUSES.map((s) => en[`status.${s}`]), ['New', 'Considering', 'To develop', 'Rejected'])
+  assert.deepEqual(STATUSES.map((s) => en[`status.${s}`]), ['New', 'Considering', 'Accepted', 'Rejected', 'Snoozed', 'Duplicate'])
 })
 
 test('labels are in sentence case, never lowercase or uppercase', () => {

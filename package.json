@@ -5,10 +5,12 @@
   "type": "module",
   "license": "MIT",
   "bin": { "groundwork": "core/groundwork.mjs" },
-  "files": ["core/", "modules/", "!**/*.test*.mjs"],
+  "files": ["core/", "modules/", "!**/*.test*.mjs", "!core/records/spec-fixtures/", "!core/migrate/migrate-fixtures/"],
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node core/groundwork.mjs",
-    "test": "node --test \"core/**/*.test.mjs\" \"modules/**/*.test.mjs\""
-  }
+    "test": "node --test \"core/**/*.test.mjs\" \"modules/**/*.test.mjs\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": { "@types/node": "20.19.43", "typescript": "5.9.3" }
 }

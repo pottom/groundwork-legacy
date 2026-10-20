@@ -4,9 +4,11 @@
 //   addIdea(store, { idea: 'I-12', title, status?: 'todo' | 'excluded', reason? })
 //     -> { id, added }   the node's id; added is false when the idea was on the map already
 //     throws (code 'bad') on a missing idea or title, another status, or a non-goal without its reason;
-//     (code 'nodoc') when the map has no document to put the idea in (no root node)
+//     (code 'nodoc') when the map has no document to put the idea in (no root node); on an old,
+//     read-only map the endpoint answers 409 before (module.mjs)
 //
-// The node links to the idea (/?module=ideas&idea=I-12) and is marked as written by "ideas". It goes
+// The node links to the idea (/?module=ideas&idea=I-12) (the link is what finds it again: the Spec
+// keeps no "written by" on an item). It goes
 // into the "Ideas" section of the first PRD (made on first use, titled in the document language), so
 // the PRD lists a todo among its open questions and an excluded idea among its non-goals. The same
 // idea gets the same node: sent again it is not added twice; sent as excluded it becomes a non-goal.
@@ -14,7 +16,7 @@
 import crypto from 'node:crypto'
 import { walk } from './map-store.mjs'
 import { listDocs } from './documents.mjs'
-import { docStrings, langOf } from './doc-strings.mjs'
+import { docStrings, langOf } from '../../core/records/doc-strings.mjs'
 
 export const IDEAS_SECTION = 'from-ideas'
 export const ideaLink = (idea) => '/?module=ideas&idea=' + encodeURIComponent(idea)

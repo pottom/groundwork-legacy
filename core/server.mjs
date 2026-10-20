@@ -3,8 +3,11 @@
 //   GET  /[?module=<id>]       the shell: header, navigation, the module's view (shell/shell.mjs)
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
 //   GET  /api/events           live updates: what changed, as Server-Sent Events (events.mjs)
+//   GET  /api/records[/<id>]   the record store's records and Spec documents (records/api.mjs); a
+//                              record file changing is the live topic "records"
 //   *    /api/<module>/...     the module's endpoints
 //   GET  /shell/...            the shared look (theme.css with controls.css and feedback.css, shell.css, the light/dark switch theme.js), the logo and favicon (logo.svg), the UI translation (i18n.mjs, strings.mjs), the live relay (live.mjs), the kept module frames (frames.mjs), the toasts (toasts.mjs) and the tabs' attention counts (attention.mjs)
+//   GET  /core/records/...     the record store's files a page shares (doc-strings.mjs: the documents' fixed texts)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
 //   GET  /<module>/...         the module's view (only the files its manifest lists)
 //
@@ -21,10 +24,14 @@
 //     writes: ['docs/product', '.groundwork/<id>'],         the folders it may write to
 //     watch: (path) => topic | [topic] | null,              optional: the live-update topic of a changed
 //                                                          file (path relative to the root, "/"-separated)
-//     api: ({ root, files, events }) => (req, res, subpath, url) => handled }   subpath: the path after /api/<id>
+//     records: [RecordType],                               optional: the record types it brings, which the
+//                                                          core's record store keeps (records/store.mjs)
+//     api: ({ root, files, events, records }) => (req, res, subpath, url) => handled }   subpath: the path after /api/<id>
 // The handler returns (or resolves to) true when it answered, anything else means 404.
 // `files` is the module's only way to write: it writes only under `writes` (see files.mjs).
 // `events` lets it push a live-update topic itself: events.publish(topic), events.every(ms, fn).
+// `records` is the record store shared by every module (records/store.mjs), with the core's own
+// types after the modules': changes and milestones (records/changes.mjs).
 
 import http from 'node:http'
 import fs from 'node:fs'
@@ -36,6 +43,8 @@ import { shellPage } from './shell/shell.mjs'
 import { createEvents } from './events.mjs'
 import { VERSION } from './version.mjs'
 import { projectName } from './project-name.mjs'
+import { openProjectRecords } from './records/project.mjs'
+import { recordsApi, recordTopic } from './records/api.mjs'
 
 export const HOST = '127.0.0.1'
 const HOST6 = '::1'
@@ -58,6 +67,9 @@ export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
 export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
 // The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
 const SHELL_BROWSER_FILES = new Set(['theme.css', 'theme.js', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs', 'frames.mjs', 'toasts.mjs', 'attention.mjs', 'logo.svg'])
+// The record store's files a page may load, at /core/records/: the documents' fixed texts.
+export const RECORDS_DIR = fileURLToPath(new URL('./records/', import.meta.url))
+const RECORDS_BROWSER_FILES = new Set(['doc-strings.mjs'])
 
 // The file under `dir` that the URL path `rest` (still percent-encoded) names, or null when it
 // leaves the folder, names a dot file, or has a type the server does not serve (README, LICENSE).
@@ -75,12 +87,14 @@ export function staticFile(dir, rest) {
 // five minutes, anything else is asked for again, a 304 while unchanged). /api/ answers are never kept.
 
 // The first path segments the core answers itself; a module with one of these ids would be hidden.
-const RESERVED = new Set(['api', 'shell', 'vendor'])
+const RESERVED = new Set(['api', 'shell', 'vendor', 'records', 'core'])
 
 export async function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR }) {
   for (const m of modules) if (RESERVED.has(m.id)) throw new Error(`module id "${m.id}" is reserved by the core`)
-  const events = createEvents({ root: path.resolve(root), modules })
-  const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m), events: events.api }) : null }))
+  const records = openProjectRecords(root, { modules })
+  const events = createEvents({ root: path.resolve(root), modules: [...modules, { id: 'records', watch: (/** @type {string} */ p) => recordTopic(records, p) }] })
+  const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m), events: events.api, records: records.forModule(m) }) : null }))
+  const recordsHandler = recordsApi(records)
   const byId = new Map(mods.map((m) => [m.id, m]))
   const project = projectName(root)
 
@@ -96,6 +110,10 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
         return send(res, 200, mods.map(({ id, name, version }) => ({ id, name, version, path: `/${id}/` })))
       }
       if (url.pathname === '/api/events' && req.method === 'GET') return events.stream(req, res)
+      if (parts[1] === 'api' && parts[2] === 'records') {
+        if (!recordsHandler(req, res, url)) send(res, 404, { error: 'not found' })
+        return
+      }
       if (parts[1] === 'api') {
         const mod = byId.get(parts[2])
         const sub = '/' + parts.slice(3).join('/')
@@ -106,6 +124,11 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       if (parts[1] === 'shell' && req.method === 'GET') {
         const f = staticFile(SHELL_DIR, parts.slice(2).join('/'))
         if (f && SHELL_BROWSER_FILES.has(path.basename(f))) return sendFile(req, res, f)
+        return send(res, 404, { error: 'not found' })
+      }
+      if (parts[1] === 'core' && parts[2] === 'records' && req.method === 'GET') {
+        const f = staticFile(RECORDS_DIR, parts.slice(3).join('/'))
+        if (f && RECORDS_BROWSER_FILES.has(path.basename(f))) return sendFile(req, res, f)
         return send(res, 404, { error: 'not found' })
       }
       if (parts[1] === 'vendor' && req.method === 'GET') {

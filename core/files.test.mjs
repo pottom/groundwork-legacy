@@ -6,7 +6,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { projectFiles, moduleFiles } from './files.mjs'
+import { fileURLToPath } from 'node:url'
+import { projectFiles, moduleFiles, renumberFiles } from './files.mjs'
 
 const tmp = (p = 'gw-files-') => fs.mkdtempSync(path.join(os.tmpdir(), p))
 
@@ -87,6 +88,27 @@ test('a listed folder that is itself a link to outside cannot be written', () =>
   assert.deepEqual(fs.readdirSync(outside), [])
 })
 
+test('removeEmptyDir removes an empty folder under a writable folder, and nothing else', () => {
+  const root = tmp()
+  const outside = tmp('gw-outside-')
+  fs.mkdirSync(path.join(root, 'docs/product/empty'), { recursive: true })
+  fs.mkdirSync(path.join(root, 'docs/product/full'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'docs/product/full/x.md'), 'x')
+  fs.mkdirSync(path.join(root, 'src/empty'), { recursive: true })
+  linkDir(outside, path.join(root, 'docs/product/linked'))
+  const files = projectFiles(root, WRITES)
+  assert.equal(files.removeEmptyDir('docs/product/empty'), true)
+  assert.equal(fs.existsSync(path.join(root, 'docs/product/empty')), false)
+  assert.equal(files.removeEmptyDir('docs/product/full'), false, 'not empty: kept')
+  assert.equal(files.removeEmptyDir('docs/product/gone'), false, 'missing: nothing to do')
+  assert.ok(fs.existsSync(path.join(root, 'docs/product/full/x.md')))
+  assert.throws(() => files.removeEmptyDir('src/empty'), /may not write/)
+  assert.throws(() => files.removeEmptyDir('docs/product'), /may not write/, 'the writable folder itself stays')
+  assert.throws(() => files.removeEmptyDir('docs/product/linked'), /may not write/, 'a link to outside')
+  assert.ok(fs.existsSync(path.join(root, 'src/empty')))
+  assert.ok(fs.lstatSync(path.join(root, 'docs/product/linked')))
+})
+
 test('a manifest may only list folders under docs/product/ or .groundwork/', () => {
   const root = tmp()
   assert.throws(() => projectFiles(root, ['src']), /docs\/product\/ and \.groundwork\//)
@@ -95,6 +117,28 @@ test('a manifest may only list folders under docs/product/ or .groundwork/', () 
   assert.throws(() => projectFiles(root, ['docs/product/../../x']), /docs\/product\/ and \.groundwork\//)
   assert.throws(() => projectFiles(root, [root]), /docs\/product\/ and \.groundwork\//)
   assert.doesNotThrow(() => projectFiles(root, ['.groundwork', 'docs/product/plan']))
+})
+
+test('the one exception: renumberFiles may also write the local tickets under .scratch/, and only `record renumber` opens it', () => {
+  const root = tmp()
+  assert.throws(() => projectFiles(root, ['.scratch']), /docs\/product\/ and \.groundwork\//)
+  const files = renumberFiles(root)
+  files.write('.scratch/area/issues/one.md', 'x')
+  files.write('docs/product/changes/C-001-x.md', 'x')
+  assert.equal(fs.readFileSync(path.join(root, '.scratch/area/issues/one.md'), 'utf8'), 'x')
+  for (const rel of ['src/x.md', '.groundwork/x', '.scratch/../x.md', 'README.md']) assert.throws(() => files.write(rel, 'x'), /may not write/, rel)
+  // Who opens it: the renumber command alone (and this test).
+  const users = []
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name)
+      if (e.isDirectory()) { if (!['node_modules', 'vendor'].includes(e.name)) walk(p) }
+      else if (/\.mjs$/.test(e.name) && !/\.test/.test(e.name) && /\brenumberFiles\b/.test(fs.readFileSync(p, 'utf8'))) users.push(path.relative(here, p).replaceAll('\\', '/'))
+    }
+  }
+  const here = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+  walk(path.join(here, 'core')); walk(path.join(here, 'modules'))
+  assert.deepEqual(users.sort(), ['core/files.mjs', 'core/records/renumber.mjs'])
 })
 
 test('a module without a writes list cannot write anything', () => {

@@ -12,6 +12,7 @@ export const UI_STRINGS = {
     'toast.updated': 'Map updated {time}',
     'toast.saveError': 'Could not save: {error}',
     'toast.stale': 'The server restarted: your last edit was not saved, please make it again',
+    'toast.readOnly': 'Not saved: this map is the old mindmap.json. Run groundwork migrate to edit it as the Spec',
 
     'toolbar.label': 'Plan controls',
     'focus.title': 'What the map shows',
@@ -83,6 +84,7 @@ export const UI_STRINGS = {
 
     'link.unknown': 'There is no item with the id “{id}” on the map. It may have been renamed or deleted.',
     'notice.close': 'Close',
+    'notice.readOnly': 'This is the old map (docs/product/mindmap.json), shown read-only. Run groundwork migrate to turn it into the Spec (docs/product/spec/); then the map can be edited again.',
 
     'tickets.title': 'Tickets naming this item: {total}, done: {done}. Click to see them in Build.',
     'sketch.badge': 'Sketch: {name}',
@@ -133,6 +135,7 @@ export const UI_STRINGS = {
     'toast.updated': 'A térkép frissült {time}',
     'toast.saveError': 'Nem sikerült menteni: {error}',
     'toast.stale': 'A szerver újraindult: az utolsó szerkesztés nem mentődött, ismételd meg',
+    'toast.readOnly': 'Nem mentődött: ez a régi mindmap.json térkép. A groundwork migrate után a Specként szerkeszthető',
 
     'toolbar.label': 'A Plan vezérlői',
     'focus.title': 'Mit mutasson a térkép',
@@ -204,6 +207,7 @@ export const UI_STRINGS = {
 
     'link.unknown': 'Nincs „{id}” azonosítójú elem a térképen. Lehet, hogy átnevezték vagy törölték.',
     'notice.close': 'Bezárás',
+    'notice.readOnly': 'Ez a régi térkép (docs/product/mindmap.json), csak olvasható. A groundwork migrate Speccé alakítja (docs/product/spec/), utána újra szerkeszthető.',
 
     'tickets.title': 'Ezt az elemet megnevező jegyek: {total}, ebből kész: {done}. Kattints, és a Buildben látod őket.',
     'sketch.badge': 'Vázlat: {name}',

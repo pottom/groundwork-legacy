@@ -9,21 +9,23 @@ import os from 'node:os'
 import path from 'node:path'
 import { startServer } from '../../core/server.mjs'
 import { moduleFiles } from '../../core/files.mjs'
+import { openRecords } from '../../core/records/store.mjs'
 import { MODULES } from '../../core/modules.mjs'
 import { listen } from '../../core/sse-client.test-helper.mjs'
 import ideas from './module.mjs'
 import { openIdeas } from './store.mjs'
 
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-ideas-api-'))
-const open = (root) => openIdeas(root, moduleFiles(root, ideas))
+const open = (root) => openIdeas(openRecords(root, [ideas]))
 
 async function withServer(root, modules, fn) {
   const srv = await startServer({ root, modules, port: 0 })
   try { await fn(`http://127.0.0.1:${srv.port}`) } finally { await srv.close() }
 }
 
-test('Ideas may write only under docs/product/ideas/items/', () => {
-  assert.deepEqual(ideas.writes, ['docs/product/ideas/items'])
+test('Ideas writes nothing itself: it declares the record type I in docs/product/ideas/, which the core store writes', () => {
+  assert.deepEqual(ideas.writes, [])
+  assert.deepEqual(ideas.records.map((t) => [t.prefix, t.folder]), [['I', 'docs/product/ideas']])
   const root = project()
   const files = moduleFiles(root, ideas)
   assert.throws(() => files.write('docs/product/ideas/PRD.md', 'x'), /may not write/)
@@ -70,8 +72,9 @@ test('PUT /api/ideas/item/<id> saves the browser\'s change to the idea file, on 
 })
 
 test('an idea file is Ideas\' live topic; other files are not', () => {
-  assert.equal(ideas.watch('docs/product/ideas/items/I-001-x.md'), 'ideas.items')
+  assert.equal(ideas.watch('docs/product/ideas/I-001-x.md'), 'ideas.items')
   assert.equal(ideas.watch('docs/product/ideas/PRD.md'), null)
+  assert.equal(ideas.watch('docs/product/ideas/I-001-x.md.123.4.tmp'), null)
   assert.equal(ideas.watch('docs/product/mindmap.json'), null)
 })
 

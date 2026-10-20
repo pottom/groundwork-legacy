@@ -43,7 +43,7 @@ test('with only Plan, its page and endpoints work, and Build\'s endpoint is simp
     assert.deepEqual(tabs(await (await get('/')).text()), ['plan'])
     assert.match(await (await get('/plan/')).text(), /<html/i)
     assert.equal((await (await get('/api/plan/map')).json()).data.nodeData.topic, 'Product')
-    assert.deepEqual((await (await get('/api/plan/ids')).json()).ids, ['root'])
+    assert.deepEqual((await (await get('/api/plan/ids')).json()).ids, ['root', 'system'], 'a new Spec: its system document')
     assert.equal((await get('/api/plan/glossary')).status, 200)
     const prd = await get('/api/build/prd')
     assert.equal(prd.status, 404, 'Plan reads a non-ok answer as "no ticket counts"')

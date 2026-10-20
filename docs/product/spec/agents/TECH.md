@@ -1,0 +1,57 @@
+# Groundwork — Agents modul: Műszaki terv
+
+_Műszaki terv_
+
+## Architektúra és komponensek {#t-agents-arch .done}
+
+A groundwork init a modul manifestjéből Claude Code hookokat telepít, amelyek az agentek indulását, eszközhívásait, figyelmeztetéseit és végét egy helyi eseménynaplóba írják; a worktree-k és branchek állapotát a git adja. A Claude Code saját naplófájljait nem olvassuk: belső formátumúak, és magánjellegű tartalom van bennük.
+
+Két kérdést az első jegy dönt el: milyen mezőkkel azonosítják a hookok a subagenteket, és hogyan lesz a hook elég gyors, mert az npx-es hívás eszközhívásonként túl lassú.
+
+- Claude Code hookok írják az eseményeket; a groundwork init telepíti őket · `d-agents-hooks` · döntés · C-1
+  Pl. SessionStart, SubagentStart/Stop, PreToolUse/PostToolUse, Notification, Stop.
+- A subagentet az agent_id és az agent_type mező azonosítja · `q-agents-hook-fields` · döntés · C-1
+  Dokumentáció (code.claude.com/docs/en/hooks) és egy valódi futás (Claude Code 2.1.302) alapján: minden hook kap session_id-t; a SubagentStart, a SubagentStop és a subagenten belül futó minden eszközhívás (PreToolUse/PostToolUse) agent_id-t és agent_type-ot is kap, a fő munkameneté nem. A subagentet indító eszköz neve Agent (régebben Task): a PreToolUse a tool_use_id-t és a description-t adja (ez az agent címkéje), a PostToolUse tool_response.agentId-ja köti a hívást az agent_id-hoz. A SubagentStop last_assistant_message mezője a záró jelentés; a hook redaktálva, külön fájlba menti (d-agents-redact).
+  [modules/agents/hook.mjs](../../../../modules/agents/hook.mjs)
+- Gyors hook: a groundwork init a projektbe másolja, és közvetlenül node futtatja · `q-agents-hook-speed` · döntés · C-1
+  A hook egyetlen, csak Node-ot igénylő fájl; az init .claude/hooks/groundwork-agents-hook.mjs néven a projektbe másolja, és node "$CLAUDE_PROJECT_DIR/.claude/hooks/groundwork-agents-hook.mjs" parancsként telepíti. Mérve kb. 57 ms hívásonként (Windows, Node 24), az npx kb. 0,3–0,7 s. A PreToolUse csak az Agent eszközre fut (matcher), így egy közönséges eszközhívás egyszer futtatja a hookot. A futó szervernek küldött esemény elvetve: szerver nélkül elveszne.
+  [core/init.mjs](../../../../core/init.mjs)
+- A ~/.claude alatti naplófájlok olvasása · `x-agents-claude-logs` · kizárt · C-1
+  Belső formátum, ami változhat, és magánjellegű tartalom van benne.
+- A worktree-k és branchek állapotát a git adja · `d-agents-git` · döntés · C-1
+  A szerver csak olvas (GIT_OPTIONAL_LOCKS=0, minden git-hívás egy közös olvasón át: modules/agents/git-read.mjs). Az integrációs ágat a gráfból becsüli: a linkelt worktree-ben ki nem vett, máshová még nem beolvadt branchek közül az, amelyhez képest a legkevesebb saját commitja van; döntetlennél az alapértelmezett ág, aztán a legkevésbé lemaradt. Egy beolvasztott branch nem alapja annak, amibe beolvadt (first-parent ellenőrzés). Összefésült az, aminek nincs saját commitja az alapjához képest, kivéve a frissen leágaztatottat: a tippje az alap first-parent vonalán van, és a reflogja szerint nem kapott saját commitot (egy fast-forwarddal beolvasztott kapott). Egy-egy hívás branchenként a for-each-ref %(ahead-behind)-del (git 2.41+), régebbin rev-list.
+  [modules/agents/git-worktrees.mjs](../../../../modules/agents/git-worktrees.mjs)
+- A Notification agent_id nélkül a munkamenethez tartozik · `d-agents-attention-notification` · döntés · C-1
+  A dokumentáció Notification-sémájában nincs agent_id (a SubagentStart/Stop és a subagenten belüli eszközhívások kapnak), valódi interaktív futással nem ellenőriztük. Mindkét esetet kezeljük: agent_id-vel az agent vár, nélküle a munkamenet (ott kell válaszolni), a munkamenet bármely következő eseményéig, az agentjeiét is beleértve. Az idle_prompt nem figyelmet kérő állapot.
+  [modules/agents/agents-log.mjs](../../../../modules/agents/agents-log.mjs)
+
+## Adatok és tárolás {#t-agents-data .done}
+
+Az események egy csak hozzáírható JSON Lines naplóba kerülnek a .groundwork/agents/ alatt, amely gitignore-ban van; az agentek állapotát a szerver ebből számolja. A régi futások forgatással kerülnek ki, hogy a napló ne nőjön korlátlanul.
+
+- Helyi eseménynapló: .groundwork/agents/events.jsonl, gitignore-ban · `d-agents-store` · döntés · C-1
+  Csak hozzáírás; 2 MB fölött a napló events.1.jsonl-be kerül (a régebbit felülírva), a szerver mindkettőt olvassa. A subagentek záró jelentései a reports/ mappába kerülnek, agentenként egy fájl; a legújabb 200 marad.
+  [modules/agents/hook.mjs](../../../../modules/agents/hook.mjs)
+
+## Integrációk és interfészek {#t-agents-int .done}
+
+Egy agent jegyét a feladatleírásában szereplő jegyszám, a branch neve vagy a commit-üzenet adja. A Build egy kis, deklarált végponton kérdezi meg az Agents modult, dolgozik-e valaki egy jegyen, és ha az Agents nincs jelen, ugyanúgy működik.
+
+- A jegyszám az agent feladatából, a branch nevéből vagy a commit-üzenetből jön · `d-agents-ticket-from` · döntés · C-1
+  Sorrendben: a feladat (az Agent-hívás leírása: #37, issue 37, ticket 37), a branch neve (egy rész elején álló szám, pl. 37-links, vagy issue-37 / gh-37; tetszőleges szám nem, így a milestone-7-agents nem jegy), végül a branch saját commitjai az agent futása alatt. A branch annak a git worktree-nek a branche, amelyben az agent legutóbbi eseményének cwd-je van. A fő checkout branchének commitjait nem olvassuk (ott minden agent osztozik rajta); a branch saját commitjai azok, amelyek nincsenek a fő checkout branchén. Csak GitHub-stílusú (#N) hivatkozás. A git-et a szerver futtatja, csak olvasva; a hook soha.
+  [modules/agents/agent-tickets.mjs](../../../../modules/agents/agent-tickets.mjs)
+- A Build egy kis nyilvános végponton kérdezi, ki dolgozik egy jegyen · `d-agents-build-endpoint` · döntés · C-1
+  GET /api/agents/tickets (public): { tickets: { '#37': [{ id, session, label, branch, start }] } }, csak a futó agentek és munkamenetek jegyenként. A d-module-endpoints szerint; Agents nélkül 404, és a Build nem mutat jelvényt (tesztelve: modules/alone.test.mjs).
+  [modules/agents/module.mjs](../../../../modules/agents/module.mjs)
+- A héj a manifest attention végpontjából számol és jelez · `d-agents-attention-shell` · döntés · C-1
+  A manifest attention mezője (Agents: /api/agents/attention) { items: [{ key, reason, text: { en, hu } }], recheck } választ ad. A héj a fülön számot mutat, és kulcsonként egyszer toastot; a megnyitáskor már meglévőket csak számolja. Hellóra és a modul témáira kérdez újra, és egyszer a recheck időpontjában (amikor csak az idő múlása változtat), lekérdezgetés nélkül. Modul nélkül nincs szám.
+  [core/shell/attention.mjs](../../../../core/shell/attention.mjs)
+
+## Biztonság {#t-agents-sec .done}
+
+A napló nem tárolja az eszközhívások tartalmát: csak az eszköz nevét, az érintett fájl útját és a futtatott parancs nevét, így fájltartalom, token vagy jelszó nem kerülhet bele. A modul csak a .groundwork/agents/ alá írhat.
+
+- A napló csak összefoglalót tárol: eszköz, fájlút, parancs neve; tartalmat és titkot nem · `d-agents-redact` · döntés · C-1
+  Kivétel a subagent záró jelentése (a SubagentStop last_assistant_message mezője): nem a naplósorba, hanem külön fájlba kerül (.groundwork/agents/reports/<agent>.md), a titoknak látszó részek (API-kulcsok, tokenek, Authorization-értékek, jelszó-párok, privát kulcsok, URL hitelesítő adatai és query-je) kivéve, 40 000 karakterre vágva. A teszt- és commit-jelzés a naplóban csak egy szó, illetve a commit hash; a kimenet és a commit-üzenet nem kerül be.
+  [modules/agents/hook.test.mjs](../../../../modules/agents/hook.test.mjs)
+- Csak a .groundwork/agents/ alá írhat · `d-agents-writes` · döntés · C-1

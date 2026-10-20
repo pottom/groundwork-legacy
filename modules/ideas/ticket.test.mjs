@@ -13,10 +13,10 @@ import { canMakeTicket, ticketPrompt } from './ticket.mjs'
 const read = (f) => fs.readFileSync(path.join(ideas.view.dir, f), 'utf8').replace(/\r\n/g, '\n')
 const idea = {
   id: 'I-12', title: 'Cache the issue list', body: 'GitHub is asked on every page load.\nKeep the answer a minute.',
-  kind: 'engineering', status: 'to-develop', impact: 'medium', effort: 'low', rationale: 'fewer requests, small change', source: 'review of #24',
+  kind: 'engineering', status: 'accepted', impact: 'medium', effort: 'low', rationale: 'fewer requests, small change', source: 'review of #24',
 }
 
-test('only an engineering idea moved to To develop offers "Make a ticket"', () => {
+test('only an engineering idea moved to Accepted offers "Make a ticket"', () => {
   assert.equal(canMakeTicket(idea), true)
   assert.equal(canMakeTicket({ ...idea, kind: 'product' }), false, 'a product idea goes to Plan\'s map instead')
   assert.equal(canMakeTicket({ ...idea, status: 'considering' }), false)
@@ -34,7 +34,7 @@ test('the prompt asks Claude for a GitHub issue that names the idea on an "**Ide
 })
 
 test('the prompt works for an idea with no description yet', () => {
-  const prompt = ticketPrompt({ id: 'I-3', title: 'Lint the CSS', kind: 'engineering', status: 'to-develop' })
+  const prompt = ticketPrompt({ id: 'I-3', title: 'Lint the CSS', kind: 'engineering', status: 'accepted' })
   assert.match(prompt, /^\*\*Idea:\*\* I-3$/m)
   assert.doesNotMatch(prompt, /undefined|null/)
 })
@@ -53,5 +53,5 @@ test('the skill documents making a ticket from an idea with the **Idea:** line',
   const skill = read('skills/groundwork-ideas/SKILL.md')
   assert.match(skill, /## Making a ticket from an idea/)
   assert.match(skill, /\*\*Idea:\*\* I-12/)
-  assert.match(skill, /To develop/)
+  assert.match(skill, /Accepted/)
 })

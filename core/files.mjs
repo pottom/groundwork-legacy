@@ -7,6 +7,7 @@
 //   files.exists(rel)  files.read(rel)           anywhere inside the project
 //   files.write(rel, text)                       atomic, creates missing folders
 //   files.append(rel, text)  files.remove(rel)
+//   files.removeEmptyDir(rel)                    a folder inside a writable one, only when empty
 //
 // Paths are relative to the project. A write fails when its path is absolute, leaves its
 // folder with `..`, or reaches outside through a symlink or junction. The folders
@@ -16,6 +17,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 export const WRITABLE = ['docs/product', '.groundwork']
+
+// The one deliberate exception to WRITABLE: `groundwork record renumber` (core/records/renumber.mjs),
+// which runs only when a human starts it, gives a record a new number and rewrites the references
+// to it under docs/product/ and in the local tickets under .scratch/. No module and no other
+// command opens this writer (core/files.test.mjs checks who does); it has the same path checks.
+const RENUMBER_WRITABLE = ['docs/product', '.scratch']
+export const renumberFiles = (root) => open(root, RENUMBER_WRITABLE, RENUMBER_WRITABLE).files
 
 // `p` is `base` or inside it (both absolute, same form).
 const within = (base, p) => {
@@ -28,11 +36,11 @@ export function projectFiles(root, writes = []) {
   return open(root, writes).files
 }
 
-function open(root, writes) {
+function open(root, writes, allowed = WRITABLE) {
   root = path.resolve(root)
   const folders = writes.map((f) => {
     const abs = typeof f === 'string' && !path.isAbsolute(f) && path.resolve(root, f)
-    if (!abs || !WRITABLE.some((w) => within(path.join(root, w), abs))) {
+    if (!abs || !allowed.some((w) => within(path.join(root, w), abs))) {
       throw new Error(`a module may not write to ${f}: writes are limited to docs/product/ and .groundwork/`)
     }
     return path.relative(root, abs)
@@ -87,6 +95,16 @@ function open(root, writes) {
       fs.appendFileSync(abs, text)
     },
     remove: (rel) => fs.unlinkSync(target(rel)),
+    // Removes a folder inside a writable one if it is empty: true when it went, false when it
+    // holds something or is gone already. A link is refused like any write through it.
+    removeEmptyDir(rel) {
+      const abs = target(rel)
+      let st
+      try { st = fs.lstatSync(abs) } catch { return false }
+      if (!st.isDirectory() || fs.readdirSync(abs).length) return false
+      fs.rmdirSync(abs)
+      return true
+    },
   }
   return { files, target }
 }
