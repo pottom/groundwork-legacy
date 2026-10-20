@@ -3,7 +3,7 @@ id: C-2
 title: Rekordtár és Markdown-forrás
 ideas: I-5
 milestone: M-9
-status: awaiting-approval
+status: implementing
 ---
 
 ## Probléma
@@ -229,3 +229,4 @@ A jegyek a `**Change:** C-2` sorukkal hivatkoznak erre a változásra.
 ## Történet
 
 - 2026-10-20 · human · created by migrate from docs/product/mindmap.json (split: t-records, c-records, d-typecheck, x-server-framework; 85 proposed items)
+- 2026-10-20 · human · merged; status: awaiting-approval → implementing

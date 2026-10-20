@@ -66,6 +66,8 @@ Minden modul egy közös kinézetet használ, amelyet a Mag ad; ez követi az op
   [core/shell/frames.mjs](../../../../core/shell/frames.mjs)
 - A modulok eszköztára a modulban marad · `d-toolbars` · döntés · C-1
   A keret modulfüggetlen marad; harmadik modulnál újragondolható.
+- A gondolattérkép közös Lit-komponens a core-ban (`<gw-mind-map>`), a csomagba tett Mind Elixirrel · `d-map-component` · döntés · hiányzik · C-4
+  Most csak olvasható módban, a Plan térképtémájával. A mai Plan-térkép összenőtt a Plan állapotával, ezért az marad, ahogy van; a C-10 szünteti meg (d-lit-scope-c3, d-plan-dissolves).
 
 ## Csomagolás és terjesztés {#t-core-dist .done}
 
@@ -96,7 +98,8 @@ Saját tokent vagy jelszót nem kér és nem tárol. A GitHub olvasásához a fe
 
 - Csak 127.0.0.1, idegen Host → 403 · `d-sec-local` · döntés · kész · C-1
   [core/server.mjs](../../../../core/server.mjs)
-- Írni csak a docs/product/ és a .groundwork/ alá · `d-sec-write` · döntés · kész · C-1
+- Írni csak a docs/product/ és a .groundwork/ alá; egyetlen kivétel a kézzel indított record renumber, amely a .scratch/ alatti helyi jegyekben is átírja a hivatkozásokat · `d-sec-write` · döntés · kész · C-1, C-2
+  A kivételt a #50 kéri (core/files.mjs: renumberFiles); más parancs és modul nem nyitja meg, és ugyanazok az útvonal-ellenőrzések védik.
   [core/files.mjs](../../../../core/files.mjs)
 - Saját token- vagy jelszókezelés (bekérés, tárolás) · `x-sec-token` · kizárt · C-1
 - GitHub olvasása a meglévő gh-bejelentkezéssel vagy GITHUB_TOKEN / GH_TOKEN változóval · `d-sec-github` · döntés · kész · C-1
@@ -130,3 +133,13 @@ A felület mégsem kézzel épített DOM-ból áll: a nézeteket egy kicsi, a cs
   [core/vendor/lit-html/lit-html.js](../../../../core/vendor/lit-html/lit-html.js)
 - Közös dizájnrendszer a theme.css-ben (.gw-* komponensek) · `d-design-system` · döntés · kész · C-1
   [core/shell/theme.css](../../../../core/shell/theme.css)
+- JSDoc-típusok és tsc --noEmit ellenőrzés fejlesztési időben · `d-typecheck` · döntés · hiányzik · C-2
+  A rekordtárban és a modulszerződésben (rekordtípusok, op-ok, manifestek). Csak fejlesztői függőség, a csomagba nem kerül, a kód .mjs marad; az implement skill típusellenőrzése ezt futtatja.
+- Szerver-keretrendszer (NestJS, Fastify) · `x-server-framework` · kizárt · hiányzik · C-2
+  A szerver kicsi, zömmel tartománylogika; a HTTP-réteg nem fáj.
+- Lit (LitElement) a munkaterületek közös komponenseihez · `d-lit` · döntés · hiányzik · C-3
+  Az I-5-tel: térképszerkesztő, rekordkártya, hivatkozás-chip, jóváhagyó lista mint web-komponens (pl. <gw-record-chip>). Fordítás nélkül fut, vendorolva a core/vendor/ alatt, kb. 15 KB; a mai lit-html sablonok változatlanul futnak benne, az áttérés fokozatos.
+- Svelte vagy React a munkaterületekhez (újragondolva az I-5-nél) · `x-svelte-react` · kizárt · hiányzik · C-3
+  Build-lépést és eszközláncot kívánna minden fejlesztőtől és agenttől; a párhuzamos worktree-kben dolgozó agenteknek az azonnali kör többet ér.
+- SolidJS a munkaterületekhez · `x-solid` · kizárt · hiányzik · C-3
+  Könnyű és gyors, de a természetes formája a JSX, ami build-lépést kíván; a fordítás nélküli útja (solid-js/html) másodrangú. A mai lit-html sablonok a Litben változatlanul futnak, Solidra minden lapot újra kellene írni.

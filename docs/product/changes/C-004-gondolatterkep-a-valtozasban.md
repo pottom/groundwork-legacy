@@ -89,3 +89,4 @@ A jegyek a `**Change:** C-4` sorukkal hivatkoznak erre a változásra.
 - 2026-10-20 · claude · re-sliced: C-3…C-5 cut into C-3…C-13, each a slice the next one already uses (human approved)
 - 2026-10-20 · claude · grilled: térkép a .md-ben jelekkel, csak olvasható, kérdések a térképen opciókkal, munkafelület panellel, gyökér a cím, közös <gw-mind-map>, kész a C-5 interjújával
 - 2026-10-20 · human · approved for implementation (the proposed items wait for the merge, C-5)
+- 2026-10-20 · human · merged

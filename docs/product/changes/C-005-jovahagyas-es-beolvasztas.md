@@ -126,3 +126,4 @@ A jegyek a `**Change:** C-5` sorukkal hivatkoznak erre a változásra.
 - 2026-10-20 · claude · re-sliced: C-3…C-5 cut into C-3…C-13, each a slice the next one already uses (human approved)
 - 2026-10-20 · claude · grilled on its map: jóváhagyás a lapon, sorrendben, mind vagy semmi, Máshová… a fájlba írva, eredet listában, beolvasztottság számolva, merge a core-ban, szeletelés a zárásnál; egy változás marad
 - 2026-10-20 · human · approved for implementation (the proposed items wait for its own approval list)
+- 2026-10-20 · human · merged
