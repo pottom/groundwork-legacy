@@ -53,8 +53,8 @@ test('the package holds the core, the modules and their bundled libraries', asyn
 })
 
 test('the package leaves out what it does not need: the plan, scratch notes, tests and test helpers, the Claude setup', async () => {
-  // Tests are *.test.mjs, their helpers *.test-helper.mjs.
-  const extra = (await packed()).filter((f) => /^(docs|\.scratch|\.claude|\.groundwork|\.github)\//.test(f) || /\.test[^/]*\.mjs$/.test(f))
+  // Tests are *.test.mjs, their helpers *.test-helper.mjs, their files under spec-fixtures/.
+  const extra = (await packed()).filter((f) => /^(docs|\.scratch|\.claude|\.groundwork|\.github)\//.test(f) || /\.test[^/]*\.mjs$/.test(f) || /\/spec-fixtures\//.test(f))
   assert.deepEqual(extra, [])
 })
 

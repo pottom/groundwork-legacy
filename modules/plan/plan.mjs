@@ -16,7 +16,7 @@
 import fs from 'node:fs'
 import { STATUSES } from './node-types.mjs'
 import { BASE_DIR, KINDS, COMPONENT_TYPES, listDocs, isSection } from './documents.mjs'
-import { DOC_STRINGS, docStrings, langOf } from './doc-strings.mjs'
+import { DOC_STRINGS, docStrings, langOf } from '../../core/records/doc-strings.mjs'
 import { openMap, walk, index } from './map-store.mjs'
 import { moduleFiles } from '../../core/files.mjs'
 import plan from './module.mjs'

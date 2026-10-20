@@ -47,6 +47,39 @@ test('record show prints one record: its fields, body, history, and who refers t
   assert.match(r.stdout, /\nLinked from: I-2\n/)
 })
 
+test('record show core/tech prints a Spec document: its sections and items with their marks, and its problems', async () => {
+  const dir = project()
+  fs.mkdirSync(path.join(dir, 'docs/product/spec/core'), { recursive: true })
+  fs.writeFileSync(path.join(dir, 'docs/product/spec/core/TECH.md'), [
+    '# Mag: Műszaki terv', '', '_Műszaki terv_', '',
+    '## Stack {#t-stack .done}', '', 'Node.', '',
+    '- npm-csomag · `d-npm` · döntés · kész · C-1',
+    '  npx-szel fut.',
+    '- **Felület** · `g-ui` · C-1',
+    '  - React · `d-react` · döntés · C-1 · felváltotta: C-9', '',
+    'Szabad bekezdés.', '',
+  ].join('\n'))
+  const r = await record(dir, 'show', 'core/tech')
+  assert.equal(r.code, 0, r.stderr)
+  assert.equal(r.stdout, [
+    'core/tech docs/product/spec/core/TECH.md',
+    'title: Mag: Műszaki terv',
+    'kind: tech · part: core · language: hu',
+    '',
+    '[t-stack] Stack (done)',
+    '  [d-npm] npm-csomag (decision, done, C-1) — npx-szel fut.',
+    '  [g-ui] Felület (group, C-1)',
+    '    [d-react] React (decision, C-1, superseded by C-9)',
+    '',
+    'Not canonical:',
+    '  14: stray: Szabad bekezdés.',
+    '',
+  ].join('\n'))
+  const item = await record(dir, 'show', 'd-react')
+  assert.equal(item.code, 0, item.stderr)
+  assert.equal(item.stdout, '[d-react] React (decision, C-1, superseded by C-9)\nin core/tech docs/product/spec/core/TECH.md\n')
+})
+
 test('--root names the project; a wrong call exits 1 with a message', async () => {
   const dir = project()
   seed(dir)

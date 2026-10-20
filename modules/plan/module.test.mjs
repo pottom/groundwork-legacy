@@ -26,7 +26,7 @@ test('the map round-trips through /api/plan/map and a browser save is merged', a
     const base = `http://127.0.0.1:${srv.port}`
     assert.match(await (await fetch(`${base}/plan/`)).text(), /<html/i)
     assert.equal((await fetch(`${base}/plan/documents.mjs`)).status, 200)
-    assert.equal((await fetch(`${base}/plan/doc-strings.mjs`)).status, 200, 'the document panel imports it too')
+    assert.equal((await fetch(`${base}/core/records/doc-strings.mjs`)).status, 200, 'the document panel imports the store\'s document texts too')
 
     const { v, data } = await (await fetch(`${base}/api/plan/map`)).json()
     assert.deepEqual(await (await fetch(`${base}/api/plan/map?v=${v}`)).json(), { v, same: true })
