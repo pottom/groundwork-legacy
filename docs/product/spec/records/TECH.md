@@ -14,6 +14,8 @@ A Groundwork rekordtípusokra épül (t-records), ezért a rekordokat egyetlen k
   A hol tart? válaszhoz az egész gráfot minden nézetnek végpontokból kellene összeraknia.
 - A beolvasztás a core rekordtárában él; a Changes modul végpontjai az ember nevében hívják · `d-merge-in-core` · döntés · kész · C-5
   A beolvasztás a változás és a Spec közös szabálya (sorrend, mind vagy semmi, eredet), ezért ott él, ahol a rekordtár és a Spec: merge(C-n) együtt írja a változás fájlját és a Spec dokumentumait. A Changes modul két végpontja (Jóváhagyás, Máshová…) a böngészőből jön, így az ember írása; a C-7 válaszai ugyanezen az úton egy harmadik végpontot kapnak.
+- Az ötlet elfogadása a core rekordtárában él: egy lépésben írja az ötletet és az új változást · `d-accept-in-core` · döntés · hiányzik · C-6
+  Az Ideas végpontja az ember nevében hívja, mint a Changes a beolvasztást (d-merge-in-core). Két rekordtípus közös szabálya ott él, ahol mindkettő, így nem maradhat elfogadott ötlet változás nélkül.
 
 ## Adatok és tárolás {#t-rec-data}
 

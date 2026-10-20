@@ -149,3 +149,18 @@ Az ötletnél az ember csak dönt: elfogadja, elveti, szundiztatja vagy dupliká
   A jóváhagyó listán dől el minden elem helye; beolvasztva hiányzik állapottal kerülnek a specbe, utána jönnek a jegyek. A spec a tervezett produktum, a megvalósítási állapot mutatja, mi épült meg (az OpenSpec-kel ellentétben nem a megvalósítás után).
 - A beolvasztott elem eredete a változások listája, amelyek hozták vagy módosították (· C-1, C-7); az ötleteket a változás tudja · `d-idea-dissolves` · döntés · kész · C-5
   Egy későbbi módosítás (change) a végére fűzi a saját azonosítóját, így a legutolsó áll hátul. Egy elemről a Specben ránézésre látszik, mely változások formálták, és mindegyik a változás lapjára visz, a miértekkel.
+- Az ötletnél az ember csak dönt: elfogadja, elveti, szundiztatja vagy duplikátumnak jelöli · `d-idea-one-decision` · döntés · hiányzik · C-6
+  Azt nem kell eldönteni, hová kerül a Specben.
+- Elfogadáskor az ember választ utat: Grilling vagy Egyenesen jegy; a kind csak az alapértéket adja · `d-route-choice` · döntés · hiányzik · C-6
+  A tervbe kerülő ötlethez mindig grilling kell; az egyenesen jegy út minimális változást hoz létre egy jeggyel (d-all-work-is-change).
+- Az Egyenesen jegy út minimális változást hoz létre, rögtön Megvalósításban; a jegyet Claude írja a kártyáról másolt prompttal · `d-direct-ticket` · döntés · hiányzik · C-6
+  Az elfogadás maga a jóváhagyás: a változásnak nincs javasolt eleme, nincs mit beolvasztani, a jegyet fogja össze. A böngésző nem futtat Claude-ot, ezért a jegyet nem a szerver nyitja: a kártya a Claude-nak szóló promptot másolja, és Claude a **Change:** sorral írja meg, ahogy a mai Make a ticket gomb.
+- Ideas munkapad: New · Considering · Accepted · Closed (összecsukva, szűrhető) · `d-board-columns` · félretett · C-6
+  Accepted kártyán: → C-12 · Grilling. Döntések csak az embernél: Accept (Grilling / Egyenesen jegy), Reject indoklással, Snooze dátumig (utána csak csendes jelzés, d-snooze-manual), Duplicate of I-n. 90 napnál régebben Considering-ben álló ötlet csendes régi jelzést kap (d-stale-quiet).
+- A szundi addig tart, amíg az ember vissza nem hozza; a lejárt dátum csak csendes jelzés a kártyán · `d-snooze-manual` · döntés · hiányzik · C-6
+  Az ötlet magától nem jön vissza és nem kér figyelmet: a dátum emlékeztető, nem határidő.
+- A 90 napnál régebben Considering-ben álló ötlet csendes régi jelzést kap; figyelmet nem kér, és magától nem mozdul · `d-stale-quiet` · döntés · hiányzik · C-6
+- Az elfogadott ötlet kártyáján kiszámolt összefoglaló: változásai és hol tartanak · `d-idea-summary` · döntés · hiányzik · C-6
+  Pl. → C-12 · Megvalósítás, 4 elem a Specben · 2/5 jegy kész, linkekkel; nem kell vezetni.
+- Minden szűrt nézet kiírja, mit rejt, és egy kattintással visszaáll az egészre · `d-focus-banner` · félretett · C-6
+  Az I-12 UI-tervéig félretéve, a tábla oszlopaival együtt (d-board-columns).

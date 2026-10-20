@@ -3,7 +3,7 @@ id: C-6
 title: Ötletből változás
 ideas: I-5
 milestone: M-9
-status: awaiting-approval
+status: implementing
 ---
 
 ## Probléma
@@ -80,3 +80,4 @@ A jegyek a `**Change:** C-6` sorukkal hivatkoznak erre a változásra.
 
 - 2026-10-20 · claude · created: re-sliced: C-3…C-5 cut into C-3…C-13, each a slice the next one already uses (human approved)
 - 2026-10-20 · claude · grilled: elfogadás a core-ban, két út (Grilling, Egyenesen jegy rögtön Megvalósításban, a jegyet Claude írja), csendes szundi és régi jelzés, a tábla látványa az I-12-ig félretéve; egy változás marad
+- 2026-10-20 · human · merged; status: awaiting-approval → implementing
