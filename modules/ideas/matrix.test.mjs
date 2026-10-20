@@ -26,7 +26,7 @@ test('the matrix holds only open ideas (New and Considering); those without a fu
   const placed = placeOnMatrix([
     idea('I-1', 'high', 'low'),
     idea('I-2', 'high', 'low', 'considering'),
-    idea('I-3', 'high', 'low', 'to-develop'),
+    idea('I-3', 'high', 'low', 'accepted'),
     idea('I-4', 'low', 'low', 'rejected'),
     idea('I-5', 'low', 'high'),
     idea('I-6', '', 'low', 'considering'),

@@ -5,19 +5,18 @@
 //
 // Here the human decides (d-ideas-human-decides): a card opens in the drawer (drawer.mjs) to edit
 // every field, and moves by drag and drop or its move menu (on the matrix, a move to another
-// quadrant changes its impact and effort); a move to Rejected first asks why (reject.mjs).
+// quadrant changes its impact and effort); a move to Rejected first asks why (reject.mjs), and a
+// move to Snoozed or Duplicate opens the drawer on that column, for the date or the idea it repeats.
 // Each save is made on the version the page saw; when the file changed meanwhile the page says so
 // and shows the newer one. Saving and errors are short toasts. The language follows the shell
 // (strings.mjs).
 //
-// An engineering idea in To develop offers "Make a ticket" (tickets.mjs): it copies a prompt for
+// An engineering idea in Accepted offers "Make a ticket" (tickets.mjs): it copies a prompt for
 // Claude. The tickets naming an idea come from Build (GET /api/build/ideas), read again when Build
 // says its tickets changed ("build.files", "build.issues"). A link with ?idea=I-12 (Build's link from
 // a ticket, or the link on the idea's node on Plan's map) opens that idea in the drawer.
 //
-// A product idea moved to To develop goes to Plan's map as a todo node, and a rejected one, when the
-// human asks, as a non-goal (plan.mjs); without Plan a toast says the map is unavailable. Every change
-// of status takes that one way (statusChanged), whether made by a move, the reject dialog or the drawer.
+// Accepting an idea is a change of status only: the change it opens comes with the Changes workspace.
 //
 // A card shows the sketches that link to its idea (the Sketch module's GET /api/sketch/links, topic
 // "sketch.links"), each opening that sketch.
@@ -34,7 +33,6 @@ import { drawer, valuesOf, changesOf } from './drawer.mjs'
 import { rejectForm } from './reject.mjs'
 import { copyText } from './tickets.mjs'
 import { ticketPrompt } from '../ticket.mjs'
-import { toMap, mapStep } from './plan.mjs'
 
 const $ = (id) => document.getElementById(id)
 // The view chosen (Kanban or Matrix), remembered by the browser when it may.
@@ -117,43 +115,30 @@ function answered(r, done) {
   return r
 }
 
-// The idea on Plan's map (plan.mjs): a todo node, or a non-goal with its reason; the idea then links
-// to the node. Without Plan the page says the map is unavailable, and the idea stays as it is.
-async function sendToMap(idea, status, reason) {
-  const r = await toMap(idea, { status, reason }, saveIdea)
-  if (r.unavailable) toast(ui('toast.no-map', { id: idea.id }), 'info')
-  else if (r.error) toast(ui('toast.map-error', { id: idea.id, error: r.error }), 'bad')
-  else { put(r.idea); toast(ui('toast.on-map', { id: idea.id })) }
-  draw()
-}
-
-// What a change of status does beyond the save, wherever it was made: a product idea to develop
-// becomes a todo on the map; a rejected one a non-goal when the human asked (nonGoal).
-async function statusChanged(before, idea, { nonGoal = false } = {}) {
-  const step = mapStep(before, idea, { nonGoal })
-  if (step) await sendToMap(idea, step.status, step.reason)
-}
+// The columns whose move needs a field the drawer asks for: Snoozed a date, Duplicate an idea.
+const ASKS_IN_DRAWER = ['snoozed', 'duplicate']
 
 async function move(idea, status) {
   if (status === 'rejected') {
-    ask = { idea, reason: '', toMap: false, error: null }
+    ask = { idea, reason: '', error: null }
     draw()
     $('reject').showModal()
     return
   }
-  const r = answered(await saveIdea(idea, { status }), () => {})
+  if (ASKS_IN_DRAWER.includes(status)) return openDrawer(idea, { status })
+  answered(await saveIdea(idea, { status }), () => {})
   document.querySelector(`[data-idea="${idea.id}"] .idea__move`)?.focus()
-  // A product idea to develop becomes a todo on the map (f-ideas-to-plan); an engineering one a ticket.
-  if (r.ok) await statusChanged(idea.status, r.idea)
+}
+
+function openDrawer(idea, preset = {}) {
+  draft = { idea, values: { ...valuesOf(idea), ...preset }, saving: false, error: null }
+  state.menu = null
+  draw()
+  $('drawer').showModal()
 }
 
 const boardActs = {
-  open(idea) {
-    draft = { idea, values: valuesOf(idea), toMap: false, saving: false, error: null }
-    state.menu = null
-    draw()
-    $('drawer').showModal()
-  },
+  open(idea) { openDrawer(idea) },
   move,
   menu(id) {
     const was = state.menu
@@ -180,35 +165,28 @@ const matrixActs = {
 
 const drawerActs = {
   edit(name, value) { draft.values = { ...draft.values, [name]: value }; draw() },
-  toMap(on) { draft.toMap = on; draw() },
   async save() {
-    const { idea: before, toMap: nonGoal } = draft
+    const { idea: before } = draft
     draft = { ...draft, saving: true, error: null }
     draw()
     const r = await saveIdea(before, changesOf(draft.values))
     if (r.stale && r.idea) {
-      draft = { idea: r.idea, values: valuesOf(r.idea), toMap: nonGoal, saving: false, error: ui('drawer.stale') }
+      draft = { idea: r.idea, values: valuesOf(r.idea), saving: false, error: ui('drawer.stale') }
     } else if (r.error) {
       draft = { ...draft, saving: false, error: r.error }
     }
     answered(r, () => { draft = null; $('drawer').close() })
-    // The status select takes the same way as a move (f-ideas-to-plan, f-ideas-reject).
-    if (r.ok) await statusChanged(before.status, r.idea, { nonGoal })
   },
   close() { $('drawer').close() },
 }
 
 const rejectActs = {
   edit(reason) { ask.reason = reason; draw() },
-  toMap(on) { ask.toMap = on; draw() },
   async confirm() {
-    const { idea: before, toMap: nonGoal } = ask
-    const r = await saveIdea(before, { status: 'rejected', reason: ask.reason })
+    const r = await saveIdea(ask.idea, { status: 'rejected', reason: ask.reason })
     if (r.error) ask = { ...ask, error: r.error }
     answered(r, () => {})
-    if (r.error) return
-    $('reject').close()
-    if (r.ok) await statusChanged(before.status, r.idea, { nonGoal })
+    if (!r.error) $('reject').close()
   },
   cancel() { $('reject').close() },
 }

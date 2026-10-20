@@ -1,134 +1,111 @@
-// The ideas on disk. Each idea is one Markdown file under docs/product/ideas/items/, named
-// I-012-<slug>.md: its fields in a front matter of flat `key: value` lines, its description below.
-// It is in git, so the team sees it and decisions can be traced.
+// The ideas, as records of the core's record store (core/records/store.mjs). IDEA_TYPE is the record
+// type the manifest declares (`records`); the store reads, numbers and writes the files, enforces the
+// lifecycle and keeps each idea's history. Each idea is one Markdown file under docs/product/ideas/,
+// I-012-<slug>.md: its id and fields in the front matter, its description below, its history at the
+// end. Other files in that folder (Plan's generated PRD.md and TECH.md) are not ideas.
 //
-//   const store = openIdeas(root, files)   // files: the core's writer for this module (core/files.mjs)
-//   store.list()          [{ id: 'I-12', n: 12, file, version, title, body, author, source, kind, status,
-//                            created, impact?, effort?, rationale?, reason?, links: ['I-3', '#42'] }]
+//   const ideas = openIdeas(records)   // records: the core's store (api({ records }), or openRecords)
+//   ideas.list()          [{ id: 'I-12', n: 12, file, version, title, body, author, source, kind, status,
+//                            created, impact?, effort?, rationale?, reason?, until?, duplicate?,
+//                            links: ['I-3', '#42'], history: ['2026-10-20 · human · created'] }]
 //                         in number order; [] without the folder
-//   store.add({ title, body?, author?, source?, kind?, impact?, effort?, rationale?, links? })
+//   ideas.add({ title, body?, author?, source?, kind?, impact?, effort?, rationale?, links? }, { by? })
 //                         the new idea, as list() gives it. impact and effort: low|medium|high, with a
 //                         one-line rationale; links: numbers of existing ideas it is similar to.
-//   store.update(id, { title?, body?, source?, kind?, impact?, effort?, rationale?, status?, reason?, links? }, { base? })
-//                         the changed idea; throws on an unknown value, on Rejected without a reason,
-//                         on an unknown id (code 'missing') and, when `base` is not the file's current
-//                         `version`, without writing (code 'stale'): someone else saved in between
+//   ideas.update(id, { title?, body?, source?, kind?, impact?, effort?, rationale?, status?, reason?,
+//                      until?, duplicate?, links? }, { base?, by? })
+//                         the changed idea; throws on an unknown value, on a status without the field
+//                         it needs (Rejected a reason, Snoozed until a date, Duplicate an existing idea),
+//                         on an unknown id (code 'missing'), on a move Claude may not make (code
+//                         'forbidden') and, when `base` is not the file's current `version`, without
+//                         writing (code 'stale'): someone else saved in between
 //
-// The next number is the highest one in the folder plus one: numbers are never reused, as an idea
-// is never deleted (a rejected one stays, in the Rejected column).
+// by: 'human' (the browser) or 'claude' (the command line, and the default). Claude moves an idea
+// only between New and Considering (CLI_STATUSES, d-ideas-ai-limits); the store refuses the rest.
 
-import crypto from 'node:crypto'
-import fs from 'node:fs'
 import path from 'node:path'
-import { STATUSES, AUTHORS, KINDS, LEVELS, ideaId, fileName } from './fields.mjs'
+import { STATUSES, AUTHORS, KINDS, LEVELS, CLI_STATUSES, STATE_FIELDS } from './fields.mjs'
 
-export const ITEMS = 'docs/product/ideas/items'
-const NUMBERED = /^I-(\d+)-.*\.md$/
-// The fields in the order they are written; the description is the body, not a field.
-const ORDER = ['title', 'author', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'reason', 'created']
+export const IDEAS = 'docs/product/ideas'
 // What an edit may change: everything but the number, the author and the date.
-const EDITABLE = ['title', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'reason']
+const EDITABLE = ['title', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'reason', 'until', 'duplicate']
+const LINES = ['title', 'source', 'rationale', 'reason', 'impact', 'effort', 'until', 'duplicate']
 // A value as one line: whitespace and line breaks collapse to single spaces.
 const line = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
-
-// "Gyors tabváltás!" -> "gyors-tabvaltas": ASCII, short, safe in a file name.
-export function slugOf(title) {
-  const slug = title.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48).replace(/-+$/, '')
-  return slug || 'idea'
-}
-
-// A value as one front-matter line: plain when it reads back the same, else a JSON string.
-const PLAIN = /^[^\s"'[\]{}#&*!|>%@`,-][^\n]*$/
-function value(v) {
-  const s = String(v)
-  return PLAIN.test(s) && !/\s$/.test(s) && !/: |\s#/.test(s) ? s : JSON.stringify(s)
-}
-
-export function serialize(fields, body) {
-  const text = (v) => (Array.isArray(v) ? v.join(', ') : v)
-  const lines = ORDER.filter((k) => fields[k] != null && text(fields[k]) !== '').map((k) => `${k}: ${value(text(fields[k]))}`)
-  return `---\n${lines.join('\n')}\n---\n${body ? `\n${body.trim()}\n` : ''}`
-}
-
-export function parse(text) {
-  const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text)
-  if (!m) return { fields: {}, body: text.trim() }
-  const fields = {}
-  for (const line of m[1].split(/\r?\n/)) {
-    const kv = /^([A-Za-z][\w-]*):\s?(.*)$/.exec(line)
-    if (!kv) continue
-    let v = kv[2].trim()
-    if (v.startsWith('"')) { try { v = JSON.parse(v) } catch { /* kept as written */ } }
-    fields[kv[1]] = v
-  }
-  return { fields, body: m[2].trim() }
-}
 
 function check(name, v, allowed) {
   if (!allowed.includes(v)) throw new Error(`${name} must be one of ${allowed.join(', ')}, not ${v}`)
 }
 
-export function openIdeas(root, files) {
-  const dir = path.join(root, ITEMS)
-  const names = () => {
-    try { return fs.readdirSync(dir).filter((f) => NUMBERED.test(f)) } catch { return [] }
+// The checks and tidying of every write of an idea (the record store calls it).
+function rules(next, { before, id, today, exists }) {
+  for (const k of LINES) if (next[k] != null) next[k] = line(next[k])
+  if (!next.title) throw new Error('an idea needs a title')
+  if (!before) {
+    next.author ||= 'human'
+    next.kind ||= 'product'
+    next.created ||= today
+    check('author', next.author, AUTHORS)
   }
-
-  const read = (f) => {
-    const n = Number(NUMBERED.exec(f)[1])
-    const text = files.read(`${ITEMS}/${f}`)
-    const { fields, body } = parse(text)
-    const version = crypto.createHash('sha1').update(text).digest('hex').slice(0, 12)
-    const links = String(fields.links ?? '').split(',').map((l) => l.trim()).filter(Boolean)
-    return { ...fields, id: ideaId(n), n, file: `${ITEMS}/${f}`, version, title: fields.title || f, status: STATUSES.includes(fields.status) ? fields.status : 'new', links, body }
-  }
-
-  function list() {
-    return names().map(read).sort((a, b) => a.n - b.n)
-  }
-
-  // The file of I-<n>, or null.
-  const fileOf = (id) => {
-    const m = /^I-(\d+)$/.exec(String(id))
-    return m ? names().find((f) => Number(NUMBERED.exec(f)[1]) === Number(m[1])) ?? null : null
-  }
-
-  function update(id, changes = {}, { base } = {}) {
-    const f = fileOf(id)
-    if (!f) throw Object.assign(new Error(`no idea ${id}`), { code: 'missing' })
-    const { id: _id, n: _n, file: _file, version, body: oldBody, ...old } = read(f)
-    if (base != null && base !== version) throw Object.assign(new Error(`${id} changed since it was read`), { code: 'stale' })
-    const next = { ...old }
-    for (const k of EDITABLE) if (changes[k] !== undefined) next[k] = changes[k]
-    for (const k of ['title', 'source', 'rationale', 'reason', 'impact', 'effort']) next[k] = line(next[k])
-    if (!next.title) throw new Error('an idea needs a title')
-    check('status', next.status, STATUSES)
-    if (next.kind) check('kind', next.kind, KINDS)
-    for (const k of ['impact', 'effort']) if (next[k]) check(k, next[k], LEVELS)
+  if (next.kind) check('kind', next.kind, KINDS)
+  for (const k of ['impact', 'effort']) if (next[k]) check(k, next[k], LEVELS)
+  if (next.links != null) {
     if (!Array.isArray(next.links)) throw new Error('links must be a list')
     next.links = next.links.map((l) => String(l).replace(/,/g, ' ').trim()).filter(Boolean)
-    if (next.status === 'rejected' && !next.reason) throw new Error('rejecting an idea needs a reason')
-    if (next.status !== 'rejected') delete next.reason
-    const body = changes.body !== undefined ? String(changes.body) : oldBody
-    files.write(`${ITEMS}/${f}`, serialize(next, body))
-    return read(f)
+    if (!before) for (const l of next.links) if (!exists(l)) throw new Error(`no idea ${l} to link to`)
+  }
+  for (const [status, field] of Object.entries(STATE_FIELDS)) if (next.status !== status) delete next[field]
+  if (next.status === 'rejected' && !next.reason) throw new Error('rejecting an idea needs a reason')
+  if (next.status === 'snoozed' && !/^\d{4}-\d\d-\d\d$/.test(next.until ?? '')) throw new Error('snoozing an idea needs until: a date (YYYY-MM-DD)')
+  if (next.status === 'duplicate') {
+    const of = next.duplicate ?? ''
+    if (!/^I-\d+$/.test(of)) throw new Error('a duplicate idea needs duplicate: the idea it repeats (I-n)')
+    if (of === id) throw new Error(`${id} cannot be a duplicate of itself`)
+    if (!exists(of)) throw new Error(`no idea ${of} to be a duplicate of`)
+  }
+  return next
+}
+
+// The record type the Ideas manifest declares.
+export const IDEA_TYPE = {
+  prefix: 'I',
+  name: 'idea',
+  folder: IDEAS,
+  fields: ['title', 'author', 'source', 'kind', 'impact', 'effort', 'rationale', 'links', 'status', 'reason', 'until', 'duplicate', 'created'],
+  lists: ['links'],
+  links: ['links', 'duplicate'],
+  lifecycle: { field: 'status', states: STATUSES, initial: 'new', claude: CLI_STATUSES },
+  rules,
+}
+
+export function openIdeas(records) {
+  const toIdea = (r) => ({
+    ...r.fields, id: r.id, n: r.n, file: r.file, version: r.version,
+    title: r.fields.title || path.posix.basename(r.file), status: STATUSES.includes(r.fields.status) ? r.fields.status : 'new',
+    links: r.fields.links ?? [], body: r.body, history: r.history,
+  })
+
+  const list = () => records.list('I').map(toIdea)
+
+  function update(id, changes = {}, { base, by } = {}) {
+    if (!/^I-\d+$/.test(String(id))) throw Object.assign(new Error(`no idea ${id}`), { code: 'missing' })
+    const fields = {}
+    for (const k of EDITABLE) if (changes[k] !== undefined) fields[k] = changes[k] ?? ''
+    const body = changes.body !== undefined ? String(changes.body ?? '') : undefined
+    try {
+      return toIdea(records.update(id, { fields, body }, { base, by }))
+    } catch (e) {
+      if (e.code === 'missing') e.message = `no idea ${id}`
+      throw e
+    }
   }
 
-  function add({ title, body = '', author = 'human', source = '', kind = 'product', impact, effort, rationale, links = [] } = {}) {
-    title = line(title)
-    if (!title) throw new Error('an idea needs a title')
-    check('author', author, AUTHORS)
-    check('kind', kind, KINDS)
+  function add({ title, body = '', author, source, kind, impact, effort, rationale, links = [] } = {}, { by } = {}) {
     if (impact != null) check('impact', impact, LEVELS)
     if (effort != null) check('effort', effort, LEVELS)
-    const known = new Set(list().map((i) => i.id))
-    for (const id of links) if (!known.has(id)) throw new Error(`no idea ${id} to link to`)
-    const n = Math.max(0, ...names().map((f) => Number(NUMBERED.exec(f)[1]))) + 1
-    const file = `${ITEMS}/${fileName(n, slugOf(title))}`
-    const fields = { title, author, source: line(source), kind, impact, effort, rationale: line(rationale), links: links.length ? [...links] : undefined, status: 'new', created: new Date().toISOString().slice(0, 10) }
-    files.write(file, serialize(fields, String(body)))
-    return read(path.posix.basename(file))
+    const fields = { title: line(title), author, source, kind, impact, effort, rationale, links: links.length ? [...links] : undefined }
+    for (const k of Object.keys(fields)) if (fields[k] == null) delete fields[k]
+    return toIdea(records.create('I', { fields, body: String(body ?? '') }, { by }))
   }
 
   return { list, add, update }

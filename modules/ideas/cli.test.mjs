@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { runCommand } from '../../core/cli-process.test-helper.mjs'
 
 const BIN = fileURLToPath(new URL('../../core/groundwork.mjs', import.meta.url))
-const ITEMS = path.join('docs', 'product', 'ideas', 'items')
+const ITEMS = path.join('docs', 'product', 'ideas')
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-ideas-cli-'))
 // What Claude must add to an idea of its own: an estimate with its reason.
 const ESTIMATE = ['--impact', 'high', '--effort', 'low', '--rationale', 'Small change, often used.']
@@ -25,7 +25,7 @@ test('ideas add creates the next numbered file and says its number', async () =>
   assert.match(text, /\nauthor: claude\n/)
   assert.match(text, /\nsource: grilling\n/)
   assert.match(text, /\nkind: engineering\n/)
-  assert.match(text, /\n\nCtrl\+1\.\.9\.\n$/)
+  assert.match(text, /\n\nCtrl\+1\.\.9\.\n\n## Történet\n\n- \S+ · claude · created\n$/)
 
   const second = await ideas(dir, 'add', 'Another one')
   assert.equal(second.code, 0, second.stderr)
@@ -40,7 +40,7 @@ test('ideas list prints every idea with its number, column, title, author and so
   assert.match(r.stdout, /I-1\s+new\s+Quick tab switching\s+\(claude, grilling\)/)
 })
 
-test('ideas move puts an idea in New or Considering, and refuses To develop and Rejected: those are the human\'s', async () => {
+test('ideas move puts an idea in New or Considering, and refuses the other columns: those are the human\'s', async () => {
   const dir = project()
   await ideas(dir, 'add', 'Quick tabs')
   const moved = await ideas(dir, 'move', 'I-1', 'considering')
@@ -49,7 +49,7 @@ test('ideas move puts an idea in New or Considering, and refuses To develop and 
   const file = path.join(dir, ITEMS, 'I-001-quick-tabs.md')
   assert.match(fs.readFileSync(file, 'utf8'), /\nstatus: considering\n/)
 
-  for (const status of ['to-develop', 'rejected']) {
+  for (const status of ['accepted', 'rejected', 'snoozed', 'duplicate']) {
     const r = await ideas(dir, 'move', 'I-1', status)
     assert.equal(r.code, 1, status)
     assert.match(r.stderr, /only a human.*browser/i, status)

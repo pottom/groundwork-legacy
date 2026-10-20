@@ -4,7 +4,7 @@ Each folder here is one Groundwork module.
 
 | Module | What it does | State |
 |---|---|---|
-| [`ideas/`](ideas/) | Numbered ideas with author and source, as Markdown files under `docs/product/ideas/items/`, on a kanban the human edits and decides on (drawer, drag and drop, reject with a reason); `groundwork ideas add|similar|list|move` (move: New and Considering only) | in progress (Claude skill: groundwork-ideas) |
+| [`ideas/`](ideas/) | Numbered ideas with author and source, records of the core's record store as Markdown files under `docs/product/ideas/`, on a kanban the human edits and decides on (drawer, drag and drop, reject with a reason, snooze, mark a duplicate); `groundwork ideas add|similar|list|move` (move: New and Considering only, enforced by the store) | in progress (Claude skill: groundwork-ideas) |
 | [`plan/`](plan/) | Turns a grilling interview with Claude Code into a live mind map and product documents under `docs/product/` | working prototype (Claude skill: groundwork-prd-maker) |
 | [`build/`](build/) | Shows a project's Markdown tickets, specs, ADRs and git branches as a live dashboard | working prototype |
 | [`sketch/`](sketch/) | A drawing board (Excalidraw) of named sketches, each a standard `.excalidraw` file under `docs/product/sketches/` (a bar lists, opens, makes and renames them); Claude reads and draws on them with `groundwork sketch show \| apply` (Mermaid flowcharts too), live, merged element by element with the browser's edits; threads of comments pinned to shapes (`groundwork sketch threads \| comment \| close`); links from a sketch to ideas, map nodes, tickets and other sketches, which those modules show (`GET /api/sketch/links`) | in progress (Claude skill: groundwork-sketch) |
@@ -18,7 +18,8 @@ From the plan ([`docs/product/core/TECH.md`](../docs/product/core/TECH.md), Modu
 2. **server endpoints** under its own `/api/<module>/` path;
 3. a **view** shown in the shared shell;
 4. optionally **skills and hooks** for Claude Code, which `groundwork init` installs into a project;
-5. the **folders it may write to**, which the core enforces.
+5. the **folders it may write to**, which the core enforces;
+6. optionally the **record types** it brings, which the core's record store keeps (`core/records/`).
 
 In code, a module exports its manifest from `module.mjs`, and `core/modules.mjs` lists it (the order of that list is the order of the shell's tabs: the flow first, Ideas, Plan, Build):
 
@@ -30,6 +31,12 @@ export default {
   tool: false,                                           // optional: true for a tool (Sketch), whose tab comes after the workflow's, behind a separator
   view: { dir: HERE, files: ['index.html', ...] },     // served under /plan/
   writes: ['docs/product', '.groundwork/plan'],          // the only folders it may write to
+  records: [{                                            // optional (Ideas): case-record types the core's record store keeps
+    prefix: 'I', name: 'idea', folder: 'docs/product/ideas',   // ids I-<n>, files I-<nnn>-<slug>.md in that folder (under docs/product/)
+    fields: ['title', 'links', 'status', ...], lists: ['links'], links: ['links'],  // front-matter order, comma lists, references
+    lifecycle: { field: 'status', states: [...], initial: 'new', claude: ['new', 'considering'] },  // Claude moves only between `claude`
+    rules: (fields, { before, id, by, today, exists }) => fields,   // checks and tidies every write; throws to refuse it
+  }],
   public: ['GET /api/plan/ids', 'POST /api/plan/todo'],  // the endpoints other modules may use (see below)
   attention: '/api/agents/attention',                    // optional (Agents): what needs the user, counted on the tab and toasted
                                                          // by the shell: { items: [{ key, reason, text: { en, hu } }], recheck }
@@ -42,7 +49,8 @@ export default {
     // or a script, for a hook that runs often (Agents): { event, matcher?, script: path.join(HERE, 'hook.mjs') },
     // copied to .claude/hooks/groundwork-<id>-hook.mjs and run as `node "$CLAUDE_PROJECT_DIR/.claude/hooks/..."`
   },
-  api: ({ root, files, events }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered
+  api: ({ root, files, events, records }) => (req, res, subpath, url) => true,  // /api/plan/<subpath>; true when it answered;
+                                                         // records: the core's record store (core/records/store.mjs)
 }
 ```
 
