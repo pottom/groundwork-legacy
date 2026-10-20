@@ -4,8 +4,6 @@
 //
 //   const plan = planMigration(root, { modules, roadmap?, split?, today? })   reads, writes nothing
 //   applyMigration(plan, { states })                                         writes it all
-//   checkRecords(store)   { duplicates, problems, unknown }: what `record check` would report, from
-//                         the store's Spec check and the records' references
 //
 // What it writes, from docs/product/mindmap.json:
 //   docs/product/spec/parts.md, spec/SYSTEM.md, spec/<part>/<KIND>.md   the Spec (convert.mjs)
@@ -14,7 +12,12 @@
 //                                          with what it became; its items are the Spec's (origin C-1).
 //                                          Tickets without a **Change:** line, made before C-1, are
 //                                          C-1's by the store's rule: no ticket is rewritten.
-//   docs/product/changes/C-00n-<slug>.md   Open questions from the migration: every todo that did not
+//   docs/product/changes/C-00n-<slug>.md   with `split` (split.mjs: the split plan, Claude proposes it,
+//                                          the human approves): a change per entry, C-2…, awaiting
+//                                          approval, its branches as proposed items with their place as
+//                                          the target and the implementation missing; C-1 lists where
+//                                          each branch went
+//   docs/product/changes/C-00n-<slug>.md   Open questions from the migration (after the split ones): every todo that did not
 //                                          point to an idea, as a question of a change being grilled
 //   docs/product/milestones/M-00n-<slug>.md   a milestone per decision of the roadmap section, in order,
 //                                          in the state the human approved (`states`)
@@ -35,18 +38,22 @@
 // Refused (code, nothing written): 'no-map' without docs/product/mindmap.json; 'migrated' when the
 // project already has a Spec, changes or milestones (a second run); 'conflict' when an idea's new
 // file exists already; 'form' when a document would not read back as written; 'states' for missing
-// or unknown milestone states; 'bad' for an unknown --roadmap section.
+// or unknown milestone states; 'bad' for an unknown --roadmap section; 'split' for a split plan
+// naming an id that is no branch of the map, a branch twice, an unknown idea or milestone, or a
+// change without a title or a branch.
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import { projectFiles } from '../files.mjs'
 import { mapToSpec, ORIGIN } from './convert.mjs'
+import { proposedItems } from './split.mjs'
 import { writeSpecDoc, readSpecDoc, writeParts, SPEC_DIR, PARTS_FILE } from '../records/spec-format.mjs'
 import { readRecord, writeRecord, fileName, slugOf } from '../records/format.mjs'
 import { CHANGES, MILESTONES, CHANGE_TYPE, MILESTONE_TYPE, CORE_RECORDS, changeBody } from '../records/changes.mjs'
 
 /** @typedef {import('./convert.mjs').Converted} Converted */
+/** @typedef {import('./split.mjs').SplitEntry} SplitEntry */
 /** @typedef {import('../records/types.mjs').RecordType} RecordType */
 /** @typedef {import('../records/types.mjs').RecordFormat} RecordFormat */
 /** @typedef {{ rel: string, text: string }} Write */
@@ -57,6 +64,7 @@ import { CHANGES, MILESTONES, CHANGE_TYPE, MILESTONE_TYPE, CORE_RECORDS, changeB
  * @property {string} status
  * @property {string} file
  * @property {string} text
+ * @property {import('../records/types.mjs').ProposedItem[]} [items]   a split change's proposed items
  */
 /**
  * @typedef {Object} PlannedMilestone
@@ -77,7 +85,7 @@ import { CHANGES, MILESTONES, CHANGE_TYPE, MILESTONE_TYPE, CORE_RECORDS, changeB
  * @property {Write[]} spec               parts.md and the documents
  * @property {PlannedChange[]} changes
  * @property {PlannedMilestone[]} milestones
- * @property {Array<Write & { from: string, accepted: boolean }>} ideas
+ * @property {Array<Write & { id: string, from: string, accepted: boolean }>} ideas
  * @property {string[]} remove            the old generated documents
  * @property {string} map
  * @property {string} mapTo
@@ -102,10 +110,12 @@ const TEXT = {
     initialProblem: 'A projekt a régi, egyetlen gondolattérképes Groundworkkel készült (docs/product/mindmap.json).',
     initialSolution: 'A `groundwork migrate` a térkép minden csomópontját a Specbe írta: minden elem eredete C-1, a megvalósítási állapota az átálláskori. A változás beolvasztva, a Spec ezzel az állapottal indul. A C-1 előtt készült, **Change:** sor nélküli jegyek a C-1-hez tartoznak.',
     idsIntro: 'A térkép azonosítói, amelyek nem Spec-azonosítók, és amivé lettek:',
-    kinds: { root: 'gyökér', part: 'rész', document: 'dokumentum', roadmap: 'megszűnt fejezet, a tartalma a dokumentum elején', milestone: 'mérföldkő', dropped: 'elmaradt, az ötlet a saját rekordjában', question: 'nyitott kérdés' },
+    kinds: { root: 'gyökér', part: 'rész', document: 'dokumentum', roadmap: 'megszűnt fejezet, a tartalma a dokumentum elején', milestone: 'mérföldkő', dropped: 'elmaradt, az ötlet a saját rekordjában', question: 'nyitott kérdés', split: 'külön változásban' },
     nothing: 'nincs',
     questionsProblem: 'Az átálláskor ezek a kérdések nyitottak voltak a térképen; a Specben nem lehet eldöntetlen elem, ezért itt várnak döntésre.',
     oldId: 'A térképen',
+    splitProblem: (/** @type {string} */ ids) => `Az átálláskor a térkép ezen ágai nem a C-1 Kiinduló állapotba kerültek, hanem ebbe a változásba, jóváhagyásra várva: ${ids}.`,
+    splitSolution: 'Az ágak csomópontjai javasolt elemek, mindegyik a térképen elfoglalt helyével mint célhellyel, hiányzó megvalósítással. Egy jóváhagyással olvadnak be a Specbe.',
   },
   en: {
     initial: 'Initial state',
@@ -113,10 +123,12 @@ const TEXT = {
     initialProblem: 'The project was made with the old, single-map Groundwork (docs/product/mindmap.json).',
     initialSolution: '`groundwork migrate` wrote every node of the map into the Spec: every item comes from C-1, with its implementation state at the time of the migration. The change is merged: the Spec starts in this state. Tickets made before C-1, without a **Change:** line, belong to C-1.',
     idsIntro: 'The ids of the map that are no Spec ids, and what they became:',
-    kinds: { root: 'root', part: 'part', document: 'document', roadmap: 'section gone, its content at the start of the document', milestone: 'milestone', dropped: 'dropped, the idea lives in its own record', question: 'open question' },
+    kinds: { root: 'root', part: 'part', document: 'document', roadmap: 'section gone, its content at the start of the document', milestone: 'milestone', dropped: 'dropped, the idea lives in its own record', question: 'open question', split: 'in a change of its own' },
     nothing: 'none',
     questionsProblem: 'These questions were open on the map at the migration; the Spec holds nothing undecided, so they wait for a decision here.',
     oldId: 'On the map',
+    splitProblem: (/** @type {string} */ ids) => `At the migration these branches of the map did not go to C-1 Initial state but to this change, awaiting approval: ${ids}.`,
+    splitSolution: 'The nodes of the branches are proposed items, each with its place on the map as its target and its implementation missing. They merge into the Spec with one approval.',
   },
 }
 
@@ -128,10 +140,10 @@ const filesIn = (root, rel) => { try { return fs.readdirSync(path.join(root, rel
 /**
  * What the migration would write, read from the project; nothing is written.
  * @param {string} root
- * @param {{ modules?: Array<{ id: string, records?: RecordType[] }>, roadmap?: string, split?: Iterable<string>, today?: () => string }} [options]
+ * @param {{ modules?: Array<{ id: string, records?: RecordType[] }>, roadmap?: string, split?: SplitEntry[], today?: () => string }} [options]
  * @returns {Plan}
  */
-export function planMigration(root, { modules = [], roadmap, split, today = () => new Date().toISOString().slice(0, 10) } = {}) {
+export function planMigration(root, { modules = [], roadmap, split = [], today = () => new Date().toISOString().slice(0, 10) } = {}) {
   root = path.resolve(root)
   const done = [
     filesIn(root, SPEC_DIR).length ? `${SPEC_DIR}/` : '',
@@ -142,7 +154,16 @@ export function planMigration(root, { modules = [], roadmap, split, today = () =
   if (!has(root, MAP)) throw fail(`nothing to migrate: no ${MAP}`, 'no-map')
 
   const data = JSON.parse(fs.readFileSync(path.join(root, MAP), 'utf8'))
-  const converted = mapToSpec(data, { roadmap, split })
+  const splitIds = split.flatMap((e) => e.split)
+  split.forEach((e, i) => {
+    if (!String(e.title ?? '').trim()) throw fail(`split change ${i + 1} needs a title (--as)`, 'split')
+    if (!e.split?.length) throw fail(`split change ${i + 1} (${e.title}) names no branch`, 'split')
+  })
+  const twice = splitIds.filter((id, i) => splitIds.indexOf(id) !== i)
+  if (twice.length) throw fail(`${[...new Set(twice)].join(', ')}: a branch goes to one change only`, 'split')
+  const converted = mapToSpec(data, { roadmap, split: splitIds })
+  const gone = splitIds.filter((id) => !converted.split.some((s) => s.id === id))
+  if (gone.length) throw fail(`${gone.join(', ')}: no component, document, section or item of the map has that id`, 'split')
   const t = TEXT[converted.lang] ?? TEXT.en
   const day = today()
 
@@ -156,31 +177,6 @@ export function planMigration(root, { modules = [], roadmap, split, today = () =
       throw fail(`${doc.file} would not read back as written: ${back.problems.map((p) => `${p.line}: ${p.why}: ${p.text}`).join('; ') || 'content differs'}`, 'form')
     }
     spec.push({ rel: doc.file, text })
-  }
-
-  // the changes: C-1, then (after the split ones of #53) the open questions
-  /** @type {PlannedChange[]} */
-  const changes = []
-  const questionsId = converted.questions.length ? 'C-2' : ''
-  const kind = (/** @type {string} */ k) => t.kinds[k] ?? k
-  const mapped = converted.ids.map((x) => {
-    const to = x.kind === 'question' ? questionsId : x.to
-    return `- \`${x.from}\` → ${to ? (/^[IMC]-\d+$/.test(to) ? to : `\`${to}\``) : t.nothing} (${kind(x.kind)})`
-  })
-  const count = countItems(converted)
-  changes.push(change(1, t.initial, 'done', {
-    problem: t.initialProblem,
-    solution: t.initialSolution,
-    scope: [t.idsIntro, '', ...mapped].join('\n'),
-  }, `created by migrate from ${MAP}; status: done (merged, ${count} items)`))
-  if (questionsId) {
-    const lines = converted.questions.flatMap((q) => [
-      `- ${q.topic} · \`${q.id}\` · ${q.document} › ${q.section}`,
-      ...(q.note ? q.note.split('\n').map((l) => (l ? `  ${l}` : '')) : []),
-      ...(q.link ? [`  <${q.link}>`] : []),
-    ])
-    changes.push(change(2, t.questions, 'grilling', { problem: t.questionsProblem, questions: lines.join('\n') },
-      `created by migrate from ${MAP} (${converted.questions.length} open questions)`))
   }
 
   /** @type {PlannedMilestone[]} */
@@ -206,8 +202,64 @@ export function planMigration(root, { modules = [], roadmap, split, today = () =
       rec.fields.status = 'accepted'
       rec.history = [...rec.history, `${day} · ${WHO} · status: to-develop → accepted`]
     }
-    return { from, rel, text: writeRecord(rec, format), accepted }
+    return { id: rec.id, from, rel, text: writeRecord(rec, format), accepted }
   })
+
+  // the changes: C-1, the split ones (C-2…, in the plan's order), then the open questions
+  /** @type {PlannedChange[]} */
+  const changes = []
+  const splitAt = 2
+  const questionsId = converted.questions.length ? `C-${splitAt + split.length}` : ''
+  const kind = (/** @type {string} */ k) => t.kinds[k] ?? k
+  const mapped = converted.ids.map((x) => {
+    const to = x.kind === 'question' ? questionsId : x.to
+    return `- \`${x.from}\` → ${to ? (/^[IMC]-\d+$/.test(to) ? to : `\`${to}\``) : t.nothing} (${kind(x.kind)})`
+  })
+  // a split section or item keeps its id; C-1 says where it went (a part or document is above)
+  split.forEach((e, i) => {
+    for (const id of e.split) if (!converted.ids.some((x) => x.from === id)) mapped.push(`- \`${id}\` → C-${splitAt + i} (${kind('split')})`)
+  })
+  const count = countItems(converted)
+  changes.push(change(1, t.initial, 'done', {
+    problem: t.initialProblem,
+    solution: t.initialSolution,
+    scope: [t.idsIntro, '', ...mapped].join('\n'),
+  }, `created by migrate from ${MAP}; status: done (merged, ${count} items)`))
+
+  const ideaIds = new Set(ideas.map((x) => x.id))
+  split.forEach((e, i) => {
+    const n = splitAt + i
+    /** @type {Record<string, any>} */
+    const fields = { title: String(e.title).trim() }
+    const named = e.ideas ?? []
+    const unknownIdeas = named.filter((x) => !ideaIds.has(x))
+    if (unknownIdeas.length) throw fail(`${e.title}: no idea ${unknownIdeas.join(', ')} in ${OLD_IDEAS}/`, 'split')
+    if (named.length) fields.ideas = named
+    if (e.milestone) {
+      const m = milestones.find((x) => x.id === e.milestone || x.from === e.milestone)
+      if (!m) throw fail(`${e.title}: no milestone ${e.milestone} (${milestones.map((x) => `${x.id} ${x.from}`).join(', ') || 'the map has no roadmap'})`, 'split')
+      fields.milestone = m.id
+    }
+    fields.status = 'awaiting-approval'
+    const branches = e.split.map((id) => /** @type {import('./convert.mjs').Split} */ (converted.split.find((s) => s.id === id)))
+    const items = proposedItems(branches, converted.lang)
+    const ids = e.split.map((id) => `\`${id}\``).join(', ')
+    changes.push(change(n, fields.title, 'awaiting-approval', {
+      problem: e.problem ?? t.splitProblem(ids),
+      solution: e.solution ?? t.splitSolution,
+      scope: e.scope, outOfScope: e.outOfScope, items,
+    }, `created by migrate from ${MAP} (split: ${e.split.join(', ')}; ${items.length} proposed items)`, fields))
+  })
+
+  if (questionsId) {
+    const lines = converted.questions.flatMap((q) => [
+      `- ${q.topic} · \`${q.id}\` · ${q.document} › ${q.section}`,
+      ...(q.note ? q.note.split('\n').map((l) => (l ? `  ${l}` : '')) : []),
+      ...(q.link ? [`  <${q.link}>`] : []),
+    ])
+    changes.push(change(splitAt + split.length, t.questions, 'grilling', { problem: t.questionsProblem, questions: lines.join('\n') },
+      `created by migrate from ${MAP} (${converted.questions.length} open questions)`))
+  }
 
   const remove = [...new Set(converted.oldFiles)].filter((rel) => {
     if (!has(root, rel)) return false
@@ -217,12 +269,12 @@ export function planMigration(root, { modules = [], roadmap, split, today = () =
 
   return { root, today: day, converted, spec, changes, milestones, ideas, remove, map: MAP, mapTo: MAP_BACKUP }
 
-  /** @param {number} n @param {string} title @param {string} status @param {import('../records/types.mjs').ChangeParts} parts @param {string} what @returns {PlannedChange} */
-  function change(n, title, status, parts, what) {
+  /** @param {number} n @param {string} title @param {string} status @param {import('../records/types.mjs').ChangeParts} parts @param {string} what @param {Record<string, any>} [fields] @returns {PlannedChange} */
+  function change(n, title, status, parts, what, fields = { title, status }) {
     const id = `C-${n}`
     const file = `${CHANGES}/${fileName('C', n, slugOf(title))}`
-    const text = writeRecord({ id, fields: { title, status }, body: changeBody(parts, id), history: [`${day} · ${WHO} · ${what}`] }, CHANGE_TYPE)
-    return { id, title, status, file, text }
+    const text = writeRecord({ id, fields, body: changeBody(parts, id), history: [`${day} · ${WHO} · ${what}`] }, CHANGE_TYPE)
+    return { id, title, status, file, text, ...(parts.items?.length ? { items: parts.items } : {}) }
   }
 }
 
@@ -313,31 +365,6 @@ export function applyMigration(plan, { states } = {}) {
 function removeEmpty(root, rel) {
   if (!rel.startsWith('docs/product/') || rel.split('/').length < 3) return
   try { fs.rmdirSync(path.join(root, rel)) } catch { /* not empty, or gone */ }
-}
-
-/**
- * What `record check` reports for the store: ids used twice in the Spec, lines not in the canonical
- * form, and references to records that do not exist (an item's origin, a change's milestone and ideas).
- * @param {ReturnType<typeof import('../records/store.mjs').openRecords>} store
- */
-export function checkRecords(store) {
-  const { duplicates, problems } = store.spec.check()
-  const ids = new Set(store.list().map((r) => r.id))
-  /** @type {Array<{ in: string, id: string }>} */
-  const unknown = []
-  /** @param {string} where @param {string[]} refs */
-  const need = (where, refs) => { for (const id of refs) if (!ids.has(id)) unknown.push({ in: where, id }) }
-  for (const d of store.spec.docs()) {
-    /** @param {import('../records/spec-format.mjs').SpecItem[]} items */
-    const walk = (items) => { for (const it of items) { need(`${d.id}#${it.id}`, [...it.origin, ...(it.supersededBy ? [it.supersededBy] : [])]); walk(it.items) } }
-    walk(d.items)
-    for (const s of d.sections) walk(s.items)
-  }
-  for (const c of store.list('C')) {
-    const ideas = c.fields.ideas
-    need(c.id, [...(Array.isArray(ideas) ? ideas : ideas ? [ideas] : []), ...(c.fields.milestone ? [String(c.fields.milestone)] : [])])
-  }
-  return { duplicates, problems, unknown }
 }
 
 export { ORIGIN, CORE_RECORDS }

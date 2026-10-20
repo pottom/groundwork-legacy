@@ -8,6 +8,10 @@
 //   GET /api/records/core/tech  an id of the Spec (spec-store.mjs): { document: StoredDoc } with its
 //                               sections, items and problems; { part: { id, ...SpecPart, documents } };
 //                               { section: { ...SpecSection, document } }; { item: { ...SpecItem, document } }
+//   GET /api/records/d-x        an id a pending change adds: { proposed: { op, id, target, text?,
+//                               note?, change: { id, title, status, file } } }
+//   GET /api/records/c-core     an old id a merged change lists (resolve.mjs): { alias: { id, to,
+//                               change, note } } and, beside it, what `to` resolves to as above
 //
 // Read only: a module writes its records through its own endpoints, which call the store with
 // by: 'human' (the browser is the human). Live updates: a record file or a Spec document
@@ -36,13 +40,26 @@ export function recordsApi(store) {
     try { id = decodeURIComponent(m[1]) } catch { return send(res, 400, { error: 'bad id' }), true }
     const record = store.show(id)
     if (record) return send(res, 200, { record }), true
-    const found = store.spec.find(id)
-    if (!found) return send(res, 404, { error: `no record ${id}` }), true
-    if (found.kind === 'document') return send(res, 200, { document: found.doc }), true
-    if (found.kind === 'part') return send(res, 200, { part: { id, ...found.part, documents: found.documents } }), true
-    if (found.kind === 'section') return send(res, 200, { section: { ...found.section, document: found.document } }), true
-    return send(res, 200, { item: { ...found.item, document: found.document } }), true
+    const resolved = store.resolve(id)
+    if (!resolved) return send(res, 404, { error: `no record ${id}` }), true
+    return send(res, 200, payload(store, resolved)), true
   }
+}
+
+/**
+ * @param {Store} store
+ * @param {import('./resolve.mjs').Resolved} r
+ * @returns {Record<string, any>}
+ */
+function payload(store, r) {
+  if (r.kind === 'record') return { record: store.show(r.id) }
+  if (r.kind === 'proposed') return { proposed: { ...r.item, change: r.change } }
+  if (r.kind === 'alias') return { alias: { id: r.id, to: r.to, change: r.change, note: r.note }, ...(r.target ? payload(store, r.target) : {}) }
+  const found = r.found
+  if (found.kind === 'document') return { document: found.doc }
+  if (found.kind === 'part') return { part: { id: found.id, ...found.part, documents: found.documents } }
+  if (found.kind === 'section') return { section: { ...found.section, document: found.document } }
+  return { item: { ...found.item, document: found.document } }
 }
 
 /**

@@ -74,6 +74,8 @@
  * @property {string} id                the Spec item's id, born in the change ('d-rec-change')
  * @property {string} target            where it goes: a document, section or item ('records/tech#t-rec-data')
  * @property {string} [text]            what it says
+ * @property {string} [note]            more of it: the lines under the item line, indented two
+ *                                      spaces (an item's note and link, a section's prose)
  */
 
 /**

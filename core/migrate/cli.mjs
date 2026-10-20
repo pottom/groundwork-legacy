@@ -12,21 +12,30 @@
 //                                 `M-1=done,r-8=in-progress` (by number or map id; with
 //                                 `proposed` for the rest), or one per milestone in order
 //                                 (`done,done,in-progress`)
+//   --split-plan <file>           selected branches to changes of their own, awaiting approval
+//                                 (C-2, C-3, ... in the file's order; split.mjs documents the
+//                                 JSON): with or without --yes
+//   --split <id,id> --as "<title>" [--idea I-5[,I-6]] [--milestone M-9 | r-9]
+//                                 the same for one change (after the plan file's, with both)
 //
 // Non-interactive: nothing asks. The project folder is --root, else MINDMAP_DIR, else the current
 // folder. A refusal (already migrated, no map, a missing state) prints why and exits with 1.
 
+import fs from 'node:fs'
 import path from 'node:path'
 import { MODULES } from '../modules.mjs'
-import { planMigration, applyMigration, checkRecords } from './migrate.mjs'
+import { planMigration, applyMigration } from './migrate.mjs'
+import { readSplitPlan } from './split.mjs'
+import { checkRecords, formatFinding } from '../records/check.mjs'
 import { openRecords } from '../records/store.mjs'
 import { CORE_RECORDS } from '../records/changes.mjs'
 
 const USAGE = [
-  'usage: groundwork migrate [--root DIR] [--roadmap <section id>|none] [--json]',
-  '       groundwork migrate --yes --milestones proposed|M-1=done,...|done,done,... [--root DIR] [--roadmap ...]',
+  'usage: groundwork migrate [--root DIR] [--roadmap <section id>|none] [--json] [<split>]',
+  '       groundwork migrate --yes --milestones proposed|M-1=done,...|done,done,... [--root DIR] [--roadmap ...] [<split>]',
+  '  <split>: --split-plan <file.json>  and/or  --split <id,id> --as "<title>" [--idea I-5] [--milestone M-9]',
 ].join('\n')
-const VALUED = ['root', 'roadmap', 'milestones']
+const VALUED = ['root', 'roadmap', 'milestones', 'split-plan', 'split', 'as', 'idea', 'milestone']
 const SWITCHES = ['yes', 'json']
 
 /** @param {string[]} args */
@@ -51,7 +60,10 @@ function describe(plan) {
   const out = [`From ${plan.map}: ${c.parts.length} parts, ${c.docs.length} documents (language ${c.lang})`, '', 'Spec:']
   for (const w of plan.spec) out.push(`  ${w.rel}`)
   out.push('', 'Changes:')
-  for (const ch of plan.changes) out.push(`  ${ch.id} ${ch.title} (${ch.status}) ${ch.file}`)
+  for (const ch of plan.changes) {
+    out.push(`  ${ch.id} ${ch.title} (${ch.status}) ${ch.file}`)
+    for (const i of ch.items ?? []) out.push(`    ${i.op} ${i.id} → ${i.target}${i.text ? ` — ${i.text}` : ''}`)
+  }
   if (c.questions.length) out.push(`    open questions: ${c.questions.map((q) => q.id).join(', ')}`)
   out.push('', c.roadmap ? `Milestones, from the roadmap section ${c.roadmap} (proposed states: check them against the tickets):` : 'Milestones: none (no roadmap section)')
   for (const m of plan.milestones) out.push(`  ${m.id.padEnd(5)} ${m.from.padEnd(14)} ${m.proposed.padEnd(11)} ${m.title}  (${m.why})`)
@@ -65,12 +77,26 @@ function describe(plan) {
   return out
 }
 
+// The split changes: the plan file's, then the one of --split/--as/--idea/--milestone.
+/** @param {Record<string, string | boolean>} opts @param {string} root @returns {import('./split.mjs').SplitEntry[]} */
+function splitOf(opts, root) {
+  const out = []
+  if (opts['split-plan']) {
+    const file = path.resolve(root, String(opts['split-plan']))
+    out.push(...readSplitPlan(fs.readFileSync(file, 'utf8')))
+  }
+  if (opts.split) {
+    out.push(...readSplitPlan(JSON.stringify([{ title: opts.as ?? '', split: opts.split, ideas: opts.idea, milestone: opts.milestone }])))
+  } else if (opts.as || opts.idea || opts.milestone) throw new Error('--as, --idea and --milestone go with --split <id,id>')
+  return out
+}
+
 /** @param {string[]} argv */
 function run(argv) {
   const opts = parse(argv)
   const root = path.resolve(String(opts.root ?? (process.env.MINDMAP_DIR || process.cwd())))
   const modules = [...MODULES, CORE_RECORDS]
-  const plan = planMigration(root, { modules, roadmap: /** @type {string | undefined} */ (opts.roadmap) })
+  const plan = planMigration(root, { modules, roadmap: /** @type {string | undefined} */ (opts.roadmap), split: splitOf(opts, root) })
   if (!opts.yes) {
     if (opts.json) {
       const { converted, spec, changes, ...rest } = plan
@@ -88,13 +114,14 @@ function run(argv) {
     return
   }
   const done = applyMigration(plan, { states: /** @type {string | undefined} */ (opts.milestones) })
-  const check = checkRecords(openRecords(root, modules))
+  const { findings } = checkRecords(openRecords(root, modules))
   console.log([
     `Migrated: ${done.written.length} files written, ${done.removed.length} generated documents removed.`,
     ...done.moved.map((m) => `  ${m}`),
-    `record check: ${check.duplicates.length} duplicate ids, ${check.problems.length} non-canonical lines, ${check.unknown.length} unknown references`,
+    findings.length ? `record check: ${findings.length} error${findings.length === 1 ? '' : 's'}:` : 'record check: no errors',
+    ...findings.map((f) => `  ${formatFinding(f)}`),
   ].join('\n'))
-  if (check.duplicates.length || check.problems.length || check.unknown.length) process.exitCode = 1
+  if (findings.length) process.exitCode = 1
 }
 
 try {

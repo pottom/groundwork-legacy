@@ -109,3 +109,19 @@ test('a Spec document or the parts list is the topic "records" too', () => {
   assert.equal(recordTopic(store, 'docs/product/spec/core/TECH.md.123.1.tmp'), null)
   assert.equal(recordTopic(store, 'docs/product/core/TECH.md'), null)
 })
+
+test('/api/records/<id> resolves an id a pending change adds, and an old id a merged change lists', async () => {
+  const root = project()
+  const store = openRecords(root, [CORE_RECORDS])
+  store.create('C', { fields: { title: 'Pending' }, body: '## Javasolt elemek\n\n- add `d-new` → `core/tech#t-x` — New thing\n  Its note.' })
+  store.create('C', { fields: { title: 'Merged' }, body: '## Keret\n\n- `old-1` → `d-new` (rész)' })
+  store.update('C-2', { fields: { status: 'done' } }, { by: 'human' })
+  await withServer(root, [], async (base) => {
+    const { proposed } = await (await fetch(`${base}/api/records/d-new`)).json()
+    assert.deepEqual(proposed, { op: 'add', id: 'd-new', target: 'core/tech#t-x', text: 'New thing', note: 'Its note.', change: { id: 'C-1', title: 'Pending', status: 'grilling', file: 'docs/product/changes/C-001-pending.md' } })
+    const old = await (await fetch(`${base}/api/records/old-1`)).json()
+    assert.deepEqual(old.alias, { id: 'old-1', to: 'd-new', change: 'C-2', note: 'rész' })
+    assert.equal(old.proposed.id, 'd-new')
+    assert.equal((await fetch(`${base}/api/records/nothing-1`)).status, 404)
+  })
+})

@@ -17,6 +17,7 @@
 //   ## Probléma ... ## Kérdések                   ## Történet
 //   ## Javasolt elemek
 //   - add `d-rec-change` → `records/tech#t-rec-data` — Change (C-n) is a record
+//     Its note: lines indented two spaces under the item.
 //   ## Jegyek
 //   A jegyek a `**Change:** C-7` sorukkal hivatkoznak erre a változásra.
 //   ## Történet
@@ -33,6 +34,9 @@
 //                                                `→`, ids without backticks; a line that is not an
 //                                                item stays text and is not an item
 //   OPS                    the ops of a proposed item: add, change, supersede
+//   PARTS_TARGET           'parts': the target of a proposed part (the list in spec/parts.md); a
+//                          proposed document's target is its part, a section's its document, an
+//                          item's `<document>#<section or parent item>`
 //
 // States. Change: grilling → awaiting-approval → implementing → done / dropped; Claude moves a change
 // only between grilling and awaiting-approval (the human approves, closes and drops). Milestone:
@@ -46,6 +50,7 @@
 export const CHANGES = 'docs/product/changes'
 export const MILESTONES = 'docs/product/milestones'
 export const OPS = ['add', 'change', 'supersede']
+export const PARTS_TARGET = 'parts'
 
 // The sections of a change, in order: the heading written, and the ones read too.
 /** @type {Array<{ key: 'problem' | 'solution' | 'scope' | 'outOfScope' | 'questions' | 'items' | 'tickets', heading: string, also: string[] }>} */
@@ -63,7 +68,8 @@ const ITEM = /^[-*]\s+(\S+)\s+`?([^`\s]+)`?\s+(?:→|->)\s+`?([^`\s]+)`?(?:\s+[�
 const TICKETS = /\*\*Change:\*\*\s*`?\s*(C-\d+)/
 
 /** @param {ProposedItem} i */
-const itemLine = (i) => `- ${i.op} \`${i.id}\` → \`${i.target}\`${i.text ? ` — ${i.text}` : ''}`
+const itemLine = (i) => [`- ${i.op} \`${i.id}\` → \`${i.target}\`${i.text ? ` — ${i.text}` : ''}`,
+  ...(i.note ? i.note.split('\n').map((l) => (l ? `  ${l}` : '')) : [])].join('\n')
 /** @param {string} id */
 const ticketsRule = (id) => `A jegyek a \`**Change:** ${id}\` sorukkal hivatkoznak erre a változásra.`
 
@@ -108,14 +114,27 @@ export function readChange(body) {
   }
   /** @type {ProposedItem[]} */
   const items = []
+  /** @type {{ item: ProposedItem, lines: string[] } | null} */
+  let last = null
+  const close = () => {
+    if (!last) return
+    const note = last.lines.join('\n').replace(/^\n+|\n+$/g, '')
+    if (note) last.item.note = note
+    last = null
+  }
   for (const line of text.items ?? []) {
     const m = ITEM.exec(line.trim())
-    if (!m || !OPS.includes(m[1])) continue
-    /** @type {ProposedItem} */
-    const item = { op: /** @type {ProposedItem['op']} */ (m[1]), id: m[2], target: m[3] }
-    if (m[4]) item.text = m[4]
-    items.push(item)
+    if (m && OPS.includes(m[1])) {
+      close()
+      /** @type {ProposedItem} */
+      const item = { op: /** @type {ProposedItem['op']} */ (m[1]), id: m[2], target: m[3] }
+      if (m[4]) item.text = m[4]
+      items.push(item)
+      last = { item, lines: [] }
+    } else if (last && (/^ {2}/.test(line) || !line.trim())) last.lines.push(line.trim() ? line.slice(2).trimEnd() : '')
+    else close()
   }
+  close()
   /** @type {ChangeParts & { items: ProposedItem[], tickets: string | null }} */
   const out = { items, tickets: TICKETS.exec((text.tickets ?? []).join('\n'))?.[1] ?? null }
   for (const k of /** @type {const} */ (['problem', 'solution', 'scope', 'outOfScope', 'questions'])) {
