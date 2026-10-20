@@ -368,6 +368,21 @@ test('the Ideas module\'s ticket list: per idea, the tickets naming it on their 
   } finally { await srv.close(); }
 });
 
+test('the ticket counts per change: the tickets naming it on their Change line, done out of all (a dropped one does not count)', async () => {
+  const root = project();
+  const write = (rel, text) => { fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); fs.writeFileSync(path.join(root, rel), text); };
+  write('.scratch/core/issues/01-first.md', '# First\n\n**Change:** C-6\n**Status:** done\n');
+  write('.scratch/core/issues/02-second.md', '# Second\n\n**Change:** C-6\n**Status:** ready-for-agent\n');
+  write('.scratch/core/issues/03-third.md', '# Third\n\n**Change:** C-6, C-7\n**Status:** wontfix\n');
+  const srv = await startServer({ root, modules: [buildModule({ githubRequest: async () => [] })], port: 0 });
+  try {
+    const get = async () => (await (await fetch(`http://127.0.0.1:${srv.port}/api/build/changes`)).json()).items;
+    assert.deepEqual(await get(), { 'C-6': { total: 2, done: 1 } }, 'C-7 has only a dropped ticket');
+    write('.scratch/core/issues/02-second.md', '# Second\n\n**Change:** C-6\n**Status:** resolved\n');
+    assert.deepEqual(await get(), { 'C-6': { total: 2, done: 2 } }, 'read again on each ask');
+  } finally { await srv.close(); }
+});
+
 test('a ticket\'s ideas link to the Ideas module in the whole window, beside its PRD items', () => {
   const parts = readBuild('page/parts.mjs');
   assert.match(parts, /export const ideaLinks = /);

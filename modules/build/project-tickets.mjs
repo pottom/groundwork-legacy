@@ -9,6 +9,9 @@
 //   ideaTickets(model)                          { ['I-12']: [{ path, label, title, status, closed,
 //                                               url? }] }: per idea, the tickets naming it on their
 //                                               "**Idea:**" line (the Ideas module shows them)
+//   changeTickets(model)                        { ['C-6']: { total, done } }: per change, how many
+//                                               tickets name it on their "**Change:**" line and how
+//                                               many of them are done (an idea's card shows it)
 //
 // Which folder holds the tickets and which files are tickets is the ticket reader's own rule
 // (locateProject, ticketPath), the one the page uses too: Plan counts exactly the ticket files
@@ -57,6 +60,16 @@ export function prdProgress(model) {
       done: counted.filter(isDone).length,
       tickets: counted.map((t) => ({ path: t.path, label: t.label, title: t.title, status: t.status, done: isDone(t), ...(t.url ? { url: t.url } : {}) })),
     };
+  }
+  return items;
+}
+
+// Like the PRD counts: a dropped ticket does not count, a change with only dropped ones is left out.
+export function changeTickets(model) {
+  const items = {};
+  for (const [id, tickets] of model.byChange) {
+    const counted = tickets.filter((t) => !isDropped(t));
+    if (counted.length) items[id] = { total: counted.length, done: counted.filter(isDone).length };
   }
   return items;
 }

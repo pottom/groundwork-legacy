@@ -259,3 +259,24 @@ test('the change\'s own write is checked before the Spec is written: a change th
   assert.throws(() => store.merge('C-1', { by: 'human' }), /milestone/)
   assert.deepEqual(snapshot(root), before, 'not the Spec, not the change')
 })
+
+test('store.inSpec counts the proposed items already in the Spec, by the same check as merged', () => {
+  // d-one is in the Spec with C-1 in its origin; d-new is not there yet
+  const { store } = seeded([
+    '- add `d-one` → `system#t-goal` — Egy szerver · döntés · kész',
+    '- add `d-new` → `system#t-goal` — Új · döntés · hiányzik',
+  ])
+  assert.deepEqual(store.inSpec('C-1'), { items: 2, inSpec: 1 })
+  assert.equal(store.merged('C-1'), false)
+  assert.equal(store.inSpec('C-9'), null, 'no change')
+  assert.equal(store.inSpec('I-1'), null, 'no change id')
+
+  const merged = seeded(['- add `d-new` → `system#t-goal` — Új · döntés · hiányzik'])
+  assert.deepEqual(merged.store.inSpec('C-1'), { items: 1, inSpec: 0 })
+  merged.store.merge('C-1', { by: 'human' })
+  assert.deepEqual(merged.store.inSpec('C-1'), { items: 1, inSpec: 1 })
+
+  const empty = seeded([])
+  assert.deepEqual(empty.store.inSpec('C-1'), { items: 0, inSpec: 0 })
+  assert.equal(empty.store.merged('C-1'), false, 'a change without items is not merged')
+})

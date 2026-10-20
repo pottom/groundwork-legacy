@@ -36,6 +36,9 @@
 //                                       error with code 'merge' and `problems`, one per item at fault
 //   store.merged(id)                    whether change C-n is merged, computed from the Spec
 //                                       (merge.mjs); null when there is no such change
+//   store.inSpec(id)                    { items, inSpec }: how many items change C-n proposes and
+//                                       how many of them are in the Spec, by the same check (merge.mjs);
+//                                       null when there is no such change
 //   store.waits(id)                     the proposed items of change C-n that wait for another
 //                                       pending change to be merged first (d-merge-in-order):
 //                                       [{ id, op, target, waitsFor: 'C-3', on }] (merge.mjs)
@@ -79,7 +82,7 @@ import { readRecord, writeRecord, fileName, slugOf } from './format.mjs'
 import { renderMarkdown } from './render.mjs'
 import { openSpec } from './spec-store.mjs'
 import { resolver } from './resolve.mjs'
-import { mergeChange, isMerged, waitsOf } from './merge.mjs'
+import { mergeChange, isMerged, inSpecOf, waitsOf } from './merge.mjs'
 import { moveItem, targetsOf } from './move.mjs'
 import { acceptIdea } from './accept.mjs'
 import { SPEC_DIR } from './spec-format.mjs'
@@ -361,6 +364,8 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     merge: (id, opts) => mergeChange(self, id, opts),
     /** @param {string} id */
     merged: (id) => isMerged(self, id),
+    /** @param {string} id */
+    inSpec: (id) => inSpecOf(self, id),
     /** @param {string} id */
     waits: (id) => waitsOf(self, id),
     targets: () => targetsOf(self),

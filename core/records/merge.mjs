@@ -44,6 +44,9 @@
 //       (a superseded one marked by it); a new part, document or section is there, and a changed
 //       one holds the wording the merge writes (its title and prose, or its part line); false for
 //       a change without items, null for no change
+//   inSpecOf(store, 'C-5') -> { items, inSpec } | null
+//       how many items the change proposes, and how many of them are in the Spec by the same
+//       check (an idea's card shows it); null for no change
 
 import { readChange, PARTS_TARGET, CLOSED, changeOf } from './changes.mjs'
 import { itemTextOf, docIdOf, docFile, isDocId } from './spec-format.mjs'
@@ -290,40 +293,55 @@ export function mergeChange(store, id, { by = 'claude', base } = {}) {
   }
 }
 
-// Whether every item is in the Spec with this change in its origin (a superseded one marked by it);
-// a new part, document or section is there, a changed one holds the wording the merge writes.
-/** @param {StoreLike['spec']} spec @param {string} id @param {ProposedItem[]} items */
-function mergedIn(spec, id, items) {
-  if (!items.length) return false
-  const { locate } = workingSpec(spec)
-  return items.every((it) => {
-    const at = locate(it.id)
-    if (!at) return false
-    const text = String(it.text ?? '').trim()
-    if (it.target === PARTS_TARGET) {
-      if (at.kind !== 'part' || !at.part) return false
-      if (it.op === 'add') return true
-      if (it.op !== 'change') return false
-      const want = partChanged(at.part, text)
-      return want.name === at.part.name && want.type === at.part.type && want.description === at.part.description
-    }
-    if (at.kind === 'part') return false
-    if (at.kind !== 'item') {
-      if (it.op === 'add') return true
-      if (it.op !== 'change') return false
-      const node = at.kind === 'section' ? at.section : at.doc
-      const want = nodeChanged(node, text, it)
-      return want.title === node.title && want.prose === node.prose
-    }
-    return it.op === 'supersede' ? at.item.supersededBy === id : at.item.origin.includes(id)
-  })
+// Whether one proposed item is in the Spec with this change in its origin (a superseded one marked
+// by it); a new part, document or section is there, a changed one holds the wording the merge writes.
+/** @param {(id: string) => Place | null} locate @param {string} id @param {ProposedItem} it */
+function itemIn(locate, id, it) {
+  const at = locate(it.id)
+  if (!at) return false
+  const text = String(it.text ?? '').trim()
+  if (it.target === PARTS_TARGET) {
+    if (at.kind !== 'part' || !at.part) return false
+    if (it.op === 'add') return true
+    if (it.op !== 'change') return false
+    const want = partChanged(at.part, text)
+    return want.name === at.part.name && want.type === at.part.type && want.description === at.part.description
+  }
+  if (at.kind === 'part') return false
+  if (at.kind !== 'item') {
+    if (it.op === 'add') return true
+    if (it.op !== 'change') return false
+    const node = at.kind === 'section' ? at.section : at.doc
+    const want = nodeChanged(node, text, it)
+    return want.title === node.title && want.prose === node.prose
+  }
+  return it.op === 'supersede' ? at.item.supersededBy === id : at.item.origin.includes(id)
 }
+
+// How many of the items are in the Spec (itemIn).
+/** @param {StoreLike['spec']} spec @param {string} id @param {ProposedItem[]} items */
+function countIn(spec, id, items) {
+  if (!items.length) return 0
+  const { locate } = workingSpec(spec)
+  return items.filter((it) => itemIn(locate, id, it)).length
+}
+
+// Whether every item is in the Spec; false without items.
+/** @param {StoreLike['spec']} spec @param {string} id @param {ProposedItem[]} items */
+const mergedIn = (spec, id, items) => items.length > 0 && countIn(spec, id, items) === items.length
 
 /** @param {StoreLike} store @param {string} id @returns {boolean | null} */
 export function isMerged(store, id) {
+  const counted = inSpecOf(store, id)
+  return counted && counted.items > 0 && counted.inSpec === counted.items
+}
+
+/** @param {StoreLike} store @param {string} id @returns {{ items: number, inSpec: number } | null} */
+export function inSpecOf(store, id) {
   const rec = changeOf(store, id)
   if (!rec) return null
-  return mergedIn(store.spec, id, readChange(rec.body).items)
+  const { items } = readChange(rec.body)
+  return { items: items.length, inSpec: countIn(store.spec, id, items) }
 }
 
 // What a proposed item needs before it can go into the Spec, in the order it is checked.

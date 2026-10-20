@@ -93,7 +93,8 @@ test('POST /api/ideas/accept accepts an idea as the human: the store writes it a
     const ok = await post('I-1', { route: 'grilling', base: seen.version })
     assert.equal(ok.status, 200)
     const out = await ok.json()
-    assert.deepEqual(out.change, { id: 'C-1', title: 'Quick tabs', status: 'grilling' })
+    // no open question yet, so the stage the Changes page shows is Awaiting approval
+    assert.deepEqual(out.change, { id: 'C-1', title: 'Quick tabs', status: 'grilling', stage: 'awaiting-approval', merged: false, items: 0, inSpec: 0 })
     assert.equal(out.idea.status, 'accepted')
     assert.deepEqual(out.idea.changes, [out.change])
     assert.deepEqual((await list())[0].changes, [out.change], 'the list shows the change on the idea')
@@ -102,7 +103,7 @@ test('POST /api/ideas/accept accepts an idea as the human: the store writes it a
     const ticket = await post('I-2', { route: 'ticket' })
     assert.equal(ticket.status, 200)
     const direct = await ticket.json()
-    assert.deepEqual(direct.change, { id: 'C-2', title: 'Lint the CSS', status: 'implementing' }, 'straight to a ticket: implementing at once')
+    assert.deepEqual(direct.change, { id: 'C-2', title: 'Lint the CSS', status: 'implementing', stage: 'implementing', merged: false, items: 0, inSpec: 0 }, 'straight to a ticket: implementing at once')
     assert.equal(direct.route, 'ticket')
   })
 })
@@ -122,6 +123,28 @@ test('a move to Accepted by a plain save is refused: accepting goes through POST
     assert.equal(saved.status, 200, 'an accepted idea saves with its status as it is')
     assert.equal((await saved.json()).idea.changes[0].id, 'C-1')
   })
+})
+
+test('GET /api/ideas/list gives each change its stage and Spec items, read afresh: a Spec edit shows, and is the live topic records', async () => {
+  const root = project()
+  const write = (rel, text) => { fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); fs.writeFileSync(path.join(root, rel), text) }
+  const SPEC = 'docs/product/spec/SYSTEM.md'
+  write(SPEC, '# Groundwork\n\n_Rendszer-áttekintés_\n\n## Cél {#t-goal}\n\n- Egy szerver · `d-one` · döntés · kész · C-1\n')
+  open(root).add({ title: 'Quick tabs' })
+  const records = openRecords(root, [ideas, changes])
+  records.create('C', { fields: { title: 'Tabs', ideas: ['I-1'] }, body: '## Javasolt elemek\n\n- add `d-tabs` → `system#t-goal` — Tabs · döntés · hiányzik\n' })
+  const srv = await startServer({ root, modules: [ideas, changes], port: 0 })
+  const sse = listen(srv.port)
+  const base = `http://127.0.0.1:${srv.port}`
+  const change = async () => (await (await fetch(`${base}/api/ideas/list`)).json()).ideas[0].changes[0]
+  try {
+    await sse.next((e) => e.event === 'hello')
+    assert.deepEqual(await change(), { id: 'C-1', title: 'Tabs', status: 'grilling', stage: 'awaiting-approval', merged: false, items: 1, inSpec: 0 })
+    // the item written into the Spec by hand, with C-1 in its origin: the card follows without a write to the change
+    fs.appendFileSync(path.join(root, SPEC), '- Tabs · `d-tabs` · döntés · hiányzik · C-1\n')
+    await sse.change('records')
+    assert.deepEqual(await change(), { id: 'C-1', title: 'Tabs', status: 'grilling', stage: 'awaiting-approval', merged: true, items: 1, inSpec: 1 })
+  } finally { sse.close(); await srv.close() }
 })
 
 test('an idea file is Ideas\' live topic; other files are not', () => {

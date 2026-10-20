@@ -8,9 +8,13 @@
 //   ideas.list()          [{ id: 'I-12', n: 12, file, version, title, body, author, source, kind, status,
 //                            created, impact?, effort?, rationale?, reason?, until?, duplicate?,
 //                            links: ['I-3', '#42'], history: ['2026-10-20 · human · created'],
-//                            changes: [{ id: 'C-7', title, status }] }]
+//                            changes: [{ id: 'C-7', title, status, stage, merged, items, inSpec }] }]
 //                         in number order; [] without the folder. changes: the changes that name the
-//                         idea (opened when it was accepted), computed; [] without the Changes module
+//                         idea (opened when it was accepted), computed on each read; [] without the
+//                         Changes module. stage: the one the Changes page shows (core/records/stage.mjs:
+//                         open questions → grilling, none → awaiting-approval, later ones the status);
+//                         items: how many items it proposes, inSpec: how many of them are in the Spec,
+//                         merged: all of them (the core's store.inSpec, the check of store.merged)
 //   ideas.add({ title, body?, author?, source?, kind?, impact?, effort?, rationale?, links? }, { by? })
 //                         the new idea, as list() gives it. impact and effort: low|medium|high, with a
 //                         one-line rationale; links: numbers of existing ideas it is similar to.
@@ -23,8 +27,8 @@
 //                         writing (code 'stale'): someone else saved in between. The board accepts
 //                         through accept, below (the endpoint refuses a move to Accepted)
 //   ideas.accept(id, { route, base?, by? })
-//                         { route, idea, change: { id, title, status } }: the idea accepted and the
-//                         change it opens, by the core's record store (store.accept, all or nothing,
+//                         { route, idea, change }: the idea accepted and the change it opens (as in
+//                         changes), by the core's record store (store.accept, all or nothing,
 //                         the human only; core/records/accept.mjs); route: grilling | ticket (ROUTES)
 //
 // by: 'human' (the browser) or 'claude' (the command line, and the default). Claude moves an idea
@@ -32,6 +36,7 @@
 
 import path from 'node:path'
 import { STATUSES, AUTHORS, KINDS, LEVELS, CLI_STATUSES, STATE_FIELDS } from './fields.mjs'
+import { changeStage } from '../../core/records/stage.mjs'
 
 export const IDEAS = 'docs/product/ideas'
 // What an edit may change: everything but the number, the author and the date.
@@ -40,8 +45,6 @@ const LINES = ['title', 'source', 'rationale', 'reason', 'impact', 'effort', 'un
 // A value as one line: whitespace and line breaks collapse to single spaces.
 const line = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
 
-// A change as an idea's card shows it.
-const changeOf = (c) => ({ id: c.id, title: c.fields.title ?? '', status: c.fields.status ?? '' })
 
 function check(name, v, allowed) {
   if (!allowed.includes(v)) throw new Error(`${name} must be one of ${allowed.join(', ')}, not ${v}`)
@@ -94,6 +97,16 @@ export function openIdeas(records) {
     title: r.fields.title || path.posix.basename(r.file), status: STATUSES.includes(r.fields.status) ? r.fields.status : 'new',
     links: r.fields.links ?? [], body: r.body, history: r.history,
   })
+
+  // A change as an idea's card shows it, computed by the core on each read: its stage (the one the
+  // Changes page shows), whether it is merged, and how many of its proposed items are in the Spec.
+  const changeOf = (c) => {
+    const { items = 0, inSpec = 0 } = records.inSpec?.(c.id) ?? {}
+    return {
+      id: c.id, title: c.fields.title ?? '', status: c.fields.status ?? '', stage: changeStage(c).stage,
+      merged: items > 0 && inSpec === items, items, inSpec,
+    }
+  }
 
   // The changes that name each idea, from the change records (none without the Changes module).
   const changesById = () => {

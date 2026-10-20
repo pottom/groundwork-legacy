@@ -52,7 +52,7 @@ export default {
   view: { dir: HERE, files: [
     'index.html', 'view/ideas.css', 'view/main.mjs', 'view/board.mjs', 'view/strings.mjs',
     'view/api.mjs', 'view/drawer.mjs', 'view/reject.mjs', 'view/accept.mjs', 'view/changes.mjs', 'view/matrix.mjs', 'view/tickets.mjs', 'view/links.mjs',
-    'ui-strings.mjs', 'fields.mjs', 'matrix.mjs', 'ticket.mjs',
+    'ui-strings.mjs', 'fields.mjs', 'matrix.mjs', 'ticket.mjs', 'summary.mjs',
   ] },
   // Ideas writes nothing itself: the core's record store writes the idea files.
   writes: [],
