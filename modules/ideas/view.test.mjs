@@ -157,3 +157,12 @@ test('a card shows the sketches that link to its idea (Sketch\'s public GET /api
 test('a link to an idea (/?module=ideas&idea=I-12, a sketch\'s or a map node\'s) opens it in the drawer', () => {
   assert.match(read('view/main.mjs'), /new URLSearchParams\(location\.search\)\.get\('idea'\)/)
 })
+
+test('a card shows its quiet marks from the list (date passed, old) as neutral badges; a mark moves nothing', () => {
+  const board = read('view/board.mjs')
+  assert.match(board, /idea\.marks/)
+  assert.match(board, /class="gw-badge gw-badge--neutral idea__mark"/)
+  assert.match(board, /'snooze-passed': \[ui\('mark\.snooze-passed'\), ui\('mark\.snooze-passed-title'\)\]/)
+  assert.match(board, /stale: \[ui\('mark\.stale'\), ui\('mark\.stale-title'\)\]/)
+  assert.doesNotMatch(viewSource(), /marks[^\n]*act\.move/)
+})
