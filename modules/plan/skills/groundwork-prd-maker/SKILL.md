@@ -194,9 +194,11 @@ After every write, run `{{groundwork}} record check` and fix what it reports in 
 
 **The close.** The interview closes when its frontier is empty or when the human closes it. Then:
 
-1. The map holds no `?` node, so the change's stage is Awaiting approval (`awaiting-approval`), computed from the map. When the human closes it with questions still open, they stay on the map, and the change stays in Grilling.
-2. Append a history line: `- <today> · claude · grilled: <what was settled, in a few words>`.
-3. Tell the human the change awaits their approval; the Spec takes its items when they approve and merge it.
+1. **Slice it.** When the frontier is empty, say in chat whether the change stays one change or is cut into slices, and which slice builds on which. A slice is useful on its own: approved, merged and built, it works without the slices after it; the next slice builds on it. Cut when the proposed items fall into such layers (a core, then what extends it); keep one change when it is small or its parts only make sense together. The human confirms or changes the cut in chat; do not cut before they do, and do not ask them to sort items on the approval list.
+   Once confirmed, the first slice stays this change; each later slice becomes a change of its own, in order: `{{groundwork}} record add change --title "<slice title>"` with the same `--ideas` and `--milestone`. Move its proposed items out of this change into it, with the map nodes they came from, and write its problem, solution and scope; rewrite this change's to the first slice. A later slice's item may target an item or section an earlier slice proposes, never the other way. The changes merge in that order: one whose item targets an item of a change not yet merged waits for it, and the page will not approve it until then. Run the check on every slice, and give each the steps below.
+2. The map holds no `?` node, so the change's stage is Awaiting approval (`awaiting-approval`), computed from the map. When the human closes it with questions still open, they stay on the map, and the change stays in Grilling.
+3. Append a history line: `- <today> · claude · grilled: <what was settled, in a few words>`; on a slice cut from it, `- <today> · claude · sliced from C-<n>: <what it builds on>`.
+4. Tell the human the change (each slice, in order) awaits their approval; the Spec takes its items when they approve and merge it.
 
 ## Session flow
 
@@ -222,6 +224,7 @@ After every write, run `{{groundwork}} record check` and fix what it reports in 
 6. **ADRs and glossary (grill-with-docs).** domain-modeling writes ADRs to `docs/adr/` and terms to `GLOSSARY.md`. groundwork-prd-maker does not write them itself. When an ADR appears, propose it in the change for the Decision log section, and give its path in the note of the matching decision. The glossary is shown automatically in the PRD and the overview.
 7. **Finish.** When the frontier is empty, make a final pass over the change:
    - Reread its text and the prose of its proposed sections, so the change reads as one coherent whole and agrees with the Spec it changes.
+   - Propose the slicing: one change, or slices that build on each other, confirmed by the human in chat; each slice becomes a change of its own, merged in order.
    - Close the interview as "The close" says: no open questions left, stage Awaiting approval.
 
 ## Tickets: the PRD reference, the state and the area

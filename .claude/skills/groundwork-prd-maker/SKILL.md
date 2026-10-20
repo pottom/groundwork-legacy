@@ -29,7 +29,7 @@ root                          the system or product: named after the system docu
 
 The sections are only starting points. What a project needs, and what "scope" means for it, differs from project to project. Propose sections fitted to this project, and let the human confirm or change them.
 
-The table below shows the English names, while a map without a language is Hungarian. `node core/groundwork.mjs plan kinds` prints the starting sections in the map's document language (see Session flow, step 1): use the titles it prints, not the ones here.
+The table below shows the English names, while a map without a language is Hungarian. `{{groundwork}} plan kinds` prints the starting sections in the map's document language (see Session flow, step 1): use the titles it prints, not the ones here.
 
 | kind | file | starting sections |
 |---|---|---|
@@ -66,14 +66,14 @@ Questions, the choices you offered, and your recommendations never go on the Spe
 
 ## Tools
 
-All access goes through `node core/groundwork.mjs plan <command>`, run in the project's root folder: `apply` merges with edits the human is making on the map at the same moment.
+All access goes through `{{groundwork}} plan <command>`, run in the project's root folder: `apply` merges with edits the human is making on the map at the same moment.
 
 - `init "<name>"`: start the Spec: its overview document, titled with the system or product name (the root's name).
 - `show`: print the outline with ids, statuses, documents and section state, plus any human edits you have not seen yet.
 - `apply`: change the map, that is the Spec's Markdown, then print the outline. Pass a JSON op array on stdin with a quoted heredoc in the Bash tool. This avoids Windows quoting problems:
 
   ```bash
-  node core/groundwork.mjs plan apply <<'EOF'
+  {{groundwork}} plan apply <<'EOF'
   [{"op":"add","id":"app","parent":"root","topic":"Mobilapp","component":"software","dir":"app"},
    {"op":"add","id":"app/prd","parent":"app","topic":"Mobilapp: Termék","doc":"prd"},
    {"op":"add","id":"t-app-users","parent":"app/prd","topic":"Felhasználók"},
@@ -106,7 +106,7 @@ All access goes through `node core/groundwork.mjs plan <command>`, run in the pr
 
 ## A change interview writes into the change
 
-Every interview that changes what is built is the interview of a change. The human names it (`C-7`), or it starts from an accepted idea that already has one; when there is none, create it: `node core/groundwork.mjs record add change --title "<title>" [--ideas I-5] [--milestone M-9]` prints `C-7 <file>`, the change's spec skeleton. `node core/groundwork.mjs record show C-7` prints it, and `node core/groundwork.mjs record list --type C` lists them all.
+Every interview that changes what is built is the interview of a change. The human names it (`C-7`), or it starts from an accepted idea that already has one; when there is none, create it: `{{groundwork}} record add change --title "<title>" [--ideas I-5] [--milestone M-9]` prints `C-7 <file>`, the change's spec skeleton. `{{groundwork}} record show C-7` prints it, and `{{groundwork}} record list --type C` lists them all.
 
 The interview writes into that file, `docs/product/changes/C-<nnn>-<slug>.md`, edited directly, and leaves the Spec as it is. The human follows it on the change's page in the Changes tab, which reloads with every write.
 
@@ -186,23 +186,25 @@ What goes where, as the interview moves:
   - `op`: `add` a new id; `change` an id the Spec has, with its new wording; `supersede` an id the Spec has, replaced by this change.
   - `target`, where the item goes: `parts` for a part, the part's id for a document, the document's id for a section (`app/prd`), and `<document>#<section or parent item>` for an item (`app/prd#t-app-offline`). An item may target an item or section this same change proposes.
   - `text`: an item's topic, then its status and implementation after ` · ` in the document language, as the Spec writes them (`· döntés · hiányzik`, `· decision · missing`); a part, a document or a section has only its name, and a section's prose is its note.
-  - Ids and labels follow the rules of "The map is meeting notes"; `node core/groundwork.mjs plan show` gives the Spec's ids and the targets to pick from. Rewrite or remove an item line freely: the list reads as the change's current proposal, not as history.
+  - Ids and labels follow the rules of "The map is meeting notes"; `{{groundwork}} plan show` gives the Spec's ids and the targets to pick from. Rewrite or remove an item line freely: the list reads as the change's current proposal, not as history.
 - **Problem, solution, scope, out of scope** (`## Probléma`, `## Megoldás`, `## Keret`, `## Kihagyjuk`): rewritten as they sharpen, as the change reads **now**, in the language of the conversation. The scope ends in what done means.
 - **Front matter and history**: leave `id`, `title`, `ideas`, `milestone` and `status` as they are unless the human changes them: the interview's stage is computed from the map's open questions.
 
-After every write, run `node core/groundwork.mjs record check` and fix what it reports in the change's file before you ask on: a target that is not in the Spec, a `change` or `supersede` of an id that is not there, a line not in the canonical form; on the map, an unknown sign, a `→` to an id the change does not propose, a line not in the map's canonical form. Done when it prints `no errors`; a finding in another file is the human's, so name it to them instead.
+After every write, run `{{groundwork}} record check` and fix what it reports in the change's file before you ask on: a target that is not in the Spec, a `change` or `supersede` of an id that is not there, a line not in the canonical form; on the map, an unknown sign, a `→` to an id the change does not propose, a line not in the map's canonical form. Done when it prints `no errors`; a finding in another file is the human's, so name it to them instead.
 
 **The close.** The interview closes when its frontier is empty or when the human closes it. Then:
 
-1. The map holds no `?` node, so the change's stage is Awaiting approval (`awaiting-approval`), computed from the map. When the human closes it with questions still open, they stay on the map, and the change stays in Grilling.
-2. Append a history line: `- <today> · claude · grilled: <what was settled, in a few words>`.
-3. Tell the human the change awaits their approval; the Spec takes its items when they approve and merge it.
+1. **Slice it.** When the frontier is empty, say in chat whether the change stays one change or is cut into slices, and which slice builds on which. A slice is useful on its own: approved, merged and built, it works without the slices after it; the next slice builds on it. Cut when the proposed items fall into such layers (a core, then what extends it); keep one change when it is small or its parts only make sense together. The human confirms or changes the cut in chat; do not cut before they do, and do not ask them to sort items on the approval list.
+   Once confirmed, the first slice stays this change; each later slice becomes a change of its own, in order: `{{groundwork}} record add change --title "<slice title>"` with the same `--ideas` and `--milestone`. Move its proposed items out of this change into it, with the map nodes they came from, and write its problem, solution and scope; rewrite this change's to the first slice. A later slice's item may target an item or section an earlier slice proposes, never the other way. The changes merge in that order: one whose item targets an item of a change not yet merged waits for it, and the page will not approve it until then. Run the check on every slice, and give each the steps below.
+2. The map holds no `?` node, so the change's stage is Awaiting approval (`awaiting-approval`), computed from the map. When the human closes it with questions still open, they stay on the map, and the change stays in Grilling.
+3. Append a history line: `- <today> · claude · grilled: <what was settled, in a few words>`; on a slice cut from it, `- <today> · claude · sliced from C-<n>: <what it builds on>`.
+4. Tell the human the change (each slice, in order) awaits their approval; the Spec takes its items when they approve and merge it.
 
 ## Session flow
 
-1. **Start.** If `docs/product/spec/` is missing, run `init`. Start the core server: with `preview_start` when `.claude/launch.json` has a `groundwork` configuration, otherwise run `node core/groundwork.mjs --no-open` in the background (it prints its address; `--port N` picks another port when 4477 is taken). Open the change's page in the Changes tab (`/?module=changes`), and `/plan/` for the Spec it changes.
+1. **Start.** If `docs/product/spec/` is missing, run `init`. Start the core server: with `preview_start` when `.claude/launch.json` has a `groundwork` configuration, otherwise run `{{groundwork}} --no-open` in the background (it prints its address; `--port N` picks another port when 4477 is taken). Open the change's page in the Changes tab (`/?module=changes`), and `/plan/` for the Spec it changes.
 
-   Set the document language to the language of the conversation: `{"op":"set","id":"root","lang":"…"}`. `show` prints it on the root line. A map without one is Hungarian (`hu`). Every fixed text of the documents (subtitle, state marks, closing sections) and the starting sections from `kinds` are then in that language, so the map's own labels and prose must be in it too. The languages there are: `hu`, `en` (the usage line of `node core/groundwork.mjs plan` lists them). If the conversation is in a language with no strings, use `en` and say so. If the conversation switches language for good, change it and translate the map's labels and prose.
+   Set the document language to the language of the conversation: `{"op":"set","id":"root","lang":"…"}`. `show` prints it on the root line. A map without one is Hungarian (`hu`). Every fixed text of the documents (subtitle, state marks, closing sections) and the starting sections from `kinds` are then in that language, so the map's own labels and prose must be in it too. The languages there are: `hu`, `en` (the usage line of `{{groundwork}} plan` lists them). If the conversation is in a language with no strings, use `en` and say so. If the conversation switches language for good, change it and translate the map's labels and prose.
 2. **Existing project?** If there is already code or documentation, read it before asking anything. Dispatch a sub-agent for a thorough analysis:
    - the product: README, specs, glossary, docs;
    - every ADR in `docs/adr/`, with its state;
@@ -222,6 +224,7 @@ After every write, run `node core/groundwork.mjs record check` and fix what it r
 6. **ADRs and glossary (grill-with-docs).** domain-modeling writes ADRs to `docs/adr/` and terms to `GLOSSARY.md`. groundwork-prd-maker does not write them itself. When an ADR appears, propose it in the change for the Decision log section, and give its path in the note of the matching decision. The glossary is shown automatically in the PRD and the overview.
 7. **Finish.** When the frontier is empty, make a final pass over the change:
    - Reread its text and the prose of its proposed sections, so the change reads as one coherent whole and agrees with the Spec it changes.
+   - Propose the slicing: one change, or slices that build on each other, confirmed by the human in chat; each slice becomes a change of its own, merged in order.
    - Close the interview as "The close" says: no open questions left, stage Awaiting approval.
 
 ## Tickets: the PRD reference, the state and the area
@@ -229,7 +232,7 @@ After every write, run `node core/groundwork.mjs record check` and fix what it r
 The `to-tickets` skill turns the PRD into tickets; use it as it is. When you write a ticket yourself instead (a change's slices, a follow-up), give it the same form and everything below. Every ticket then gets a **PRD reference**: the ids of the map items it came from, so Build can link the ticket to Plan and Plan can count the tickets per item. In the same turn as `to-tickets`:
 
 1. Run `show` for the map's ids.
-2. For each new ticket, pick the items it builds or must respect: features, decisions, notes, `excluded` items. A ticket that matches no item is a gap in the PRD: propose the item in the ticket's change first (and its `?` node on the map, when the human has not settled it), then name it. An item the change proposes is named too: `node core/groundwork.mjs record show <id>` finds it.
+2. For each new ticket, pick the items it builds or must respect: features, decisions, notes, `excluded` items. A ticket that matches no item is a gap in the PRD: propose the item in the ticket's change first (and its `?` node on the map, when the human has not settled it), then name it. An item the change proposes is named too: `{{groundwork}} record show <id>` finds it.
 3. Add the line, written exactly so:
 
    ```
