@@ -1,0 +1,37 @@
+# Groundwork — Sketch modul: Műszaki terv
+
+_Műszaki terv_
+
+## Technológiai stack {#t-board-stack .done}
+
+A rajzolást az Excalidraw adja, a csomagba téve, mint a Mind Elixir; a React csak az ő belső függősége, a saját kódunk továbbra is sima ES-modul. Az első jegy eldöntötte a csomagolást: a 0.17-es UMD-build a React 18 UMD-buildjeivel, változatlanul, fordítási lépés nélkül; egy egyszer előkészített 0.18-as ESM-változat csak akkor jön szóba, ha egy csak ott meglévő funkció kell.
+
+- Excalidraw, a csomagba téve, React-tel együtt · `s-board-excalidraw` · döntés · kész · C-1
+  A React csak az Excalidraw belső függősége; a saját kód lit-html marad.
+  [core/vendor/README.md](../../../../core/vendor/README.md)
+- Csomagolás: az Excalidraw 0.17.6 UMD-buildje a React 18.3.1 UMD-buildjeivel, változatlanul a core/vendor/ alatt · `q-board-packaging` · döntés · C-1
+  Fordítás és telepítés nélkül fut sima <script>-ből. A 0.18 csak ES-modulként jön, kb. 25 csupasz importtal, ami bundlert kívánna, és a React 19-nek nincs UMD-buildje. Ára: régebbi verzió (nincs reconcileElements, az elemszintű fésülést magunk írjuk), egyetlen ismert külső URL a csomagban (a tweet-beágyazás sablonja; a beágyazás ki van kapcsolva), a magyar fordítást mi kapcsoljuk be (70%-os), és a LICENSE-t a repóból tettük mellé.
+  [core/vendor/README.md](../../../../core/vendor/README.md)
+- tldraw · `x-board-tldraw` · kizárt · C-1
+  Kötöttebb licenc.
+
+## Adatok és tárolás {#t-board-data .done}
+
+Minden vázlat egy .excalidraw fájl a docs/product/sketches/ alatt, mellette a szálak egy <név>.threads.json fájlban, az alakzatok azonosítója szerint. Így a rajz szabványos marad, a beszélgetés pedig gitben, a rajz mellett él.
+
+- docs/product/sketches/<név>.excalidraw, gitben · `d-board-store` · döntés · C-1
+- A szálak külön fájlban: <név>.threads.json, alakzat-azonosító szerint · `d-board-threads-file` · döntés · C-1
+  Így a .excalidraw fájl szabványos marad.
+
+## Integrációk és interfészek {#t-board-int .done}
+
+Claude a groundwork sketch parancson át dolgozik: a show szöveges kivonatot ad az alakzatokról, szövegekről és nyilakról, az apply műveletekkel rajzol, a comment a szálakba ír. Ha képre van szüksége, a böngészőpanelben nézi meg a vázlatot; a szerver nem renderel képet.
+
+- groundwork sketch: list, show (szöveges kivonat), apply (műveletek), comment · `d-board-cli` · döntés · C-1
+- Képet Claude a böngészőpanelből kér, a szerver nem renderel · `d-board-image` · döntés · C-1
+
+## Biztonság {#t-board-sec .done}
+
+A modul csak a docs/product/sketches/ alá írhat. A táblába illesztett képek mérete korlátozott, hogy a fájlok kezelhetők maradjanak gitben.
+
+- Csak a docs/product/sketches/ alá írhat; beágyazott képek mérethatárral · `d-board-writes` · döntés · C-1

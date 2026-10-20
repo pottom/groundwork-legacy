@@ -17,9 +17,9 @@ Használható a `grilling`, `grill-me` és `grill-with-docs` skillekkel.
 
 ```
 rendszer / termék (gyökér)
-├── dokumentum            az egészhez tartozik, pl. Áttekintés → docs/product/SYSTEM.md
+├── dokumentum            az egészhez tartozik, pl. Áttekintés → docs/product/spec/SYSTEM.md
 ├── összetevő             típussal: szoftver, szolgáltatás, infrastruktúra, közös
-│   └── dokumentum        pl. Mobilapp → docs/product/mobilapp/PRD.md és TECH.md
+│   └── dokumentum        pl. Mobilapp → docs/product/spec/mobilapp/PRD.md és TECH.md
 │       └── fejezet
 │           └── elemek    döntés, tény, csoport…
 ```
@@ -111,7 +111,7 @@ A térkép világos vagy sötét színei a shell témáját követik (a fejlécb
 |---|---|
 | `GET /api/plan/map[?v=<verzió>]` | a térkép, vagy `{ same: true }`, ha a böngészőnél már ez a verzió van |
 | `PUT /api/plan/map` | `{ base, data }`: a böngésző mentése, összefésülve, a Spec Markdownjába írva; ismeretlen `base` esetén `409` a mostani térképpel; régi (`mindmap.json`) térképen `409 { readOnly, error }`, semmi nem íródik |
-| `GET /api/plan/ids[?v=<verzió>]` | `{ v, ids }`: a térkép csomópontjainak azonosítói, a térkép nélkül |
+| `GET /api/plan/ids[?v=<verzió>]` | `{ v, ids }`: a térkép csomópontjainak azonosítói, utánuk amit a rekordtár ezen felül felold (egy függő változás javasolt elemei, egy lezárt változás régi azonosítói, pl. a C-1 `c-records`-a), a térkép nélkül |
 | `GET /api/plan/glossary` | `{ text }`: a projekt `GLOSSARY.md`-je |
 | `POST /api/plan/todo` | `{ idea: 'I-12', title, status?: 'todo'\|'excluded', reason? }` → `{ id, added }`: egy ötlet csomópontként (`todo.mjs`); `400` hibás kérés, `404` nincs térkép, `409` régi, csak olvasható térkép, `415` nem `application/json` |
 

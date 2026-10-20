@@ -81,6 +81,25 @@ test('/api/plan/ids gives the ids of the nodes of the map, for Build to check PR
   }
 })
 
+test('/api/plan/ids also gives the ids a pending change proposes and the old ids a merged change lists, so tickets naming them are known', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gw-plan-ids-changes-'))
+  spec(root)
+  put(root, 'docs/product/changes/C-001-start.md', '---\nid: C-1\ntitle: Start\nstatus: done\n---\n\n## Keret\n\n- `c-old` → `app` (rész)\n\n## Történet\n')
+  const pending = '---\nid: C-2\ntitle: Next\nstatus: awaiting-approval\n---\n\n## Javasolt elemek\n\n- add `d-new` → `app/prd#goal` — New\n\n## Történet\n'
+  put(root, 'docs/product/changes/C-002-next.md', pending)
+  const srv = await startServer({ root, modules: [plan], port: 0 })
+  try {
+    const base = `http://127.0.0.1:${srv.port}`
+    const { v, ids } = await (await fetch(`${base}/api/plan/ids`)).json()
+    assert.deepEqual(ids, ['root', 'system', 'app', 'app/prd', 'goal', 'd-new', 'c-old'])
+    put(root, 'docs/product/changes/C-002-next.md', pending.replace('`d-new`', '`d-other`'))
+    const after = await (await fetch(`${base}/api/plan/ids?v=${v}`)).json()
+    assert.ok(after.ids.includes('d-other') && !after.ids.includes('d-new'), 'a change to a change is a new version')
+  } finally {
+    await srv.close()
+  }
+})
+
 // Plan's colours are aliases of the theme's tokens: its node types use the status hues, "ask about it"
 // the theme's pink. Everything (page, panels, text, lines, accent, fonts) comes from the shell's theme.
 test('the Plan view uses the shell theme and defines no base colours of its own', async () => {

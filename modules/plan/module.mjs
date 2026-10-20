@@ -7,8 +7,11 @@
 //                                    Spec's Markdown -> { v, data, changed, errors };
 //                                    409 with the current map when `base` is unknown (nothing saved),
 //                                    409 { readOnly, error, v, data } on an old map (nothing saved)
-//   GET /api/plan/ids[?v=<version>]  { v, ids }: the ids of the map's nodes, or { v, same: true } as above;
-//                                    what Build checks the tickets' PRD lines against, without the map
+//   GET /api/plan/ids[?v=<version>]  { v, ids }: the ids of the map's nodes, then the ids the record store
+//                                    resolves beyond them (core/records/resolve.mjs: the items a pending
+//                                    change proposes, the old ids a merged change lists), or
+//                                    { v, same: true } as above; what Build checks the tickets' PRD
+//                                    lines against, without the map
 //   GET /api/plan/glossary           { text } of the project's GLOSSARY.md
 //   POST /api/plan/todo              { idea: 'I-12', title, status?: 'todo'|'excluded', reason? } -> { id, added }:
 //                                    an idea from the Ideas module as a node linked to it (todo.mjs);
@@ -21,12 +24,14 @@
 // documents: a hand edit of one shows on the open map.
 
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { send, readJson, isJson } from '../../core/http.mjs'
 import { openMap, nodeIds, MIGRATE_HINT } from './map-store.mjs'
 import { addIdea } from './todo.mjs'
 import { VERSION } from '../../core/version.mjs'
 import { SPEC_DIR } from '../../core/records/spec-format.mjs'
+import { resolver } from '../../core/records/resolve.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const NO_MAP = (root) => `no Spec (docs/product/spec/) in ${root}`
@@ -40,6 +45,25 @@ function sendFromMap(store, root, res, url, answer) {
   const map = store.read()
   if (url.searchParams.get('v') === map.v) return send(res, 200, { v: map.v, same: true })
   send(res, 200, answer(map))
+}
+
+// The ids a ticket may name: the map's, then those the store resolves beyond them (proposed by a
+// pending change, or an old id a merged change lists). The version covers both, so an edit of a
+// change is a new version too.
+function sendIds(store, records, root, res, url) {
+  if (!store.exists()) return send(res, 404, { error: NO_MAP(root) })
+  const map = store.read()
+  const ids = nodeIds(map.data)
+  const more = []
+  if (records && store.source() === 'spec') {
+    const seen = new Set(ids)
+    const r = resolver(records)
+    for (const id of [...r.proposed.keys(), ...r.aliases.keys()]) if (!seen.has(id)) { seen.add(id); more.push(id) }
+  }
+  ids.push(...more)
+  const v = more.length ? crypto.createHash('sha1').update(map.v + '\n' + more.join('\n')).digest('hex').slice(0, 12) : map.v
+  if (url.searchParams.get('v') === v) return send(res, 200, { v, same: true })
+  send(res, 200, { v, ids })
 }
 
 export default {
@@ -76,7 +100,7 @@ export default {
     const store = openMap(root, files, { spec: records?.spec })
     return async (req, res, sub, url) => {
       if (sub === '/glossary' && req.method === 'GET') return send(res, 200, { text: store.glossary() }), true
-      if (sub === '/ids' && req.method === 'GET') return sendFromMap(store, root, res, url, ({ v, data }) => ({ v, ids: nodeIds(data) })), true
+      if (sub === '/ids' && req.method === 'GET') return sendIds(store, records, root, res, url), true
       if (sub === '/todo') {
         if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' }), true
         // Only a JSON request: another web site cannot send one here without the browser asking first.
