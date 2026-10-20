@@ -8,6 +8,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 import { runCommand } from './cli-process.test-helper.mjs'
 
 const BIN = fileURLToPath(new URL('./groundwork.mjs', import.meta.url))
@@ -265,4 +266,52 @@ test('an outdated Agents hook is brought up to date: the copy, a changed matcher
   ])
   assert.deepEqual(hookCommands(after, 'SessionStart'), [AGENTS_COMMAND])
   assert.match((await init(dir)).stdout, /nothing to change/)
+})
+
+// The records check as a git pre-commit hook: offered in a git project, installed only on its own yes.
+const gitProject = () => {
+  const dir = project()
+  execFileSync('git', ['init', '-q'], { cwd: dir, stdio: 'ignore' })
+  return dir
+}
+const PRE_COMMIT = '.git/hooks/pre-commit'
+
+test('in a git project init offers the records check as a pre-commit hook, and installs it on a yes', async () => {
+  const dir = gitProject()
+  const r = await init(dir, [], 'y\ny\n')
+  assert.equal(r.code, 0, r.stdout + r.stderr)
+  assert.match(r.stdout, /record check.*pre-commit.*\[y\/N\]/)
+  const hook = read(dir, PRE_COMMIT)
+  assert.match(hook, /^#!\/bin\/sh\n/)
+  assert.ok(hook.includes(`${RUNNER} record check`), hook)
+  if (process.platform !== 'win32') assert.ok(fs.statSync(path.join(dir, PRE_COMMIT)).mode & 0o100, 'executable')
+  const again = await init(dir, [], '')
+  assert.doesNotMatch(again.stdout, /\[y\/N\]/, 'installed: not offered again')
+})
+
+test('answered no, or with --yes alone, there is no hook; init shows the CI step instead', async () => {
+  const dir = gitProject()
+  const no = await init(dir, [], 'y\nn\n')
+  assert.equal(no.code, 0, no.stdout + no.stderr)
+  assert.ok(!exists(dir, PRE_COMMIT))
+  assert.ok(no.stdout.includes(`${RUNNER} record check`), 'the CI step')
+  const other = gitProject()
+  const yes = await init(other, ['--yes'], '')
+  assert.equal(yes.code, 0)
+  assert.ok(!exists(other, PRE_COMMIT), '--yes does not install the hook: it needs its own yes')
+  assert.match(yes.stdout, /pre-commit/)
+  const declined = gitProject()
+  await init(declined, [], 'n\n')
+  assert.ok(!exists(declined, PRE_COMMIT), 'the setup declined: the hook is not offered either')
+})
+
+test('a pre-commit hook of the project\'s own is never overwritten: init says what line to add', async () => {
+  const dir = gitProject()
+  fs.mkdirSync(path.join(dir, '.git/hooks'), { recursive: true })
+  fs.writeFileSync(path.join(dir, PRE_COMMIT), '#!/bin/sh\nnpm test\n')
+  const r = await init(dir, ['--yes'], '')
+  assert.equal(r.code, 0)
+  assert.equal(read(dir, PRE_COMMIT), '#!/bin/sh\nnpm test\n')
+  assert.ok(r.stdout.includes(`${RUNNER} record check`))
+  assert.doesNotMatch(r.stdout, /\[y\/N\]/)
 })

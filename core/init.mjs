@@ -15,6 +15,9 @@
 //   - the .groundwork/ folder (the modules' local state), added to .gitignore.
 // It first lists what it will change and asks; it writes only after a yes. Run again, it changes
 // only what is missing or out of date, so nothing is ever added twice.
+// In a git project it then offers `groundwork record check` as the pre-commit hook, asked on its
+// own (--yes does not answer it) and never over a hook the project already has; declined, it shows
+// the command as the CI step.
 //
 //   groundwork init [--root DIR] [--yes]
 //
@@ -27,6 +30,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import readline from 'node:readline'
+import { execFileSync } from 'node:child_process'
 import { RUNNER } from './version.mjs'
 
 const SETTINGS = '.claude/settings.json'
@@ -214,32 +218,86 @@ export function planInit({ root, modules }) {
   }
 }
 
-// Asks a yes/no question on input; no answer (input closed) is no.
-function ask(question, input, output) {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({ input, output, terminal: false })
-    let answered = false
+// Yes/no questions on input, one line each; no answer (input closed) is no.
+function asker(input, output) {
+  let rl = null, closed = false
+  const lines = [], waiting = []
+  const open = () => {
+    if (rl) return
+    rl = readline.createInterface({ input, output, terminal: false })
+    rl.on('line', (line) => (waiting.length ? waiting.shift()(line) : lines.push(line)))
+    rl.once('close', () => { closed = true; while (waiting.length) waiting.shift()(null) })
+  }
+  const ask = async (question) => {
+    open()
     output.write(question)
-    rl.once('line', (line) => { answered = true; rl.close(); resolve(/^\s*y(es)?\s*$/i.test(line)) })
-    rl.once('close', () => { if (!answered) { output.write('\n'); resolve(false) } })
-  })
+    const line = lines.length ? lines.shift() : closed ? null : await new Promise((resolve) => waiting.push(resolve))
+    if (line == null) output.write('\n')
+    return line != null && /^\s*y(es)?\s*$/i.test(line)
+  }
+  return { ask, close: () => rl?.close() }
+}
+
+// The records check before each commit (d-rec-check): `groundwork record check` as the project's
+// git pre-commit hook. It is a standing rule on the human's commits, so it is offered on its own and
+// installed only on its own yes (never by --yes); a hook the project already has is never
+// overwritten. Without the hook, the same command is the CI step.
+const RECORD_CHECK = `${RUNNER} record check`
+const preCommitText = () => `#!/bin/sh\n# Installed by groundwork init: the records check (duplicate numbers, missing ids, lines not in the\n# canonical form). Remove this file to stop it.\nexec ${RECORD_CHECK}\n`
+
+function preCommitHook(root) {
+  let hooks
+  try {
+    hooks = execFileSync('git', ['rev-parse', '--git-path', 'hooks'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 10000 }).trim()
+  } catch { return null }   // not a git project
+  if (!hooks) return null
+  const file = path.resolve(root, hooks, 'pre-commit')
+  const text = readIf(file)?.toString('utf8')
+  if (text == null) return { file, state: 'missing' }
+  return { file, state: /\brecord\s+check\b/.test(text) ? 'installed' : 'own' }
+}
+
+async function offerPreCommit({ root, yes, ask, output }) {
+  const hook = preCommitHook(root)
+  const ci = `in CI, run: ${RECORD_CHECK}`
+  if (!hook || hook.state === 'installed') return
+  const rel = path.relative(root, hook.file).replaceAll('\\', '/')
+  if (hook.state === 'own') {
+    output.write(`To check the records before each commit, add this line to your ${rel}: ${RECORD_CHECK}\n(or ${ci})\n`)
+    return
+  }
+  if (yes) {
+    output.write(`The records check is not installed as a pre-commit hook (${rel}): that needs its own yes, so run groundwork init without --yes; or ${ci}\n`)
+    return
+  }
+  if (!(await ask(`Also run \`groundwork record check\` before each commit, as the git pre-commit hook ${rel}? [y/N] `))) {
+    output.write(`No pre-commit hook. To run the records check elsewhere, ${ci}\n`)
+    return
+  }
+  fs.mkdirSync(path.dirname(hook.file), { recursive: true })
+  fs.writeFileSync(hook.file, preCommitText(), { mode: 0o755 })
+  output.write(`Installed ${rel}: it runs ${RECORD_CHECK}\n`)
 }
 
 // The command: 0 when the project is set up (or already was), 1 when nothing was written.
 export async function runInit({ root, modules, yes = false, input = process.stdin, output = process.stdout, errors = process.stderr }) {
   let plan
   try { plan = planInit({ root, modules }) } catch (e) { errors.write(`groundwork init: ${e.message}\n`); return 1 }
-  if (!plan.changes.length) {
-    output.write(`groundwork init: ${root} is already set up; nothing to change.\n`)
+  const { ask, close } = asker(input, output)
+  try {
+    if (!plan.changes.length) {
+      output.write(`groundwork init: ${root} is already set up; nothing to change.\n`)
+    } else {
+      output.write(`groundwork init will change these files in ${root}:\n`)
+      for (const c of plan.changes) output.write(`  ${c.action.padEnd(6)}  ${c.file}  (${c.detail})\n`)
+      if (!yes && !(await ask('Apply these changes? [y/N] '))) {
+        output.write('Nothing was changed.\n')
+        return 1
+      }
+      plan.write()
+      output.write('Done. Restart Claude Code in this project so it loads the skills and the hook.\n')
+    }
+    await offerPreCommit({ root, yes, ask, output })
     return 0
-  }
-  output.write(`groundwork init will change these files in ${root}:\n`)
-  for (const c of plan.changes) output.write(`  ${c.action.padEnd(6)}  ${c.file}  (${c.detail})\n`)
-  if (!yes && !(await ask('Apply these changes? [y/N] ', input, output))) {
-    output.write('Nothing was changed.\n')
-    return 1
-  }
-  plan.write()
-  output.write('Done. Restart Claude Code in this project so it loads the skills and the hook.\n')
-  return 0
+  } finally { close() }
 }

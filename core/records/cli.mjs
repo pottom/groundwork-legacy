@@ -17,6 +17,14 @@
 //                                         next number, as Claude: prints `C-7 <file>`. A field of the
 //                                         type is an option (`--ideas I-5,I-6 --milestone M-9`); without
 //                                         --body a change starts as the spec skeleton
+//   groundwork record check               the quality check (check.mjs), with no server: duplicate
+//                                         numbers, references to ids that are not there, lines not in
+//                                         the canonical form, one per line as `file:line: rule: what`;
+//                                         exits 1 when it finds any (a pre-commit hook, a CI step)
+//   groundwork record renumber            started by hand only (renumber.mjs): the newer of two records
+//                                         with one number gets the next one; prints each move, the
+//                                         lines it rewrote, the lines to fix by hand, and the GitHub
+//                                         ticket lines to change (it never writes those)
 //
 // The project folder is --root, else MINDMAP_DIR, else the current folder. The record types are the
 // ones the modules declare (core/modules.mjs) and the core's own (changes and milestones,
@@ -27,11 +35,15 @@ import path from 'node:path'
 import { MODULES } from '../modules.mjs'
 import { openRecords } from './store.mjs'
 import { CORE_RECORDS } from './changes.mjs'
+import { checkRecords, formatFinding } from './check.mjs'
+import { renumber } from './renumber.mjs'
 
 const USAGE = [
   'usage: groundwork record list [--type <prefix>]',
   '       groundwork record show <id>',
   '       groundwork record add <type> --title <title> [--<field> <value> ...] [--body <text>]',
+  '       groundwork record check',
+  '       groundwork record renumber',
 ].join('\n')
 
 /** @param {string[]} args */
@@ -105,6 +117,29 @@ function run([cmd, ...rest]) {
     }
     const made = store.create(t.prefix, { fields, body: opts.body ?? '' }, { by: 'claude' })
     console.log(`${made.id} ${made.file}`)
+  } else if (cmd === 'check') {
+    only(opts, ['root'])
+    if (words.length) throw new Error(`check takes no words: ${words.join(' ')}`)
+    const { findings, counts } = checkRecords(store)
+    if (!findings.length) return console.log(`groundwork record check: no errors (${counts.records} records, ${counts.documents} Spec documents).`)
+    console.log([...findings.map(formatFinding), `${findings.length} error${findings.length === 1 ? '' : 's'}.`].join('\n'))
+    process.exitCode = 1
+  } else if (cmd === 'renumber') {
+    only(opts, ['root'])
+    if (words.length) throw new Error(`renumber takes no words: ${words.join(' ')}`)
+    const { moves } = renumber(store)
+    if (!moves.length) return console.log('groundwork record renumber: no duplicate numbers; nothing to change.')
+    const out = []
+    for (const m of moves) {
+      out.push(`${m.from} ${m.fromFile} → ${m.to} ${m.toFile}`, `  (${m.kept.id} stays ${m.kept.file})`)
+      for (const r of m.rewritten) out.push(`  rewrote ${r.file}:${r.line}`)
+      for (const u of m.unsure) out.push(`  by hand (which ${m.from}?): ${u.file}:${u.line}: ${u.text.trim()}`)
+      const means = `where it means "${m.title}" (${m.from} stays "${m.kept.title}")`
+      if (m.github == null) out.push(`  GitHub tickets are not written: search them for ${m.from} and change it to ${m.to} ${means}.`)
+      else if (m.github.length) out.push(`  GitHub tickets are not written: change ${m.from} to ${m.to} ${means}:`, ...m.github.map((l) => `    ${l}`))
+      else out.push(`  GitHub tickets: none mentions ${m.from}.`)
+    }
+    console.log(out.join('\n'))
   } else throw new Error(cmd ? `unknown command: ${cmd}` : 'which command?')
 }
 
