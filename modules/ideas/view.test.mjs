@@ -103,15 +103,13 @@ test('cards move between columns by drag and drop and by a keyboard menu; Reject
   assert.match(reject, /name="reason"[^>]*required/)
 })
 
-test('a status changed in the drawer takes the same way as a move: a todo on the map, a rejection asks for its reason and offers the non-goal', () => {
+test('a status asks in the drawer for the field it needs: Rejected a reason, Snoozed a date, Duplicate an idea', () => {
   const drawer = read('view/drawer.mjs')
-  assert.match(drawer, /rejected \?[\s\S]*toMapCheck\(/, 'the drawer offers "add as excluded" when rejecting')
-  assert.match(read('view/reject.mjs'), /export const toMapCheck = [^\n]*name="to-map"[^\n]*ui\('reject\.to-map'\)/, 'the reject dialog\'s own checkbox')
+  assert.match(drawer, /'rejected' \?[^\n]*name="reason"[^\n]*required/)
+  assert.match(drawer, /'snoozed' \?[^\n]*type="date"[^\n]*name="until"[^\n]*required/)
+  assert.match(drawer, /'duplicate' \?[^\n]*name="duplicate"[^\n]*required/)
   const main = read('view/main.mjs')
-  const saves = main.match(/statusChanged\(/g) ?? []
-  assert.ok(saves.length >= 4, 'move, reject dialog and drawer all end in statusChanged (and it is defined once)')
-  assert.match(main, /mapStep\(/)
-  assert.doesNotMatch(main, /sendToMap\(r\.idea, 'todo'\)/, 'no second way to the map')
+  assert.match(main, /ASKS_IN_DRAWER = \['snoozed', 'duplicate'\]/, 'a move to those columns opens the drawer')
 })
 
 test('a second view, the impact–effort matrix: quadrants from matrix.mjs, quick wins highlighted, unestimated ideas apart', () => {

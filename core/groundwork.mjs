@@ -6,6 +6,7 @@
 //   groundwork [--root DIR] [--port N] [--no-open]
 //   groundwork init [--root DIR] [--yes]   set the project up for Claude Code (init.mjs)
 //   groundwork plan <command>              the Plan module's command (modules/plan/plan.mjs)
+//   groundwork record list|show <id>       the record store (records/cli.mjs)
 //
 //   --root DIR  the project folder (default: the current folder; also MINDMAP_DIR)
 //   --port N    the port (default 4477; also PORT; 0 picks a free one)

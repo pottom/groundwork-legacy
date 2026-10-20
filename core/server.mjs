@@ -3,6 +3,8 @@
 //   GET  /[?module=<id>]       the shell: header, navigation, the module's view (shell/shell.mjs)
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
 //   GET  /api/events           live updates: what changed, as Server-Sent Events (events.mjs)
+//   GET  /api/records[/<id>]   the record store's records (records/api.mjs); a record file changing
+//                              is the live topic "records"
 //   *    /api/<module>/...     the module's endpoints
 //   GET  /shell/...            the shared look (theme.css with controls.css and feedback.css, shell.css, the light/dark switch theme.js), the logo and favicon (logo.svg), the UI translation (i18n.mjs, strings.mjs), the live relay (live.mjs), the kept module frames (frames.mjs), the toasts (toasts.mjs) and the tabs' attention counts (attention.mjs)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
@@ -21,10 +23,13 @@
 //     writes: ['docs/product', '.groundwork/<id>'],         the folders it may write to
 //     watch: (path) => topic | [topic] | null,              optional: the live-update topic of a changed
 //                                                          file (path relative to the root, "/"-separated)
-//     api: ({ root, files, events }) => (req, res, subpath, url) => handled }   subpath: the path after /api/<id>
+//     records: [RecordType],                               optional: the record types it brings, which the
+//                                                          core's record store keeps (records/store.mjs)
+//     api: ({ root, files, events, records }) => (req, res, subpath, url) => handled }   subpath: the path after /api/<id>
 // The handler returns (or resolves to) true when it answered, anything else means 404.
 // `files` is the module's only way to write: it writes only under `writes` (see files.mjs).
 // `events` lets it push a live-update topic itself: events.publish(topic), events.every(ms, fn).
+// `records` is the record store shared by every module (records/store.mjs).
 
 import http from 'node:http'
 import fs from 'node:fs'
@@ -36,6 +41,8 @@ import { shellPage } from './shell/shell.mjs'
 import { createEvents } from './events.mjs'
 import { VERSION } from './version.mjs'
 import { projectName } from './project-name.mjs'
+import { openRecords } from './records/store.mjs'
+import { recordsApi, recordTopic } from './records/api.mjs'
 
 export const HOST = '127.0.0.1'
 const HOST6 = '::1'
@@ -75,12 +82,14 @@ export function staticFile(dir, rest) {
 // five minutes, anything else is asked for again, a 304 while unchanged). /api/ answers are never kept.
 
 // The first path segments the core answers itself; a module with one of these ids would be hidden.
-const RESERVED = new Set(['api', 'shell', 'vendor'])
+const RESERVED = new Set(['api', 'shell', 'vendor', 'records'])
 
 export async function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR }) {
   for (const m of modules) if (RESERVED.has(m.id)) throw new Error(`module id "${m.id}" is reserved by the core`)
-  const events = createEvents({ root: path.resolve(root), modules })
-  const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m), events: events.api }) : null }))
+  const records = openRecords(root, modules)
+  const events = createEvents({ root: path.resolve(root), modules: [...modules, { id: 'records', watch: (/** @type {string} */ p) => recordTopic(records, p) }] })
+  const mods = modules.map((m) => ({ ...m, handle: m.api ? m.api({ root, files: moduleFiles(root, m), events: events.api, records }) : null }))
+  const recordsHandler = recordsApi(records)
   const byId = new Map(mods.map((m) => [m.id, m]))
   const project = projectName(root)
 
@@ -96,6 +105,10 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
         return send(res, 200, mods.map(({ id, name, version }) => ({ id, name, version, path: `/${id}/` })))
       }
       if (url.pathname === '/api/events' && req.method === 'GET') return events.stream(req, res)
+      if (parts[1] === 'api' && parts[2] === 'records') {
+        if (!recordsHandler(req, res, url)) send(res, 404, { error: 'not found' })
+        return
+      }
       if (parts[1] === 'api') {
         const mod = byId.get(parts[2])
         const sub = '/' + parts.slice(3).join('/')
