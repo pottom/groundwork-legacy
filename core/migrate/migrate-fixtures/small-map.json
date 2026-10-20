@@ -1,0 +1,120 @@
+{
+  "nodeData": {
+    "id": "root",
+    "topic": "Shop",
+    "metadata": { "lang": "en" },
+    "children": [
+      {
+        "id": "doc-system",
+        "topic": "Overview",
+        "metadata": { "doc": "system" },
+        "children": [
+          {
+            "id": "t-goal",
+            "topic": "Goal and stakeholders",
+            "metadata": { "status": "topic", "progress": "done", "prose": "Sell things online.\n\nTo anyone.", "humanProse": [{ "id": "hp-1", "text": "The human's own words." }] },
+            "children": [
+              { "id": "d-goal", "topic": "A small web shop", "note": "First line.\nSecond line.", "hyperLink": "core/shop.mjs", "metadata": { "status": "decision", "impl": "done" } },
+              {
+                "id": "g-ux",
+                "topic": "User experience",
+                "metadata": { "status": "topic" },
+                "children": [
+                  { "id": "n-1", "topic": "Customers are mostly on phones", "metadata": { "status": "note" } },
+                  { "id": "x-1", "topic": "A native app", "note": "Too costly.", "metadata": { "status": "excluded" } },
+                  { "id": "p-1", "topic": "Dark mode", "metadata": { "status": "parked", "impl": "missing" } },
+                  { "id": "i-1", "topic": "Prices in euros", "metadata": { "status": "inferred", "impl": "done" } },
+                  {
+                    "id": "q-1",
+                    "topic": "Do we need accounts?",
+                    "note": "Guests may be enough.",
+                    "metadata": { "status": "todo" },
+                    "children": [
+                      { "id": "d-sub", "topic": "Guest checkout", "metadata": { "status": "decision", "impl": "partial" } }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "t-road",
+            "topic": "Shared roadmap",
+            "metadata": { "status": "topic", "progress": "done", "prose": "The order of delivery.", "humanProse": [{ "id": "hp-r", "text": "Roadmap words of the human." }] },
+            "children": [
+              { "id": "r-1", "topic": "1. First release", "note": "The MVP.", "metadata": { "status": "decision", "impl": "done" } },
+              { "id": "p-later", "topic": "Export to CSV", "metadata": { "status": "parked" } },
+              { "id": "r-2", "topic": "2. Payments", "metadata": { "status": "decision", "impl": "partial" } },
+              { "id": "r-3", "topic": "3. Reviews", "hyperLink": "https://example.com/reviews", "metadata": { "status": "decision" } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-web",
+        "topic": "Web shop",
+        "note": "The pages customers see.",
+        "metadata": { "component": "software", "dir": "web" },
+        "children": [
+          {
+            "id": "doc-web-prd",
+            "topic": "Product",
+            "metadata": { "doc": "prd" },
+            "children": [
+              {
+                "id": "t-web-scope",
+                "topic": "Scope and main features",
+                "metadata": { "status": "topic", "progress": "done" },
+                "children": [
+                  { "id": "d-cart", "topic": "A cart", "metadata": { "status": "decision", "impl": "missing" } },
+                  { "id": "q-idea", "topic": "Wish lists", "hyperLink": "/?module=ideas&idea=I-1", "metadata": { "status": "todo", "by": "ideas" } }
+                ]
+              },
+              {
+                "id": "from-ideas",
+                "topic": "Ideas",
+                "metadata": { "by": "ideas" },
+                "children": [
+                  { "id": "abc123", "topic": "Gift cards", "hyperLink": "/?module=ideas&idea=I-2", "metadata": { "status": "todo", "by": "ideas" } },
+                  { "id": "def456", "topic": "Coupons per document", "note": "Superseded.", "hyperLink": "/?module=ideas&idea=I-3", "metadata": { "status": "excluded", "by": "ideas" } },
+                  { "id": "q-loose", "topic": "Ask the shop owners", "metadata": { "status": "todo" } }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "doc-web-tech",
+            "topic": "Technical design",
+            "metadata": { "doc": "tech" },
+            "children": [
+              { "id": "t-web-stack", "topic": "Technology stack", "metadata": { "status": "topic" } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c-api",
+        "topic": "API Server",
+        "metadata": { "component": "service" },
+        "children": [
+          {
+            "id": "doc-api-tech",
+            "topic": "Technical design",
+            "metadata": { "doc": "tech" },
+            "children": [
+              {
+                "id": "t-api",
+                "topic": "Integrations and interfaces",
+                "metadata": { "status": "topic" },
+                "children": [
+                  { "id": "d-api", "topic": "REST over HTTPS", "metadata": { "status": "decision", "impl": "done" } }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "direction": 1
+}
