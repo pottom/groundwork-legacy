@@ -17,6 +17,13 @@ import path from 'node:path'
 
 export const WRITABLE = ['docs/product', '.groundwork']
 
+// The one deliberate exception to WRITABLE: `groundwork record renumber` (core/records/renumber.mjs),
+// which runs only when a human starts it, gives a record a new number and rewrites the references
+// to it under docs/product/ and in the local tickets under .scratch/. No module and no other
+// command opens this writer (core/files.test.mjs checks who does); it has the same path checks.
+const RENUMBER_WRITABLE = ['docs/product', '.scratch']
+export const renumberFiles = (root) => open(root, RENUMBER_WRITABLE, RENUMBER_WRITABLE).files
+
 // `p` is `base` or inside it (both absolute, same form).
 const within = (base, p) => {
   const r = path.relative(base, p)
@@ -28,11 +35,11 @@ export function projectFiles(root, writes = []) {
   return open(root, writes).files
 }
 
-function open(root, writes) {
+function open(root, writes, allowed = WRITABLE) {
   root = path.resolve(root)
   const folders = writes.map((f) => {
     const abs = typeof f === 'string' && !path.isAbsolute(f) && path.resolve(root, f)
-    if (!abs || !WRITABLE.some((w) => within(path.join(root, w), abs))) {
+    if (!abs || !allowed.some((w) => within(path.join(root, w), abs))) {
       throw new Error(`a module may not write to ${f}: writes are limited to docs/product/ and .groundwork/`)
     }
     return path.relative(root, abs)
