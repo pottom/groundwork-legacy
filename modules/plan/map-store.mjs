@@ -23,7 +23,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { setStatus } from './node-types.mjs'
 import { buildPrd, toMarkdown, isGenerated, BASE_DIR, listDocs } from './documents.mjs'
-import { DOC_STRINGS } from './doc-strings.mjs'
+import { DOC_STRINGS } from '../../core/records/doc-strings.mjs'
 
 const MAP = `${BASE_DIR}/mindmap.json`
 const GLOSSARY = 'GLOSSARY.md' // owned by domain-modeling: read and link only

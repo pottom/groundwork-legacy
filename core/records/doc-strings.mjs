@@ -1,20 +1,40 @@
-// The fixed texts of the generated documents, one set per document language.
-// Shared by the server (documents.mjs writes the .md files) and the browser (the document panel).
+// The fixed texts of the Spec documents, one set per document language: the record store's
+// (spec-format.mjs writes and reads the canonical Markdown with them), shared with Plan, whose
+// generator (modules/plan/documents.mjs) still writes the old documents from the map, and with
+// the browser (Plan's document panel loads this file from /core/records/doc-strings.mjs).
 //
 // The map stores its document language on the root (nodeData.metadata.lang); a map without
 // one is Hungarian. The document language is the language of the interview, independent of
 // the language of the user interface: these are not UI strings.
 //
+// KINDS             the document kinds and their file names (spec/<part>/TECH.md ...)
+// COMPONENT_TYPES   the types of a part (a component on the map)
+//
 // To add a language, add a set here with the same keys; nothing else changes.
 //   kinds[kind]      subtitle, the titles of the generated closing sections (cross), and the
 //                    starting sections the skill proposes
+//   marks            the words of the canonical marks on an item line (status, superseded) and in
+//                    spec/parts.md (its title, active / retired); impl is the implementation's
 //   otherCross       closing section titles of a kind not listed in kinds
 //   sectionCounts(c, sep)  how many sections are done, in progress and untouched
 //   status(c)        the status line under the header
 //   inferredCount(n) how many items read from the code wait for confirmation
 //   ideasSection     the section of the PRD that holds the ideas the Ideas module sends (todo.mjs)
 
-const huCounts = (c, sep) => `${c.done} kész${sep}${c.active} folyamatban${sep}${c.untouched} érintetlen fejezet`
+export const KINDS = {
+  system:  { file: 'SYSTEM.md' },
+  prd:     { file: 'PRD.md' },
+  tech:    { file: 'TECH.md' },
+  service: { file: 'SERVICE.md' },
+  process: { file: 'PROCESS.md' },
+  infra:   { file: 'INFRA.md' },
+  ops:     { file: 'OPERATIONS.md' },
+  rollout: { file: 'ROLLOUT.md' },
+}
+
+export const COMPONENT_TYPES = ['software', 'service', 'infra', 'shared']
+
+const huCounts =(c, sep) => `${c.done} kész${sep}${c.active} folyamatban${sep}${c.untouched} érintetlen fejezet`
 const enCounts = (c, sep) => `Sections: ${c.done} done${sep}${c.active} in progress${sep}${c.untouched} untouched`
 
 export const DOC_STRINGS = {
@@ -38,6 +58,12 @@ export const DOC_STRINGS = {
     otherCross: { nonGoals: 'Nem része', later: 'Későbbre halasztva', open: 'Nyitott kérdések' },
     progress: { done: 'kész', active: 'folyamatban', untouched: 'érintetlen' },
     impl: { done: 'kész', partial: 'részben', missing: 'hiányzik' },
+    marks: {
+      status: { decision: 'döntés', note: 'jegyzet', excluded: 'kizárt', parked: 'félretett', inferred: 'kódból', todo: 'nyitott' },
+      superseded: 'felváltotta',
+      parts: 'Részek',
+      part: { active: 'aktív', retired: 'kivezetett' },
+    },
     about: 'A grilling-interjú közben készül; a felsorolások a gondolattérképből jönnek.',
     related: 'Kapcsolódó',
     sectionCounts: huCounts,
@@ -72,6 +98,12 @@ export const DOC_STRINGS = {
     otherCross: { nonGoals: 'Not included', later: 'Deferred', open: 'Open questions' },
     progress: { done: 'done', active: 'in progress', untouched: 'untouched' },
     impl: { done: 'done', partial: 'partial', missing: 'missing' },
+    marks: {
+      status: { decision: 'decision', note: 'note', excluded: 'excluded', parked: 'parked', inferred: 'inferred', todo: 'todo' },
+      superseded: 'superseded by',
+      parts: 'Parts',
+      part: { active: 'active', retired: 'retired' },
+    },
     about: 'Written during the grilling interview; the lists come from the mind map.',
     related: 'Related',
     sectionCounts: enCounts,

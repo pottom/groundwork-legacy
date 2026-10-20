@@ -20,6 +20,7 @@
 //   store.create(prefix, { fields, body? }, { by? })      the new record (without a body, the type's
 //                                                         template's, if it has one)
 //   store.update(id, { fields?, body? }, { by?, base? })  the record as written
+//   store.spec                          the Spec: its documents and parts (spec-store.mjs)
 //
 // by is 'human' (the browser) or 'claude' (the command line), and is 'claude' when not given. On
 // every write the store enforces the type's lifecycle: Claude moves a record only between the
@@ -45,6 +46,8 @@ import { execFileSync } from 'node:child_process'
 import { projectFiles } from '../files.mjs'
 import { readRecord, writeRecord, fileName, slugOf } from './format.mjs'
 import { renderMarkdown } from './render.mjs'
+import { openSpec } from './spec-store.mjs'
+import { SPEC_DIR } from './spec-format.mjs'
 
 /** @typedef {import('./types.mjs').RecordType} RecordType */
 /** @typedef {import('./types.mjs').StoredRecord} StoredRecord */
@@ -91,7 +94,8 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     if (types.some((o) => o.prefix === t.prefix)) throw new Error(`${m.id}: record type ${t.prefix} is declared twice`)
     types.push(t)
   }
-  const files = projectFiles(root, [...types.map((t) => t.folder), path.posix.dirname(CACHE)])
+  const files = projectFiles(root, [...types.map((t) => t.folder), SPEC_DIR, path.posix.dirname(CACHE)])
+  const spec = openSpec(root, files)
   /** @param {string} prefix */
   const typeOf = (prefix) => types.find((t) => t.prefix === prefix)
   /** @param {RecordType} t */
@@ -301,7 +305,7 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     return out
   }
 
-  return { types: () => [...types], list, get, show, create, update }
+  return { types: () => [...types], list, get, show, create, update, spec }
 }
 
 /** @param {string} text */

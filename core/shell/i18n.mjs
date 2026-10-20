@@ -1,7 +1,7 @@
 // The UI translation mechanism: one small browser module with no dependencies, served at
 // /shell/i18n.mjs. The shell and every module view use it; it needs nothing else.
 //
-// The UI language is not the language of the generated documents (see modules/plan/doc-strings.mjs).
+// The UI language is not the language of the generated documents (see core/records/doc-strings.mjs).
 //
 //   const i18n = createI18n({ en: { save: 'Save', saved: 'Saved at {time}' }, hu: { ... } })
 //   i18n.lang                      'en' or 'hu'

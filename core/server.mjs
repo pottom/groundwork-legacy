@@ -3,10 +3,11 @@
 //   GET  /[?module=<id>]       the shell: header, navigation, the module's view (shell/shell.mjs)
 //   GET  /api/modules          the manifests: [{ id, name, version, path }]
 //   GET  /api/events           live updates: what changed, as Server-Sent Events (events.mjs)
-//   GET  /api/records[/<id>]   the record store's records (records/api.mjs); a record file changing
-//                              is the live topic "records"
+//   GET  /api/records[/<id>]   the record store's records and Spec documents (records/api.mjs); a
+//                              record file changing is the live topic "records"
 //   *    /api/<module>/...     the module's endpoints
 //   GET  /shell/...            the shared look (theme.css with controls.css and feedback.css, shell.css, the light/dark switch theme.js), the logo and favicon (logo.svg), the UI translation (i18n.mjs, strings.mjs), the live relay (live.mjs), the kept module frames (frames.mjs), the toasts (toasts.mjs) and the tabs' attention counts (attention.mjs)
+//   GET  /core/records/...     the record store's files a page shares (doc-strings.mjs: the documents' fixed texts)
 //   GET  /vendor/...           the bundled dependencies in core/vendor (libraries, fonts)
 //   GET  /<module>/...         the module's view (only the files its manifest lists)
 //
@@ -67,6 +68,9 @@ export const VENDOR_DIR = fileURLToPath(new URL('./vendor/', import.meta.url))
 export const SHELL_DIR = fileURLToPath(new URL('./shell/', import.meta.url))
 // The files of core/shell a page may load: the look and the UI translation (not shell.mjs).
 const SHELL_BROWSER_FILES = new Set(['theme.css', 'theme.js', 'controls.css', 'feedback.css', 'shell.css', 'i18n.mjs', 'strings.mjs', 'live.mjs', 'frames.mjs', 'toasts.mjs', 'attention.mjs', 'logo.svg'])
+// The record store's files a page may load, at /core/records/: the documents' fixed texts.
+export const RECORDS_DIR = fileURLToPath(new URL('./records/', import.meta.url))
+const RECORDS_BROWSER_FILES = new Set(['doc-strings.mjs'])
 
 // The file under `dir` that the URL path `rest` (still percent-encoded) names, or null when it
 // leaves the folder, names a dot file, or has a type the server does not serve (README, LICENSE).
@@ -84,7 +88,7 @@ export function staticFile(dir, rest) {
 // five minutes, anything else is asked for again, a 304 while unchanged). /api/ answers are never kept.
 
 // The first path segments the core answers itself; a module with one of these ids would be hidden.
-const RESERVED = new Set(['api', 'shell', 'vendor', 'records'])
+const RESERVED = new Set(['api', 'shell', 'vendor', 'records', 'core'])
 
 export async function startServer({ root, modules, port = 4477, vendor = VENDOR_DIR }) {
   for (const m of modules) if (RESERVED.has(m.id)) throw new Error(`module id "${m.id}" is reserved by the core`)
@@ -121,6 +125,11 @@ export async function startServer({ root, modules, port = 4477, vendor = VENDOR_
       if (parts[1] === 'shell' && req.method === 'GET') {
         const f = staticFile(SHELL_DIR, parts.slice(2).join('/'))
         if (f && SHELL_BROWSER_FILES.has(path.basename(f))) return sendFile(req, res, f)
+        return send(res, 404, { error: 'not found' })
+      }
+      if (parts[1] === 'core' && parts[2] === 'records' && req.method === 'GET') {
+        const f = staticFile(RECORDS_DIR, parts.slice(3).join('/'))
+        if (f && RECORDS_BROWSER_FILES.has(path.basename(f))) return sendFile(req, res, f)
         return send(res, 404, { error: 'not found' })
       }
       if (parts[1] === 'vendor' && req.method === 'GET') {

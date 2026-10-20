@@ -10,6 +10,7 @@ import path from 'node:path'
 import { startServer } from '../server.mjs'
 import { listen } from '../sse-client.test-helper.mjs'
 import { openRecords } from './store.mjs'
+import { recordTopic } from './api.mjs'
 import { CORE_RECORDS } from './changes.mjs'
 
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-records-api-'))
@@ -39,6 +40,24 @@ test('/api/records lists every record; /api/records/<id> gives one with its reve
     assert.doesNotMatch(record.html, /<script/)
     assert.equal((await fetch(`${base}/api/records/T-9`)).status, 404)
     assert.equal((await fetch(`${base}/api/records`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 405)
+  })
+})
+
+test('/api/records/<id> gives a Spec document with its sections and items, and finds a part or an item', async () => {
+  const root = project()
+  fs.mkdirSync(path.join(root, 'docs/product/spec/core'), { recursive: true })
+  fs.writeFileSync(path.join(root, 'docs/product/spec/core/TECH.md'), '# Mag\n\n_Műszaki terv_\n\n## Stack {#t-stack}\n\n- npm · `d-npm` · döntés · kész · C-1\n')
+  await withServer(root, [MODULE], async (base) => {
+    const { document } = await (await fetch(`${base}/api/records/core/tech`)).json()
+    assert.equal(document.id, 'core/tech')
+    assert.deepEqual(document.sections.map((s) => s.id), ['t-stack'])
+    assert.deepEqual(document.sections[0].items.map((i) => [i.id, i.impl]), [['d-npm', 'done']])
+    assert.deepEqual(document.problems, [])
+    const { item } = await (await fetch(`${base}/api/records/d-npm`)).json()
+    assert.deepEqual([item.id, item.document], ['d-npm', 'core/tech'])
+    const { part } = await (await fetch(`${base}/api/records/core`)).json()
+    assert.deepEqual(part.documents, ['core/tech'])
+    assert.equal((await fetch(`${base}/api/records/core/prd`)).status, 404)
   })
 })
 
@@ -78,5 +97,15 @@ test('a record file changing on disk reaches the page as the topic "records"; ot
     await sse.next((e) => e.event === 'hello')
     openRecords(root, [MODULE]).create('T', { fields: { title: 'Live' } })
     await sse.change('records')
+    openRecords(root, [MODULE]).spec.writeDoc({ id: 'core/tech', title: 'Mag', lang: 'hu', prose: '', human: [], items: [], sections: [] })
+    await sse.change('records')
   } finally { sse.close(); await srv.close() }
+})
+
+test('a Spec document or the parts list is the topic "records" too', () => {
+  const store = openRecords(project(), [MODULE])
+  assert.equal(recordTopic(store, 'docs/product/spec/core/TECH.md'), 'records')
+  assert.equal(recordTopic(store, 'docs/product/spec/parts.md'), 'records')
+  assert.equal(recordTopic(store, 'docs/product/spec/core/TECH.md.123.1.tmp'), null)
+  assert.equal(recordTopic(store, 'docs/product/core/TECH.md'), null)
 })

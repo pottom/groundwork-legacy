@@ -46,7 +46,7 @@ export default {
     'index.html', 'view/plan.css', 'view/map.css',
     'view/main.mjs', 'view/state.mjs', 'view/strings.mjs', 'view/icons.mjs', 'view/data.mjs', 'view/map.mjs', 'view/focus.mjs',
     'view/chrome.mjs', 'view/toolbar.mjs', 'view/legend.mjs', 'view/dock.mjs', 'view/document.mjs', 'view/editor.mjs',
-    'node-types.mjs', 'documents.mjs', 'doc-strings.mjs', 'ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs', 'view-rules.mjs', 'markdown.mjs',
+    'node-types.mjs', 'documents.mjs','ui-strings.mjs', 'map-theme.mjs', 'deep-link.mjs', 'view-rules.mjs', 'markdown.mjs',
   ] },
   // The folders Plan may write to: the map and its documents, and its local state.
   writes: ['docs/product', '.groundwork/plan'],

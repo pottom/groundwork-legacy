@@ -14,7 +14,7 @@
 import crypto from 'node:crypto'
 import { walk } from './map-store.mjs'
 import { listDocs } from './documents.mjs'
-import { docStrings, langOf } from './doc-strings.mjs'
+import { docStrings, langOf } from '../../core/records/doc-strings.mjs'
 
 export const IDEAS_SECTION = 'from-ideas'
 export const ideaLink = (idea) => '/?module=ideas&idea=' + encodeURIComponent(idea)
