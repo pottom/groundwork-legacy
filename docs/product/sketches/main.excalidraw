@@ -1,0 +1,527 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "groundwork",
+  "elements": [
+    {
+      "id": "3pIBVB0xVbacf-VPryFte",
+      "type": "freedraw",
+      "x": 1201,
+      "y": 551,
+      "width": 1460,
+      "height": 764,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 1917087471,
+      "version": 104,
+      "versionNonce": 1468304015,
+      "isDeleted": true,
+      "boundElements": null,
+      "updated": 1792444359125,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          5,
+          -1
+        ],
+        [
+          10,
+          -5
+        ],
+        [
+          14,
+          -11
+        ],
+        [
+          19,
+          -18
+        ],
+        [
+          27,
+          -29
+        ],
+        [
+          35,
+          -40
+        ],
+        [
+          47,
+          -55
+        ],
+        [
+          57,
+          -69
+        ],
+        [
+          68,
+          -83
+        ],
+        [
+          82,
+          -102
+        ],
+        [
+          95,
+          -118
+        ],
+        [
+          109,
+          -134
+        ],
+        [
+          126,
+          -153
+        ],
+        [
+          144,
+          -169
+        ],
+        [
+          163,
+          -185
+        ],
+        [
+          184,
+          -201
+        ],
+        [
+          207,
+          -216
+        ],
+        [
+          233,
+          -231
+        ],
+        [
+          265,
+          -246
+        ],
+        [
+          291,
+          -255
+        ],
+        [
+          328,
+          -264
+        ],
+        [
+          359,
+          -268
+        ],
+        [
+          391,
+          -268
+        ],
+        [
+          422,
+          -268
+        ],
+        [
+          454,
+          -262
+        ],
+        [
+          483,
+          -255
+        ],
+        [
+          509,
+          -245
+        ],
+        [
+          529,
+          -234
+        ],
+        [
+          546,
+          -221
+        ],
+        [
+          559,
+          -204
+        ],
+        [
+          567,
+          -187
+        ],
+        [
+          570,
+          -166
+        ],
+        [
+          570,
+          -140
+        ],
+        [
+          563,
+          -113
+        ],
+        [
+          551,
+          -85
+        ],
+        [
+          535,
+          -55
+        ],
+        [
+          512,
+          -23
+        ],
+        [
+          493,
+          2
+        ],
+        [
+          470,
+          27
+        ],
+        [
+          450,
+          47
+        ],
+        [
+          431,
+          62
+        ],
+        [
+          418,
+          73
+        ],
+        [
+          407,
+          80
+        ],
+        [
+          401,
+          83
+        ],
+        [
+          400,
+          84
+        ],
+        [
+          401,
+          83
+        ],
+        [
+          405,
+          78
+        ],
+        [
+          409,
+          72
+        ],
+        [
+          416,
+          65
+        ],
+        [
+          423,
+          62
+        ],
+        [
+          431,
+          58
+        ],
+        [
+          438,
+          56
+        ],
+        [
+          444,
+          55
+        ],
+        [
+          448,
+          55
+        ],
+        [
+          451,
+          56
+        ],
+        [
+          455,
+          60
+        ],
+        [
+          459,
+          68
+        ],
+        [
+          464,
+          83
+        ],
+        [
+          467,
+          101
+        ],
+        [
+          469,
+          127
+        ],
+        [
+          470,
+          166
+        ],
+        [
+          470,
+          206
+        ],
+        [
+          472,
+          252
+        ],
+        [
+          478,
+          304
+        ],
+        [
+          489,
+          351
+        ],
+        [
+          508,
+          396
+        ],
+        [
+          533,
+          434
+        ],
+        [
+          559,
+          461
+        ],
+        [
+          590,
+          483
+        ],
+        [
+          646,
+          496
+        ],
+        [
+          663,
+          496
+        ],
+        [
+          707,
+          490
+        ],
+        [
+          763,
+          472
+        ],
+        [
+          833,
+          442
+        ],
+        [
+          890,
+          415
+        ],
+        [
+          944,
+          390
+        ],
+        [
+          996,
+          363
+        ],
+        [
+          1037,
+          343
+        ],
+        [
+          1089,
+          320
+        ],
+        [
+          1139,
+          301
+        ],
+        [
+          1182,
+          285
+        ],
+        [
+          1225,
+          270
+        ],
+        [
+          1266,
+          255
+        ],
+        [
+          1304,
+          239
+        ],
+        [
+          1340,
+          223
+        ],
+        [
+          1372,
+          207
+        ],
+        [
+          1403,
+          190
+        ],
+        [
+          1424,
+          177
+        ],
+        [
+          1439,
+          166
+        ],
+        [
+          1450,
+          155
+        ],
+        [
+          1457,
+          145
+        ],
+        [
+          1459,
+          139
+        ],
+        [
+          1460,
+          135
+        ],
+        [
+          1460,
+          133
+        ],
+        [
+          1459,
+          131
+        ],
+        [
+          1458,
+          130
+        ],
+        [
+          1455,
+          130
+        ],
+        [
+          1454,
+          130
+        ],
+        [
+          1454,
+          130
+        ]
+      ],
+      "pressures": [],
+      "simulatePressure": true,
+      "lastCommittedPoint": [
+        1454,
+        130
+      ]
+    },
+    {
+      "id": "lRdcOGdJ5a4bQWlDZJu0r",
+      "type": "freedraw",
+      "x": 1473,
+      "y": 394,
+      "width": 0.0001,
+      "height": 0.0001,
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 374894031,
+      "version": 4,
+      "versionNonce": 1484222511,
+      "isDeleted": true,
+      "boundElements": null,
+      "updated": 1792444357603,
+      "link": null,
+      "locked": false,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0.0001,
+          0.0001
+        ]
+      ],
+      "pressures": [],
+      "simulatePressure": true,
+      "lastCommittedPoint": [
+        0.0001,
+        0.0001
+      ]
+    },
+    {
+      "id": "2COwuNHZsCmwpEdSXmZoZ",
+      "type": "rectangle",
+      "x": 1148,
+      "y": 276,
+      "width": 620,
+      "height": 362.00000000000006,
+      "angle": 0,
+      "strokeColor": "#2f9e44",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1590845615,
+      "version": 452,
+      "versionNonce": 123807158,
+      "isDeleted": true,
+      "boundElements": null,
+      "updated": 1792444409241,
+      "link": null,
+      "locked": false
+    }
+  ],
+  "appState": {
+    "gridSize": null,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

@@ -1,0 +1,1194 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "groundwork",
+  "elements": [
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 136488226,
+      "isDeleted": false,
+      "id": "new",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 279,
+      "y": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 306,
+      "height": 60,
+      "seed": 79741993,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "new-label",
+          "type": "text"
+        },
+        {
+          "id": "new-cons",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 353610973,
+      "isDeleted": false,
+      "id": "new-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 299,
+      "y": 18,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 266,
+      "height": 25,
+      "seed": 1942775038,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Ideas: New – most jött",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "new",
+      "originalText": "Ideas: New – most jött",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 591581272,
+      "isDeleted": false,
+      "id": "cons",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 207,
+      "y": 160,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 450,
+      "height": 60,
+      "seed": 444379129,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "cons-label",
+          "type": "text"
+        },
+        {
+          "id": "new-cons",
+          "type": "arrow"
+        },
+        {
+          "id": "cons-dev",
+          "type": "arrow"
+        },
+        {
+          "id": "cons-rej",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 1659206670,
+      "isDeleted": false,
+      "id": "cons-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 227,
+      "y": 178,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 410,
+      "height": 25,
+      "seed": 1183970559,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Ideas: Considering – később döntök",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "cons",
+      "originalText": "Ideas: Considering – később döntök",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 184823712,
+      "isDeleted": false,
+      "id": "dev",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 0,
+      "y": 320,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#b2f2bb",
+      "width": 390,
+      "height": 60,
+      "seed": 972692539,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "dev-label",
+          "type": "text"
+        },
+        {
+          "id": "cons-dev",
+          "type": "arrow"
+        },
+        {
+          "id": "dev-node",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 295376385,
+      "isDeleted": false,
+      "id": "dev-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 20,
+      "y": 338,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 350,
+      "height": 25,
+      "seed": 441872977,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Ideas: To develop – csináljuk",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "dev",
+      "originalText": "Ideas: To develop – csináljuk",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 10749226,
+      "isDeleted": false,
+      "id": "rej",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 450,
+      "y": 320,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 414,
+      "height": 60,
+      "seed": 69817375,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "rej-label",
+          "type": "text"
+        },
+        {
+          "id": "cons-rej",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 1914775970,
+      "isDeleted": false,
+      "id": "rej-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 470,
+      "y": 338,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 374,
+      "height": 25,
+      "seed": 601274190,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Ideas: Rejected – nem csináljuk",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "rej",
+      "originalText": "Ideas: Rejected – nem csináljuk",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 1995741711,
+      "isDeleted": false,
+      "id": "node",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 57,
+      "y": 480,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#ffec99",
+      "width": 750,
+      "height": 60,
+      "seed": 53198757,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "node-label",
+          "type": "text"
+        },
+        {
+          "id": "dev-node",
+          "type": "arrow"
+        },
+        {
+          "id": "node-move",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 1060146015,
+      "isDeleted": false,
+      "id": "node-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 77,
+      "y": 498,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 710,
+      "height": 25,
+      "seed": 1711736615,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Plan térkép: todo csomópont az ELSŐ PRD Ötletek fejezetében",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "node",
+      "originalText": "Plan térkép: todo csomópont az ELSŐ PRD Ötletek fejezetében",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 166871610,
+      "isDeleted": false,
+      "id": "move",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 123,
+      "y": 640,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#ffc9c9",
+      "width": 618,
+      "height": 60,
+      "seed": 733088997,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "move-label",
+          "type": "text"
+        },
+        {
+          "id": "node-move",
+          "type": "arrow"
+        },
+        {
+          "id": "move-grill",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 168097365,
+      "isDeleted": false,
+      "id": "move-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 143,
+      "y": 658,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 578,
+      "height": 25,
+      "seed": 695495446,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Te áthúzod a jó PRD alá – Teljes térkép nézetben",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "move",
+      "originalText": "Te áthúzod a jó PRD alá – Teljes térkép nézetben",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 669097375,
+      "isDeleted": false,
+      "id": "grill",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 225,
+      "y": 800,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 414,
+      "height": 60,
+      "seed": 1647138690,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "grill-label",
+          "type": "text"
+        },
+        {
+          "id": "move-grill",
+          "type": "arrow"
+        },
+        {
+          "id": "grill-tickets",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 590216789,
+      "isDeleted": false,
+      "id": "grill-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 245,
+      "y": 818,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 374,
+      "height": 25,
+      "seed": 774796503,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Grilling: kidolgozzuk a PRD-ben",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "grill",
+      "originalText": "Grilling: kidolgozzuk a PRD-ben",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 246211991,
+      "isDeleted": false,
+      "id": "tickets",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 243,
+      "y": 960,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 378,
+      "height": 60,
+      "seed": 1712471766,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "tickets-label",
+          "type": "text"
+        },
+        {
+          "id": "grill-tickets",
+          "type": "arrow"
+        },
+        {
+          "id": "tickets-code",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 1871983237,
+      "isDeleted": false,
+      "id": "tickets-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 263,
+      "y": 978,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 338,
+      "height": 25,
+      "seed": 601235862,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Build: ticketek és mérföldkő",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "tickets",
+      "originalText": "Build: ticketek és mérföldkő",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "rectangle",
+      "version": 1,
+      "versionNonce": 1184384629,
+      "isDeleted": false,
+      "id": "code",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 189,
+      "y": 1120,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 486,
+      "height": 60,
+      "seed": 331470783,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "boundElements": [
+        {
+          "id": "code-label",
+          "type": "text"
+        },
+        {
+          "id": "tickets-code",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false
+    },
+    {
+      "type": "text",
+      "version": 1,
+      "versionNonce": 120213662,
+      "isDeleted": false,
+      "id": "code-label",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 209,
+      "y": 1138,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 446,
+      "height": 25,
+      "seed": 248345015,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Ügynökök dolgoznak rajta – Agents fül",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "code",
+      "originalText": "Ügynökök dolgoznak rajta – Agents fül",
+      "lineHeight": 1.25,
+      "baseline": 21
+    },
+    {
+      "type": "arrow",
+      "version": 1,
+      "versionNonce": 1167174152,
+      "isDeleted": false,
+      "id": "new-cons",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 432,
+      "y": 68,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 0,
+      "height": 84,
+      "seed": 1191055518,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "new",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "cons",
+        "focus": 0,
+        "gap": 8
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          84
+        ]
+      ]
+    },
+    {
+      "type": "arrow",
+      "version": 1,
+      "versionNonce": 1690770051,
+      "isDeleted": false,
+      "id": "cons-dev",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 381,
+      "y": 224,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 135,
+      "height": 91,
+      "seed": 1625062855,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "cons",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "dev",
+        "focus": 0,
+        "gap": 8
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -135,
+          91
+        ]
+      ]
+    },
+    {
+      "type": "arrow",
+      "version": 1,
+      "versionNonce": 1908812571,
+      "isDeleted": false,
+      "id": "cons-rej",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 481,
+      "y": 225,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 128,
+      "height": 91,
+      "seed": 417123129,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "cons",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "rej",
+        "focus": 0,
+        "gap": 8
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          128,
+          91
+        ]
+      ]
+    },
+    {
+      "type": "arrow",
+      "version": 1,
+      "versionNonce": 505615573,
+      "isDeleted": false,
+      "id": "dev-node",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 246,
+      "y": 384,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 135,
+      "height": 91,
+      "seed": 85587928,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "dev",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "node",
+        "focus": 0,
+        "gap": 8
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          135,
+          91
+        ]
+      ]
+    },
+    {
+      "type": "arrow",
+      "version": 1,
+      "versionNonce": 1391806065,
+      "isDeleted": false,
+      "id": "node-move",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 432,
+      "y": 548,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 0,
+      "height": 84,
+      "seed": 1946999006,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "node",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "move",
+        "focus": 0,
+        "gap": 8
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          84
+        ]
+      ]
+    },
+    {
+      "type": "arrow",
+      "version": 1,
+      "versionNonce": 2061966533,
+      "isDeleted": false,
+      "id": "move-grill",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 432,
+      "y": 708,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 0,
+      "height": 84,
+      "seed": 1253973464,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "move",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "grill",
+        "focus": 0,
+        "gap": 8
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          84
+        ]
+      ]
+    },
+    {
+      "type": "arrow",
+      "version": 1,
+      "versionNonce": 539943134,
+      "isDeleted": false,
+      "id": "grill-tickets",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 432,
+      "y": 868,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 0,
+      "height": 84,
+      "seed": 897886731,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "grill",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "tickets",
+        "focus": 0,
+        "gap": 8
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          84
+        ]
+      ]
+    },
+    {
+      "type": "arrow",
+      "version": 1,
+      "versionNonce": 1184972671,
+      "isDeleted": false,
+      "id": "tickets-code",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 432,
+      "y": 1028,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 0,
+      "height": 84,
+      "seed": 1497717913,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 2
+      },
+      "boundElements": [],
+      "updated": 1792446207869,
+      "link": null,
+      "locked": false,
+      "startBinding": {
+        "elementId": "tickets",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "code",
+        "focus": 0,
+        "gap": 8
+      },
+      "lastCommittedPoint": null,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          84
+        ]
+      ]
+    },
+    {
+      "type": "text",
+      "version": 3,
+      "versionNonce": 1028834035,
+      "isDeleted": false,
+      "id": "most",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 1000,
+      "y": 300,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 376.1666564941406,
+      "height": 150,
+      "seed": 1427933589,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792474932623,
+      "link": null,
+      "locked": false,
+      "fontSize": 24,
+      "fontFamily": 1,
+      "text": "I-1, I-2, I-3 MOST:\na sárga dobozban vannak\n(Plan PRD › Ötletek).\n\nKövetkező lépés: a piros doboz.",
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": null,
+      "originalText": "I-1, I-2, I-3 MOST:\na sárga dobozban vannak\n(Plan PRD › Ötletek).\n\nKövetkező lépés: a piros doboz.",
+      "lineHeight": 1.25,
+      "baseline": 141
+    },
+    {
+      "type": "text",
+      "version": 3,
+      "versionNonce": 140859837,
+      "isDeleted": false,
+      "id": "miert",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "angle": 0,
+      "x": 1000,
+      "y": 560,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "width": 459.79998779296875,
+      "height": 175,
+      "seed": 481262291,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "boundElements": [],
+      "updated": 1792474932624,
+      "link": null,
+      "locked": false,
+      "fontSize": 20,
+      "fontFamily": 1,
+      "text": "Miért a Plan PRD-be?\nMert az az első PRD a térképen.\nA Magnak nincs PRD-je (csak TECH),\naz Áttekintés sem PRD.\n\nAz I-3 ötlet ezt javítaná:\nTo develop-nál rákérdez, melyik PRD-be menjen.",
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": null,
+      "originalText": "Miért a Plan PRD-be?\nMert az az első PRD a térképen.\nA Magnak nincs PRD-je (csak TECH),\naz Áttekintés sem PRD.\n\nAz I-3 ötlet ezt javítaná:\nTo develop-nál rákérdez, melyik PRD-be menjen.",
+      "lineHeight": 1.25,
+      "baseline": 168
+    }
+  ],
+  "appState": {
+    "gridSize": null,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}
