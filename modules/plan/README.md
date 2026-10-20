@@ -50,6 +50,7 @@ Más típus is használható; ilyenkor a fájlnév a típus nagybetűvel (`<TÍP
 - **Nem ütközik a mattpocock skillekkel:**
   - a `GLOSSARY*.md`, a `docs/adr/`, a `docs/agents/`, a `.scratch/` és a `.out-of-scope/` az ő helyük;
   - a Plan modul ezeket csak olvassa és linkeli.
+- **Az interjú a változásba ír, nem a Specbe.** Egy változás (C-n) interjújában a skill a `docs/product/changes/C-<nnn>-<slug>.md` fájlt szerkeszti: a nyitott kérdéseket, ahogy felmerülnek és lezárulnak, a javasolt elemeket művelettel és célhellyel (`` - add `d-x` → `app/prd#t-y` — … ``), és a probléma, megoldás, keret szövegét. Minden írás után `npx @pottom/groundwork record check` fut. Lezáráskor nem marad nyitott kérdés, így a változás szakasza (számolva) Jóváhagyásra vár; a Spec tartalma csak a jóváhagyott változás beolvasztásával módosul, közvetlenül csak a megfogalmazása.
 - **A te szerkesztéseid elsőbbséget élveznek.** Ha egy bekezdést átírsz, az a tiéd lesz, és Claude nem írja felül.
 
 ## Kezelés

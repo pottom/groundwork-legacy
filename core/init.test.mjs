@@ -65,6 +65,17 @@ test('answered yes, it installs the skill, the hook and the .gitignore line', as
   assert.match(read(dir, '.gitignore'), /^\.groundwork\/$/m)
 })
 
+test('the PRD skill writes a change interview into the change, checking after every write', async () => {
+  const dir = project()
+  const r = await init(dir, ['--yes'])
+  assert.equal(r.code, 0, r.stdout + r.stderr)
+  const skill = read(dir, '.claude/skills/groundwork-prd-maker/SKILL.md')
+  assert.match(skill, /docs\/product\/changes\//, 'where a change interview writes')
+  assert.match(skill, /- <op> `<id>` → `<target>` — <text>/, 'the item line: op, id, → target')
+  assert.ok(skill.includes(`${RUNNER} record check`), 'the check after every write runs this version')
+  assert.match(skill, /awaiting-approval/, 'the close: no open questions, Awaiting approval')
+})
+
 test('it installs the Ideas skill from the Ideas manifest, its commands running this version', async () => {
   const dir = project()
   const r = await init(dir, ['--yes'])
