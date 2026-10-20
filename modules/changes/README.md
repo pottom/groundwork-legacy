@@ -15,9 +15,38 @@ The Changes module: the changes (C-n), what is taking shape between an idea and 
 
 ## The stage
 
-The two interview stages are computed from the change's questions (d-changes-stage-interview): a change with an open question is **Grilling**, one without is **Awaiting approval**, whatever its `status` says. The later stages, **Implementing**, **Done** and **Dropped**, still come from the `status` field until the merge (C-5) and the tickets (C-8) can compute them; so a change being implemented stays Implementing even with a question left open.
+The two interview stages are computed from the change's open questions (d-changes-stage-interview, d-map-questions): a change with an open question is **Grilling**, one without is **Awaiting approval**, whatever its `status` says. The later stages, **Implementing**, **Done** and **Dropped**, still come from the `status` field until the merge (C-5) and the tickets (C-8) can compute them; so a change being implemented stays Implementing even with a question left open.
 
-An open question is a top-level list item of the change's `## Kérdések` section (`- `, `* `, `1. `). A checked one, `- [x] …`, is answered; prose and indented lines are not questions. To close a question, check it or remove it.
+An open question is a `?` node of the change's thought map, at any depth. An older change may still have a `## Kérdések` list: its top-level list items (`- `, `* `, `1. `) count too, a checked one (`- [x] …`) is answered. Nothing new writes that list.
+
+## The thought map
+
+A change's thinking lives in its `## Gondolatok` section (`## Thoughts` is read too), a nested Markdown list (C-4, d-map-in-md). Indentation gives the branches, two spaces a level; the root is not stored, it is the change's title. The sign at the start of a line gives the node's kind, whatever the document's language:
+
+| Sign | Kind |
+|---|---|
+| `?` | question: an open question of the change |
+| `~` | option: a possible answer, a child of its question |
+| `~!` | the option Claude recommends |
+| `=` | decision |
+| `!` | constraint |
+| `x` | out of scope |
+| (none) | a plain thought |
+
+A node may end in `→ \`<id>\``: the proposed item it became, which the change's `## Javasolt elemek` must list. Its note is the lines indented under it, before its children; a note line starting with `- ` would read as a child.
+
+```markdown
+## Gondolatok
+
+- ? Where does the map live?
+  It must stay one file per change.
+  - ~! In the change's Markdown
+  - ~ In a file of its own
+- = The root is the change's title → `d-map-root`
+  - x A root stored apart
+```
+
+The reader is the core's (`core/records/changes.mjs`: `readChange` gives `thoughts`, `changeBody` writes them back canonically). `groundwork record check` reports an unknown sign (a first word like `?!` that is no sign), a `→` to an id the change does not propose, and a line not in the canonical form.
 
 ## The change page
 

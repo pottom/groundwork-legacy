@@ -16,7 +16,11 @@
 //   status: grilling
 //   ---                                           What the milestone is about.
 //
-//   ## Probléma ... ## Kérdések                   ## Történet
+//   ## Probléma ... ## Kihagyjuk                  ## Történet
+//   ## Gondolatok
+//   - ? A question → `d-x`
+//     Its note, indented under it.
+//     - ~! The recommended option
 //   ## Javasolt elemek
 //   - add `d-rec-change` → `records/tech#t-rec-data` — Change (C-n) is a record
 //     Its note: lines indented two spaces under the item.
@@ -25,21 +29,36 @@
 //   ## Történet
 //
 // A change's file reads on its own as a spec, with the structure of the to-spec template: problem,
-// solution, scope, out of scope, questions, the proposed items (op, item id, → target) and, instead
+// solution, scope, out of scope, the thought map, the proposed items (op, item id, → target) and, instead
 // of a ticket list, the rule that finds its tickets. Every link is written once, on the later record
 // toward its source (a change names its ideas and its milestone); the store computes the other way.
 //
 //   MILESTONE_TYPE, CORE_RECORDS   the type, and the manifest-like entry declaring it
 //   needsTitle(next, what)         a type's rule: tidies the title, refuses a record without one
 //   changeBody(parts, id)  -> Markdown           parts: { problem?, solution?, scope?, outOfScope?,
-//                                                questions?, items?: [ProposedItem] }
+//                                                thoughts?: [ThoughtNode], questions?, items?: [ProposedItem] }
+//                                                The old Questions list is written only when it has text
 //   readChange(body)       -> parts + { items, tickets }   patient: English headings too, `->` for
 //                                                `→`, ids without backticks; a line that is not an
 //                                                item stays text and is not an item
+//   readThoughts(text)     -> { nodes, unknown }   the thought map of a Thoughts section's text;
+//                                                unknown: [{ line, sign }] (0-based in the text), the
+//                                                lines whose first word looks like a sign but is none
+//   thoughtsText(nodes)    -> Markdown           the canonical list of a thought map
+//   SIGNS                  sign → { kind, recommended? }
 //   OPS                    the ops of a proposed item: add, change, supersede
 //   PARTS_TARGET           'parts': the target of a proposed part (the list in spec/parts.md); a
 //                          proposed document's target is its part, a section's its document, an
 //                          item's `<document>#<section or parent item>`
+//
+// The thought map (d-map-in-md, d-map-signs): the `## Gondolatok` section (`## Thoughts` read too),
+// a nested list. Indentation gives the branches; the sign at the start of a line the node's kind,
+// whatever the document's language: `?` question, `~` option, `~!` the recommended option,
+// `=` decision, `!` constraint, `x` out of scope, none a plain thought. A node may end in
+// `→ \`<id>\``, the proposed item it became; its note is the lines indented under it before its
+// children (a note line starting with `- ` reads as a child). The root is the change's title, not
+// stored (d-map-root). The open questions of a change are its map's `?` nodes (d-map-questions); the
+// old `## Kérdések` list is still read, but a new change has none.
 //
 // States. Milestone: planned → in-progress → done; Claude proposes, the human moves it (Claude only
 // creates one). A change's states are its type's (modules/changes/type.mjs).
@@ -48,6 +67,7 @@
 /** @typedef {import('./types.mjs').Fields} Fields */
 /** @typedef {import('./types.mjs').ProposedItem} ProposedItem */
 /** @typedef {import('./types.mjs').ChangeParts} ChangeParts */
+/** @typedef {import('./types.mjs').ThoughtNode} ThoughtNode */
 
 export const CHANGES = 'docs/product/changes'
 export const MILESTONES = 'docs/product/milestones'
@@ -55,12 +75,13 @@ export const OPS = ['add', 'change', 'supersede']
 export const PARTS_TARGET = 'parts'
 
 // The sections of a change, in order: the heading written, and the ones read too.
-/** @type {Array<{ key: 'problem' | 'solution' | 'scope' | 'outOfScope' | 'questions' | 'items' | 'tickets', heading: string, also: string[] }>} */
-const SECTIONS = [
+/** @type {Array<{ key: 'problem' | 'solution' | 'scope' | 'outOfScope' | 'thoughts' | 'questions' | 'items' | 'tickets', heading: string, also: string[] }>} */
+export const SECTIONS = [
   { key: 'problem', heading: 'Probléma', also: ['Problem', 'Problem Statement'] },
   { key: 'solution', heading: 'Megoldás', also: ['Solution'] },
   { key: 'scope', heading: 'Keret', also: ['Scope'] },
   { key: 'outOfScope', heading: 'Kihagyjuk', also: ['Out of scope'] },
+  { key: 'thoughts', heading: 'Gondolatok', also: ['Thoughts'] },
   { key: 'questions', heading: 'Kérdések', also: ['Questions', 'Open questions'] },
   { key: 'items', heading: 'Javasolt elemek', also: ['Proposed items'] },
   { key: 'tickets', heading: 'Jegyek', also: ['Tickets'] },
@@ -86,7 +107,9 @@ export function changeBody(parts, id) {
     let text = ''
     if (s.key === 'items') text = (parts.items ?? []).map(itemLine).join('\n')
     else if (s.key === 'tickets') text = ticketsRule(id)
+    else if (s.key === 'thoughts') text = thoughtsText(parts.thoughts ?? [])
     else text = String(parts[s.key] ?? '').trim()
+    if (s.key === 'questions' && !text) continue   // the old list: nothing new writes it
     out.push(`## ${s.heading}`, '')
     if (text) out.push(text, '')
   }
@@ -139,11 +162,101 @@ export function readChange(body) {
   close()
   /** @type {ChangeParts & { items: ProposedItem[], tickets: string | null }} */
   const out = { items, tickets: TICKETS.exec((text.tickets ?? []).join('\n'))?.[1] ?? null }
+  const thoughts = readThoughts((text.thoughts ?? []).join('\n')).nodes
+  if (thoughts.length) out.thoughts = thoughts
   for (const k of /** @type {const} */ (['problem', 'solution', 'scope', 'outOfScope', 'questions'])) {
     const t = (text[k] ?? []).join('\n').trim()
     if (t) out[k] = t
   }
   return out
+}
+
+// ---- the thought map ----
+
+/** @type {Record<string, { kind: ThoughtNode['kind'], recommended?: true }>} */
+export const SIGNS = {
+  '?': { kind: 'question' },
+  '~': { kind: 'option' },
+  '~!': { kind: 'option', recommended: true },
+  '=': { kind: 'decision' },
+  '!': { kind: 'constraint' },
+  'x': { kind: 'excluded' },
+}
+const BULLET = /^([ \t]*)[-*+]\s+(.*?)\s*$/
+const LINK = /\s+(?:→|->)\s+`?([\w./#-]+)`?$/
+// a first word of one to three marks that is no sign: a mistyped one (`?!`, `~?`, `>`)
+const SIGNISH = /^[?~!=+>%&^|:;.,<@$]{1,3}$/
+/** @param {string} s */
+const width = (s) => s.replace(/\t/g, '  ').length
+
+/**
+ * The thought map of a Thoughts section's text, read patiently: any of `-*+` as bullet, any deeper
+ * indent as a child, `->` for `→`, an id without backticks.
+ * @param {string} section
+ * @returns {{ nodes: ThoughtNode[], unknown: Array<{ line: number, sign: string }> }}
+ */
+export function readThoughts(section) {
+  /** @type {ThoughtNode[]} */
+  const nodes = []
+  /** @type {Array<{ line: number, sign: string }>} */
+  const unknown = []
+  /** @typedef {{ indent: number, node: ThoughtNode, note: string[] }} Open */
+  /** @type {Open[]} */
+  const stack = []
+  /** @type {Open[]} */
+  const all = []
+  /** @type {Open | null} */
+  let target = null   // the node the next blank line belongs to
+  String(section ?? '').replace(/\r\n/g, '\n').split('\n').forEach((line, i) => {
+    if (!line.trim()) { target?.note.push(''); return }
+    const indent = width(/^[ \t]*/.exec(line)?.[0] ?? '')
+    const b = BULLET.exec(line)
+    if (!b) {
+      // a note line: of the deepest open node it is indented under; prose at the top is no node
+      target = [...stack].reverse().find((s) => s.indent < indent) ?? null
+      if (target) target.note.push(' '.repeat(Math.max(0, indent - target.indent - 2)) + line.trim())
+      return
+    }
+    while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop()
+    const [first, ...words] = b[2].split(/\s+/)
+    const sign = words.length ? SIGNS[first === 'X' ? 'x' : first] : undefined
+    if (!sign && words.length && SIGNISH.test(first)) unknown.push({ line: i, sign: first })
+    /** @type {ThoughtNode} */
+    const node = { kind: sign?.kind ?? 'thought', text: sign ? b[2].slice(first.length).trim() : b[2], children: [] }
+    if (sign?.recommended) node.recommended = true
+    const link = LINK.exec(node.text)
+    if (link) { node.text = node.text.slice(0, link.index).trim(); node.item = link[1] }
+    ;(stack.length ? stack[stack.length - 1].node.children : nodes).push(node)
+    target = { indent, node, note: [] }
+    stack.push(target)
+    all.push(target)
+  })
+  for (const { node, note } of all) {
+    const text = note.join('\n').replace(/^\n+|\n+$/g, '')
+    if (text) node.note = text
+  }
+  return { nodes, unknown }
+}
+
+/** @param {ThoughtNode} n */
+const signOf = (n) => (n.kind === 'option' && n.recommended ? '~!' : Object.keys(SIGNS).find((k) => SIGNS[k].kind === n.kind && !SIGNS[k].recommended) ?? '')
+
+/**
+ * The canonical Markdown of a thought map: two spaces per level, the sign, the text, the link; the
+ * note under the node, then its children.
+ * @param {ThoughtNode[]} nodes
+ * @param {number} [depth]
+ * @returns {string}
+ */
+export function thoughtsText(nodes, depth = 0) {
+  const pad = '  '.repeat(depth)
+  return nodes.map((n) => {
+    const sign = signOf(n)
+    const lines = [`${pad}- ${sign ? `${sign} ` : ''}${n.text}${n.item ? ` → \`${n.item}\`` : ''}`]
+    if (n.note) for (const l of n.note.split('\n')) lines.push(l ? `${pad}  ${l}` : '')
+    if (n.children?.length) lines.push(thoughtsText(n.children, depth + 1))
+    return lines.join('\n')
+  }).join('\n')
 }
 
 /** @param {Fields} next @param {string} what */

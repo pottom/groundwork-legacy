@@ -124,3 +124,33 @@ test('checkRecords takes a resolver for ids the store does not hold (a pending c
   assert.ok(!asked.includes('C-1'), 'asked only for what the store does not know')
   assert.deepEqual(after.counts, { records: 5, documents: 1 })
 })
+
+test('the thought map of a change is checked: an unknown sign, a → to an item the change does not propose, a line not in the canonical form', async () => {
+  const dir = project()
+  const store = seed(dir)
+  store.create('C', { fields: { title: 'Map' }, body: [
+    '## Gondolatok', '',
+    '- ? Where does it live?',
+    '  - ~! In the change → `d-npm`',
+    '- ?! Odd sign',
+    '- = Settled → `d-nope`',
+    '    - ! Four spaces deep',
+    '', '## Javasolt elemek', '',
+    '- change `d-npm` → `core/tech#t-stack` — npm',
+  ].join('\n') })
+  const r = await check(dir)
+  assert.equal(r.code, 1, r.stdout + r.stderr)
+  const C3 = 'docs/product/changes/C-003-map.md'
+  assert.match(r.stdout, new RegExp(`^${C3}:11: not-canonical: unknown sign \\?! \\(the signs: \\? ~ ~! = ! x\\)$`, 'm'))
+  assert.match(r.stdout, new RegExp(`^${C3}:12: orphan: → d-nope: the change proposes no d-nope$`, 'm'))
+  assert.match(r.stdout, new RegExp(`^${C3}:13: not-canonical: form: {5}- ! Four spaces deep$`, 'm'))
+  assert.match(r.stdout, /^3 errors\.$/m)
+})
+
+test('a canonical thought map passes the check, also without a Spec', async () => {
+  const dir = project()
+  const store = open(dir)
+  store.create('C', { fields: { title: 'Map' }, body: '## Gondolatok\n\n- ? Where?\n  Why it matters.\n  - ~! Here → `d-here`\n\n## Javasolt elemek\n\n- add `d-here` → `core/tech` — Here' })
+  const r = await check(dir)
+  assert.equal(r.code, 0, r.stdout + r.stderr)
+})

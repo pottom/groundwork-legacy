@@ -27,12 +27,13 @@ const C7 = {
   ],
 }
 
-test('a change body is the spec: problem, solution, scope, out of scope, questions, proposed items, and the tickets rule', () => {
+test('a change body is the spec: problem, solution, scope, out of scope, thoughts, an old questions list, proposed items, and the tickets rule', () => {
   assert.equal(changeBody(C7, 'C-7'), [
     '## Probléma', '', C7.problem, '',
     '## Megoldás', '', C7.solution, '',
     '## Keret', '', C7.scope, '',
     '## Kihagyjuk', '', C7.outOfScope, '',
+    '## Gondolatok', '',
     '## Kérdések', '', C7.questions, '',
     '## Javasolt elemek', '',
     '- add `d-rec-change` → `records/tech#t-rec-data` — Change (C-n) is a record',
@@ -87,7 +88,7 @@ test('a hand-written change body is read patiently: English headings, -> arrows,
 
 test('a new change starts as the spec skeleton with its own tickets rule', () => {
   const body = CHANGE_TYPE.template?.('C-3') ?? ''
-  for (const h of ['Probléma', 'Megoldás', 'Keret', 'Kihagyjuk', 'Kérdések', 'Javasolt elemek', 'Jegyek']) assert.match(body, new RegExp(`^## ${h}$`, 'm'))
+  for (const h of ['Probléma', 'Megoldás', 'Keret', 'Kihagyjuk', 'Gondolatok', 'Javasolt elemek', 'Jegyek']) assert.match(body, new RegExp(`^## ${h}$`, 'm'))
   assert.match(body, /`\*\*Change:\*\* C-3`/)
   assert.equal(readChange(body).tickets, 'C-3')
 })
@@ -202,4 +203,56 @@ test('with the declaring module missing, links to its records show as plain ids 
   assert.equal(ideasOnly.show('I-1').fields.title, 'Record model')
   ideasOnly.update('I-1', { fields: { links: ['C-1'] } }, { by: 'human' })
   assert.deepEqual(ideasOnly.show('I-1').links, [{ field: 'links', id: 'C-1' }])
+})
+
+// The thought map (C-4): the Thoughts section, a nested list with a sign per node (d-map-in-md, d-map-signs).
+const MAP = [
+  '- A change carries its own map',
+  '- ? Where does the map live?',
+  '  The note of the question.',
+  '',
+  '  Its second paragraph.',
+  '  - ~! In the change\'s Markdown',
+  '  - ~ In a file of its own',
+  '- = The root is the change\'s title → `d-map-root`',
+  '  - ! One name per change',
+  '  - x A root stored apart',
+].join('\n')
+const TREE = [
+  { kind: 'thought', text: 'A change carries its own map', children: [] },
+  { kind: 'question', text: 'Where does the map live?', note: 'The note of the question.\n\nIts second paragraph.', children: [
+    { kind: 'option', recommended: true, text: 'In the change\'s Markdown', children: [] },
+    { kind: 'option', text: 'In a file of its own', children: [] },
+  ] },
+  { kind: 'decision', text: 'The root is the change\'s title', item: 'd-map-root', children: [
+    { kind: 'constraint', text: 'One name per change', children: [] },
+    { kind: 'excluded', text: 'A root stored apart', children: [] },
+  ] },
+]
+
+test('the Thoughts section reads into a tree: kinds by sign, notes, item links; and writes back unchanged', () => {
+  for (const heading of ['Gondolatok', 'Thoughts']) {
+    const body = `## Probléma\n\nP.\n\n## ${heading}\n\n${MAP}\n\n## Javasolt elemek\n\n- add \`d-map-root\` → \`core/tech\` — Root`
+    assert.deepEqual(readChange(body).thoughts, TREE, heading)
+  }
+  const body = changeBody({ problem: 'P.', thoughts: TREE, items: [{ op: 'add', id: 'd-map-root', target: 'core/tech' }] }, 'C-4')
+  assert.match(body, new RegExp(`## Kihagyjuk\n\n## Gondolatok\n\n${MAP.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\n\n## Javasolt elemek`))
+  assert.deepEqual(readChange(body).thoughts, TREE)
+  assert.equal(changeBody(readChange(body), 'C-4'), body, 'byte for byte')
+})
+
+test('the thought map is read patiently: * bullets, four-space indents, -> and bare ids; an unknown sign stays a thought', () => {
+  const read = readChange('## Thoughts\n\n* ? Open\n    * ~! Yes -> d-x\n- ?! Odd one\nProse is no node.')
+  assert.deepEqual(read.thoughts, [
+    { kind: 'question', text: 'Open', children: [{ kind: 'option', recommended: true, text: 'Yes', item: 'd-x', children: [] }] },
+    { kind: 'thought', text: '?! Odd one', children: [] },
+  ])
+  assert.equal(readChange('## Problem\n\nNo map.').thoughts, undefined)
+})
+
+test('a new change has a Thoughts section and no Questions list any more', () => {
+  const body = CHANGE_TYPE.template?.('C-3') ?? ''
+  assert.match(body, /^## Gondolatok$/m)
+  assert.doesNotMatch(body, /^## Kérdések$/m)
+  assert.match(changeBody({ questions: '- Old one?' }, 'C-3'), /^## Kérdések\n\n- Old one\?$/m, 'an old list is still written back')
 })

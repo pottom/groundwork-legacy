@@ -79,13 +79,25 @@
  */
 
 /**
+ * A node of a change's thought map: `- ? text → \`id\`` with its note and children (changes.mjs).
+ * @typedef {Object} ThoughtNode
+ * @property {'thought' | 'question' | 'option' | 'decision' | 'constraint' | 'excluded'} kind
+ * @property {true} [recommended]       an option Claude recommends (`~!`)
+ * @property {string} text
+ * @property {string} [item]            the proposed item it became (`→ \`d-x\``)
+ * @property {string} [note]            the lines indented under it, before its children
+ * @property {ThoughtNode[]} children
+ */
+
+/**
  * The parts of a change's body (changes.mjs).
  * @typedef {Object} ChangeParts
  * @property {string} [problem]
  * @property {string} [solution]
  * @property {string} [scope]
  * @property {string} [outOfScope]
- * @property {string} [questions]
+ * @property {ThoughtNode[]} [thoughts]  the thought map (the Thoughts section), its root the title
+ * @property {string} [questions]       the old Questions list, still read
  * @property {ProposedItem[]} [items]
  */
 

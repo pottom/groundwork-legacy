@@ -9,7 +9,9 @@
 //                                  key: the text, lower case, blanks folded (compare.mjs knows a
 //                                  question by it); text: the section's prose, which is no question
 //   openQuestions(text)  -> n      how many of them are open
-//   stageOf(status, questions)     the stage: the two interview stages are computed (open questions →
+//   mapQuestions(nodes)  -> n      the ? nodes of a thought map, at any depth (d-map-questions)
+//   stageOf(status, questions)     the stage: the two interview stages are computed (open questions,
+//                                  the map's and an old list's together →
 //                                  grilling, none → awaiting-approval, d-changes-stage-interview);
 //                                  implementing, done and dropped still come from the status field,
 //                                  until the merge (C-5) and the tickets (C-8) can compute them
@@ -54,6 +56,9 @@ export function questionsOf(section) {
 /** @param {string | undefined} text */
 export const openQuestions = (text) => questionsOf(text).questions.filter((q) => !q.done).length
 
+/** @param {import('../../core/records/types.mjs').ThoughtNode[] | undefined} nodes @returns {number} */
+export const mapQuestions = (nodes) => (nodes ?? []).reduce((n, t) => n + (t.kind === 'question' ? 1 : 0) + mapQuestions(t.children), 0)
+
 /** @param {unknown} status @param {number} questions */
 export function stageOf(status, questions) {
   const s = String(status ?? '')
@@ -70,7 +75,7 @@ export const chip = ({ id, name, module, title }) => ({ id, ...(name ? { name } 
  */
 export function changeRow(shown) {
   const parts = readChange(shown.body)
-  const questions = openQuestions(parts.questions)
+  const questions = mapQuestions(parts.thoughts) + openQuestions(parts.questions)
   const status = String(shown.fields.status ?? '')
   const milestone = shown.links.find((l) => l.field === 'milestone')
   return {

@@ -55,3 +55,13 @@ test('a row of a change without ideas and milestone, and links to undeclared typ
   const row = changeRow({ id: 'C-1', n: 1, fields: { title: 'Start', status: 'done' }, body: '', links: [{ field: 'ideas', id: 'I-1' }] })
   assert.deepEqual([row.stage, row.questions, row.items, row.ideas, row.milestone], ['done', 0, 0, [{ id: 'I-1' }], null])
 })
+
+test('the open questions of a change with a map are its ? nodes, at any depth; the stage follows them', () => {
+  const row = (body, status = 'grilling') => changeRow({ id: 'C-4', n: 4, fields: { title: 'Map', status }, body, links: [] })
+  const map = '## Gondolatok\n\n- ? Where?\n  - ~! Here\n  - ~ There\n- = Settled\n  - ? Which name?\n'
+  assert.deepEqual([row(map).questions, row(map).stage], [2, 'grilling'])
+  const answered = '## Gondolatok\n\n- = Here\n  - x There\n- = Settled\n'
+  assert.deepEqual([row(answered).questions, row(answered).stage], [0, 'awaiting-approval'])
+  assert.deepEqual([row('## Kérdések\n\n- Old?\n- [x] Done\n').questions, row('## Kérdések\n\n- Old?\n').stage], [1, 'grilling'], 'an old change computes as before')
+  assert.equal(row(map + '\n## Kérdések\n\n- Old?\n').questions, 3, 'both count while an old list is left')
+})

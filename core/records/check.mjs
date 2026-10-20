@@ -25,6 +25,10 @@
 //                  (stray, conflict, unclosed, no-mark, no-status, unknown-mark, form), and a
 //                  record's lines that differ from writeRecord(readRecord(file)) ('missing' marks
 //                  a canonical line the file lacks, at the place it would go)
+//   thought map    a change's Thoughts section (changes.mjs, d-map-skill): a first word that looks
+//                  like a sign but is none (not-canonical), a `→` to an id the change does not
+//                  propose (orphan), and a line thoughtsText would not write (not-canonical: form).
+//                  It needs no Spec: the map is the change's own
 //
 // To add a rule, write a function of the context { store, records, docs, known, lines(file) } that
 // returns findings, and append it to RULES. `known(id)` says whether an id is a record or a Spec
@@ -35,7 +39,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { readRecord, writeRecord } from './format.mjs'
-import { readChange, PARTS_TARGET } from './changes.mjs'
+import { readChange, readThoughts, thoughtsText, SECTIONS, SIGNS, PARTS_TARGET } from './changes.mjs'
 import { resolver } from './resolve.mjs'
 import { PARTS_FILE } from './spec-format.mjs'
 
@@ -211,6 +215,39 @@ function notCanonical({ store, records, lines }) {
   return problems
 }
 
+// A change's thought map: its signs, its links to the change's proposed items, its form.
+const THOUGHTS = SECTIONS.find((s) => s.key === 'thoughts')
+const THOUGHTS_HEADINGS = new Set([THOUGHTS?.heading, ...(THOUGHTS?.also ?? [])].map((h) => String(h).toLowerCase()))
+/** @type {Rule} */
+function thoughtMaps({ records, lines }) {
+  /** @type {Finding[]} */
+  const out = []
+  for (const r of records) {
+    if (r.type !== 'C') continue
+    const ls = lines(r.file)
+    const start = ls.findIndex((l) => THOUGHTS_HEADINGS.has(/^##\s+(.+?)\s*$/.exec(l)?.[1]?.toLowerCase() ?? ''))
+    if (start < 0) continue
+    let end = ls.findIndex((l, i) => i > start && /^##\s/.test(l))
+    if (end < 0) end = ls.length
+    const section = ls.slice(start + 1, end)
+    const at = (/** @type {number} */ i) => start + 2 + i   // a section line's 1-based line in the file
+    const { nodes, unknown } = readThoughts(section.join('\n'))
+    for (const u of unknown) out.push(finding(r.file, at(u.line), 'not-canonical', section[u.line], `unknown sign ${u.sign} (the signs: ${Object.keys(SIGNS).join(' ')})`))
+    const proposed = new Set(readChange(r.body).items.map((i) => i.id))
+    section.forEach((l, i) => {
+      const link = /(?:→|->)\s+`?([\w./#-]+)`?\s*$/.exec(l)
+      if (link && /^\s*[-*+]\s/.test(l) && !proposed.has(link[1])) out.push(finding(r.file, at(i), 'orphan', l, `→ ${link[1]}: the change proposes no ${link[1]}`))
+    })
+    const canonical = thoughtsText(nodes).split('\n')
+    const { inA } = alignLines(section, canonical)
+    const flagged = new Set(unknown.map((u) => u.line))
+    section.forEach((l, i) => {
+      if (!inA[i] && l.trim() && !flagged.has(i)) out.push(finding(r.file, at(i), 'not-canonical', l, `form: ${l}`))
+    })
+  }
+  return out
+}
+
 // Which lines of a and of b a longest common subsequence keeps; at[j]: the index in a where
 // b's line j stands or would go (after the a line matched to the last kept b line before it).
 /** @param {string[]} a @param {string[]} b */
@@ -231,7 +268,7 @@ function alignLines(a, b) {
 }
 
 /** @type {Rule[]} */
-export const RULES = [duplicateRecords, duplicateSpecIds, orphans, notCanonical]
+export const RULES = [duplicateRecords, duplicateSpecIds, orphans, notCanonical, thoughtMaps]
 
 /**
  * @param {string} file @param {number} line @param {Finding['rule']} rule @param {string} text @param {string} message
