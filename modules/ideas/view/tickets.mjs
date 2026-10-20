@@ -1,6 +1,6 @@
 // A card's tickets (d-ideas-ticket-line): the tickets whose "**Idea:** I-12" line names the idea, with
-// their number and state, as Build's GET /api/build/ideas reports them; and, for an engineering idea
-// in To develop with no ticket yet, "Make a ticket", which copies a ready prompt for Claude
+// their number and state, as Build's GET /api/build/ideas reports them; and, for an idea that may
+// become one (canMakeTicket) with no ticket yet, "Make a ticket", which copies a ready prompt for Claude
 // (../ticket.mjs). Without Build there are no tickets to show, and the button still works.
 //
 //   ticketPart(idea, tickets, act)   the template, or nothing

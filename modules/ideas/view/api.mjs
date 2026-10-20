@@ -8,8 +8,8 @@
 //                               | { error } (a wrong value, or no answer)
 //   acceptIdea(idea, route)     POST /api/ideas/accept?id=<id> on the version the page saw: the idea
 //                               accepted and the change it opens, { ok: true, route, idea, change } |
-//                               { stale: true, idea } | { error } (the server's refusal, e.g. a route
-//                               not built yet, or no answer)
+//                               { stale: true, idea } | { error } (the server's refusal, or no
+//                               answer)
 //   ideaTickets()               { 'I-12': [{ label, title, status, closed, url? }] }: the tickets naming
 //                               each idea, from Build's public GET /api/build/ideas; {} without Build
 //                               or without an answer (nothing to show, no error)

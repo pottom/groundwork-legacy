@@ -15,6 +15,7 @@
 //                         open questions → grilling, none → awaiting-approval, later ones the status);
 //                         items: how many items it proposes, inSpec: how many of them are in the Spec,
 //                         merged: all of them (the core's store.inSpec, the check of store.merged)
+//   ideas.get(id)         one idea as list() gives it, with only its own changes; null when there is none
 //   ideas.add({ title, body?, author?, source?, kind?, impact?, effort?, rationale?, links? }, { by? })
 //                         the new idea, as list() gives it. impact and effort: low|medium|high, with a
 //                         one-line rationale; links: numbers of existing ideas it is similar to.
@@ -37,6 +38,7 @@
 import path from 'node:path'
 import { STATUSES, AUTHORS, KINDS, LEVELS, CLI_STATUSES, STATE_FIELDS } from './fields.mjs'
 import { changeStage } from '../../core/records/stage.mjs'
+import { allIn } from '../../core/records/merge.mjs'
 
 export const IDEAS = 'docs/product/ideas'
 // What an edit may change: everything but the number, the author and the date.
@@ -100,11 +102,11 @@ export function openIdeas(records) {
 
   // A change as an idea's card shows it, computed by the core on each read: its stage (the one the
   // Changes page shows), whether it is merged, and how many of its proposed items are in the Spec.
-  const changeOf = (c) => {
+  const changeRow = (c) => {
     const { items = 0, inSpec = 0 } = records.inSpec?.(c.id) ?? {}
     return {
       id: c.id, title: c.fields.title ?? '', status: c.fields.status ?? '', stage: changeStage(c).stage,
-      merged: items > 0 && inSpec === items, items, inSpec,
+      merged: allIn({ items, inSpec }), items, inSpec,
     }
   }
 
@@ -112,9 +114,15 @@ export function openIdeas(records) {
   const changesById = () => {
     const by = new Map()
     for (const c of records.list('C')) for (const i of [c.fields.ideas ?? []].flat()) {
-      by.set(i, [...(by.get(i) ?? []), changeOf(c)])
+      by.set(i, [...(by.get(i) ?? []), changeRow(c)])
     }
     return by
+  }
+  // One idea's changes only: no pass over every idea's (each change counts its items in the Spec).
+  const changesOfIdea = (id) => records.list('C').filter((c) => [c.fields.ideas ?? []].flat().includes(id)).map(changeRow)
+  const get = (id) => {
+    const r = /^I-\d+$/.test(String(id)) ? records.get(id) : null
+    return r && r.type === 'I' ? { ...toIdea(r), changes: changesOfIdea(id) } : null
   }
   const list = () => {
     const changes = changesById()
@@ -128,7 +136,7 @@ export function openIdeas(records) {
     const body = changes.body !== undefined ? String(changes.body ?? '') : undefined
     try {
       const saved = toIdea(records.update(id, { fields, body }, { base, by }))
-      return { ...saved, changes: changesById().get(id) ?? [] }
+      return { ...saved, changes: changesOfIdea(id) }
     } catch (e) {
       if (e.code === 'missing') e.message = `no idea ${id}`
       throw e
@@ -145,8 +153,8 @@ export function openIdeas(records) {
 
   function accept(id, { route, base, by } = {}) {
     const out = records.accept(id, { route, base, by })
-    return { route: out.route, idea: { ...toIdea(out.idea), changes: changesById().get(id) ?? [] }, change: changeOf(out.change) }
+    return { route: out.route, idea: { ...toIdea(out.idea), changes: changesOfIdea(id) }, change: changeRow(out.change) }
   }
 
-  return { list, add, update, accept }
+  return { list, get, add, update, accept }
 }

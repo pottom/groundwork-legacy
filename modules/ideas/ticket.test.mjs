@@ -41,9 +41,17 @@ test('the prompt of an idea with a change asks for both lines, **Idea:** I-n and
   assert.doesNotMatch(ticketPrompt(idea), /\*\*Change:\*\*/)
 })
 
-test('an accepted idea whose change is implementing offers "Make a ticket", whatever its kind (the ticket route)', () => {
+test('an accepted idea whose latest change is implementing offers "Make a ticket", whatever its kind (the ticket route)', () => {
   assert.equal(canMakeTicket({ ...idea, kind: 'product', changes: [{ id: 'C-7', status: 'implementing' }] }), true)
   assert.equal(canMakeTicket({ ...idea, kind: 'product', changes: [{ id: 'C-7', status: 'grilling' }] }), false)
+})
+
+test('an engineering idea sent down the Grilling route offers no ticket until its change is implementing: the interview comes first', () => {
+  assert.equal(canMakeTicket({ ...idea, changes: [{ id: 'C-7', status: 'grilling' }] }), false)
+  assert.equal(canMakeTicket({ ...idea, changes: [{ id: 'C-7', status: 'awaiting-approval' }] }), false)
+  assert.equal(canMakeTicket({ ...idea, changes: [{ id: 'C-7', status: 'implementing' }] }), true)
+  assert.equal(canMakeTicket({ ...idea, changes: [] }), true, 'an engineering idea accepted before changes, with none')
+  assert.equal(canMakeTicket({ ...idea, kind: 'product', changes: [] }), false)
 })
 
 test('the prompt works for an idea with no description yet', () => {

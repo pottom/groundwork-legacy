@@ -141,6 +141,42 @@ test('all or nothing: when the idea\'s write fails after the change is written, 
   assert.equal(store.next('C'), 2)
 })
 
+// A crash between the two writes: the change is written, the idea is not (no discard to undo it).
+/** @param {ReturnType<typeof open>} store @param {string} route */
+function crashed(store, route) {
+  const dead = { ...store, discard: undefined, update: (/** @type {any[]} */ ...a) => { if (a[2]?.dry) return store.update(a[0], a[1], a[2]); throw new Error('process gone') } }
+  assert.throws(() => acceptIdea(/** @type {any} */ (dead), 'I-1', { route, by: 'human' }), /process gone/)
+}
+
+test('a change left by an accept that died between its writes is reused by the next accept, not opened twice', () => {
+  const { store } = seeded()
+  crashed(store, 'grilling')
+  assert.equal(store.get('C-1')?.fields.status, 'grilling')
+  assert.equal(store.get('I-1')?.fields.status, 'considering', 'the orphan: a change, the idea not accepted')
+
+  const out = store.accept('I-1', { route: 'grilling', by: 'human' })
+  assert.equal(out.change.id, 'C-1')
+  assert.equal(store.get('C-2'), null, 'no second change')
+  assert.equal(store.get('I-1')?.history.at(-1), '2026-10-20 · human · accepted → C-1; status: considering → accepted')
+  assert.deepEqual(store.get('C-1')?.history, ['2026-10-20 · human · created from I-1'])
+})
+
+test('an orphan change on the other route\'s status is refused clearly, and nothing is written', () => {
+  const { root, store } = seeded()
+  crashed(store, 'ticket')
+  const before = snapshot(root)
+  assert.throws(() => store.accept('I-1', { route: 'grilling', by: 'human' }), (e) => e.code === 'state' && /C-1.*implementing/.test(e.message))
+  assert.deepEqual(snapshot(root), before)
+  assert.equal(store.accept('I-1', { route: 'ticket', by: 'human' }).change.id, 'C-1', 'on its own route it is finished')
+})
+
+test('a change the idea did accept is no orphan: accepting again after a move back opens a new one', () => {
+  const { store } = seeded()
+  store.accept('I-1', { route: 'grilling', by: 'human' })
+  store.update('I-1', { fields: { status: 'considering' } }, { by: 'human' })
+  assert.equal(store.accept('I-1', { route: 'grilling', by: 'human' }).change.id, 'C-2')
+})
+
 test('only the Ideas module may accept through its store; and no change opens without the Changes module', () => {
   const { store } = seeded()
   assert.throws(() => store.forModule(changesModule).accept('I-1', { route: 'grilling', by: 'human' }), { code: 'forbidden' })

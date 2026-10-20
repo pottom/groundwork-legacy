@@ -11,7 +11,7 @@
 // and shows the newer one. Saving and errors are short toasts. The language follows the shell
 // (strings.mjs).
 //
-// An accepted engineering idea, or one whose change is implementing, offers "Make a ticket" (tickets.mjs): it copies a prompt for
+// An accepted idea whose latest change is implementing (or an engineering one with none) offers "Make a ticket" (tickets.mjs): it copies a prompt for
 // Claude. The tickets naming an idea come from Build (GET /api/build/ideas), read again when Build
 // says its tickets changed ("build.files", "build.issues"). A link with ?idea=I-12 (Build's link from
 // a ticket, or the link on the idea's node on Plan's map) opens that idea in the drawer.

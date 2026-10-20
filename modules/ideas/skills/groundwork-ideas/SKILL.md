@@ -34,9 +34,9 @@ Done when the command printed the new number and you told the user that number, 
 
 ## Making a ticket from an idea
 
-An **engineering** idea the human moved to **Accepted**, or one the human accepted **Straight to a ticket**, becomes a GitHub issue. The human asks for it, or pastes the prompt the card's "Make a ticket" button copies (the board copies it too when the human accepts Straight to a ticket).
+An idea the human accepted whose change is in **Implementing** (accepted **Straight to a ticket**, or a grilled change once approved), or an **engineering** idea accepted before changes existed, with none, becomes a GitHub issue. The human asks for it, or pastes the prompt the card's "Make a ticket" button copies (the board copies it too when the human accepts Straight to a ticket).
 
-1. **Read the idea**: its file under `docs/product/ideas/` (`I-012-<slug>.md`), or `{{groundwork}} ideas list` (`{{groundwork}} record show I-12` also prints its history and what refers to it). Only an idea in Accepted that is an engineering one, or whose change is in Implementing, gets a ticket; for any other, tell the user why not. Accepting an idea opens a change (C-n) that names it in its `ideas`: `record show I-12` lists it under "Linked from"; when there are several, the latest (highest number) is the one. Read its file under `docs/product/changes/` too.
+1. **Read the idea**: its file under `docs/product/ideas/` (`I-012-<slug>.md`), or `{{groundwork}} ideas list` (`{{groundwork}} record show I-12` also prints its history and what refers to it). Only an idea in Accepted whose latest change is in Implementing, or an engineering one with no change at all, gets a ticket; for any other, tell the user why not (an idea sent down the Grilling route is interviewed first). Accepting an idea opens a change (C-n) that names it in its `ideas`: `record show I-12` lists it under "Linked from"; when there are several, the latest (highest number) is the one. Read its file under `docs/product/changes/` too.
 2. **Write the issue** in the project's usual ticket form (what to build, acceptance criteria), from the idea's description and estimate. Among its first lines, before the first `## ` heading, put the line that links it to the idea and, when the idea has a change, the line that links it to the change:
 
    ```

@@ -47,6 +47,9 @@
 //   inSpecOf(store, 'C-5') -> { items, inSpec } | null
 //       how many items the change proposes, and how many of them are in the Spec by the same
 //       check (an idea's card shows it); null for no change
+//   allIn({ items, inSpec }) -> boolean
+//       merged, from those counts: every item in the Spec, and at least one (the one definition
+//       isMerged and an idea's card use)
 
 import { readChange, PARTS_TARGET, CLOSED, changeOf } from './changes.mjs'
 import { itemTextOf, docIdOf, docFile, isDocId } from './spec-format.mjs'
@@ -326,14 +329,17 @@ function countIn(spec, id, items) {
   return items.filter((it) => itemIn(locate, id, it)).length
 }
 
+/** @param {{ items: number, inSpec: number }} counted */
+export const allIn = ({ items, inSpec }) => items > 0 && inSpec === items
+
 // Whether every item is in the Spec; false without items.
 /** @param {StoreLike['spec']} spec @param {string} id @param {ProposedItem[]} items */
-const mergedIn = (spec, id, items) => items.length > 0 && countIn(spec, id, items) === items.length
+const mergedIn = (spec, id, items) => allIn({ items: items.length, inSpec: countIn(spec, id, items) })
 
 /** @param {StoreLike} store @param {string} id @returns {boolean | null} */
 export function isMerged(store, id) {
   const counted = inSpecOf(store, id)
-  return counted && counted.items > 0 && counted.inSpec === counted.items
+  return counted && allIn(counted)
 }
 
 /** @param {StoreLike} store @param {string} id @returns {{ items: number, inSpec: number } | null} */

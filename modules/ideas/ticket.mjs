@@ -4,15 +4,18 @@
 // Build's GET /api/build/ideas tells the card which tickets name it. An idea with a change (the one
 // accepting it opened, d-direct-ticket) has its ticket name the change too, on a "**Change:** C-7" line.
 //
-//   canMakeTicket(idea)   true for an idea in Accepted that is an engineering one or whose change is
-//                         implementing (the Straight to a ticket route): the card offers "Make a ticket"
+//   canMakeTicket(idea)   true for an idea in Accepted whose latest change is implementing (the
+//                         Straight to a ticket route, or a grilled change once approved), or an
+//                         engineering one accepted before changes, with none: the card offers "Make a
+//                         ticket". An idea sent down the Grilling route waits for its interview
+//                         (d-route-choice: the kind only gives the default)
 //   ticketPrompt(idea)    the ready prompt the card copies for Claude, and the board after a
 //                         Straight to a ticket accept; it names the idea's latest change (idea.changes)
 
 const changeOfIdea = (idea) => idea.changes?.at(-1) ?? null
 
 export const canMakeTicket = (idea) => idea.status === 'accepted'
-  && (idea.kind === 'engineering' || changeOfIdea(idea)?.status === 'implementing')
+  && (changeOfIdea(idea) ? changeOfIdea(idea).status === 'implementing' : idea.kind === 'engineering')
 
 export function ticketPrompt(idea) {
   const change = changeOfIdea(idea)

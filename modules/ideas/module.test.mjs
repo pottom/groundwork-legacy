@@ -88,7 +88,9 @@ test('POST /api/ideas/accept accepts an idea as the human: the store writes it a
     assert.equal((await post('I-9', { route: 'grilling' })).status, 404)
     const stale = await post('I-1', { route: 'grilling', base: 'old' })
     assert.equal(stale.status, 409)
-    assert.equal((await stale.json()).idea.id, 'I-1', 'a stale accept sends the idea as it is now')
+    const now = (await stale.json()).idea
+    assert.equal(now.id, 'I-1', 'a stale accept sends the idea as it is now')
+    assert.deepEqual([now.marks, now.changes], [[], []], 'as the list shows it: with its marks and changes')
 
     const ok = await post('I-1', { route: 'grilling', base: seen.version })
     assert.equal(ok.status, 200)
