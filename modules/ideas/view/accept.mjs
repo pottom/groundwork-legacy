@@ -1,8 +1,8 @@
 // The question a move to Accepted asks, by drag and drop or the move menu: which route?
 // Grilling (a change, interviewed first) or Straight to a ticket (d-route-choice); the idea's kind
 // gives the default (routeFor: product -> Grilling, engineering -> Straight to a ticket), the human
-// chooses. Accepting opens the change (POST /api/ideas/accept); a refusal (the ticket route is not
-// built yet) is shown here, as the server words it.
+// chooses. Accepting opens the change (POST /api/ideas/accept; on Straight to a ticket the page then
+// copies the prompt for Claude that writes its ticket); a refusal is shown here, as the server words it.
 //
 //   acceptForm(ask, act)   the dialog's content; null ask -> nothing
 //     ask  { idea, route, saving, error }

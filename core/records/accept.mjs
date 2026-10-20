@@ -9,7 +9,10 @@
 //       board's default.
 //         grilling   the change starts in grilling: the idea's title, its text as the Probléma, the
 //                    idea in its `ideas`, no milestone (the interview gives that)
-//         ticket     not built yet (#70, d-direct-ticket): refused with code 'route'
+//         ticket     straight to a ticket (d-direct-ticket): a minimal change, implementing at once
+//                    (the acceptance is its approval), with the same title, problem and idea and no
+//                    proposed items, so there is nothing to merge; Claude writes its ticket, with
+//                    the `**Change:** C-n` line, from the prompt the card copies
 //       A history line on both: `accepted → C-n` on the idea (before its status line), `created
 //       from I-n` on the change. All or nothing: both writes are checked first (dry runs of every
 //       check the store makes, the idea's on `base`), and nothing is written on any error. Then the
@@ -18,7 +21,7 @@
 //       and no accepted idea without its change. Refused, with the code (or the store's own, should
 //       a write be refused: 'forbidden', 'stale', a type's rule):
 //         forbidden   by is not 'human': Claude (the command line) never accepts an idea
-//         bad         a route that is none of ROUTES          route    a route not built yet
+//         bad         a route that is none of ROUTES          route    a route not built yet (none now)
 //         missing     no idea with that id                    stale    the idea changed since `base`
 //         state       the idea is accepted already, or no module declares the changes (C)
 //
@@ -49,13 +52,17 @@ import { changeBody } from './changes.mjs'
 /** @type {Route[]} */
 export const ROUTES = ['grilling', 'ticket']
 
+// A change from the idea: its title, its text as the problem, the idea in `ideas`; no milestone, no items.
+/** @param {StoredRecord} idea @param {string} status @returns {ReturnType<Opens>} */
+const fromIdea = (idea, status) => ({
+  fields: { title: String(idea.fields.title ?? idea.id), ideas: [idea.id], status },
+  body: (id) => changeBody({ problem: idea.body }, id),
+})
+
 /** @type {Partial<Record<Route, Opens>>} */
 const OPENS = {
-  grilling: (idea) => ({
-    fields: { title: String(idea.fields.title ?? idea.id), ideas: [idea.id], status: 'grilling' },
-    body: (id) => changeBody({ problem: idea.body }, id),
-  }),
-  // ticket: #70 (d-direct-ticket), a minimal change in implementing
+  grilling: (idea) => fromIdea(idea, 'grilling'),
+  ticket: (idea) => fromIdea(idea, 'implementing'),
 }
 
 /** @param {string} msg @param {string} code */

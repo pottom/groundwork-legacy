@@ -11,13 +11,15 @@
 // and shows the newer one. Saving and errors are short toasts. The language follows the shell
 // (strings.mjs).
 //
-// An engineering idea in Accepted offers "Make a ticket" (tickets.mjs): it copies a prompt for
+// An accepted engineering idea, or one whose change is implementing, offers "Make a ticket" (tickets.mjs): it copies a prompt for
 // Claude. The tickets naming an idea come from Build (GET /api/build/ideas), read again when Build
 // says its tickets changed ("build.files", "build.issues"). A link with ?idea=I-12 (Build's link from
 // a ticket, or the link on the idea's node on Plan's map) opens that idea in the drawer.
 //
 // A move to Accepted asks for the route (accept.mjs), Grilling or Straight to a ticket, the idea's
 // kind giving the default; accepting opens the change, and the card then links to it (changes.mjs).
+// On Straight to a ticket it also copies the prompt for Claude that writes the change's ticket (the
+// card's "Make a ticket" copies it again).
 // The board reads again when any record changes (the core's topic "records"), so the card follows
 // its change's stage.
 //
@@ -212,8 +214,10 @@ const acceptActs = {
     const r = await acceptIdea(accepting.idea, accepting.route)
     if (r.ok) {
       put(r.idea)
-      toast(ui('toast.accepted', { id: r.idea.id, change: r.change.id }))
       $('accept').close()
+      // Straight to a ticket: the prompt for Claude that writes the change's ticket, on the clipboard
+      if (r.route === 'ticket' && await copyText(ticketPrompt(r.idea))) toast(ui('toast.accepted-prompt', { id: r.idea.id, change: r.change.id }))
+      else toast(ui('toast.accepted', { id: r.idea.id, change: r.change.id }))
     } else if (r.stale) {
       put(r.idea)
       accepting = { ...accepting, idea: r.idea, saving: false, error: ui('drawer.stale') }

@@ -34,19 +34,20 @@ Done when the command printed the new number and you told the user that number, 
 
 ## Making a ticket from an idea
 
-An **engineering** idea the human moved to **Accepted** becomes a GitHub issue. The human asks for it, or pastes the prompt the card's "Make a ticket" button copies.
+An **engineering** idea the human moved to **Accepted**, or one the human accepted **Straight to a ticket**, becomes a GitHub issue. The human asks for it, or pastes the prompt the card's "Make a ticket" button copies (the board copies it too when the human accepts Straight to a ticket).
 
-1. **Read the idea**: its file under `docs/product/ideas/` (`I-012-<slug>.md`), or `{{groundwork}} ideas list` (`{{groundwork}} record show I-12` also prints its history and what refers to it). Only an engineering idea in Accepted gets a ticket; for any other, tell the user why not.
-2. **Write the issue** in the project's usual ticket form (what to build, acceptance criteria), from the idea's description and estimate. Among its first lines, before the first `## ` heading, put the line that links it to the idea:
+1. **Read the idea**: its file under `docs/product/ideas/` (`I-012-<slug>.md`), or `{{groundwork}} ideas list` (`{{groundwork}} record show I-12` also prints its history and what refers to it). Only an idea in Accepted that is an engineering one, or whose change is in Implementing, gets a ticket; for any other, tell the user why not. Accepting an idea opens a change (C-n) that names it in its `ideas`: `record show I-12` lists it under "Linked from"; when there are several, the latest (highest number) is the one. Read its file under `docs/product/changes/` too.
+2. **Write the issue** in the project's usual ticket form (what to build, acceptance criteria), from the idea's description and estimate. Among its first lines, before the first `## ` heading, put the line that links it to the idea and, when the idea has a change, the line that links it to the change:
 
    ```
    **Idea:** I-12
+   **Change:** C-7
    ```
 
    Keep the project's other lines too (`**PRD:** …` when the work belongs to a PRD item).
 3. **Create it** with its state and area, which Build reads to place it: `gh issue create --title "<title>" --body-file <file> --label enhancement,ready-for-agent --milestone "<title>"`. The label is the state (`ready-for-agent` for work an agent can do, `ready-for-human` for a step only the human takes); without one the ticket shows as needing triage. The milestone is the area: the GitHub milestone of the change or milestone the work belongs to (`gh api repos/{owner}/{repo}/milestones` lists them); leave it out when none fits, and say so. Tell the user the issue number.
 
-Build reads the `**Idea:**` line and shows the idea as a link on the ticket; the idea's card shows the ticket's number and state. Do not edit the idea file for this: the link lives in the ticket.
+Build reads the `**Idea:**` line and shows the idea as a link on the ticket; the idea's card shows the ticket's number and state. The `**Change:**` line is how a change finds its tickets (its `## Jegyek` section says so). Do not edit the idea or the change file for this: the link lives in the ticket.
 
 ## Your limits
 

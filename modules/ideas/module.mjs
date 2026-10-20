@@ -17,7 +17,9 @@
 //                             'human'; core/records/accept.mjs). JSON only (415). Refused: 404 no idea;
 //                             400 no such route (code 'bad'); 409 { error, code, idea? }: changed since
 //                             `base` (code 'stale', with the idea as it is now), accepted already (code
-//                             'state'), or a route not built yet (code 'route': the ticket route, #70)
+//                             'state'), or a route not built yet (code 'route'). The ticket route's
+//                             change is implementing at once; the board then copies the prompt for
+//                             Claude that writes its ticket (ticket.mjs)
 //
 // Ideas are records of the core's record store: the manifest declares the type I (`records`,
 // store.mjs IDEA_TYPE), with its folder docs/product/ideas/ and its lifecycle, and the store writes

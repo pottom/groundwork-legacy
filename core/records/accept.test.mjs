@@ -55,20 +55,44 @@ test('the grilling route: the idea is accepted and a change in grilling opens wi
   assert.deepEqual(store.show('I-1')?.linkedFrom, ['C-1'], 'the change names the idea; the store computes the other way')
 })
 
+test('the ticket route: a minimal change in implementing at once, with no proposed items, linked to the idea', () => {
+  const { store } = seeded()
+  const out = store.accept('I-1', { route: 'ticket', by: 'human' })
+  assert.equal(out.route, 'ticket')
+  const change = store.get('C-1')
+  assert.deepEqual(change?.fields, { title: 'Gyors fülváltás', ideas: ['I-1'], status: 'implementing' })
+  const parts = readChange(change?.body ?? '')
+  assert.equal(parts.problem, 'Ctrl+1 a Build fülre.\n\nMert sokat váltok.')
+  assert.deepEqual(parts.items, [], 'nothing to merge: the acceptance is its approval')
+  assert.equal(parts.tickets, 'C-1')
+  assert.deepEqual(change?.history, ['2026-10-20 · human · created from I-1'])
+  assert.equal(store.get('I-1')?.history.at(-1), '2026-10-20 · human · accepted → C-1; status: considering → accepted')
+  assert.equal(store.merged('C-1'), false, 'a change without items is never merged')
+})
+
+test('the ticket route is all or nothing too: a refused idea write leaves no change', () => {
+  const root = project()
+  const picky = { ...ideasModule, records: [{ ...ideasModule.records[0], rules: (/** @type {any} */ next) => { if (next.status === 'accepted') throw new Error('not this one'); return next } }] }
+  const store = open(root, [picky, changesModule, CORE_RECORDS])
+  store.create('I', { fields: { title: 'Y', kind: 'engineering' } }, { by: 'human' })
+  const before = snapshot(root)
+  assert.throws(() => store.accept('I-1', { route: 'ticket', by: 'human' }), /not this one/)
+  assert.deepEqual(snapshot(root), before)
+})
+
 test('Claude (the command line) cannot accept an idea, on any route; nothing is written', () => {
   const { root, store } = seeded()
   const before = snapshot(root)
-  for (const by of [undefined, 'claude']) {
-    assert.throws(() => store.accept('I-1', { route: 'grilling', by: /** @type {any} */ (by) }), { code: 'forbidden' })
+  for (const by of [undefined, 'claude']) for (const route of ['grilling', 'ticket']) {
+    assert.throws(() => store.accept('I-1', { route, by: /** @type {any} */ (by) }), { code: 'forbidden' })
   }
   assert.deepEqual(snapshot(root), before)
 })
 
-test('the ticket route is refused until it is built; an unknown route, a missing idea, an accepted one and a stale base too', () => {
+test('an unknown route, a missing idea, an accepted one and a stale base are refused', () => {
   const { root, store } = seeded()
   assert.deepEqual(ROUTES, ['grilling', 'ticket'])
   const before = snapshot(root)
-  assert.throws(() => store.accept('I-1', { route: 'ticket', by: 'human' }), { code: 'route' })
   assert.throws(() => store.accept('I-1', { route: 'other', by: 'human' }), { code: 'bad' })
   assert.throws(() => store.accept('I-1', { by: 'human' }), { code: 'bad' })
   assert.throws(() => store.accept('I-9', { route: 'grilling', by: 'human' }), { code: 'missing' })

@@ -84,9 +84,6 @@ test('POST /api/ideas/accept accepts an idea as the human: the store writes it a
 
     assert.equal((await post('I-1', { route: 'grilling' }, 'text/plain')).status, 415, 'JSON only')
     assert.equal((await fetch(`${base}/api/ideas/accept?id=I-1`)).status, 405)
-    const ticket = await post('I-2', { route: 'ticket' })
-    assert.equal(ticket.status, 409)
-    assert.equal((await ticket.json()).code, 'route', 'the ticket route is not built yet')
     assert.equal((await post('I-1', { route: 'nowhere' })).status, 400)
     assert.equal((await post('I-9', { route: 'grilling' })).status, 404)
     const stale = await post('I-1', { route: 'grilling', base: 'old' })
@@ -101,6 +98,12 @@ test('POST /api/ideas/accept accepts an idea as the human: the store writes it a
     assert.deepEqual(out.idea.changes, [out.change])
     assert.deepEqual((await list())[0].changes, [out.change], 'the list shows the change on the idea')
     assert.equal((await post('I-1', { route: 'grilling' })).status, 409, 'accepted already')
+
+    const ticket = await post('I-2', { route: 'ticket' })
+    assert.equal(ticket.status, 200)
+    const direct = await ticket.json()
+    assert.deepEqual(direct.change, { id: 'C-2', title: 'Lint the CSS', status: 'implementing' }, 'straight to a ticket: implementing at once')
+    assert.equal(direct.route, 'ticket')
   })
 })
 

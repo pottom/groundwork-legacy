@@ -174,6 +174,11 @@ test('a move to Accepted asks the route, Grilling or Straight to a ticket, defau
   assert.match(read('view/drawer.mjs'), /s !== 'accepted' \|\| idea\.status === 'accepted'/, 'the drawer does not accept by a change of status')
 })
 
+test('a ticket-route accept copies the prompt for Claude, which names the new change', () => {
+  const main = read('view/main.mjs')
+  assert.match(main, /r\.route === 'ticket'[\s\S]{0,200}copyText\(ticketPrompt\(r\.idea\)\)/)
+})
+
 test('the route\'s default follows the kind: product → Grilling, engineering → Straight to a ticket', async () => {
   const { ROUTES, routeFor } = await import('./fields.mjs')
   assert.deepEqual(ROUTES, ['grilling', 'ticket'])

@@ -33,6 +33,19 @@ test('the prompt asks Claude for a GitHub issue that names the idea on an "**Ide
   assert.match(prompt, /groundwork-ideas/, 'it names the skill that documents the steps')
 })
 
+test('the prompt of an idea with a change asks for both lines, **Idea:** I-n and **Change:** C-n; without one, the idea\'s only', () => {
+  const prompt = ticketPrompt({ ...idea, changes: [{ id: 'C-4', title: 'Old', status: 'done' }, { id: 'C-7', title: 'Cache the issue list', status: 'implementing' }] })
+  assert.match(prompt, /^\*\*Idea:\*\* I-12$/m)
+  assert.match(prompt, /^\*\*Change:\*\* C-7$/m, 'the latest change the idea opened')
+  assert.doesNotMatch(prompt, /C-4/)
+  assert.doesNotMatch(ticketPrompt(idea), /\*\*Change:\*\*/)
+})
+
+test('an accepted idea whose change is implementing offers "Make a ticket", whatever its kind (the ticket route)', () => {
+  assert.equal(canMakeTicket({ ...idea, kind: 'product', changes: [{ id: 'C-7', status: 'implementing' }] }), true)
+  assert.equal(canMakeTicket({ ...idea, kind: 'product', changes: [{ id: 'C-7', status: 'grilling' }] }), false)
+})
+
 test('the prompt works for an idea with no description yet', () => {
   const prompt = ticketPrompt({ id: 'I-3', title: 'Lint the CSS', kind: 'engineering', status: 'accepted' })
   assert.match(prompt, /^\*\*Idea:\*\* I-3$/m)
@@ -53,5 +66,6 @@ test('the skill documents making a ticket from an idea with the **Idea:** line',
   const skill = read('skills/groundwork-ideas/SKILL.md')
   assert.match(skill, /## Making a ticket from an idea/)
   assert.match(skill, /\*\*Idea:\*\* I-12/)
+  assert.match(skill, /\*\*Change:\*\* C-7/, 'and the change\'s line, when the idea has a change')
   assert.match(skill, /Accepted/)
 })

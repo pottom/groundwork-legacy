@@ -7,7 +7,7 @@
 //                               { ok: true, idea } | { stale: true, idea } (saved elsewhere meanwhile)
 //                               | { error } (a wrong value, or no answer)
 //   acceptIdea(idea, route)     POST /api/ideas/accept?id=<id> on the version the page saw: the idea
-//                               accepted and the change it opens, { ok: true, idea, change } |
+//                               accepted and the change it opens, { ok: true, route, idea, change } |
 //                               { stale: true, idea } | { error } (the server's refusal, e.g. a route
 //                               not built yet, or no answer)
 //   ideaTickets()               { 'I-12': [{ label, title, status, closed, url? }] }: the tickets naming
@@ -55,7 +55,7 @@ export async function acceptIdea(idea, route) {
     const body = await res.json().catch(() => ({}))
     if (res.status === 409 && body.code === 'stale' && body.idea) return { stale: true, idea: body.idea }
     if (!res.ok) return { error: body.error || `HTTP ${res.status}` }
-    return { ok: true, idea: body.idea, change: body.change }
+    return { ok: true, route: body.route, idea: body.idea, change: body.change }
   } catch (e) {
     return { error: e.message }
   }
