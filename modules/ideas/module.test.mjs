@@ -13,6 +13,7 @@ import { openRecords } from '../../core/records/store.mjs'
 import { MODULES } from '../../core/modules.mjs'
 import { listen } from '../../core/sse-client.test-helper.mjs'
 import ideas from './module.mjs'
+import changes from '../changes/module.mjs'
 import { openIdeas } from './store.mjs'
 
 const project = () => fs.mkdtempSync(path.join(os.tmpdir(), 'gw-ideas-api-'))
@@ -68,6 +69,55 @@ test('PUT /api/ideas/item/<id> saves the browser\'s change to the idea file, on 
     assert.equal((await put('I-7', { changes: { title: 'X' } })).status, 404)
     assert.equal((await fetch(`${base}/api/ideas/item/I-1`)).status, 405)
     assert.equal(open(root).list()[0].title, 'Quick tab switching')
+  })
+})
+
+test('POST /api/ideas/accept accepts an idea as the human: the store writes it and the change it opens, on the route chosen', async () => {
+  const root = project()
+  open(root).add({ title: 'Quick tabs', body: 'Ctrl+1 opens Build.', kind: 'product' })
+  open(root).add({ title: 'Lint the CSS', kind: 'engineering' })
+  await withServer(root, [ideas, changes], async (base) => {
+    const post = (id, body, type = 'application/json') => fetch(`${base}/api/ideas/accept?id=${id}`, { method: 'POST', headers: { 'content-type': type }, body: JSON.stringify(body) })
+    const list = async () => (await (await fetch(`${base}/api/ideas/list`)).json()).ideas
+    const [seen] = await list()
+    assert.deepEqual(seen.changes, [])
+
+    assert.equal((await post('I-1', { route: 'grilling' }, 'text/plain')).status, 415, 'JSON only')
+    assert.equal((await fetch(`${base}/api/ideas/accept?id=I-1`)).status, 405)
+    const ticket = await post('I-2', { route: 'ticket' })
+    assert.equal(ticket.status, 409)
+    assert.equal((await ticket.json()).code, 'route', 'the ticket route is not built yet')
+    assert.equal((await post('I-1', { route: 'nowhere' })).status, 400)
+    assert.equal((await post('I-9', { route: 'grilling' })).status, 404)
+    const stale = await post('I-1', { route: 'grilling', base: 'old' })
+    assert.equal(stale.status, 409)
+    assert.equal((await stale.json()).idea.id, 'I-1', 'a stale accept sends the idea as it is now')
+
+    const ok = await post('I-1', { route: 'grilling', base: seen.version })
+    assert.equal(ok.status, 200)
+    const out = await ok.json()
+    assert.deepEqual(out.change, { id: 'C-1', title: 'Quick tabs', status: 'grilling' })
+    assert.equal(out.idea.status, 'accepted')
+    assert.deepEqual(out.idea.changes, [out.change])
+    assert.deepEqual((await list())[0].changes, [out.change], 'the list shows the change on the idea')
+    assert.equal((await post('I-1', { route: 'grilling' })).status, 409, 'accepted already')
+  })
+})
+
+test('a move to Accepted by a plain save is refused: accepting goes through POST /api/ideas/accept; other moves stay', async () => {
+  const root = project()
+  open(root).add({ title: 'Quick tabs' })
+  await withServer(root, [ideas, changes], async (base) => {
+    const put = (body) => fetch(`${base}/api/ideas/item/I-1`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    const refused = await put({ changes: { status: 'accepted' } })
+    assert.equal(refused.status, 400)
+    assert.equal((await refused.json()).code, 'accept')
+    assert.equal(open(root).list()[0].status, 'new')
+    assert.equal((await put({ changes: { status: 'considering' } })).status, 200)
+    await fetch(`${base}/api/ideas/accept?id=I-1`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ route: 'grilling' }) })
+    const saved = await put({ changes: { status: 'accepted', title: 'Quick tab switching' } })
+    assert.equal(saved.status, 200, 'an accepted idea saves with its status as it is')
+    assert.equal((await saved.json()).idea.changes[0].id, 'C-1')
   })
 })
 

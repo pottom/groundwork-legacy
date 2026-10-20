@@ -1,7 +1,8 @@
 /* The Ideas page (index.html). The look is the shell's design system (/shell/theme.css): the --gw-*
    tokens and the .gw-* components (card, tag, badge, dot, section header, empty state). This sheet
    only lays out the board with them: four columns side by side, one under the other when narrow,
-   the move menu and drop target, and the two dialogs (the drawer, the reason for a rejection). */
+   the move menu and drop target, and the dialogs (the drawer, the reason for a rejection, the route
+   of an acceptance). */
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -49,6 +50,9 @@ h2, h3, p { margin: 0; }
 .idea__tickets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .idea__ticket { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .idea__actions { display: flex; }
+/* the changes an accepted idea opened: links to their pages */
+.idea__changes { display: flex; gap: 6px; flex-wrap: wrap; }
+.idea__changes a { text-decoration: none; }
 
 /* the switch between the board and the matrix */
 .views { margin-bottom: calc(var(--gw-space) * 2); }
@@ -81,7 +85,7 @@ h2, h3, p { margin: 0; }
 dialog { padding: 0; border: 1px solid var(--gw-line); background: var(--gw-surface); color: var(--gw-fg); box-shadow: var(--gw-shadow-lg); }
 dialog::backdrop { background: color-mix(in srgb, var(--gw-fg) 24%, transparent); }
 #drawer { margin: 0 0 0 auto; height: 100vh; max-height: 100vh; width: min(520px, 100vw); max-width: 100vw; border-radius: var(--gw-radius-lg) 0 0 var(--gw-radius-lg); }
-#reject { width: min(440px, calc(100vw - 32px)); border-radius: var(--gw-radius-lg); }
+#reject, #accept { width: min(440px, calc(100vw - 32px)); border-radius: var(--gw-radius-lg); }
 .drawer { display: flex; flex-direction: column; height: 100%; }
 .drawer__head { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: calc(var(--gw-space) * 2) calc(var(--gw-space) * 2) calc(var(--gw-space) * 1.5) calc(var(--gw-space) * 3); border-bottom: 1px solid var(--gw-line); }
 .drawer__head > button { grid-column: 2; grid-row: 1 / span 2; }

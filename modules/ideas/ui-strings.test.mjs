@@ -23,7 +23,9 @@ test('the view carries no text of its own: no Hungarian outside the strings', ()
 
 test('the English and the Hungarian set have the same keys, and the Hungarian one is translated', () => {
   assert.deepEqual(Object.keys(hu).sort(), Object.keys(en).sort())
-  const same = Object.keys(en).filter((k) => hu[k] === en[k] && k !== 'author.claude')
+  // a name, the stage's word (Grilling in Hungarian too, as on the Changes page) and a pattern stay
+  const SAME = ['author.claude', 'card.change', 'change.grilling', 'route.grilling']
+  const same = Object.keys(en).filter((k) => hu[k] === en[k] && !SAME.includes(k))
   assert.deepEqual(same, [])
   assert.ok(ideas.tagline.en && ideas.tagline.hu && ideas.tagline.en !== ideas.tagline.hu)
 })

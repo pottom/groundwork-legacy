@@ -17,6 +17,7 @@ import { STATUSES } from '../fields.mjs'
 import { ui } from './strings.mjs'
 import { ticketPart } from './tickets.mjs'
 import { mapLinks } from './links.mjs'
+import { changePart } from './changes.mjs'
 
 const BULB = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></svg>`
 const MOVE = html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`
@@ -72,6 +73,7 @@ const card = (idea, state, act) => html`
     ${idea.status === 'rejected' && idea.reason ? html`<p class="idea__reason"><span class="idea__reason-label">${ui('card.reason')}</span> ${idea.reason}</p>` : nothing}
     ${idea.status === 'snoozed' && idea.until ? html`<p class="idea__reason">${ui('card.until', { date: idea.until })}</p>` : nothing}
     ${idea.status === 'duplicate' && idea.duplicate ? html`<p class="idea__reason">${ui('card.duplicate', { id: idea.duplicate })}</p>` : nothing}
+    ${changePart(idea)}
     ${ticketPart(idea, state.tickets?.[idea.id], act)}
   </li>`
 

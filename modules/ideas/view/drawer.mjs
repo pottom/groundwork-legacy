@@ -2,8 +2,9 @@
 // what is typed in a draft, so a live re-read of the board does not wipe it; Save sends the draft
 // on the version the drawer opened (api.mjs), and a newer save made elsewhere is reported, not lost.
 // A status asks for the field it needs: Rejected a reason (f-ideas-reject), Snoozed the date until
-// which (until), Duplicate the idea it repeats (duplicate: I-n). Number, author and date are facts,
-// shown, not edited.
+// which (until), Duplicate the idea it repeats (duplicate: I-n). Accepted is no column to pick here:
+// accepting asks for a route (accept.mjs) from the card. Number, author and date are facts, shown,
+// not edited.
 //
 //   drawer(draft, act)   the dialog's content; null draft -> nothing
 //     draft  { idea: as listed, values: { title, body, source, kind, impact, effort, rationale, status, reason,
@@ -51,7 +52,7 @@ export function drawer(draft, act) {
       ${field('title', ui('field.title'), html`<input class="gw-field" id="f-title" name="title" required .value=${v.title} @input=${on(act, 'title')}>`)}
       ${field('body', ui('field.body'), html`<textarea class="gw-field" id="f-body" name="body" rows="7" .value=${v.body} @input=${on(act, 'body')}></textarea>`)}
       <div class="form__row">
-        ${field('status', ui('field.status'), html`<select class="gw-field" id="f-status" name="status" @change=${on(act, 'status')}>${options(STATUSES, v.status, 'status')}</select>`)}
+        ${field('status', ui('field.status'), html`<select class="gw-field" id="f-status" name="status" @change=${on(act, 'status')}>${options(STATUSES.filter((s) => s !== 'accepted' || idea.status === 'accepted'), v.status, 'status')}</select>`)}
         ${field('kind', ui('field.kind'), html`<select class="gw-field" id="f-kind" name="kind" @change=${on(act, 'kind')}>${options(KINDS, v.kind, 'kind', v.kind ? null : ui('level.none'))}</select>`)}
       </div>
       ${v.status === 'rejected' ? field('reason', ui('field.reason'), html`<textarea class="gw-field" id="f-reason" name="reason" rows="3" required .value=${v.reason} @input=${on(act, 'reason')}></textarea>`, ui('field.reason-hint')) : nothing}

@@ -2,19 +2,30 @@
 //
 //   GET /ideas/               the kanban (index.html)
 //   GET /api/ideas/list       { ideas: [{ id: 'I-12', n, file, version, title, body, author, source, kind,
-//                                         impact, effort, status, reason, until, duplicate, links, created, history }] }
+//                                         impact, effort, status, reason, until, duplicate, links, created, history,
+//                                         changes: [{ id: 'C-7', title, status }] }] }; changes: the changes that
+//                             name the idea (store.mjs)
 //   PUT /api/ideas/item/I-12  { base: version, changes: { title?, body?, source?, kind?, impact?, effort?,
 //                                status?, reason?, until?, duplicate?, links? } } -> { idea }; 409 { error, idea }
 //                             when the file changed since `base`; 400 a wrong value (Rejected needs a
-//                             reason, Snoozed a date, Duplicate an idea); 404 no such idea; 415 not sent
+//                             reason, Snoozed a date, Duplicate an idea), or a move to Accepted (code
+//                             'accept': that is POST /api/ideas/accept); 404 no such idea; 415 not sent
 //                             as application/json (so no other site can post one)
+//   POST /api/ideas/accept?id=I-12   { route: 'grilling' | 'ticket', base? } -> { route, idea, change:
+//                             { id, title, status } }: the human accepts the idea, and the core's record
+//                             store writes it and the change it opens together (store.accept, as
+//                             'human'; core/records/accept.mjs). JSON only (415). Refused: 404 no idea;
+//                             400 no such route (code 'bad'); 409 { error, code, idea? }: changed since
+//                             `base` (code 'stale', with the idea as it is now), accepted already (code
+//                             'state'), or a route not built yet (code 'route': the ticket route, #70)
 //
 // Ideas are records of the core's record store: the manifest declares the type I (`records`,
 // store.mjs IDEA_TYPE), with its folder docs/product/ideas/ and its lifecycle, and the store writes
 // the files. Ideas itself writes nothing (`writes` is empty). `groundwork ideas add|list|move`
 // (ideas.mjs) goes through the same store. The browser is the human and may set every column; the
 // command is Claude and only New and Considering (d-ideas-ai-limits), which the store enforces.
-// Accepting an idea is a change of status only (a change record comes with C-6).
+// Accepting an idea opens a change (C-6, d-accept-in-core): the endpoint calls the record store's
+// accept as the human, and the store lets only this module call it (it declares the ideas).
 //
 // Live updates (core/events.mjs): an idea file changing is the topic "ideas.items" (and the core's
 // "records"); the page then asks /api/ideas/list again.
@@ -37,7 +48,7 @@ export default {
   // entry), and the modules it shares with the server.
   view: { dir: HERE, files: [
     'index.html', 'view/ideas.css', 'view/main.mjs', 'view/board.mjs', 'view/strings.mjs',
-    'view/api.mjs', 'view/drawer.mjs', 'view/reject.mjs', 'view/matrix.mjs', 'view/tickets.mjs', 'view/links.mjs',
+    'view/api.mjs', 'view/drawer.mjs', 'view/reject.mjs', 'view/accept.mjs', 'view/changes.mjs', 'view/matrix.mjs', 'view/tickets.mjs', 'view/links.mjs',
     'ui-strings.mjs', 'fields.mjs', 'matrix.mjs', 'ticket.mjs',
   ] },
   // Ideas writes nothing itself: the core's record store writes the idea files.
@@ -53,11 +64,12 @@ export default {
   watch: (p) => (p.startsWith(IDEAS + '/') && /^I-\d+[^/]*\.md$/.test(p.slice(IDEAS.length + 1)) ? 'ideas.items' : null),
   api({ records }) {
     const store = openIdeas(records)
-    return async (req, res, sub) => {
+    return async (req, res, sub, url) => {
       if (sub === '/list') {
         if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'method not allowed' }), true
         return send(res, 200, { ideas: store.list() }), true
       }
+      if (sub === '/accept') return accept(store, req, res, url), true
       const item = /^\/item\/(I-\d+)$/.exec(sub)
       if (!item) return false
       if (req.method !== 'PUT') return send(res, 405, { error: 'method not allowed' }), true
@@ -65,6 +77,10 @@ export default {
       if (!isJson(req)) return send(res, 415, { error: 'send JSON' }), true
       try {
         const { base, changes } = await readJson(req)
+        const was = store.list().find((i) => i.id === item[1])
+        if (changes?.status === 'accepted' && was && was.status !== 'accepted') {
+          return send(res, 400, { error: `${item[1]} is accepted on a route, which opens its change: POST /api/ideas/accept`, code: 'accept' }), true
+        }
         send(res, 200, { idea: store.update(item[1], changes ?? {}, { base, by: 'human' }) })
       } catch (e) {
         if (e.code === 'stale') send(res, 409, { error: e.message, idea: store.list().find((i) => i.id === item[1]) })
@@ -73,4 +89,24 @@ export default {
       return true
     }
   },
+}
+
+// The status of a refusal of accept, by its code; a wrong value of a type's rule is 400.
+const REFUSED = { missing: 404, forbidden: 403, bad: 400, stale: 409, state: 409, route: 409 }
+
+// The human accepts an idea on a route: the record store writes the idea and its new change.
+async function accept(store, req, res, url) {
+  if (req.method !== 'POST') return send(res, 405, { error: 'method not allowed' })
+  // Only a JSON request: another web site cannot send one here without the browser asking first.
+  if (!isJson(req)) return send(res, 415, { error: 'send JSON' })
+  const id = url.searchParams.get('id') ?? ''
+  let body
+  try { body = (await readJson(req)) ?? {} } catch (e) { return send(res, 400, { error: e.message }) }
+  const str = (v) => (typeof v === 'string' ? v : undefined)
+  try {
+    send(res, 200, store.accept(id, { route: str(body.route), base: str(body.base), by: 'human' }))
+  } catch (e) {
+    const idea = e.code === 'stale' ? store.list().find((i) => i.id === id) : undefined
+    send(res, REFUSED[e.code] ?? 400, { error: e.message, code: e.code, ...(idea ? { idea } : {}) })
+  }
 }

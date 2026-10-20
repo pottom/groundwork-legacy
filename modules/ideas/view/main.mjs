@@ -16,7 +16,10 @@
 // says its tickets changed ("build.files", "build.issues"). A link with ?idea=I-12 (Build's link from
 // a ticket, or the link on the idea's node on Plan's map) opens that idea in the drawer.
 //
-// Accepting an idea is a change of status only: the change it opens comes with the Changes workspace.
+// A move to Accepted asks for the route (accept.mjs), Grilling or Straight to a ticket, the idea's
+// kind giving the default; accepting opens the change, and the card then links to it (changes.mjs).
+// The board reads again when any record changes (the core's topic "records"), so the card follows
+// its change's stage.
 //
 // A card shows the sketches that link to its idea (the Sketch module's GET /api/sketch/links, topic
 // "sketch.links"), each opening that sketch.
@@ -25,12 +28,14 @@ import { html, render } from '/vendor/lit-html/lit-html.js'
 import { subscribe } from '/shell/live.mjs'
 import { createToasts } from '/shell/toasts.mjs'
 import { i18n, ui } from './strings.mjs'
-import { listIdeas, saveIdea, ideaTickets, sketchLinks } from './api.mjs'
+import { listIdeas, saveIdea, acceptIdea, ideaTickets, sketchLinks } from './api.mjs'
 import { board } from './board.mjs'
 import { matrix } from './matrix.mjs'
 import { estimateFor } from '../matrix.mjs'
 import { drawer, valuesOf, changesOf } from './drawer.mjs'
 import { rejectForm } from './reject.mjs'
+import { acceptForm } from './accept.mjs'
+import { routeFor } from '../fields.mjs'
 import { copyText } from './tickets.mjs'
 import { ticketPrompt } from '../ticket.mjs'
 
@@ -45,6 +50,7 @@ const state = { ideas: null, error: null, fresh: new Set(), menu: null, over: nu
   view: VIEWS.includes(recallView()) ? recallView() : 'kanban' }
 let draft = null    // the idea open in the drawer: { idea, values, saving, error }
 let ask = null      // the reason a move to Rejected asks for: { idea, reason, error }
+let accepting = null   // the route a move to Accepted asks for: { idea, route, saving, error }
 let known = null    // the ids seen so far; null before the first read
 let freshTimer
 let wanted = new URLSearchParams(location.search).get('idea')   // the idea a link asks to open, once
@@ -53,6 +59,7 @@ function draw() {
   render(page(), $('board'))
   render(drawer(draft, drawerActs), $('drawer'))
   render(rejectForm(ask, rejectActs), $('reject'))
+  render(acceptForm(accepting, acceptActs), $('accept'))
 }
 
 // The board or the matrix, under the switch between them (shown once there are ideas to switch over).
@@ -125,6 +132,12 @@ async function move(idea, status) {
     $('reject').showModal()
     return
   }
+  if (status === 'accepted') {
+    accepting = { idea, route: routeFor(idea), saving: false, error: null }
+    draw()
+    $('accept').showModal()
+    return
+  }
   if (ASKS_IN_DRAWER.includes(status)) return openDrawer(idea, { status })
   answered(await saveIdea(idea, { status }), () => {})
   document.querySelector(`[data-idea="${idea.id}"] .idea__move`)?.focus()
@@ -191,9 +204,29 @@ const rejectActs = {
   cancel() { $('reject').close() },
 }
 
+const acceptActs = {
+  route(route) { accepting = { ...accepting, route, error: null }; draw() },
+  async confirm() {
+    accepting = { ...accepting, saving: true, error: null }
+    draw()
+    const r = await acceptIdea(accepting.idea, accepting.route)
+    if (r.ok) {
+      put(r.idea)
+      toast(ui('toast.accepted', { id: r.idea.id, change: r.change.id }))
+      $('accept').close()
+    } else if (r.stale) {
+      put(r.idea)
+      accepting = { ...accepting, idea: r.idea, saving: false, error: ui('drawer.stale') }
+    } else accepting = { ...accepting, saving: false, error: r.error }
+    draw()
+  },
+  cancel() { $('accept').close() },
+}
+
 // A closed dialog forgets its content (Escape closes it too).
 $('drawer').addEventListener('close', () => { draft = null; draw() })
 $('reject').addEventListener('close', () => { ask = null; draw() })
+$('accept').addEventListener('close', () => { accepting = null; draw() })
 // A click outside an open move menu closes it.
 document.addEventListener('click', (e) => {
   if (state.menu && !e.target.closest('.move-menu, .idea__move')) { state.menu = null; draw() }
@@ -204,7 +237,7 @@ i18n.onChange(() => { document.documentElement.lang = i18n.lang; draw() })
 subscribe({
   onHello: () => { read(); readTickets(); readSketches() },
   onChange: (topics) => {
-    if (topics.includes('ideas.items')) read()
+    if (topics.includes('ideas.items') || topics.includes('records')) read()
     if (topics.includes('build.files') || topics.includes('build.issues')) readTickets()
     if (topics.includes('sketch.links')) readSketches()
   },

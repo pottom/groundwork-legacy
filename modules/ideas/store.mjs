@@ -7,8 +7,10 @@
 //   const ideas = openIdeas(records)   // records: the core's store (api({ records }), or openRecords)
 //   ideas.list()          [{ id: 'I-12', n: 12, file, version, title, body, author, source, kind, status,
 //                            created, impact?, effort?, rationale?, reason?, until?, duplicate?,
-//                            links: ['I-3', '#42'], history: ['2026-10-20 · human · created'] }]
-//                         in number order; [] without the folder
+//                            links: ['I-3', '#42'], history: ['2026-10-20 · human · created'],
+//                            changes: [{ id: 'C-7', title, status }] }]
+//                         in number order; [] without the folder. changes: the changes that name the
+//                         idea (opened when it was accepted), computed; [] without the Changes module
 //   ideas.add({ title, body?, author?, source?, kind?, impact?, effort?, rationale?, links? }, { by? })
 //                         the new idea, as list() gives it. impact and effort: low|medium|high, with a
 //                         one-line rationale; links: numbers of existing ideas it is similar to.
@@ -18,7 +20,12 @@
 //                         it needs (Rejected a reason, Snoozed until a date, Duplicate an existing idea),
 //                         on an unknown id (code 'missing'), on a move Claude may not make (code
 //                         'forbidden') and, when `base` is not the file's current `version`, without
-//                         writing (code 'stale'): someone else saved in between
+//                         writing (code 'stale'): someone else saved in between. The board accepts
+//                         through accept, below (the endpoint refuses a move to Accepted)
+//   ideas.accept(id, { route, base?, by? })
+//                         { route, idea, change: { id, title, status } }: the idea accepted and the
+//                         change it opens, by the core's record store (store.accept, all or nothing,
+//                         the human only; core/records/accept.mjs); route: grilling | ticket (ROUTES)
 //
 // by: 'human' (the browser) or 'claude' (the command line, and the default). Claude moves an idea
 // only between New and Considering (CLI_STATUSES, d-ideas-ai-limits); the store refuses the rest.
@@ -32,6 +39,9 @@ const EDITABLE = ['title', 'source', 'kind', 'impact', 'effort', 'rationale', 'l
 const LINES = ['title', 'source', 'rationale', 'reason', 'impact', 'effort', 'until', 'duplicate']
 // A value as one line: whitespace and line breaks collapse to single spaces.
 const line = (s) => String(s ?? '').replace(/\s+/g, ' ').trim()
+
+// A change as an idea's card shows it.
+const changeOf = (c) => ({ id: c.id, title: c.fields.title ?? '', status: c.fields.status ?? '' })
 
 function check(name, v, allowed) {
   if (!allowed.includes(v)) throw new Error(`${name} must be one of ${allowed.join(', ')}, not ${v}`)
@@ -85,7 +95,18 @@ export function openIdeas(records) {
     links: r.fields.links ?? [], body: r.body, history: r.history,
   })
 
-  const list = () => records.list('I').map(toIdea)
+  // The changes that name each idea, from the change records (none without the Changes module).
+  const changesById = () => {
+    const by = new Map()
+    for (const c of records.list('C')) for (const i of [c.fields.ideas ?? []].flat()) {
+      by.set(i, [...(by.get(i) ?? []), changeOf(c)])
+    }
+    return by
+  }
+  const list = () => {
+    const changes = changesById()
+    return records.list('I').map((r) => ({ ...toIdea(r), changes: changes.get(r.id) ?? [] }))
+  }
 
   function update(id, changes = {}, { base, by } = {}) {
     if (!/^I-\d+$/.test(String(id))) throw Object.assign(new Error(`no idea ${id}`), { code: 'missing' })
@@ -93,7 +114,8 @@ export function openIdeas(records) {
     for (const k of EDITABLE) if (changes[k] !== undefined) fields[k] = changes[k] ?? ''
     const body = changes.body !== undefined ? String(changes.body ?? '') : undefined
     try {
-      return toIdea(records.update(id, { fields, body }, { base, by }))
+      const saved = toIdea(records.update(id, { fields, body }, { base, by }))
+      return { ...saved, changes: changesById().get(id) ?? [] }
     } catch (e) {
       if (e.code === 'missing') e.message = `no idea ${id}`
       throw e
@@ -108,5 +130,10 @@ export function openIdeas(records) {
     return toIdea(records.create('I', { fields, body: String(body ?? '') }, { by }))
   }
 
-  return { list, add, update }
+  function accept(id, { route, base, by } = {}) {
+    const out = records.accept(id, { route, base, by })
+    return { route: out.route, idea: { ...toIdea(out.idea), changes: changesById().get(id) ?? [] }, change: changeOf(out.change) }
+  }
+
+  return { list, add, update, accept }
 }

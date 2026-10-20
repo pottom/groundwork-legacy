@@ -157,3 +157,45 @@ test('a card shows the sketches that link to its idea (Sketch\'s public GET /api
 test('a link to an idea (/?module=ideas&idea=I-12, a sketch\'s or a map node\'s) opens it in the drawer', () => {
   assert.match(read('view/main.mjs'), /new URLSearchParams\(location\.search\)\.get\('idea'\)/)
 })
+
+test('a move to Accepted asks the route, Grilling or Straight to a ticket, defaulted by the idea\'s kind, and accepts through POST /api/ideas/accept', () => {
+  const main = read('view/main.mjs')
+  assert.match(main, /status === 'accepted'[\s\S]{0,120}route: routeFor\(idea\)/, 'the move opens the route question, with the default')
+  assert.match(main, /\$\('accept'\)\.showModal\(\)/)
+  assert.match(read('index.html'), /<dialog id="accept" aria-labelledby="accept-title">/)
+  const accept = read('view/accept.mjs')
+  assert.match(accept, /ROUTES\.map\(/)
+  assert.match(accept, /aria-pressed=/)
+  assert.match(accept, /ask\.error/, 'the server\'s refusal shows in the dialog')
+  const api = read('view/api.mjs')
+  assert.match(api, /`\/api\/ideas\/accept\?id=\$\{[^}]+\}`/)
+  assert.match(api, /method: 'POST'/)
+  assert.match(api, /JSON\.stringify\(\{ route, base: idea\.version \}\)/)
+  assert.match(read('view/drawer.mjs'), /s !== 'accepted' \|\| idea\.status === 'accepted'/, 'the drawer does not accept by a change of status')
+})
+
+test('the route\'s default follows the kind: product → Grilling, engineering → Straight to a ticket', async () => {
+  const { ROUTES, routeFor } = await import('./fields.mjs')
+  assert.deepEqual(ROUTES, ['grilling', 'ticket'])
+  assert.equal(routeFor({ kind: 'product' }), 'grilling')
+  assert.equal(routeFor({ kind: 'engineering' }), 'ticket')
+  assert.equal(routeFor({}), 'grilling')
+  const { ROUTES: CORE_ROUTES } = await import('../../core/records/accept.mjs')
+  assert.deepEqual(ROUTES, CORE_ROUTES, 'the page offers the routes the core takes')
+})
+
+test('a card shows the changes its idea opened, → C-n · <stage>, linking to the change\'s page in the shell', () => {
+  const board = read('view/board.mjs')
+  assert.match(board, /\$\{changePart\(idea\)\}/)
+  const part = read('view/changes.mjs')
+  assert.match(part, /recordHref\(\{ id: c\.id, name: 'change', module: 'changes' \}\)/, '/?module=changes&change=C-n')
+  assert.match(part, /target="_top"/)
+  assert.match(part, /ui\(`change\.\$\{c\.status\}`\)/)
+  assert.match(read('view/main.mjs'), /topics\.includes\('records'\)/, 'the card follows its change live')
+})
+
+test('every stage of a change has a label on the card', async () => {
+  const { CHANGE_TYPE } = await import('../changes/type.mjs')
+  const { UI_STRINGS } = await import('./ui-strings.mjs')
+  for (const s of CHANGE_TYPE.lifecycle.states) assert.ok(UI_STRINGS.en[`change.${s}`] && UI_STRINGS.hu[`change.${s}`], s)
+})

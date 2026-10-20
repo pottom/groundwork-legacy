@@ -18,8 +18,10 @@
 //                                       changes), outline (what the type reads from the body, a change's
 //                                       proposed items), html (the body, rendered without raw HTML);
 //                                       null when there is none
-//   store.create(prefix, { fields, body? }, { by? })      the new record (without a body, the type's
-//                                                         template's, if it has one)
+//   store.create(prefix, { fields, body? }, { by?, event?, dry? })   the new record (without a body,
+//                                       the type's template's, if it has one; body may be a function
+//                                       of the new id); event: the history line's text instead of
+//                                       'created'; dry: every check, nothing written
 //   store.update(id, { fields?, body? }, { by?, base?, event?, dry? })  the record as written; event:
 //                                       a history line's own text, before the lifecycle's ('merged');
 //                                       dry: every check, nothing written (the record it would write)
@@ -41,11 +43,15 @@
 //                                       sections, then those the pending changes propose (move.mjs)
 //   store.move(id, { item, target, by?, base? })   moves a proposed item of change C-n to another
 //                                       target, written into the change's file (move.mjs)
+//   store.accept(id, { route, by?, base? })   accepts idea I-n: its status and the change it opens,
+//                                       written together, all or nothing, as the human only
+//                                       (accept.mjs); { route, idea, change }
 //   store.forModule(manifest)           the store as a module gets it: reads are global, writes
 //                                       only the record types its manifest declares, and the Spec
 //                                       only when its `writes` cover docs/product/spec/ (code
 //                                       'forbidden' otherwise); merge only for the module that
-//                                       declares the changes and may write the Spec
+//                                       declares the changes and may write the Spec, accept only
+//                                       for the one that declares the ideas
 //
 // by is 'human' (the browser) or 'claude' (the command line), and is 'claude' when not given. On
 // every write the store enforces the type's lifecycle: Claude moves a record only between the
@@ -75,6 +81,7 @@ import { openSpec } from './spec-store.mjs'
 import { resolver } from './resolve.mjs'
 import { mergeChange, isMerged, waitsOf } from './merge.mjs'
 import { moveItem, targetsOf } from './move.mjs'
+import { acceptIdea } from './accept.mjs'
 import { SPEC_DIR } from './spec-format.mjs'
 
 /** @typedef {import('./types.mjs').RecordType} RecordType */
@@ -254,10 +261,10 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
 
   /**
    * @param {string} prefix
-   * @param {{ fields?: Fields, body?: string }} input
-   * @param {{ by?: Actor }} [opts]
+   * @param {{ fields?: Fields, body?: string | ((id: string) => string) }} input  body: or made from the new id
+   * @param {{ by?: Actor, event?: string, dry?: boolean }} [opts]
    */
-  function create(prefix, { fields = {}, body = '' } = {}, { by = 'claude' } = {}) {
+  function create(prefix, { fields = {}, body = '' } = {}, { by = 'claude', event: eventText, dry = false } = {}) {
     const t = typeOf(prefix)
     if (!t) throw fail(`no record type ${prefix}`, 'missing')
     const next = check(t, { ...fields, [t.lifecycle.field]: fields[t.lifecycle.field] || t.lifecycle.initial }, null, null, by)
@@ -267,8 +274,10 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     while (fs.existsSync(path.join(root, t.folder, fileName(t.prefix, n, slug)))) n++
     const rel = `${t.folder}/${fileName(t.prefix, n, slug)}`
     const id = `${t.prefix}-${n}`
-    const text = String(body ?? '').trim() || (t.template ? t.template(id) : '')
-    const rec = save(t, rel, { id, fields: next, body: text, history: [`${today()} · ${by} · created`] })
+    const text = String((typeof body === 'function' ? body(id) : body) ?? '').trim() || (t.template ? t.template(id) : '')
+    const history = [`${today()} · ${by} · ${eventText || 'created'}`]
+    if (dry) return { id, type: t.prefix, n, file: rel, version: '', fields: next, body: text, history }
+    const rec = save(t, rel, { id, fields: next, body: text, history })
     const after = scan()
     after.cache.last[t.prefix] = Math.max(after.cache.last[t.prefix] ?? 0, n)
     after.cache.git = { ...after.cache.git, [t.prefix]: true }
@@ -357,6 +366,8 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
     targets: () => targetsOf(self),
     /** @param {string} id @param {{ item?: string, target?: string, by?: Actor, base?: string }} opts */
     move: (id, opts) => moveItem(self, id, opts),
+    /** @param {string} id @param {{ route?: string, by?: Actor, base?: string }} [opts] */
+    accept: (id, opts) => acceptIdea({ ...self, discard: (rec) => files.remove(rec.file) }, id, opts),
   }
 
   // What one module gets: every read, and writes of the record types it declares only; the Spec
@@ -378,6 +389,8 @@ export function openRecords(root, modules, { today = () => new Date().toISOStrin
       merge: (id, opts) => (writesSpec && own.has('C') ? self.merge(id, opts) : deny(`the Spec from change ${id}`)),
       /** @type {typeof self.move} */
       move: (id, opts) => (own.has('C') ? self.move(id, opts) : deny(String(id))),
+      /** @type {typeof self.accept} */
+      accept: (id, opts) => (own.has('I') ? self.accept(id, opts) : deny(`idea ${id} as accepted`)),
     }
   }
   return self
